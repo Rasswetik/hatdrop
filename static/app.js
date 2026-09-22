@@ -1,6 +1,6 @@
-/* ===========================================================
+/* ============================================================
    Magic Upgrade — клиент мини-аппы.
-   Исход прокрутки решает сервер; здесьтолько анимация и UI.
+   Исход прокрутки решает сервер; здесь только анимация и UI.
    ============================================================ */
 (() => {
 'use strict';
@@ -39,16 +39,25 @@ function haptic(type = 'impact', style = 'medium') {
 
 /* ---------------------------------------------------------------- API */
 async function api(path, body = {}) {
-  const res = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ initData: tg?.initData || '', ...body }),
-  });
+  let res;
+  try {
+    res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: tg?.initData || '', ...body }),
+    });
+  } catch (e) {
+    // fetch сам кинул исключение — сети нет вообще (не путать с тем, что
+    // сервер ответил с ошибкой: то отдельный случай ниже).
+    const err = new Error('network');
+    err.code = 'network';
+    throw err;
+  }
   let data = null;
   try { data = await res.json(); } catch {}
   if (!res.ok) {
     const err = new Error(data?.error || `HTTP ${res.status}`);
-    err.code = data?.error;
+    err.code = data?.error || `http_${res.status}`;
     throw err;
   }
   return data;
@@ -195,6 +204,17 @@ function renderState(s) {
 
   $('profileName').textContent = s.user.username ? `@${s.user.username}` : (s.user.first_name || 'Игрок');
   $('profileWallet').textContent = s.user.wallet ? shortAddr(s.user.wallet) : 'Кошелёк не подключён';
+
+  const avImg = $('avatarImg');
+  const avIcon = $('avatarIcon');
+  if (s.user.photo_url) {
+    avImg.src = s.user.photo_url;
+    avImg.hidden = false;
+    avIcon.hidden = true;
+  } else {
+    avImg.hidden = true;
+    avIcon.hidden = false;
+  }
   $('walletBtnText').textContent = s.user.bonus_claimed ? 'Получено +10' : 'Получить +10';
 
   $('depAddress').textContent = s.deposit.address || 'не настроен';
@@ -302,13 +322,17 @@ function renderPrizes(prizes) {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
     const img = document.createElement('img');
-    img.src = 'assets/hat.png';
-    img.alt = p.name;
+    // Раньше путь был 'assets/hat.png' — такого файла не существует
+    // (картинки лежат в /static/img/), поэтому иконка приза не грузилась.
+    img.src = '/static/img/hat.png';
+    img.alt = p.item_name;
     thumb.appendChild(img);
 
     const pv = document.createElement('div');
     pv.className = 'pv';
-    pv.textContent = `${fmt(p.value_ton, 2)} TON`;
+    // Бэкенд отдаёт поле item_price (см. /api/state), а не value_ton —
+    // из-за несовпадения имён тут всегда показывалось "NaN TON".
+    pv.textContent = `${fmt(p.item_price, 2)} TON`;
 
     const btn = document.createElement('button');
     btn.className = 'wd-btn';
@@ -330,6 +354,7 @@ function renderPrizes(prizes) {
 function showView(name) {
   $('view-upgrade').hidden = name !== 'upgrade';
   $('view-profile').hidden = name !== 'profile';
+  $('view-leaders').hidden = name !== 'leaders';
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === name));
   document.querySelector('.content').scrollTop = 0;
 }
@@ -547,7 +572,11 @@ async function refresh() {
   try {
     s = await api('/api/state');
   } catch (e) {
-    toast(e.message === 'HTTP 401' ? 'Откройте приложение через бота' : 'Нет связи с сервером', true);
+    console.error('Ошибка /api/state:', e);
+    const msg = e.code === 'network'
+      ? 'Нет связи с сервером'
+      : `Ошибка сервера (${e.code || e.message})`;
+    toast(msg, true);
     return;
   }
   try {
