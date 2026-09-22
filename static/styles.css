@@ -553,6 +553,119 @@ button, input { font-family: inherit; font-weight: 400; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
+/* ---------------------------------------------------------------- лидеры */
+.lb-countdown {
+  margin: 0 0 14px;
+  font-size: 9px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.8;
+}
+.lb-countdown[hidden] { display: none; }
+.lb-countdown b { color: var(--gold); font-weight: 400; }
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+.podium[hidden] { display: none; }
+
+.podium-slot {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.podium-avatar {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  font-size: 22px;
+  color: var(--violet-soft);
+  background: var(--violet-dark);
+  border: 2px solid var(--card-line);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.podium-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.podium-slot.p1 .podium-avatar {
+  width: 52px; height: 52px;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px var(--sky-0), 0 0 12px rgba(255, 192, 67, .55);
+}
+
+.podium-name {
+  max-width: 100%;
+  font-size: 8px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.podium-turnover { font-size: 9px; color: var(--gold); line-height: 1; }
+
+.podium-stand {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4);
+}
+.podium-stand b { font-size: 18px; font-weight: 400; color: var(--gold); }
+.podium-slot.p1 .podium-stand { height: 74px; border-color: var(--gold-dark); }
+.podium-slot.p2 .podium-stand { height: 54px; }
+.podium-slot.p3 .podium-stand { height: 40px; }
+.podium-slot.empty-slot .podium-name,
+.podium-slot.empty-slot .podium-turnover { color: var(--muted); }
+
+.lb-list { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+.lb-rank {
+  flex: 0 0 auto;
+  width: 20px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+.lb-avatar {
+  width: 30px; height: 30px;
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-size: 16px;
+  color: var(--violet-soft);
+  background: var(--violet-dark);
+  border: 2px solid var(--card-line);
+  overflow: hidden;
+}
+.lb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.lb-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.lb-name {
+  font-size: 10px; color: var(--text); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lb-turnover { font-size: 9px; color: var(--gold); line-height: 1; }
+.lb-prize {
+  flex: 0 0 auto;
+  font-size: 8px;
+  color: var(--muted);
+  text-align: right;
+  max-width: 64px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* --------------------------------------------------------------- таббар */
 .tabbar {
   flex: 0 0 auto;

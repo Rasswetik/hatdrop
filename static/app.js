@@ -211,6 +211,7 @@ function renderState(s) {
     avImg.src = s.user.photo_url;
     avImg.hidden = false;
     avIcon.hidden = true;
+    avImg.onerror = () => { avImg.hidden = true; avIcon.hidden = false; };
   } else {
     avImg.hidden = true;
     avIcon.hidden = false;
@@ -222,6 +223,7 @@ function renderState(s) {
 
   renderPrizes(s.prizes);
   if (s.referral) renderReferral(s.referral);
+  renderLeaders(s.leaders);
   updateSpinButton();
 }
 
@@ -251,6 +253,117 @@ function renderReferral(ref) {
     hint.textContent = `Вывод от ${fmt(ref.min_withdraw_ton, 2)} TON`;
     hint.classList.remove('pending');
   }
+}
+
+/* ------------------------------------------------------------- лидеры */
+function svgIcon(symbolId) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'ic');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', `#${symbolId}`);
+  svg.appendChild(use);
+  return svg;
+}
+
+let lbEndTs = 0;
+function tickLeaderTimer() {
+  const el = $('lbTimer');
+  if (!el || !lbEndTs) return;
+  const diff = Math.max(0, lbEndTs - Math.floor(Date.now() / 1000));
+  const d = Math.floor(diff / 86400);
+  const h = Math.floor((diff % 86400) / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  el.textContent = d > 0 ? `${d}д ${h}ч ${m}м` : `${h}ч ${m}м`;
+}
+
+function fillPodiumSlot(el, entry) {
+  el.classList.toggle('empty-slot', !entry);
+  const img = el.querySelector('.podium-avatar img');
+  const icon = el.querySelector('.podium-avatar svg');
+  const nameEl = el.querySelector('.podium-name');
+  const turnoverEl = el.querySelector('.podium-turnover');
+
+  if (!entry) {
+    nameEl.textContent = '—';
+    turnoverEl.textContent = '—';
+    img.hidden = true;
+    icon.hidden = false;
+    return;
+  }
+
+  nameEl.textContent = entry.username ? `@${entry.username}` : (entry.first_name || 'Игрок');
+  turnoverEl.textContent = `${fmt(entry.turnover_ton, 2)} TON`;
+  if (entry.avatar_url) {
+    img.src = entry.avatar_url;
+    img.hidden = false;
+    icon.hidden = true;
+    img.onerror = () => { img.hidden = true; icon.hidden = false; };
+  } else {
+    img.hidden = true;
+    icon.hidden = false;
+  }
+}
+
+function renderLeaders(leaders) {
+  const entries = leaders?.entries || [];
+  const hasLeaders = entries.length > 0;
+
+  $('lbEmpty').hidden = hasLeaders;
+  $('lbCountdown').hidden = !hasLeaders;
+  $('podium').hidden = !hasLeaders;
+
+  if (!hasLeaders) {
+    $('lbList').innerHTML = '';
+    lbEndTs = 0;
+    return;
+  }
+
+  lbEndTs = leaders.period_ends_at || 0;
+  tickLeaderTimer();
+
+  fillPodiumSlot($('slot-1'), entries[0] || null);
+  fillPodiumSlot($('slot-2'), entries[1] || null);
+  fillPodiumSlot($('slot-3'), entries[2] || null);
+
+  const list = $('lbList');
+  list.innerHTML = '';
+  entries.slice(3).forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+
+    const rank = document.createElement('div');
+    rank.className = 'lb-rank';
+    rank.textContent = `#${i + 4}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'lb-avatar';
+    if (entry.avatar_url) {
+      const img = document.createElement('img');
+      img.src = entry.avatar_url;
+      img.alt = '';
+      img.onerror = () => { img.remove(); avatar.appendChild(svgIcon('ic-profile')); };
+      avatar.appendChild(img);
+    } else {
+      avatar.appendChild(svgIcon('ic-profile'));
+    }
+
+    const info = document.createElement('div');
+    info.className = 'lb-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'lb-name';
+    nameEl.textContent = entry.username ? `@${entry.username}` : (entry.first_name || 'Игрок');
+    const turnoverEl = document.createElement('div');
+    turnoverEl.className = 'lb-turnover';
+    turnoverEl.textContent = `${fmt(entry.turnover_ton, 2)} TON`;
+    info.append(nameEl, turnoverEl);
+
+    const prize = document.createElement('div');
+    prize.className = 'lb-prize';
+    prize.textContent = '—';
+
+    row.append(rank, avatar, info, prize);
+    list.appendChild(row);
+  });
 }
 
 async function createReferral() {
@@ -641,5 +754,6 @@ bind();
 initTonConnect();
 refresh();
 setInterval(() => { if (!spinning) refresh(); }, 20000);
+setInterval(tickLeaderTimer, 30000);
 
 })();
