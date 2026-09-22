@@ -1,75 +1,32 @@
-{% extends "base.html" %}
-
-{% block title %}Профиль{% endblock %}
-
-{% block content %}
-<section class="profile-page">
-    <h1 class="page-title">ПРОФИЛЬ</h1>
-
-    <section class="profile-card">
-        <div class="avatar-wrap">
-            <img id="profileAvatar" src="" alt="Аватар" hidden>
-            <div id="avatarFallback" class="avatar-fallback">♟</div>
-        </div>
-        <div class="profile-info">
-            <div class="profile-name" id="profileName">Загрузка...</div>
-            <div class="profile-status" id="profileStatus">Кошелёк не подключён</div>
-        </div>
-    </section>
-
-    <section class="prize-card">
-        <div class="big-number">0</div>
-        <div class="card-caption">призов</div>
-    </section>
-
-    <section class="referral-block">
-        <h2>Рефералы</h2>
-        <p>Получай <span class="green">2%</span> с каждого депозита<br>друзей!</p>
-
-        <div class="ref-link" id="refLink">https://t.me/your_bot?start=ref_525272756</div>
-        <button class="copy-btn" id="copyRef" type="button">Копировать</button>
-
-        <div class="stats-row">
-            <div class="stat">
-                <strong>0</strong>
-                <span>рефералов</span>
-            </div>
-            <div class="stat">
-                <strong>0</strong>
-                <span>заработано TON</span>
-            </div>
-        </div>
-
-        <div class="available">
-            <span>Доступно</span>
-            <strong>0 TON</strong>
-        </div>
-
-        <button class="wide-btn disabled" type="button" disabled>Вывести</button>
-    </section>
-</section>
-{% endblock %}
-
-{% block scripts %}
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Профиль</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0;background:#090727;color:#f2edff;font-family:'Press Start 2P',monospace}.wrap{max-width:430px;margin:auto;padding:18px 12px 90px}.title{text-align:center;color:#ffbe3d;font-size:22px;margin:0 0 18px}.card{border:2px solid #6841c9;background:#120d3a;padding:12px;margin-bottom:10px}.profile{display:flex;gap:12px;align-items:center}.avatar{width:52px;height:52px;object-fit:cover;border:2px solid #7443d1}.name{font-size:12px}.muted{font-size:8px;color:#aaa4ca;margin-top:7px}.ref{word-break:break-all;border:2px solid #5633aa;padding:9px;font-family:monospace;font-size:9px}.btn{width:100%;height:40px;margin-top:7px;background:#ffbe3d;border:2px solid #9a5d0c;font:inherit;font-size:9px}.stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px}.stat{border:2px solid #5633aa;padding:12px;text-align:center}.gold{color:#ffbe3d;font-size:12px}.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(430px,100%);height:64px;background:#080521;border-top:2px solid #2b195c;display:grid;grid-template-columns:1fr 1fr}.nav a{display:flex;align-items:center;justify-content:center;color:#9c96ba;text-decoration:none;font-size:8px}.nav .active{background:#5324b8;color:#ffbe3d}
+</style>
+</head>
+<body><main class="wrap">
+<h1 class="title">ПРОФИЛЬ</h1>
+<section class="card profile"><img id="avatar" class="avatar" src="" alt=""><div><div id="name" class="name">Загрузка...</div><div class="muted">TON баланс: <span id="bal">0</span></div></div></section>
+<section class="card"><div class="gold">РЕФЕРАЛЬНАЯ СИСТЕМА</div><p class="muted">Получай 2% от подтверждённых пополнений приглашённых пользователей.</p><div id="link" class="ref">Загрузка...</div><button class="btn" id="copy">КОПИРОВАТЬ ССЫЛКУ</button>
+<div class="stats"><div class="stat"><div id="refs" class="gold">0</div><div class="muted">рефералов</div></div><div class="stat"><div id="earn" class="gold">0</div><div class="muted">заработано TON</div></div></div></section>
+<section class="card"><div class="gold">ИНВЕНТАРЬ</div><div class="muted">Подарки, выигранные через апгрейд, сохраняются в SQLite.</div></section>
+</main>
+<nav class="nav"><a href="/">АПГРЕЙД</a><a href="/profile" class="active">ПРОФИЛЬ</a></nav>
 <script>
-    window.addEventListener("DOMContentLoaded", () => {
-        window.TelegramProfile.init();
-        document.getElementById("copyRef").addEventListener("click", async () => {
-            const text = document.getElementById("refLink").textContent.trim();
-            try {
-                await navigator.clipboard.writeText(text);
-                const btn = document.getElementById("copyRef");
-                const old = btn.textContent;
-                btn.textContent = "Скопировано";
-                setTimeout(() => btn.textContent = old, 1200);
-            } catch (e) {
-                const range = document.createRange();
-                range.selectNodeContents(document.getElementById("refLink"));
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }
-        });
-    });
-</script>
-{% endblock %}
+(async()=>{
+ const tg=window.Telegram?.WebApp;if(tg){tg.ready();tg.expand();}
+ const u=tg?.initDataUnsafe?.user||{id:1,username:"test_user",first_name:"Test",start_param:""};
+ const headers={"Content-Type":"application/json"};if(tg?.initData)headers["X-Telegram-Init-Data"]=tg.initData;
+ const r=await fetch("/api/state",{headers});const s=await r.json();const x=s.user;
+ document.getElementById("name").textContent=x.username?"@"+x.username:(x.first_name||"Пользователь");
+ document.getElementById("bal").textContent=x.balance.toFixed(2);document.getElementById("refs").textContent=x.referrals;
+ document.getElementById("earn").textContent=x.referral_earnings.toFixed(2);document.getElementById("link").textContent=x.referral_link;
+ if(x.photo_url)document.getElementById("avatar").src=x.photo_url;
+ document.getElementById("copy").onclick=async()=>{await navigator.clipboard.writeText(x.referral_link);document.getElementById("copy").textContent="СКОПИРОВАНО";setTimeout(()=>document.getElementById("copy").textContent="КОПИРОВАТЬ ССЫЛКУ",1200)};
+})();
+</script></body></html>
