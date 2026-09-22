@@ -1,26 +1,13 @@
-# Telegram Mini App — Flask
+# Magic Upgrade
 
-## Что изменено
-- SQLite (`data.sqlite3`) для пользователей, балансов, рефералов, апгрейдов и инвентаря.
-- Первый пользователь при первом входе получает 50 TON для теста.
-- Шляпа: `static/img/hat.png`, цена 7 TON.
-- Значок TON: `static/img/ton.svg`.
-- Вероятность 10–50%; цена считается как 7 TON × вероятность.
-- Результат апгрейда рассчитывается на сервере, а клиент показывает анимацию.
-- При выигрыше шляпа добавляется в инвентарь.
-- Реферальная ссылка сохраняется для пользователя; 2% от подтверждённого пополнения начисляется пригласившему.
-- Для теста есть POST `/api/deposit`; в продакшене его нужно заменить на реальную проверку платежа.
-- CSS и JavaScript страницы апгрейда находятся прямо в `templates/index.html`, без отдельных CSS/JS файлов.
+Flask backend + original Magic Upgrade HTML/CSS/JS source integrated into the app.
 
-## Настройки
-Переменные окружения:
-- `BOT_TOKEN` — токен Telegram-бота. При наличии сервер валидирует Telegram initData.
-- `BOT_USERNAME` — username бота без `@`, используется для реферальной ссылки.
-- `DB_PATH` — путь к SQLite. Для Render укажи путь на Persistent Disk, например `/var/data/data.sqlite3`.
+## Run
 
-## Запуск
 `pip install -r requirements.txt`
+
 `python app.py`
 
-Для Gunicorn:
-`gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120`
+For Render, use the start command: `gunicorn app:app`.
+
+Optional environment variables: `BOT_TOKEN`, `BOT_USERNAME`, `DB_PATH`, `DEPOSIT_ADDRESS`, `DEPOSIT_MEMO`.
