@@ -1,132 +1,235 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#090727">
-<title>Апгрейд</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-:root{--bg:#090727;--panel:rgba(18,13,58,.88);--purple:#6631d8;--purple-light:#8756ee;--gold:#ffbe3d;--green:#22e48a;--text:#f2edff;--muted:#aaa4ca}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:'Press Start 2P',monospace}
-body{background:radial-gradient(circle at 12% 28%,rgba(103,44,213,.22) 0 2px,transparent 3px),radial-gradient(circle at 78% 20%,rgba(255,190,61,.15) 0 1px,transparent 2px),linear-gradient(180deg,#0a082b,#070526);background-size:110px 110px,160px 160px,auto}
-button,a{font:inherit}button{cursor:pointer}.app-shell{width:100%;max-width:430px;min-height:100vh;margin:0 auto;position:relative}
-.topbar{height:70px;padding:16px 12px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:10}
-.balance-pill{height:38px;min-width:104px;padding:0 9px;display:flex;align-items:center;gap:6px;border:2px solid var(--purple-light);background:rgba(18,13,58,.78)}
-.ton-icon{width:19px;height:19px;object-fit:contain}.balance-value{font-size:11px}.balance-currency{font-size:10px;color:#d9d3ee}
-.connect-btn{min-width:150px;height:38px;border:2px solid #9a5d0c;background:var(--gold);color:#271300;box-shadow:inset 0 0 0 2px #ffe178;font-size:10px}
-.page{padding:0 12px 88px}.page-title{margin:0;text-align:center;color:var(--gold);text-shadow:0 3px 0 #5c2a8c;font-size:23px}.prize-line{margin:7px 0 20px;text-align:center;color:var(--muted);font-size:10px}.prize-line span{color:#d7c5ff}
-.wheel{width:174px;height:174px;margin:0 auto 20px;position:relative;transform:rotate(0deg)}
-.wheel-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from -90deg,var(--green) 0deg 90deg,#2a1a64 90deg 360deg);box-shadow:inset 0 0 0 10px #21164f,inset 0 0 0 11px #7452b7,0 0 0 1px #24124f;transition:background .15s}
-.wheel-ring::after{content:"";position:absolute;inset:12px;border-radius:50%;border:1px solid rgba(255,255,255,.12)}
-.wheel-center{position:absolute;width:88px;height:88px;left:43px;top:43px;border-radius:50%;border:2px solid #7244c5;background:radial-gradient(circle,#25135e,#120b3d 75%);display:grid;place-items:center;overflow:hidden;z-index:2}
-.wheel-center img{width:78px;height:78px;object-fit:contain}.arrow{position:absolute;z-index:4;top:-6px;left:72px;width:30px;height:38px;filter:drop-shadow(0 2px 0 #4e2b05)}
-.arrow:before{content:"";position:absolute;left:7px;top:0;width:16px;height:27px;background:var(--gold);border:2px solid #6f4307;clip-path:polygon(50% 0,100% 42%,70% 42%,70% 100%,30% 100%,30% 42%,0 42%)}
-.upgrade-card{border:2px solid #6841c9;background:var(--panel);padding:9px 13px 12px}.upgrade-card-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px}.green{color:var(--green)}
-.slider-track{height:10px;border:2px solid #7040c4;background:#100a32;position:relative}.slider-fill{height:100%;background:#7130d5;transition:width .15s}.slider-input{width:100%;margin:12px 0 0;accent-color:var(--gold)}
-.slider-labels{display:flex;justify-content:space-between;margin-top:10px;color:#8e88ae;font-size:9px;text-align:center}.slider-labels span{display:flex;flex-direction:column;gap:5px}.slider-labels .selected{color:var(--gold)}
-.wide-btn{width:100%;min-height:44px;margin-top:9px;border:2px solid #7551bd;background:#5c3bb1;color:#fff;font-size:10px}.wide-btn:disabled{opacity:.4;cursor:not-allowed}
-.inventory{margin-top:12px;border:2px solid #6841c9;background:var(--panel);padding:10px}.inventory h2{font-size:12px;color:var(--gold);margin:0 0 8px}.gift{display:flex;align-items:center;gap:10px;border:2px solid #5633aa;padding:8px;margin-top:6px}.gift img{width:48px;height:48px;object-fit:contain}.gift-name{font-size:9px}.gift-price{font-size:8px;color:var(--muted);margin-top:5px}
-.bottom-nav{position:fixed;z-index:20;bottom:0;left:50%;transform:translateX(-50%);width:min(430px,100%);height:64px;display:grid;grid-template-columns:1fr 1fr;background:rgba(8,5,33,.98);border-top:2px solid #2b195c;padding-bottom:env(safe-area-inset-bottom)}.nav-item{color:#9c96ba;text-decoration:none;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;font-size:8px}.nav-item.active{background:#5324b8;color:var(--gold);border:2px solid #7545cf}
-@media(min-width:700px){.app-shell{min-height:760px;max-width:430px;margin-top:20px;border:1px solid #34206d;box-shadow:0 0 50px rgba(0,0,0,.45)}.bottom-nav{position:absolute}}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Magic Upgrade</title>
+<link rel="icon" href="/static/img/hat.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<script type="text/javascript" <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
-<div class="app-shell">
-<header class="topbar">
-  <div class="balance-pill"><img class="ton-icon" src="/static/img/ton.svg" onerror="this.style.display='none'"><span class="balance-value" id="balance">0</span><span class="balance-currency">TON</span></div>
-  <button class="connect-btn" id="connectBtn">Подключить</button>
-</header>
-<main class="page">
-<h1 class="page-title">АПГРЕЙД</h1>
-<div class="prize-line">приз: <span>Шляпа волшебника — 7 TON</span></div>
 
-<div class="wheel" id="wheel">
-  <div class="wheel-ring" id="wheelRing"></div>
-  <div class="wheel-center"><img src="/static/img/hat.png" alt="Шляпа"></div>
-  <div class="arrow"></div>
+<!-- Пиксельные иконки лежат в одном symbol-спрайте, красятся через currentColor -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-upgrade" viewBox="0 0 16 16">
+    <path d="M7 2h2v2h2v2h2v2h-2v6H5V8H3V6h2V4h2z"/>
+  </symbol>
+  <symbol id="ic-profile" viewBox="0 0 16 16">
+    <path d="M6 2h4v4H6z"/>
+    <path d="M4 8h8v1h1v1h1v4H2v-4h1V9h1z"/>
+  </symbol>
+  <!-- Кошелёк: рамка (вычитаем внутренний прямоугольник) плюс застёжка -->
+  <symbol id="ic-wallet" viewBox="0 0 16 16">
+    <path fill-rule="evenodd" d="M1 4h14v10H1zM3 6h10v6H3zm7 2h4v2h-4z"/>
+  </symbol>
+</svg>
+
+<div class="stage">
+  <div class="bg-sky"></div>
+  <div class="bg-art"></div>
+  <div class="bg-stars" id="stars"></div>
+  <div class="bg-vignette"></div>
+
+  <header class="topbar">
+    <div class="balance" id="balanceChip">
+      <img src="/static/img/ton.svg" alt="" class="ton-ico">
+      <span id="balanceValue">0</span><span class="cur">TON</span>
+    </div>
+    <button class="wallet-btn" id="walletBtn">
+      <svg class="ic"><use href="#ic-wallet"/></svg>
+      <span id="walletBtnText">Подключить</span>
+    </button>
+  </header>
+
+  <main class="content">
+
+    <!-- ================= АПГРЕЙД ================= -->
+    <section class="view" id="view-upgrade">
+      <h1 class="title">АПГРЕЙД</h1>
+      <p class="subtitle">приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
+
+      <div class="wheel-wrap">
+        <div class="wheel-glow"></div>
+        <svg class="wheel" viewBox="0 0 300 300" id="wheel">
+          <defs>
+            <linearGradient id="gradWin" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"  stop-color="#7ef7b0"/>
+              <stop offset="100%" stop-color="#25c46a"/>
+            </linearGradient>
+            <linearGradient id="gradLose" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"  stop-color="#3a2a6b"/>
+              <stop offset="100%" stop-color="#241a4a"/>
+            </linearGradient>
+            <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="5" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <circle cx="150" cy="150" r="132" class="ring-base"/>
+          <circle cx="150" cy="150" r="120" class="ring-arc" id="arcLose"
+                  stroke="url(#gradLose)" transform="rotate(-90 150 150)"/>
+          <circle cx="150" cy="150" r="120" class="ring-arc" id="arcWin"
+                  stroke="url(#gradWin)" transform="rotate(-90 150 150)" filter="url(#softGlow)"/>
+
+          <!-- Пиксельная стрелка: сетка 6px, тёмный контур на 3px шире заливки.
+               Вращается вокруг центра втулки — точки 150,150. -->
+          <g id="pointer" class="pointer" shape-rendering="crispEdges">
+            <g class="ptr-outline">
+              <rect x="144" y="21"  width="12" height="12"/>
+              <rect x="138" y="27"  width="24" height="12"/>
+              <rect x="132" y="33"  width="36" height="12"/>
+              <rect x="126" y="39"  width="48" height="12"/>
+              <rect x="144" y="45"  width="12" height="102"/>
+              <rect x="138" y="138" width="24" height="24"/>
+            </g>
+            <g class="ptr-fill">
+              <rect x="147" y="24"  width="6"  height="6"/>
+              <rect x="141" y="30"  width="18" height="6"/>
+              <rect x="135" y="36"  width="30" height="6"/>
+              <rect x="129" y="42"  width="42" height="6"/>
+              <rect x="147" y="48"  width="6"  height="96"/>
+              <rect x="141" y="141" width="18" height="18"/>
+            </g>
+            <g class="ptr-shine">
+              <rect x="141" y="30"  width="6" height="6"/>
+              <rect x="135" y="36"  width="6" height="6"/>
+              <rect x="129" y="42"  width="6" height="6"/>
+              <rect x="147" y="48"  width="3" height="96"/>
+              <rect x="141" y="141" width="6" height="6"/>
+            </g>
+            <rect class="ptr-dot" x="147" y="147" width="6" height="6"/>
+          </g>
+        </svg>
+
+        <div class="wheel-center">
+          <img src="/static/img/hat.png" alt="Приз" class="hat" id="centerHat">
+        </div>
+      </div>
+
+      <!-- Ползунок режимов: чем дороже ставка, тем выше шанс -->
+      <div class="mode-picker">
+        <div class="mode-head">
+          <span class="mode-cost" id="modeCost">2.5 TON</span>
+          <span class="mode-chance" id="modeChance">25%</span>
+        </div>
+        <input type="range" id="modeSlider" min="0" max="2" step="1" value="1"
+               aria-label="Режим ставки">
+        <div class="mode-marks" id="modeMarks"></div>
+      </div>
+
+      <button class="cta" id="spinBtn">
+        <span id="spinBtnText">Крутить</span>
+      </button>
+      <button class="ghost" id="depositBtn">Пополнить баланс</button>
+    </section>
+
+    <!-- ================= ПРОФИЛЬ ================= -->
+    <section class="view" id="view-profile" hidden>
+      <h1 class="title">ПРОФИЛЬ</h1>
+      <div class="profile-head">
+        <div class="avatar"><svg class="ic"><use href="#ic-profile"/></svg></div>
+        <div class="profile-meta">
+          <div class="pname" id="profileName">—</div>
+          <div class="pwallet" id="profileWallet">Кошелёк не подключён</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat"><b id="statPrizes">0</b><small id="statPrizesLabel">призов</small></div>
+      </div>
+
+      <!-- Реферальная программа -->
+      <div class="ref-card">
+        <div class="ref-title">Рефералы</div>
+        <p class="ref-desc">Получай <b id="refPercent">2%</b> с каждого депозита друзей</p>
+
+        <button class="cta ref-create" id="refCreateBtn">Создать реферальную ссылку</button>
+
+        <div class="ref-link-box" id="refLinkBox" hidden>
+          <div class="ref-link" id="refLink">—</div>
+          <button class="ref-copy" id="refCopyBtn">Копировать</button>
+        </div>
+
+        <div class="ref-stats">
+          <div class="ref-stat"><b id="refCount">0</b><small id="refCountLabel">рефералов</small></div>
+          <div class="ref-stat"><b id="refEarned">0</b><small>заработано TON</small></div>
+        </div>
+
+        <div class="ref-withdraw">
+          <div class="ref-balance">
+            <small>Доступно</small>
+            <b id="refBalance">0 TON</b>
+          </div>
+          <button class="wd-btn ref-wd" id="refWithdrawBtn" disabled>Вывести</button>
+        </div>
+        <p class="ref-hint" id="refHint">Вывод от 1 TON</p>
+      </div>
+
+      <h2 class="section-title">Мои призы</h2>
+      <div class="prize-grid" id="prizeGrid"></div>
+      <p class="empty" id="prizeEmpty">Пока пусто. Крути апгрейд — выбитые шляпы появятся здесь.</p>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="upgrade">
+      <svg class="ic"><use href="#ic-upgrade"/></svg>Апгрейд
+    </button>
+    <button class="tab" data-view="profile">
+      <svg class="ic"><use href="#ic-profile"/></svg>Профиль
+    </button>
+  </nav>
 </div>
 
-<section class="upgrade-card">
- <div class="upgrade-card-top"><strong id="price">1.75 TON</strong><strong class="green" id="probText">25%</strong></div>
- <div class="slider-track"><div class="slider-fill" id="sliderFill"></div></div>
- <input id="probability" class="slider-input" type="range" min="10" max="50" step="5" value="25">
- <div class="slider-labels">
-  <span><b>0.7</b><small>10%</small></span><span class="selected"><b>1.75</b><small>25%</small></span><span><b>3.5</b><small>50%</small></span>
- </div>
-</section>
-
-<button class="wide-btn" id="upgradeBtn">ПОКРУТИТЬ</button>
-<div id="message" style="text-align:center;font-size:8px;color:#aaa4ca;margin-top:9px;min-height:18px"></div>
-
-<section class="inventory">
- <h2>ИНВЕНТАРЬ</h2>
- <div id="inventoryList"></div>
-</section>
-</main>
-<nav class="bottom-nav">
-<a href="/" class="nav-item active"><span>✚</span><span>Апгрейд</span></a>
-<a href="/profile" class="nav-item"><span>♟</span><span>Профиль</span></a>
-</nav>
+<!-- ================= МОДАЛКА ВЫИГРЫША ================= -->
+<div class="modal" id="resultModal" hidden>
+  <div class="modal-card" id="resultCard">
+    <div class="burst" id="burst"></div>
+    <img src="/static/img/hat.png" alt="" class="modal-hat" id="modalHat">
+    <h2 id="resultTitle">Поздравляем!</h2>
+    <p id="resultText">Приз уже в профиле</p>
+    <button class="cta" id="toUpgradeBtn">Перейти в апгрейд</button>
+    <button class="ghost" id="toProfileBtn">Перейти в профиль</button>
+  </div>
 </div>
 
-<script>
-(() => {
- const tg=window.Telegram?.WebApp;
- if(tg){tg.ready();tg.expand();}
- const $=id=>document.getElementById(id);
- let state=null, spinning=false;
- function telegramUser(){
-   const u=tg?.initDataUnsafe?.user;
-   if(!u) return {id:1,username:"test_user",first_name:"Test"};
-   return {...u,start_param:tg?.initDataUnsafe?.start_param||""};
- }
- async function api(url, options={}){
-   options.headers={...(options.headers||{}),"Content-Type":"application/json"};
-   if(tg?.initData) options.headers["X-Telegram-Init-Data"]=tg.initData;
-   if(options.body) options.body=JSON.stringify({...JSON.parse(options.body),user:telegramUser()});
-   return fetch(url,options).then(r=>r.json().then(x=>({ok:r.ok,...x})));
- }
- function render(s){
-   state=s.user;
-   $("balance").textContent=Number(s.user.balance).toFixed(2).replace(/\.00$/,"");
-   const p=Number($("probability").value);
-   $("price").textContent=(7*p/100).toFixed(2)+" TON";
-   $("probText").textContent=p+"%";
-   $("sliderFill").style.width=((p-10)/40*100)+"%";
-   $("wheelRing").style.background=`conic-gradient(from -90deg, #22e48a 0deg ${p*3.6}deg, #2a1a64 ${p*3.6}deg 360deg)`;
-   $("upgradeBtn").disabled=Number(s.user.balance)<7*p/100 || spinning;
-   $("upgradeBtn").textContent=Number(s.user.balance)<7*p/100?"НЕДОСТАТОЧНО TON":"ПОКРУТИТЬ";
-   $("inventoryList").innerHTML=s.inventory.length?s.inventory.map(x=>`<div class="gift"><img src="/static/img/hat.png"><div><div class="gift-name">${x.item_name}</div><div class="gift-price">${x.item_price} TON</div></div></div>`).join(""):"<div style='font-size:8px;color:#aaa4ca'>Пока пусто</div>";
- }
- async function load(){const r=await api("/api/state"); if(r.user) render(r);}
- $("probability").addEventListener("input",()=>{if(state)render({user:state,inventory:[]})});
- $("upgradeBtn").addEventListener("click",async()=>{
-   if(spinning)return;
-   const p=Number($("probability").value), price=7*p/100;
-   if(!state||state.balance<price)return;
-   spinning=true;$("upgradeBtn").disabled=true;$("message").textContent="Крутим...";
-   const r=await api("/api/upgrade",{method:"POST",body:JSON.stringify({probability:p})});
-   if(!r.ok){$("message").textContent=r.error||"Ошибка";spinning=false;render({user:{...state,balance:r.balance??state.balance},inventory:[]});return;}
-   // The server already decided the result. The animation is visual only.
-   const ring=$("wheelRing"), wheel=$("wheel");
-   const target=p*3.6/2;
-   const finalRotation=r.won ? 360*5 + (360-target) : 360*5 + 180;
-   wheel.style.transition="transform 4s cubic-bezier(.12,.72,.18,1)";
-   wheel.style.transform=`rotate(${finalRotation}deg)`;
-   setTimeout(()=>{
-      $("message").textContent=r.won?"🎉 Шляпа выпала и добавлена в инвентарь!":"Попытка неудачная";
-      state.balance=r.balance;
-      render({user:state,inventory:r.inventory});
-      wheel.style.transition="";
-      wheel.style.transform="rotate(0deg)";
-      spinning=false;render({user:state,inventory:r.inventory});
-   },4100);
- });
- $("connectBtn").addEventListener("click",()=>{tg?.showAlert?.("Подключение кошелька можно добавить через TON Connect после подключения реального провайдера.");});
- load();
-})();
-</script>
+<!-- ================= МОДАЛКА ПОПОЛНЕНИЯ ================= -->
+<div class="modal" id="depositModal" hidden>
+  <div class="modal-card">
+    <h2>Пополнение</h2>
+    <p class="muted">Перевод в TON зачислится автоматически в течение минуты.</p>
+
+    <div class="amount-row">
+      <button class="amt" data-amt="5">5</button>
+      <button class="amt" data-amt="10">10</button>
+      <button class="amt" data-amt="25">25</button>
+      <button class="amt" data-amt="50">50</button>
+    </div>
+    <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
+
+    <button class="cta" id="depositSendBtn">Отправить</button>
+
+    <details class="manual">
+      <summary>Перевести вручную</summary>
+      <label>Адрес</label>
+      <div class="copy-row"><code id="depAddress">—</code><button data-copy="depAddress">Копир.</button></div>
+      <label>Комментарий (обязательно!)</label>
+      <div class="copy-row"><code id="depMemo">—</code><button data-copy="depMemo">Копир.</button></div>
+      <p class="warn">Без комментария платёж не будет зачислен автоматически.</p>
+    </details>
+
+    <button class="ghost" id="depositCloseBtn">Закрыть</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
