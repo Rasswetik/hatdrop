@@ -188,7 +188,31 @@
     <!-- ================= ЛИДЕРЫ ================= -->
     <section class="view" id="view-leaders" hidden>
       <h1 class="title">ЛИДЕРЫ</h1>
-      <p class="empty">Таблица лидеров скоро появится здесь.</p>
+      <p class="lb-countdown" id="lbCountdown" hidden>До конца лидеров: <b id="lbTimer">—</b></p>
+      <p class="empty" id="lbEmpty">Таблица лидеров скоро появится здесь.</p>
+
+      <div class="podium" id="podium" hidden>
+        <div class="podium-slot p2" id="slot-2">
+          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
+          <div class="podium-name">—</div>
+          <div class="podium-turnover">—</div>
+          <div class="podium-stand"><b>2</b></div>
+        </div>
+        <div class="podium-slot p1" id="slot-1">
+          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
+          <div class="podium-name">—</div>
+          <div class="podium-turnover">—</div>
+          <div class="podium-stand"><b>1</b></div>
+        </div>
+        <div class="podium-slot p3" id="slot-3">
+          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
+          <div class="podium-name">—</div>
+          <div class="podium-turnover">—</div>
+          <div class="podium-stand"><b>3</b></div>
+        </div>
+      </div>
+
+      <div class="lb-list" id="lbList"></div>
     </section>
   </main>
 
