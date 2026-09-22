@@ -1,54 +1,26 @@
 # Telegram Mini App — Flask
 
-## Структура
+## Что изменено
+- SQLite (`data.sqlite3`) для пользователей, балансов, рефералов, апгрейдов и инвентаря.
+- Первый пользователь при первом входе получает 50 TON для теста.
+- Шляпа: `static/img/hat.png`, цена 7 TON.
+- Значок TON: `static/img/ton.svg`.
+- Вероятность 10–50%; цена считается как 7 TON × вероятность.
+- Результат апгрейда рассчитывается на сервере, а клиент показывает анимацию.
+- При выигрыше шляпа добавляется в инвентарь.
+- Реферальная ссылка сохраняется для пользователя; 2% от подтверждённого пополнения начисляется пригласившему.
+- Для теста есть POST `/api/deposit`; в продакшене его нужно заменить на реальную проверку платежа.
+- CSS и JavaScript страницы апгрейда находятся прямо в `templates/index.html`, без отдельных CSS/JS файлов.
 
-- `app.py` — Flask-сервер
-- `requirements.txt` — зависимости
-- `templates/base.html` — общий каркас
-- `templates/index.html` — страница «Апгрейд»
-- `templates/profile.html` — страница «Профиль»
-- `static/css/app.css` — стили
-- `static/js/app.js` — Telegram WebApp + профиль
-- `static/img/hat.png` — сюда положить изображение шляпы
+## Настройки
+Переменные окружения:
+- `BOT_TOKEN` — токен Telegram-бота. При наличии сервер валидирует Telegram initData.
+- `BOT_USERNAME` — username бота без `@`, используется для реферальной ссылки.
+- `DB_PATH` — путь к SQLite. Для Render укажи путь на Persistent Disk, например `/var/data/data.sqlite3`.
 
 ## Запуск
+`pip install -r requirements.txt`
+`python app.py`
 
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
-```
-
-Linux/macOS:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-
-После запуска: `http://127.0.0.1:5000/`
-
-## Telegram профиль
-
-При открытии Mini App внутри Telegram скрипт берет пользователя из:
-
-`Telegram.WebApp.initDataUnsafe.user`
-
-Используются:
-- `first_name`
-- `last_name`
-- `username`
-- `photo_url`
-
-Для реального production-приложения `initData` нужно дополнительно валидировать на сервере по токену бота перед тем, как доверять данным пользователя.
-
-## Изображение шляпы
-
-Помести файл:
-
-`static/img/hat.png`
-
-После этого он автоматически появится в центре круга на странице апгрейда.
+Для Gunicorn:
+`gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120`
