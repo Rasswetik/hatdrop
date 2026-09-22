@@ -1,8 +1,9 @@
-import os, hmac, hashlib, json, secrets, sqlite3, time
+import os, hmac, hashlib, json, logging, secrets, sqlite3, time
 from urllib.parse import parse_qsl
 from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 DB_PATH = os.environ.get('DB_PATH', os.path.join(app.root_path, 'data.sqlite3'))
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
 BOT_USERNAME = os.environ.get('BOT_USERNAME', 'your_bot')
@@ -16,6 +17,12 @@ DEPOSIT_ADDRESS = os.environ.get('DEPOSIT_ADDRESS', '')
 DEPOSIT_MEMO = os.environ.get('DEPOSIT_MEMO', '')
 
 os.makedirs(os.path.dirname(DB_PATH) or '.', exist_ok=True)
+
+# Простой анти-спам для /api/spin: id пользователя -> время последнего спина.
+# Раньше это сравнивалось строкой с CURRENT_TIMESTAMP из SQLite (UTC) против
+# time.strftime (локальное время сервера) — сравнение почти никогда не
+# совпадало правильно. In-memory словарь с time.time() работает предсказуемо.
+_last_spin_at = {}
 
 
 def db():
@@ -86,34 +93,58 @@ def init_db():
             conn.execute("ALTER TABLE upgrades ADD COLUMN angle REAL NOT NULL DEFAULT 0")
 
 
-init_db()
+# Если инициализация БД падает (например, нет прав на запись в директорию),
+# раньше это роняло импорт всего модуля -> gunicorn не мог поднять воркер,
+# и приложение целиком отвечало ошибкой на любой запрос ("нет связи с
+# сервером" для всего сразу). Теперь ошибка логируется, а не убивает процесс.
+try:
+    init_db()
+except Exception:
+    logging.exception('DB init failed at startup (DB_PATH=%s)', DB_PATH)
 
 
 def validate_init_data(init_data):
-    if not init_data or not BOT_TOKEN:
-        return None
+    """Разбирает Telegram initData.
+
+    Возвращает (user, verified):
+      verified=True  — подпись проверена по BOT_TOKEN, данным можно доверять полностью;
+      verified=False — данные из Telegram распарсены, но подпись не проверена
+                        (не настроен BOT_TOKEN или она не совпала).
+
+    Раньше при verified=False функция просто отдавала None, и get_user()
+    откатывался на общий фейковый аккаунт {'id': 1, ...} для АБСОЛЮТНО ВСЕХ
+    пользователей сразу — отсюда пропадал username/аватарка в профиле и все
+    игроки на самом деле делили один и тот же аккаунт. Теперь настоящие данные
+    пользователя используются в любом случае, а verified влияет только на то,
+    можно ли доверять этому tg_id для чувствительных операций.
+    """
+    if not init_data:
+        return None, False
     try:
         pairs = dict(parse_qsl(init_data, keep_blank_values=True))
         received = pairs.pop('hash', None)
-        if not received:
-            return None
+        user = json.loads(pairs.get('user', '{}'))
+        if not user.get('id'):
+            return None, False
+        user['start_param'] = pairs.get('start_param', '')
+
+        if not received or not BOT_TOKEN:
+            return user, False
+
         check = '\n'.join(f'{k}={pairs[k]}' for k in sorted(pairs))
         secret = hmac.new(b'WebAppData', BOT_TOKEN.encode(), hashlib.sha256).digest()
         expected = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(expected, received):
-            return None
-        user = json.loads(pairs.get('user', '{}'))
-        if not user.get('id'):
-            return None
-        user['start_param'] = pairs.get('start_param', '')
-        return user
+            return user, False
+        return user, True
     except Exception:
-        return None
+        logging.exception('validate_init_data failed')
+        return None, False
 
 
 def get_user():
     payload = request.get_json(silent=True) or {}
-    user = validate_init_data(payload.get('initData', ''))
+    user, _verified = validate_init_data(payload.get('initData', ''))
     if not user:
         user = payload.get('user')
     if not user or not user.get('id'):
@@ -184,12 +215,26 @@ def state_payload(row):
 
 def angle_for(chance, won):
     # Green segment starts at -90deg. Choose a deterministic random point inside
-    # the server-decided segment so the client only animates th returned result.
+    # the server-decided segment so the client only animates the returned result.
     if won:
         frac = secrets.randbelow(1000000) / 1000000
         return 360 * frac * chance
     frac = secrets.randbelow(1000000) / 1000000
     return 360 * (chance + frac * (1 - chance))
+
+
+@app.errorhandler(Exception)
+def handle_error(e):
+    # Раньше необработанное исключение возвращало HTML-страницу ошибки Flask.
+    # Фронтенд ждёт JSON, парсинг падал, и пользователь везде видел один и
+    # тот же неинформативный тост "нет связи с сервером". Теперь сервер
+    # всегда отвечает валидным JSON и пишет причину в лог (смотрите логи
+    # Render, чтобы увидеть настоящую причину сбоя).
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify({'error': 'http_error', 'detail': e.description}), e.code
+    logging.exception('Unhandled error on %s %s', request.method, request.path)
+    return jsonify({'error': 'server_error'}), 500
 
 
 @app.route('/')
@@ -240,10 +285,10 @@ def spin():
         if row['balance'] + 1e-9 < price:
             return jsonify({'error': 'insufficient_funds'}), 400
         now = time.time()
-        last = conn.execute('SELECT created_at FROM upgrades WHERE user_id=? ORDER BY id DESC LIMIT 1', (row['id'],)).fetchone()
-        # SQLite CURRENT_TIMESTAMP is second precision; keep a lightweight guard.
-        if last and last['created_at'] == time.strftime('%Y-%m-%d %H:%M:%S'):
+        last_spin = _last_spin_at.get(row['id'], 0)
+        if now - last_spin < 1:
             return jsonify({'error': 'too_fast'}), 429
+        _last_spin_at[row['id']] = now
         won = secrets.randbelow(1000000) < int(chance * 1000000)
         angle = angle_for(chance, won)
         conn.execute('UPDATE users SET balance=ROUND(balance-?,4) WHERE id=?', (price, row['id']))
