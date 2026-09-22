@@ -1,6 +1,8 @@
-import os, hmac, hashlib, json, logging, secrets, sqlite3, time
+import os, hmac, hashlib, json, logging, secrets, sqlite3, time, urllib.request, urllib.error
+from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -26,10 +28,35 @@ _last_spin_at = {}
 
 
 def db():
+    """Контекстный менеджер для соединения с БД.
+
+    Раньше это была обычная функция, возвращавшая sqlite3.Connection: код
+    везде использовал `with db() as conn:`, и это действительно вызывало
+    conn.commit()/rollback() (родное поведение sqlite3.Connection как
+    контекстного менеджера) — НО НЕ ЗАКРЫВАЛО соединение. Каждый запрос
+    (а фронтенд опрашивает /api/state каждые 20 секунд для каждого игрока)
+    открывал новое соединение с файлом БД и никогда его не освобождал.
+    Со временем процесс упирался в лимит открытых файловых дескрипторов —
+    и вот тогда как раз начинали сыпаться случайные "ошибка сервера" на
+    ровном месте, без видимой закономерности. Теперь соединение всегда
+    закрывается через finally, независимо от результата.
+    """
+    return _db_ctx()
+
+
+@contextmanager
+def _db_ctx():
     conn = sqlite3.connect(DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA busy_timeout=15000')
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db():
@@ -152,6 +179,94 @@ def get_user():
     return user
 
 
+# ---------------------------------------------------------------- аватарки
+# Telegram Mini Apps почти никогда не кладёт photo_url прямо в initData
+# (это поле реально приходит только при запуске из attachment menu). Чтобы
+# у игроков были настоящие аватарки, ходим за фото в Bot API сами и отдаём
+# картинку через собственный прокси-роут — так токен бота не светится в
+# ссылке на клиенте, а сама ссылка живёт долго, что позволяет браузеру
+# закэшировать её и не дёргать Telegram на каждый /api/state.
+_avatar_path_cache = {}  # tg_id -> (file_path | None, expires_at)
+AVATAR_CACHE_TTL = 3600
+
+
+def _tg_api(method, **params):
+    if not BOT_TOKEN:
+        return None
+    url = f'https://api.telegram.org/bot{BOT_TOKEN}/{method}?' + '&'.join(f'{k}={v}' for k, v in params.items())
+    try:
+        with urllib.request.urlopen(url, timeout=6) as r:
+            return json.loads(r.read().decode('utf-8'))
+    except Exception:
+        logging.exception('Telegram API call failed: %s', method)
+        return None
+
+
+def resolve_avatar_file_path(tg_id):
+    cached = _avatar_path_cache.get(tg_id)
+    if cached and cached[1] > time.time():
+        return cached[0]
+    file_path = None
+    photos = _tg_api('getUserProfilePhotos', user_id=tg_id, limit=1)
+    if photos and photos.get('ok') and photos['result']['photos']:
+        file_id = photos['result']['photos'][0][-1]['file_id']
+        info = _tg_api('getFile', file_id=file_id)
+        if info and info.get('ok'):
+            file_path = info['result'].get('file_path')
+    _avatar_path_cache[tg_id] = (file_path, time.time() + AVATAR_CACHE_TTL)
+    return file_path
+
+
+def avatar_url_for(tg_id):
+    return f'/api/avatar/{tg_id}' if BOT_TOKEN else ''
+
+
+@app.get('/api/avatar/<int:tg_id>')
+def avatar(tg_id):
+    file_path = resolve_avatar_file_path(tg_id)
+    if not file_path:
+        return '', 404
+    try:
+        url = f'https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}'
+        with urllib.request.urlopen(url, timeout=6) as r:
+            content = r.read()
+            ctype = r.headers.get('Content-Type', 'image/jpeg')
+        return Response(content, mimetype=ctype, headers={'Cache-Control': 'public, max-age=3600'})
+    except Exception:
+        logging.exception('avatar proxy failed for tg_id=%s', tg_id)
+        return '', 404
+
+
+# -------------------------------------------------------------- лидерборд
+# "Оборот" — сумма ставок (upgrades.price) за текущий период. Период — это
+# неделя (понедельник 00:00 UTC — следующий понедельник 00:00 UTC); данные
+# для расчёта уже пишутся при каждом спине, отдельная таблица не нужна.
+def leaderboard_period():
+    now = datetime.now(timezone.utc)
+    start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=7)
+    return start, end
+
+
+def leaders_payload():
+    start, end = leaderboard_period()
+    start_s = start.strftime('%Y-%m-%d %H:%M:%S')
+    with db() as conn:
+        rows = conn.execute('''
+            SELECT u.tg_id, u.username, u.first_name, SUM(up.price) turnover
+            FROM upgrades up JOIN users u ON u.id = up.user_id
+            WHERE up.created_at >= ?
+            GROUP BY u.id
+            ORDER BY turnover DESC
+            LIMIT 30
+        ''', (start_s,)).fetchall()
+    entries = [{
+        'tg_id': r['tg_id'], 'username': r['username'] or '', 'first_name': r['first_name'] or 'Игрок',
+        'avatar_url': avatar_url_for(r['tg_id']), 'turnover_ton': round(r['turnover'], 2),
+    } for r in rows]
+    return {'period_ends_at': int(end.timestamp()), 'entries': entries}
+
+
 def upsert_user(user):
     tg_id = int(user['id'])
     fields = (user.get('username', '') or '', user.get('first_name', '') or '',
@@ -173,7 +288,7 @@ def upsert_user(user):
                 pass
         cur = conn.execute('''INSERT INTO users
             (tg_id, username, first_name, last_name, photo_url, balance, referred_by)
-            VALUES (?, ?, ?, ?, ?, 0, ?)''', (*fields, referred_by))
+            VALUES (?, ?, ?, ?, ?, 0, ?)''', (tg_id, *fields, referred_by))
         return conn.execute('SELECT * FROM users WHERE id=?', (cur.lastrowid,)).fetchone()
 
 
@@ -194,10 +309,14 @@ def referral_payload(row):
 def state_payload(row):
     with db() as conn:
         prizes = conn.execute('SELECT id, item_name, item_price, status, created_at FROM inventory WHERE user_id=? ORDER BY id DESC', (row['id'],)).fetchall()
+    # Фото берём из initData, если Telegram его прислал, иначе — через наш
+    # прокси к Bot API (см. avatar_url_for). Пустая строка = у пользователя
+    # нет ни одной фотографии профиля, фронт в этом случае показывает иконку.
+    photo = row['photo_url'] or avatar_url_for(row['tg_id'])
     return {
         'balance_ton': round(row['balance'], 4),
         'user': {'id': row['id'], 'tg_id': row['tg_id'], 'username': row['username'], 'first_name': row['first_name'],
-                 'last_name': row['last_name'], 'photo_url': row['photo_url'], 'wallet': row['wallet_address'] or '', 'bonus_claimed': bool(row['bonus_claimed'])},
+                 'last_name': row['last_name'], 'photo_url': photo, 'wallet': row['wallet_address'] or '', 'bonus_claimed': bool(row['bonus_claimed'])},
         'config': {
             'prize_name': PRIZE_NAME, 'min_deposit_ton': MIN_DEPOSIT,
             'referral_percent': REFERRAL_PERCENT,
@@ -210,6 +329,7 @@ def state_payload(row):
         'deposit': {'address': DEPOSIT_ADDRESS, 'memo': DEPOSIT_MEMO or f'MU-{row["tg_id"]}'},
         'prizes': [dict(p) for p in prizes],
         'referral': referral_payload(row),
+        'leaders': leaders_payload(),
     }
 
 
