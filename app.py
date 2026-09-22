@@ -184,7 +184,7 @@ def state_payload(row):
 
 def angle_for(chance, won):
     # Green segment starts at -90deg. Choose a deterministic random point inside
-    # the server-decided segment so the client only animates the returned result.
+    # the server-decided segment so the client only animates th returned result.
     if won:
         frac = secrets.randbelow(1000000) / 1000000
         return 360 * frac * chance
