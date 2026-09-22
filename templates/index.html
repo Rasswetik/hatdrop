@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Апгрейд{% endblock %}
+
+{% block content %}
+<section class="upgrade-page">
+    <h1 class="page-title">АПГРЕЙД</h1>
+    <div class="prize-line">приз: <span>Шляпа волшебника</span></div>
+
+    <div class="upgrade-wheel">
+        <div class="wheel-ring"></div>
+        <div class="wheel-center">
+            <img src="{{ url_for('static', filename='img/hat.png') }}" alt="Шляпа волшебника"
+                 onerror="this.classList.add('asset-missing')">
+        </div>
+        <div class="arrow"></div>
+    </div>
+
+    <section class="upgrade-card">
+        <div class="upgrade-card-top">
+            <strong>1.75 TON</strong>
+            <strong class="green">25%</strong>
+        </div>
+
+        <div class="slider-wrap">
+            <div class="slider-track">
+                <div class="slider-fill"></div>
+                <div class="slider-thumb"></div>
+            </div>
+            <div class="slider-labels">
+                <span><b>0.7</b><small>10%</small></span>
+                <span><b>1.75</b><small>25%</small></span>
+                <span><b>3.5</b><small>50%</small></span>
+            </div>
+        </div>
+    </section>
+
+    <button class="wide-btn muted" type="button">Пополнить баланс</button>
+    <button class="wide-btn" type="button">Пополнить баланс</button>
+</section>
+{% endblock %}

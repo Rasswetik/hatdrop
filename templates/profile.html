@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<section class="profile-page">
+    <h1 class="page-title">ПРОФИЛЬ</h1>
+
+    <section class="profile-card">
+        <div class="avatar-wrap">
+            <img id="profileAvatar" src="" alt="Аватар" hidden>
+            <div id="avatarFallback" class="avatar-fallback">♟</div>
+        </div>
+        <div class="profile-info">
+            <div class="profile-name" id="profileName">Загрузка...</div>
+            <div class="profile-status" id="profileStatus">Кошелёк не подключён</div>
+        </div>
+    </section>
+
+    <section class="prize-card">
+        <div class="big-number">0</div>
+        <div class="card-caption">призов</div>
+    </section>
+
+    <section class="referral-block">
+        <h2>Рефералы</h2>
+        <p>Получай <span class="green">2%</span> с каждого депозита<br>друзей!</p>
+
+        <div class="ref-link" id="refLink">https://t.me/your_bot?start=ref_525272756</div>
+        <button class="copy-btn" id="copyRef" type="button">Копировать</button>
+
+        <div class="stats-row">
+            <div class="stat">
+                <strong>0</strong>
+                <span>рефералов</span>
+            </div>
+            <div class="stat">
+                <strong>0</strong>
+                <span>заработано TON</span>
+            </div>
+        </div>
+
+        <div class="available">
+            <span>Доступно</span>
+            <strong>0 TON</strong>
+        </div>
+
+        <button class="wide-btn disabled" type="button" disabled>Вывести</button>
+    </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        window.TelegramProfile.init();
+        document.getElementById("copyRef").addEventListener("click", async () => {
+            const text = document.getElementById("refLink").textContent.trim();
+            try {
+                await navigator.clipboard.writeText(text);
+                const btn = document.getElementById("copyRef");
+                const old = btn.textContent;
+                btn.textContent = "Скопировано";
+                setTimeout(() => btn.textContent = old, 1200);
+            } catch (e) {
+                const range = document.createRange();
+                range.selectNodeContents(document.getElementById("refLink"));
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        });
+    });
+</script>
+{% endblock %}
