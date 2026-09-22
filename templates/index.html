@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Magi Upgrade</title>
+<title>Magic Upgrade</title>
 <link rel="icon" href="/static/img/hat.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-<script type="text/javascript" <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
@@ -26,6 +26,12 @@
   <!-- Кошелёк: рамка (вычитаем внутренний прямоугольник) плюс застёжка -->
   <symbol id="ic-wallet" viewBox="0 0 16 16">
     <path fill-rule="evenodd" d="M1 4h14v10H1zM3 6h10v6H3zm7 2h4v2h-4z"/>
+  </symbol>
+  <!-- Лидеры: пиксельная диаграмма-подиум -->
+  <symbol id="ic-leaders" viewBox="0 0 16 16">
+    <rect x="1" y="9" width="4" height="5"/>
+    <rect x="6" y="4" width="4" height="10"/>
+    <rect x="11" y="7" width="4" height="7"/>
   </symbol>
 </svg>
 
@@ -133,7 +139,10 @@
     <section class="view" id="view-profile" hidden>
       <h1 class="title">ПРОФИЛЬ</h1>
       <div class="profile-head">
-        <div class="avatar"><svg class="ic"><use href="#ic-profile"/></svg></div>
+        <div class="avatar" id="avatar">
+          <img id="avatarImg" alt="" hidden>
+          <svg class="ic" id="avatarIcon"><use href="#ic-profile"/></svg>
+        </div>
         <div class="profile-meta">
           <div class="pname" id="profileName">—</div>
           <div class="pwallet" id="profileWallet">Кошелёк не подключён</div>
@@ -175,6 +184,12 @@
       <div class="prize-grid" id="prizeGrid"></div>
       <p class="empty" id="prizeEmpty">Пока пусто. Крути апгрейд — выбитые шляпы появятся здесь.</p>
     </section>
+
+    <!-- ================= ЛИДЕРЫ ================= -->
+    <section class="view" id="view-leaders" hidden>
+      <h1 class="title">ЛИДЕРЫ</h1>
+      <p class="empty">Таблица лидеров скоро появится здесь.</p>
+    </section>
   </main>
 
   <nav class="tabbar">
@@ -183,6 +198,9 @@
     </button>
     <button class="tab" data-view="profile">
       <svg class="ic"><use href="#ic-profile"/></svg>Профиль
+    </button>
+    <button class="tab" data-view="leaders">
+      <svg class="ic"><use href="#ic-leaders"/></svg>Лидеры
     </button>
   </nav>
 </div>
