@@ -118,14 +118,14 @@
         </div>
       </div>
 
-      <!-- Ползунок режимов: чем дороже ставка, тем выше шанс -->
+      <!-- Ползунок шанса: любой процент, цена ставки считается от него -->
       <div class="mode-picker">
         <div class="mode-head">
-          <span class="mode-cost" id="modeCost">2.5 TON</span>
+          <span class="mode-cost" id="modeCost">1.75 TON</span>
           <span class="mode-chance" id="modeChance">25%</span>
         </div>
-        <input type="range" id="modeSlider" min="0" max="2" step="1" value="1"
-               aria-label="Режим ставки">
+        <input type="range" id="modeSlider" min="1" max="75" step="1" value="25"
+               aria-label="Шанс апгрейда">
         <div class="mode-marks" id="modeMarks"></div>
       </div>
 
