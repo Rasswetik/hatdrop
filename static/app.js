@@ -15,7 +15,7 @@ let state = null;
 let tonUI = null;
 let spinning = false;
 let pointerDeg = 0;
-let chancePct = 50;         // выбранный шанс, % (позиция ползунка)
+let chancePct = 25;         // выбранный шанс, % (позиция ползунка)
 let chanceCfg = null;       // {min, max, default, marks} с сервера
 let prizePrice = 7;         // цена шляпы, из неё считается ставка
 
@@ -189,14 +189,15 @@ function applyMode() {
     el.classList.toggle('active', Number(el.dataset.pct) === chancePct);
   });
 
-  // Зелёная дуга = текущий шанс. Меняется плавно при каждом движении ползунка.
-  const green = RING_C * m.chance / 100;
-  $('arcWin').setAttribute('stroke-dasharray', `${green} ${RING_C}`);
+  // Зелёная дуга = доля выигрыша на колесе. CSS-transition на
+  // stroke-dasharray (см. .ring-arc) отвечает за плавное "дотягивание"
+  // при смене ставки/процента — тут только выставляем целевое значение.
+  const arcWin = $('arcWin');
+  arcWin.setAttribute('stroke-dasharray', `${RING_C * m.chance / 100} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
-  $('arcWin').style.setProperty('--win-pct', `${m.chance}%`);
-  const slider = $('modeSlider');
-  const ratio = (m.chance - chanceCfg.min) / Math.max(1, chanceCfg.max - chanceCfg.min);
-  slider.style.setProperty('--chance', `${Math.max(0, Math.min(1, ratio)) * 100}%`);
+  arcWin.classList.remove('arc-pulse');
+  void arcWin.offsetWidth; // reflow — чтобы анимацию можно было перезапускать подряд
+  arcWin.classList.add('arc-pulse');
 
   updateSpinButton();
 }
@@ -210,46 +211,56 @@ function updateSpinButton() {
 }
 
 /* -------------------------------------------------------- анимация баланса */
-let balanceAnim = 0;
+// Плавно "прокручивает" отображаемое число от старого значения к новому
+// и одновременно показывает всплывающую подпись ±X TON над чипом баланса.
+// Раньше баланс менялся мгновенным textContent = ..., поэтому списание при
+// ставке было незаметно — цифра просто скачком становилась меньше.
+let balanceAnimFrame = null;
 function animateBalance(from, to) {
-  const el = $('balanceChip');
-  const value = $('balanceValue');
-  const direction = to < from ? 'decrease' : 'increase';
-  cancelAnimationFrame(balanceAnim);
-  el.classList.remove('balance-decrease', 'balance-increase');
-  void el.offsetWidth;
-  el.classList.add(direction === 'decrease' ? 'balance-decrease' : 'balance-increase');
-
-  const started = performance.now();
-  const duration = 520;
+  const el = $('balanceValue');
+  const chip = $('balanceChip');
   const delta = to - from;
-  const tick = (now) => {
-    const p = Math.min(1, (now - started) / duration);
-    const eased = 1 - Math.pow(1 - p, 3);
-    value.textContent = fmt(from + delta * eased, 4);
-    if (p < 1) balanceAnim = requestAnimationFrame(tick);
-    else {
-      value.textContent = fmt(to, 4);
-      setTimeout(() => el.classList.remove('balance-decrease', 'balance-increase'), 220);
+
+  if (Math.abs(delta) < 1e-9) {
+    el.textContent = fmt(to, 4);
+    return;
+  }
+
+  cancelAnimationFrame(balanceAnimFrame);
+  const duration = 550;
+  const start = performance.now();
+
+  function tick(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = fmt(from + delta * eased, 4);
+    if (p < 1) {
+      balanceAnimFrame = requestAnimationFrame(tick);
+    } else {
+      el.textContent = fmt(to, 4);
     }
-  };
-  balanceAnim = requestAnimationFrame(tick);
+  }
+  balanceAnimFrame = requestAnimationFrame(tick);
+
+  chip.classList.remove('flash-out', 'flash-in');
+  // reflow, чтобы анимацию можно было перезапустить при повторном срабатывании подряд
+  void chip.offsetWidth;
+  chip.classList.add(delta < 0 ? 'flash-out' : 'flash-in');
+
+  const fly = document.createElement('div');
+  fly.className = `balance-fly ${delta < 0 ? 'out' : 'in'}`;
+  fly.textContent = `${delta < 0 ? '−' : '+'}${fmt(Math.abs(delta), 4)} TON`;
+  chip.appendChild(fly);
+  setTimeout(() => fly.remove(), 1150);
 }
 
 /* --------------------------------------------------------------- рендер */
 function renderState(s) {
-  const previousState = state;
+  const prevBalance = state ? state.balance_ton : s.balance_ton;
   state = s;
   buildModes(s.config);
 
-  const previousBalance = previousState && Number.isFinite(Number(previousState.balance_ton))
-    ? Number(previousState.balance_ton) : Number(s.balance_ton);
-  const nextBalance = Number(s.balance_ton);
-  if (previousBalance !== nextBalance) {
-    animateBalance(previousBalance, nextBalance);
-  } else {
-    $('balanceValue').textContent = fmt(nextBalance, 4);
-  }
+  animateBalance(prevBalance, s.balance_ton);
   $('prizeNameInline').textContent = s.config.prize_name;
   $('depositAmount').min = s.config.min_deposit_ton;
 
@@ -267,7 +278,7 @@ function renderState(s) {
     setHidden(avImg, true);
     setHidden(avIcon, false);
   }
-  $('walletBtnText').textContent = s.user.wallet ? shortAddr(s.user.wallet) : 'Подключить';
+  $('walletBtnText').textContent = s.user.bonus_claimed ? 'Получено +10' : 'Получить +10';
 
   $('depAddress').textContent = s.deposit.address || 'не настроен';
   $('depMemo').textContent = s.deposit.memo;
@@ -286,7 +297,16 @@ function renderReferral(ref) {
   const showLink = ref.created && ref.link;
   $('refCreateBtn').hidden = showLink;
   $('refLinkBox').hidden = !showLink;
-  if (showLink) $('refLink').textContent = ref.link;
+  if (showLink) {
+    $('refLink').textContent = ref.link;
+  } else if (ref.created && !ref.bot_username_known) {
+    // Ссылка создана, но имя бота ещё не определено сервером (getMe не
+    // отработал) — не показываем битую ссылку, а объясняем, что происходит.
+    $('refLinkBox').hidden = false;
+    $('refLink').textContent = 'Ссылка появится через несколько секунд…';
+    $('refCopyBtn').disabled = true;
+  }
+  if (showLink) $('refCopyBtn').disabled = false;
 
   $('refCount').textContent = ref.count;
   $('refCountLabel').textContent = plural(ref.count, 'реферал', 'реферала', 'рефералов');
@@ -408,11 +428,9 @@ function renderLeaders(leaders) {
     turnoverEl.textContent = `${fmt(entry.turnover_ton, 2)} TON`;
     info.append(nameEl, turnoverEl);
 
-    const prize = document.createElement('div');
-    prize.className = 'lb-prize';
-    prize.textContent = '—';
-
-    row.append(rank, avatar, info, prize);
+    // Карточка-плитка: ранг → аватар → имя/оборот, размещаются в сетке по
+    // несколько штук в ряд (см. .lb-list в styles.css).
+    row.append(rank, avatar, info);
     list.appendChild(row);
   });
 }
@@ -566,29 +584,57 @@ async function doSpin() {
     return;
   }
 
-  // Каждый запуск имеет немного разную скорость, число оборотов и кривую
-  // торможения. Серверный угол остаётся единственным источником результата.
+  // Итог (выигрыш/угол) уже решён сервером ДО начала анимации — тут мы
+  // только подбираем, как именно колесо к нему подкатится. Раньше это было
+  // всегда ровно 5 оборотов с одной и той же длительностью и кривой —
+  // после пары прокруток становилось видно, что колесо крутится "по
+  // одному и тому же счёту", и финал угадывался на глаз. Теперь число
+  // оборотов, длительность и кривая движения каждый раз немного разные,
+  // а в середине кручения добавлен случайный рывок ("заминка—ускорение"),
+  // чтобы сам процесс вращения было сложнее прочитать по шаблону.
   const current = ((pointerDeg % 360) + 360) % 360;
-  const extraTurns = 6 + Math.floor(Math.random() * 5);
-  pointerDeg += 360 * extraTurns + ((result.angle - current + 360) % 360);
+  const targetDelta = (result.angle - current + 360) % 360;
+
+  const extraTurns = 4 + Math.floor(Math.random() * 4); // 4..7 полных оборотов
+  const duration = 3200 + Math.random() * 900;           // 3.2..4.1s
+  const curves = [
+    'cubic-bezier(.12,.72,.12,1)',
+    'cubic-bezier(.16,.85,.10,1)',
+    'cubic-bezier(.22,.61,.08,1)',
+  ];
+  const curve = curves[Math.floor(Math.random() * curves.length)];
 
   const pointer = $('pointer');
-  const duration = 3800 + Math.floor(Math.random() * 1900);
-  const c1 = (0.08 + Math.random() * 0.16).toFixed(2);
-  const c2 = (0.68 + Math.random() * 0.25).toFixed(2);
-  pointer.style.transition = `transform ${duration}ms cubic-bezier(${c1}, .78, ${c2}, 1)`;
-  pointer.classList.add('spinning');
-  requestAnimationFrame(() => { pointer.style.transform = `rotate(${pointerDeg}deg)`; });
+  pointer.style.transition = 'none';
+  pointer.classList.remove('spinning');
+  void pointer.offsetWidth; // reflow — сбрасываем предыдущую transition перед новой
+
+  // Небольшой случайный "перелёт" и откат назад в середине пути делает
+  // скорость вращения не строго монотонной, а не только меняет числа.
+  const overshoot = 12 + Math.random() * 26; // градусов
+  const midDeg = pointerDeg + 360 * extraTurns + targetDelta + overshoot;
+  const finalDeg = pointerDeg + 360 * extraTurns + targetDelta;
+  const midShare = 0.72 + Math.random() * 0.08; // доля времени до "перелёта"
+
+  pointer.style.transition = `transform ${(duration * midShare / 1000).toFixed(3)}s ${curve}`;
+  requestAnimationFrame(() => { pointer.style.transform = `rotate(${midDeg}deg)`; });
+
+  setTimeout(() => {
+    pointer.style.transition = `transform ${(duration * (1 - midShare) / 1000).toFixed(3)}s cubic-bezier(.34,1.56,.64,1)`;
+    pointer.style.transform = `rotate(${finalDeg}deg)`;
+  }, duration * midShare);
+
+  pointerDeg = finalDeg;
 
   setTimeout(() => {
     document.querySelector('.wheel-wrap').classList.remove('rolling');
     spinning = false;
     $('modeSlider').disabled = false;
-    pointer.classList.remove('spinning');
+    pointer.style.transition = '';
     haptic('notification', result.win ? 'success' : 'error');
     showResult(result);
     refresh();
-  }, duration + 120);
+  }, duration);
 }
 
 function showResult(result) {
@@ -638,9 +684,15 @@ async function sellPrize(prize, btn) {
 
 /* -------------------------------------------------------------- пополнение */
 // Каждое нажатие «Пополнить баланс» сразу добавляет +10 TON.
-function topUp() {
-  // Нажатие только открывает окно оплаты. Никакого зачисления на клиенте.
-  openDeposit();
+async function topUp() {
+  try {
+    const res = await api('/api/topup');
+    renderState(res);
+    toast(`+${fmt(res.added, 2)} TON`);
+    haptic('impact', 'light');
+  } catch (e) {
+    toast('Не удалось пополнить баланс', true);
+  }
 }
 
 /* ---------------------------------------------------------- TON Connect */
@@ -704,21 +756,28 @@ function initTonConnect() {
 }
 
 async function onWalletClick() {
-  // Кнопка кошелька только открывает TON Connect. Никаких начислений
-  // при клике здесь нет и быть не должно.
-  if (!tonUI) {
-    toast('Кошелёк недоступен', true);
-    return;
-  }
+  const btn = $('walletBtn');
+  if (btn.dataset.busy === '1') return;
+  btn.dataset.busy = '1';
+  const old = $('walletBtnText').textContent;
+  $('walletBtnText').textContent = 'Зачисление…';
+  btn.disabled = true;
   try {
-    if (tonUI.connected) {
-      await tonUI.openModal();
-    } else {
-      await tonUI.openModal();
+    const res = await api('/api/connect');
+    if (res.ok) {
+      renderState(res);
+      toast('+10 TON зачислено');
+      haptic('notification', 'success');
+    } else if (res.error === 'bonus_already_claimed') {
+      toast('Бонус уже получен');
+      await refresh();
     }
   } catch (e) {
-    console.error('TON Connect:', e);
-    toast('Не удалось открыть подключение кошелька', true);
+    toast('Не удалось зачислить бонус', true);
+  } finally {
+    btn.disabled = false;
+    btn.dataset.busy = '0';
+    if (!state?.user?.wallet) $('walletBtnText').textContent = old === 'Зачисление…' ? 'Получить +10' : old;
   }
 }
 
@@ -787,7 +846,12 @@ async function refresh() {
 /* ------------------------------------------------------------- обработчики */
 function bind() {
   $('spinBtn').addEventListener('click', doSpin);
+  // «Пополнить баланс» открывает форму реального пополнения через TON
+  // Connect (openDeposit) — раньше эта кнопка была привязана к topUp() и
+  // мгновенно зачисляла тестовые +10 TON, а сама форма пополнения нигде
+  // не открывалась, поэтому переводы через кошелёк никуда не доходили.
   $('depositBtn').addEventListener('click', openDeposit);
+  $('testTopupBtn')?.addEventListener('click', topUp);
   $('depositCloseBtn').addEventListener('click', () => { $('depositModal').hidden = true; });
   $('depositSendBtn').addEventListener('click', sendDeposit);
   $('walletBtn').addEventListener('click', onWalletClick);
