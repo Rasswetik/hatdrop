@@ -318,9 +318,15 @@ button, input { font-family: inherit; font-weight: 400; }
 #modeSlider:active::-webkit-slider-thumb { background: var(--gold-soft); }
 #modeSlider:disabled { opacity: .5; cursor: default; }
 
-.mode-marks { display: flex; }
+/* Метки стоят по своим значениям на треке: --p = доля пути ползунка (0..1).
+   12px = половина ширины ползунка, чтобы метка была строго под бегунком. */
+.mode-marks { position: relative; height: 34px; }
 .mode-mark {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: calc(12px + (100% - 24px) * var(--p, 0));
+  transform: translateX(calc(var(--p, 0) * -100%));
+  white-space: nowrap;
   background: none;
   border: 0;
   padding: 2px 0;
@@ -330,8 +336,6 @@ button, input { font-family: inherit; font-weight: 400; }
   cursor: pointer;
   text-align: center;
 }
-.mode-mark:first-child { text-align: left; }
-.mode-mark:last-child  { text-align: right; }
 .mode-mark b { display: block; font-size: 11px; font-weight: 400; }
 .mode-mark.active   { color: var(--text); }
 .mode-mark.active b { color: var(--gold); }
@@ -462,6 +466,20 @@ button, input { font-family: inherit; font-weight: 400; }
   cursor: pointer;
 }
 .wd-btn:active { transform: translate(1px, 1px); }
+.prize-actions { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.sell-btn {
+  width: 100%;
+  padding: 6px 1px;
+  font-size: 8px;
+  line-height: 1.2;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+}
+.sell-btn:active { transform: translate(1px, 1px); }
+.sell-btn:disabled { opacity: .5; cursor: default; }
 .wd-btn.pending {
   background: #3a2f10;
   border-color: var(--gold-dark);
@@ -831,3 +849,6 @@ button, input { font-family: inherit; font-weight: 400; }
   .cta { padding: 12px 8px; font-size: 12px; }
   .mode-cost, .mode-chance { font-size: 14px; }
 }
+
+/* У SVG-иконок нет свойства .hidden, поэтому прячем через атрибут hidden. */
+[hidden] { display: none !important; }

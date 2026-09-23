@@ -15,8 +15,9 @@ let state = null;
 let tonUI = null;
 let spinning = false;
 let pointerDeg = 0;
-let modeIndex = 0;          // позиция ползунка
-let modes = [];             // режимы ставки с сервера
+let chancePct = 25;         // выбранный шанс, % (позиция ползунка)
+let chanceCfg = null;       // {min, max, default, marks} с сервера
+let prizePrice = 7;         // цена шляпы, из неё считается ставка
 
 /* ----------------------------------------------------------- телеграм */
 function initTelegram() {
@@ -65,6 +66,8 @@ async function api(path, body = {}) {
 
 /* -------------------------------------------------------------- утилиты */
 const fmt = (n, d = 4) => Number(n).toFixed(d).replace(/\.?0+$/, '') || '0';
+// У SVG-элементов нет свойства .hidden — переключаем атрибут напрямую.
+const setHidden = (el, hidden) => el.toggleAttribute('hidden', !!hidden);
 const shortAddr = (a) => (a && a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a || '');
 
 // 1 приз / 2 приза / 5 призов
@@ -126,31 +129,40 @@ function makeStars(n = 42) {
   box.appendChild(frag);
 }
 
-/* --------------------------------------------------- режимы и ползунок */
+/* --------------------------------------------------- шанс и ползунок */
+// Ставка = шанс × цена шляпы (10% → 0.7, 25% → 1.75 ...). Округление «половина
+// вверх» — то же самое, что делает сервер (bet_cost в app.py).
+function costFor(pct) {
+  return Math.floor(prizePrice * pct + 0.5) / 100;
+}
+
 function currentMode() {
-  return modes[modeIndex] || null;
+  return chanceCfg ? { chance: chancePct, cost_ton: costFor(chancePct) } : null;
 }
 
 function buildModes(cfg) {
-  const changed = JSON.stringify(cfg.modes) !== JSON.stringify(modes);
-  modes = cfg.modes;
+  prizePrice = cfg.prize_price;
+  const changed = JSON.stringify(cfg.chance) !== JSON.stringify(chanceCfg);
+  chanceCfg = cfg.chance;
 
   const slider = $('modeSlider');
-  slider.max = String(Math.max(0, modes.length - 1));
+  slider.min = String(chanceCfg.min);
+  slider.max = String(chanceCfg.max);
 
   if (changed) {
-    const def = modes.findIndex((m) => m.id === cfg.default_mode);
-    modeIndex = def >= 0 ? def : Math.floor(modes.length / 2);
-    slider.value = String(modeIndex);
+    chancePct = chanceCfg.default;
+    slider.value = String(chancePct);
 
     const marks = $('modeMarks');
     marks.innerHTML = '';
-    modes.forEach((m, i) => {
+    chanceCfg.marks.forEach((pct) => {
       const b = document.createElement('button');
       b.className = 'mode-mark';
       b.type = 'button';
-      b.innerHTML = `<b>${fmt(m.cost_ton, 2)}</b>${Math.round(m.chance * 100)}%`;
-      b.addEventListener('click', () => selectMode(i));
+      b.dataset.pct = String(pct);
+      b.style.setProperty('--p', (pct - chanceCfg.min) / (chanceCfg.max - chanceCfg.min));
+      b.innerHTML = `<b>${pct}%</b>${fmt(costFor(pct), 2)} TON`;
+      b.addEventListener('click', () => { selectChance(pct); haptic('impact', 'light'); });
       marks.appendChild(b);
     });
   }
@@ -158,28 +170,27 @@ function buildModes(cfg) {
   applyMode();
 }
 
-function selectMode(index) {
+function selectChance(pct) {
   if (spinning) return;
-  modeIndex = Math.max(0, Math.min(modes.length - 1, index));
-  $('modeSlider').value = String(modeIndex);
+  chancePct = Math.max(chanceCfg.min, Math.min(chanceCfg.max, Math.round(pct)));
+  $('modeSlider').value = String(chancePct);
   applyMode();
-  haptic('impact', 'light');
 }
 
-/** Перерисовывает всё, что зависит от выбранного режима. */
+/** Перерисовывает всё, что зависит от выбранного шанса. */
 function applyMode() {
   const m = currentMode();
   if (!m) return;
 
   $('modeCost').textContent = `${fmt(m.cost_ton, 2)} TON`;
-  $('modeChance').textContent = `${Math.round(m.chance * 100)}%`;
+  $('modeChance').textContent = `${m.chance}%`;
 
-  document.querySelectorAll('.mode-mark').forEach((el, i) => {
-    el.classList.toggle('active', i === modeIndex);
+  document.querySelectorAll('.mode-mark').forEach((el) => {
+    el.classList.toggle('active', Number(el.dataset.pct) === chancePct);
   });
 
   // Зелёная дуга = доля выигрыша на колесе.
-  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance} ${RING_C}`);
+  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance / 100} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
 
   updateSpinButton();
@@ -208,13 +219,13 @@ function renderState(s) {
   const avImg = $('avatarImg');
   const avIcon = $('avatarIcon');
   if (s.user.photo_url) {
-    avImg.src = s.user.photo_url;
-    avImg.hidden = false;
-    avIcon.hidden = true;
-    avImg.onerror = () => { avImg.hidden = true; avIcon.hidden = false; };
+    avImg.onerror = () => { setHidden(avImg, true); setHidden(avIcon, false); };
+    if (avImg.getAttribute('src') !== s.user.photo_url) avImg.src = s.user.photo_url;
+    setHidden(avImg, false);
+    setHidden(avIcon, true);
   } else {
-    avImg.hidden = true;
-    avIcon.hidden = false;
+    setHidden(avImg, true);
+    setHidden(avIcon, false);
   }
   $('walletBtnText').textContent = s.user.bonus_claimed ? 'Получено +10' : 'Получить +10';
 
@@ -286,21 +297,21 @@ function fillPodiumSlot(el, entry) {
   if (!entry) {
     nameEl.textContent = '—';
     turnoverEl.textContent = '—';
-    img.hidden = true;
-    icon.hidden = false;
+    setHidden(img, true);
+    setHidden(icon, false);
     return;
   }
 
   nameEl.textContent = entry.username ? `@${entry.username}` : (entry.first_name || 'Игрок');
   turnoverEl.textContent = `${fmt(entry.turnover_ton, 2)} TON`;
   if (entry.avatar_url) {
-    img.src = entry.avatar_url;
-    img.hidden = false;
-    icon.hidden = true;
-    img.onerror = () => { img.hidden = true; icon.hidden = false; };
+    img.onerror = () => { setHidden(img, true); setHidden(icon, false); };
+    if (img.getAttribute('src') !== entry.avatar_url) img.src = entry.avatar_url;
+    setHidden(img, false);
+    setHidden(icon, true);
   } else {
-    img.hidden = true;
-    icon.hidden = false;
+    setHidden(img, true);
+    setHidden(icon, false);
   }
 }
 
@@ -447,18 +458,28 @@ function renderPrizes(prizes) {
     // из-за несовпадения имён тут всегда показывалось "NaN TON".
     pv.textContent = `${fmt(p.item_price, 2)} TON`;
 
+    const actions = document.createElement('div');
+    actions.className = 'prize-actions';
+
     const btn = document.createElement('button');
     btn.className = 'wd-btn';
     if (p.status === 'owned') {
       btn.textContent = 'Вывести';
       btn.addEventListener('click', () => withdraw(p.id, btn));
+
+      const sellBtn = document.createElement('button');
+      sellBtn.className = 'sell-btn';
+      sellBtn.textContent = 'Продать';
+      sellBtn.addEventListener('click', () => sellPrize(p, sellBtn));
+      actions.append(btn, sellBtn);
     } else {
       btn.textContent = 'В обработке';
       btn.classList.add('pending');
       btn.disabled = true;
+      actions.append(btn);
     }
 
-    card.append(thumb, pv, btn);
+    card.append(thumb, pv, actions);
     grid.appendChild(card);
   }
 }
@@ -477,7 +498,7 @@ async function doSpin() {
   const mode = currentMode();
   if (spinning || !state || !mode) return;
   if (state.balance_ton + 1e-9 < mode.cost_ton) {
-    openDeposit();
+    toast('Недостаточно средств — нажми «Пополнить баланс»', true);
     return;
   }
 
@@ -489,7 +510,7 @@ async function doSpin() {
 
   let result;
   try {
-    result = await api('/api/spin', { mode: mode.id });
+    result = await api('/api/spin', { chance: mode.chance });
   } catch (e) {
     spinning = false;
     $('modeSlider').disabled = false;
@@ -549,6 +570,35 @@ async function withdraw(prizeId, btn) {
   } catch (e) {
     toast(e.code === 'already_requested' ? 'Заявка уже создана' : 'Не удалось создать заявку', true);
     refresh();
+  }
+}
+
+/* --------------------------------------------------------------- продажа */
+async function sellPrize(prize, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await api('/api/sell', { prize_id: prize.id });
+    renderState(res);   // шляпа исчезает, баланс обновляется
+    toast(`Продано за ${fmt(res.sold_ton, 2)} TON`);
+    haptic('notification', 'success');
+  } catch (e) {
+    toast(e.code === 'not_sellable' || e.code === 'prize_not_found'
+      ? 'Этот приз уже нельзя продать' : 'Не удалось продать', true);
+    refresh();
+  }
+}
+
+/* -------------------------------------------------------------- пополнение */
+// Каждое нажатие «Пополнить баланс» сразу добавляет +10 TON.
+async function topUp() {
+  try {
+    const res = await api('/api/topup');
+    renderState(res);
+    toast(`+${fmt(res.added, 2)} TON`);
+    haptic('impact', 'light');
+  } catch (e) {
+    toast('Не удалось пополнить баланс', true);
   }
 }
 
@@ -703,12 +753,12 @@ async function refresh() {
 /* ------------------------------------------------------------- обработчики */
 function bind() {
   $('spinBtn').addEventListener('click', doSpin);
-  $('depositBtn').addEventListener('click', openDeposit);
+  $('depositBtn').addEventListener('click', topUp);
   $('depositCloseBtn').addEventListener('click', () => { $('depositModal').hidden = true; });
   $('depositSendBtn').addEventListener('click', sendDeposit);
   $('walletBtn').addEventListener('click', onWalletClick);
 
-  $('modeSlider').addEventListener('input', (e) => selectMode(Number(e.target.value)));
+  $('modeSlider').addEventListener('input', (e) => selectChance(Number(e.target.value)));
 
   $('refCreateBtn').addEventListener('click', createReferral);
   $('refCopyBtn').addEventListener('click', copyReferral);
