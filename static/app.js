@@ -15,7 +15,7 @@ let state = null;
 let tonUI = null;
 let spinning = false;
 let pointerDeg = 0;
-let chancePct = 25;         // выбранный шанс, % (позиция ползунка)
+let chancePct = 50;         // выбранный шанс, % (позиция ползунка)
 let chanceCfg = null;       // {min, max, default, marks} с сервера
 let prizePrice = 7;         // цена шляпы, из неё считается ставка
 
@@ -189,9 +189,11 @@ function applyMode() {
     el.classList.toggle('active', Number(el.dataset.pct) === chancePct);
   });
 
-  // Зелёная дуга = доля выигрыша на колесе.
-  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance / 100} ${RING_C}`);
+  // Зелёная дуга = текущий шанс. Меняется плавно при каждом движении ползунка.
+  const green = RING_C * m.chance / 100;
+  $('arcWin').setAttribute('stroke-dasharray', `${green} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
+  $('arcWin').style.setProperty('--win-pct', `${m.chance}%`);
 
   updateSpinButton();
 }
@@ -204,12 +206,47 @@ function updateSpinButton() {
   $('spinBtnText').textContent = enough ? `Крутить за ${fmt(m.cost_ton, 2)} TON` : 'Пополни баланс';
 }
 
+/* -------------------------------------------------------- анимация баланса */
+let balanceAnim = 0;
+function animateBalance(from, to) {
+  const el = $('balanceChip');
+  const value = $('balanceValue');
+  const direction = to < from ? 'decrease' : 'increase';
+  cancelAnimationFrame(balanceAnim);
+  el.classList.remove('balance-decrease', 'balance-increase');
+  void el.offsetWidth;
+  el.classList.add(direction === 'decrease' ? 'balance-decrease' : 'balance-increase');
+
+  const started = performance.now();
+  const duration = 520;
+  const delta = to - from;
+  const tick = (now) => {
+    const p = Math.min(1, (now - started) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    value.textContent = fmt(from + delta * eased, 4);
+    if (p < 1) balanceAnim = requestAnimationFrame(tick);
+    else {
+      value.textContent = fmt(to, 4);
+      setTimeout(() => el.classList.remove('balance-decrease', 'balance-increase'), 220);
+    }
+  };
+  balanceAnim = requestAnimationFrame(tick);
+}
+
 /* --------------------------------------------------------------- рендер */
 function renderState(s) {
+  const previousState = state;
   state = s;
   buildModes(s.config);
 
-  $('balanceValue').textContent = fmt(s.balance_ton, 4);
+  const previousBalance = previousState && Number.isFinite(Number(previousState.balance_ton))
+    ? Number(previousState.balance_ton) : Number(s.balance_ton);
+  const nextBalance = Number(s.balance_ton);
+  if (previousBalance !== nextBalance) {
+    animateBalance(previousBalance, nextBalance);
+  } else {
+    $('balanceValue').textContent = fmt(nextBalance, 4);
+  }
   $('prizeNameInline').textContent = s.config.prize_name;
   $('depositAmount').min = s.config.min_deposit_ton;
 
@@ -526,11 +563,17 @@ async function doSpin() {
     return;
   }
 
-  // Докручиваем вперёд: 5 полных оборотов + нужный угол.
+  // Каждый запуск имеет немного разную скорость, число оборотов и кривую
+  // торможения. Серверный угол остаётся единственным источником результата.
   const current = ((pointerDeg % 360) + 360) % 360;
-  pointerDeg += 360 * 5 + ((result.angle - current + 360) % 360);
+  const extraTurns = 6 + Math.floor(Math.random() * 5);
+  pointerDeg += 360 * extraTurns + ((result.angle - current + 360) % 360);
 
   const pointer = $('pointer');
+  const duration = 3800 + Math.floor(Math.random() * 1900);
+  const c1 = (0.08 + Math.random() * 0.16).toFixed(2);
+  const c2 = (0.68 + Math.random() * 0.25).toFixed(2);
+  pointer.style.transition = `transform ${duration}ms cubic-bezier(${c1}, .78, ${c2}, 1)`;
   pointer.classList.add('spinning');
   requestAnimationFrame(() => { pointer.style.transform = `rotate(${pointerDeg}deg)`; });
 
@@ -538,10 +581,11 @@ async function doSpin() {
     document.querySelector('.wheel-wrap').classList.remove('rolling');
     spinning = false;
     $('modeSlider').disabled = false;
+    pointer.classList.remove('spinning');
     haptic('notification', result.win ? 'success' : 'error');
     showResult(result);
     refresh();
-  }, 3700);
+  }, duration + 120);
 }
 
 function showResult(result) {
@@ -591,15 +635,9 @@ async function sellPrize(prize, btn) {
 
 /* -------------------------------------------------------------- пополнение */
 // Каждое нажатие «Пополнить баланс» сразу добавляет +10 TON.
-async function topUp() {
-  try {
-    const res = await api('/api/topup');
-    renderState(res);
-    toast(`+${fmt(res.added, 2)} TON`);
-    haptic('impact', 'light');
-  } catch (e) {
-    toast('Не удалось пополнить баланс', true);
-  }
+function topUp() {
+  // Нажатие только открывает окно оплаты. Никакого зачисления на клиенте.
+  openDeposit();
 }
 
 /* ---------------------------------------------------------- TON Connect */
@@ -753,7 +791,7 @@ async function refresh() {
 /* ------------------------------------------------------------- обработчики */
 function bind() {
   $('spinBtn').addEventListener('click', doSpin);
-  $('depositBtn').addEventListener('click', topUp);
+  $('depositBtn').addEventListener('click', openDeposit);
   $('depositCloseBtn').addEventListener('click', () => { $('depositModal').hidden = true; });
   $('depositSendBtn').addEventListener('click', sendDeposit);
   $('walletBtn').addEventListener('click', onWalletClick);

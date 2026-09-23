@@ -140,6 +140,22 @@ button, input { font-family: inherit; font-weight: 400; }
   line-height: 1;
 }
 .balance .cur { color: var(--muted); font-size: 10px; }
+.balance-decrease {
+  animation: balanceSpend .52s steps(6, end);
+}
+.balance-increase {
+  animation: balanceGain .52s steps(6, end);
+}
+@keyframes balanceSpend {
+  0% { transform: scale(1); border-color: var(--card-line); }
+  35% { transform: scale(1.06); border-color: var(--red); box-shadow: 0 0 18px rgba(255,93,108,.35); }
+  100% { transform: scale(1); border-color: var(--card-line); }
+}
+@keyframes balanceGain {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.05); box-shadow: 0 0 18px rgba(53,214,127,.35); }
+  100% { transform: scale(1); }
+}
 .ton-ico { width: 17px; height: 17px; display: block; image-rendering: pixelated; }
 
 .wallet-btn {
@@ -221,7 +237,7 @@ button, input { font-family: inherit; font-weight: 400; }
   fill: none;
   stroke-width: 18;
   stroke-linecap: butt;
-  transition: stroke-dasharray .25s steps(6, end);
+  transition: stroke-dasharray .42s cubic-bezier(.2,.8,.2,1), filter .25s ease;
 }
 
 .pointer {
@@ -229,7 +245,7 @@ button, input { font-family: inherit; font-weight: 400; }
   transform: rotate(0deg);
   filter: drop-shadow(0 0 5px rgba(255, 192, 67, .55));
 }
-.pointer.spinning { transition: transform 3.6s cubic-bezier(.12, .72, .12, 1); }
+.pointer.spinning { will-change: transform; }
 /* Пиксельная стрелка: контур, заливка и блик — три слоя квадратов */
 .ptr-outline { fill: #2a1500; }
 .ptr-fill    { fill: var(--gold); }
@@ -642,11 +658,23 @@ button, input { font-family: inherit; font-weight: 400; }
 .podium-slot.empty-slot .podium-name,
 .podium-slot.empty-slot .podium-turnover { color: var(--muted); }
 
-.lb-list { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.lb-list {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 1px 8px;
+  scrollbar-width: thin;
+}
 .lb-row {
+  flex: 0 0 178px;
+  min-height: 58px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 7px 9px;
   background: var(--card);
   border: 2px solid var(--card-line);
