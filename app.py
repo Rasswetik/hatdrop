@@ -6,7 +6,7 @@ from flask import Flask, render_template, jsonify, request, Response, has_reques
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
-POSTSQL = (os.environ.get('POSTSQL') or '').strip()
+POSTSQL = (os.environ.get('POSTSQL') or os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL') or '').strip()
 DB_PATH = os.environ.get('DB_PATH', os.path.join(app.root_path, 'data.sqlite3'))
 DB_KIND = 'postgres' if POSTSQL else 'sqlite'
 if DB_KIND == 'postgres':
@@ -46,7 +46,7 @@ _BOT_USERNAME_RESOLVED = ''
 
 REFERRAL_PERCENT = 2.0
 HAT_PRICE = 7.0
-CONNECT_BONUS = 10.0
+CONNECT_BONUS = 0.0
 MIN_DEPOSIT = 0.1
 MIN_REF_WITHDRAW = 1.0
 PRIZE_NAME = 'Шляпа волшебника'
@@ -363,7 +363,7 @@ def leaders_payload():
             WHERE up.created_at >= ?
             GROUP BY u.id
             ORDER BY turnover DESC
-            LIMIT 30
+            LIMIT 50
         ''', (start_s,)).fetchall()
     entries = [{
         'tg_id': r['tg_id'], 'username': r['username'] or '', 'first_name': r['first_name'] or 'Игрок',
@@ -495,14 +495,10 @@ def state():
 
 @app.post('/api/connect')
 def connect():
+    # Старый endpoint зачислял бонус простым нажатием. Оставляем маршрут
+    # только для обратной совместимости, но баланс здесь НИКОГДА не меняем.
     row = upsert_user(get_user())
-    with db() as conn:
-        row = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
-        if row['bonus_claimed']:
-            return jsonify({'ok': False, 'error': 'bonus_already_claimed', 'user': state_payload(row)['user']}), 409
-        conn.execute('UPDATE users SET balance=balance+?, bonus_claimed=1 WHERE id=?', (CONNECT_BONUS, row['id']))
-        row = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
-    return jsonify({'ok': True, 'bonus': CONNECT_BONUS, **state_payload(row)})
+    return jsonify({'error': 'wallet_connection_only', **state_payload(row)}), 409
 
 
 @app.post('/api/wallet')
