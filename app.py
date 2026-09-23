@@ -1,34 +1,59 @@
-import os, hmac, hashlib, json, logging, secrets, sqlite3, tempfile, threading, time, urllib.request, urllib.error, re
+import os, hmac, hashlib, json, logging, re, secrets, sqlite3, tempfile, threading, time, urllib.request, urllib.error
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from urllib.parse import parse_qsl, quote
+from urllib.parse import parse_qsl
 from flask import Flask, render_template, jsonify, request, Response, has_request_context
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
-POSTSQL = (os.environ.get('POSTSQL') or os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL') or '').strip()
-DB_PATH = os.environ.get('DB_PATH', os.path.join(app.root_path, 'data.sqlite3'))
-DB_KIND = 'postgres' if POSTSQL else 'sqlite'
-if DB_KIND == 'postgres':
-    try:
-        import psycopg
-        from psycopg.rows import dict_row
-    except ImportError:
-        raise RuntimeError('POSTSQL задан, но psycopg не установлен. Добавьте psycopg[binary] в requirements.txt.')
 
-class PGConnection:
-    def __init__(self, url):
-        self.raw = psycopg.connect(url, row_factory=dict_row, autocommit=False)
-    def execute(self, sql, params=()):
-        return self.raw.execute(sql.replace('?', '%s'), params or ())
-    def executescript(self, script):
-        for stmt in re.split(r';\\s*(?=CREATE|ALTER|INSERT|UPDATE|DELETE)', script.strip(), flags=re.I):
-            stmt = stmt.strip()
-            if stmt:
-                self.raw.execute(stmt)
-    def commit(self): self.raw.commit()
-    def rollback(self): self.raw.rollback()
-    def close(self): self.raw.close()
+# ──────────────────────────────────────────────────────────────────────
+#  БАЗА ДАННЫХ
+#  Если задана переменная окружения POSTSQL (ссылка на Postgres,
+#  например postgres://user:pass@host:5432/dbname) — используем Postgres.
+#  Иначе используем SQLite.
+#
+#  Почему раньше база «слетала» при перезапуске (Railway/Render):
+#  DB_PATH по умолчанию указывал внутрь app.root_path — то есть в папку
+#  с самим кодом приложения. На Railway (и на Render без Persistent Disk)
+#  файловая система контейнера каждый раз пересоздаётся заново при новом
+#  деплое/перезапуске, и всё, что лежало рядом с кодом, стирается вместе
+#  со старым контейнером. Теперь по умолчанию файл SQLite кладётся в
+#  примонтированный volume (Railway: переменная RAILWAY_VOLUME_MOUNT_PATH,
+#  которую Railway сама подставляет, если к сервису подключён Volume) —
+#  такой путь переживает передеплои и рестарты. Если ни один путь для
+#  volume не найден, используем /data (стандартный путь для Persistent
+#  Disk на Render) как запасной вариант, и только в самом крайнем случае
+#  падаем обратно в папку с кодом (тогда, как и раньше, данные не хранятся
+#  между деплоями — но зато приложение не падает на старте).
+# ──────────────────────────────────────────────────────────────────────
+POSTSQL_URL = os.environ.get('POSTSQL') or os.environ.get('POSTSQL_URL') or ''
+USE_POSTGRES = bool(POSTSQL_URL)
+
+if USE_POSTGRES:
+    import psycopg
+    import psycopg.rows
+    DB_PATH = None
+else:
+    def _default_sqlite_dir():
+        for candidate in (
+            os.environ.get('RAILWAY_VOLUME_MOUNT_PATH'),  # Railway Volume, если подключён
+            '/data' if os.path.isdir('/data') or os.access('/', os.W_OK) else None,  # Render Persistent Disk
+        ):
+            if candidate:
+                try:
+                    os.makedirs(candidate, exist_ok=True)
+                    test = os.path.join(candidate, '.write_test')
+                    with open(test, 'w') as f:
+                        f.write('x')
+                    os.remove(test)
+                    return candidate
+                except Exception:
+                    continue
+        # Крайний случай: данные не переживут передеплой, но приложение хотя бы стартует.
+        return app.root_path
+
+    DB_PATH = os.environ.get('DB_PATH') or os.path.join(_default_sqlite_dir(), 'data.sqlite3')
 
 # ┌─────────────────────────────────────────────────────────────────────┐
 # │  ВСТАВЬ ТОКЕН БОТА СЮДА (из @BotFather), между кавычками:           │
@@ -40,25 +65,38 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN') or ''
 # определяется сам; на другом хостинге впиши сюда или в переменную WEBAPP_URL.
 WEBAPP_URL = os.environ.get('WEBAPP_URL') or ''
 
-# Имя бота нужно только для реф-ссылок; при запущенном боте берётся само (getMe).
-BOT_USERNAME = os.environ.get('BOT_USERNAME', '').strip()
-_BOT_USERNAME_RESOLVED = ''
-
+# Имя бота нужно для реф-ссылок (https://t.me/<имя>?start=ref_...).
+# Раньше это имя обновлялось только внутри bot_poll_loop() — то есть только
+# в ОДНОМ из воркеров gunicorn, том, что успел захватить файловую блокировку
+# _acquire_bot_lock(). Во всех остальных воркерах (а запросы от пользователей
+# балансируются между ними) BOT_USERNAME так и оставался равен дефолту
+# 'your_bot', и часть игроков получала явно нерабочую реферальную ссылку.
+# Теперь имя бота определяется один раз при импорте модуля, синхронным
+# вызовом getMe — до того, как процесс начнёт принимать запросы, — и
+# одинаково для всех воркеров.
+BOT_USERNAME = os.environ.get('BOT_USERNAME', '')
 REFERRAL_PERCENT = 2.0
 HAT_PRICE = 7.0
-CONNECT_BONUS = 0.0
+CONNECT_BONUS = 10.0
 MIN_DEPOSIT = 0.1
 MIN_REF_WITHDRAW = 1.0
 PRIZE_NAME = 'Шляпа волшебника'
 TOPUP_AMOUNT = 10.0          # сколько TON даёт одно нажатие «Пополнить баланс»
 # Ползунок ставки: любой шанс от CHANCE_MIN до CHANCE_MAX процентов, цена ставки
-# = шанс × цена шляпы (10% → 0.7, 25% → 1.75, 50% → 3.5, 75% → 5.25 TON).
-CHANCE_MIN, CHANCE_MAX, CHANCE_DEFAULT = 1, 80, 50
-CHANCE_MARKS = (1, 50, 80)  # подписанные метки под ползунком
+# = шанс × цена шляпы (10% → 0.7, 25% → 1.75, 50% → 3.5, 80% → 5.6 TON).
+# Диапазон подобран так, чтобы метка 50% попадала строго в визуальный
+# центр ползунка: (CHANCE_MIN + CHANCE_MAX) / 2 == 50, то есть 1 и 99.
+# Метки под ползунком: 1% в начале, 50% строго в центре, 80% ближе к концу шкалы.
+CHANCE_MIN, CHANCE_MAX, CHANCE_DEFAULT = 1, 99, 25
+CHANCE_MARKS = (1, 50, 80)  # подписанные метки под ползунком: начало / центр / конец шкалы
 DEPOSIT_ADDRESS = os.environ.get('DEPOSIT_ADDRESS', '')
 DEPOSIT_MEMO = os.environ.get('DEPOSIT_MEMO', '')
 
-os.makedirs(os.path.dirname(DB_PATH) or '.', exist_ok=True)
+if not USE_POSTGRES:
+    os.makedirs(os.path.dirname(DB_PATH) or '.', exist_ok=True)
+    logging.info('БД: SQLite, файл %s', DB_PATH)
+else:
+    logging.info('БД: Postgres (переменная POSTSQL задана)')
 
 # Простой анти-спам для /api/spin: id пользователя -> время последнего спина.
 # Раньше это сравнивалось строкой с CURRENT_TIMESTAMP из SQLite (UTC) против
@@ -67,8 +105,87 @@ os.makedirs(os.path.dirname(DB_PATH) or '.', exist_ok=True)
 _last_spin_at = {}
 
 
+# ──────────────────────────────────────────────────────────────────────
+#  Единый слой доступа к БД поверх SQLite и Postgres.
+#
+#  Все запросы в коде написаны с плейсхолдерами `?` (стиль SQLite) —
+#  _Cursor сам переводит их в `%s` (стиль psycopg), когда используется
+#  Postgres, так что остальной код приложения ничего не знает о том,
+#  какая БД сейчас работает под капотом.
+# ──────────────────────────────────────────────────────────────────────
+class _Cursor:
+    """Обёртка над курсором, которая даёт одинаковый API для sqlite3 и psycopg:
+    execute() с плейсхолдерами `?`, fetchone()/fetchall(), возвращающие
+    dict-подобные строки (row['col']), и .lastrowid после INSERT."""
+
+    def __init__(self, cur, is_pg):
+        self._cur = cur
+        self._is_pg = is_pg
+        self.lastrowid = None
+
+    def execute(self, sql, params=()):
+        if self._is_pg:
+            sql2 = sql.replace('?', '%s')
+            # AUTOINCREMENT-таблицы создаются один раз в init_db со своим
+            # диалектом, но некоторые операторы пишутся в общем стиле SQLite.
+            sql2 = re.sub(r'\bINSERT INTO (\w+)\(', r'INSERT INTO \1(', sql2)
+            needs_id = bool(re.match(r'\s*INSERT INTO', sql2, re.IGNORECASE)) and 'RETURNING' not in sql2.upper()
+            if needs_id:
+                sql2 = sql2.rstrip().rstrip(';') + ' RETURNING id'
+            self._cur.execute(sql2, params)
+            if needs_id:
+                row = self._cur.fetchone()
+                self.lastrowid = row['id'] if row else None
+        else:
+            self._cur.execute(sql, params)
+            self.lastrowid = self._cur.lastrowid
+        return self
+
+    def fetchone(self):
+        return self._cur.fetchone()
+
+    def fetchall(self):
+        return self._cur.fetchall()
+
+    @property
+    def rowcount(self):
+        return self._cur.rowcount
+
+
+class _Conn:
+    """Обёртка над соединением, дающая одинаковый .execute()/.executescript()
+    для обоих движков."""
+
+    def __init__(self, raw, is_pg):
+        self._raw = raw
+        self._is_pg = is_pg
+
+    def execute(self, sql, params=()):
+        cur = self._raw.cursor()
+        return _Cursor(cur, self._is_pg).execute(sql, params)
+
+    def executescript(self, sql):
+        # Postgres прекрасно исполняет несколько ';'-разделённых операторов
+        # через обычный cursor.execute (в отличие от sqlite3, где для этого
+        # нужен отдельный executescript).
+        if self._is_pg:
+            self._raw.cursor().execute(sql)
+        else:
+            self._raw.executescript(sql)
+
+    def commit(self):
+        self._raw.commit()
+
+    def rollback(self):
+        self._raw.rollback()
+
+    def close(self):
+        self._raw.close()
+
+
 def db():
-    """Контекстный менеджер для соединения с БД.
+    """Контекстный менеджер для соединения с БД (SQLite или Postgres —
+    выбор происходит один раз при старте по наличию переменной POSTSQL).
 
     Раньше это была обычная функция, возвращавшая sqlite3.Connection: код
     везде использовал `with db() as conn:`, и это действительно вызывало
@@ -86,12 +203,13 @@ def db():
 
 @contextmanager
 def _db_ctx():
-    if DB_KIND == 'postgres':
-        conn = PGConnection(POSTSQL)
+    if USE_POSTGRES:
+        raw = psycopg.connect(POSTSQL_URL, row_factory=psycopg.rows.dict_row, connect_timeout=10)
     else:
-        conn = sqlite3.connect(DB_PATH, timeout=15)
-        conn.row_factory = sqlite3.Row
-        conn.execute('PRAGMA busy_timeout=15000')
+        raw = sqlite3.connect(DB_PATH, timeout=15)
+        raw.row_factory = sqlite3.Row
+        raw.execute('PRAGMA busy_timeout=15000')
+    conn = _Conn(raw, USE_POSTGRES)
     try:
         yield conn
         conn.commit()
@@ -103,50 +221,51 @@ def _db_ctx():
 
 
 def init_db():
-    if DB_KIND == 'postgres':
-        schema = """
-        CREATE TABLE IF NOT EXISTS users (
-            id BIGSERIAL PRIMARY KEY, tg_id BIGINT UNIQUE NOT NULL,
-            username TEXT DEFAULT '', first_name TEXT DEFAULT '', last_name TEXT DEFAULT '',
-            photo_url TEXT DEFAULT '', wallet_address TEXT DEFAULT '',
-            balance DOUBLE PRECISION NOT NULL DEFAULT 0,
-            referral_earnings DOUBLE PRECISION NOT NULL DEFAULT 0,
-            referral_balance DOUBLE PRECISION NOT NULL DEFAULT 0,
-            referral_created INTEGER NOT NULL DEFAULT 0, referred_by BIGINT,
-            bonus_claimed INTEGER NOT NULL DEFAULT 0,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS inventory (
-            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL,
-            item_type TEXT NOT NULL, item_name TEXT NOT NULL, item_price DOUBLE PRECISION NOT NULL,
-            status TEXT NOT NULL DEFAULT 'owned', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS upgrades (
-            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL,
-            price DOUBLE PRECISION NOT NULL, probability DOUBLE PRECISION NOT NULL, won INTEGER NOT NULL,
-            angle DOUBLE PRECISION NOT NULL DEFAULT 0, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS deposits (
-            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL,
-            amount DOUBLE PRECISION NOT NULL, source TEXT NOT NULL DEFAULT 'internal', tx_hash TEXT DEFAULT '',
-            status TEXT NOT NULL DEFAULT 'confirmed', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS referral_withdrawals (
-            id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL,
-            amount DOUBLE PRECISION NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE INDEX IF NOT EXISTS idx_inventory_user ON inventory(user_id);
-        CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
-        CREATE INDEX IF NOT EXISTS idx_deposits_user ON deposits(user_id);
-        CREATE INDEX IF NOT EXISTS idx_refwd_user ON referral_withdrawals(user_id);
-        """
-        with db() as conn:
-            conn.executescript(schema)
-            cols = {r['column_name'] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'").fetchall()}
+    with db() as conn:
+        if USE_POSTGRES:
+            conn.executescript('''
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                tg_id BIGINT UNIQUE NOT NULL,
+                username TEXT DEFAULT '', first_name TEXT DEFAULT '', last_name TEXT DEFAULT '',
+                photo_url TEXT DEFAULT '', wallet_address TEXT DEFAULT '',
+                balance DOUBLE PRECISION NOT NULL DEFAULT 0,
+                referral_earnings DOUBLE PRECISION NOT NULL DEFAULT 0,
+                referral_balance DOUBLE PRECISION NOT NULL DEFAULT 0,
+                referral_created INTEGER NOT NULL DEFAULT 0,
+                referred_by INTEGER,
+                bonus_claimed INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS inventory (
+                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
+                item_type TEXT NOT NULL, item_name TEXT NOT NULL, item_price DOUBLE PRECISION NOT NULL,
+                status TEXT NOT NULL DEFAULT 'owned', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS upgrades (
+                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
+                price DOUBLE PRECISION NOT NULL, probability DOUBLE PRECISION NOT NULL, won INTEGER NOT NULL,
+                angle DOUBLE PRECISION NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS deposits (
+                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
+                amount DOUBLE PRECISION NOT NULL, source TEXT NOT NULL DEFAULT 'internal', tx_hash TEXT DEFAULT '',
+                status TEXT NOT NULL DEFAULT 'confirmed', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS referral_withdrawals (
+                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
+                amount DOUBLE PRECISION NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_inventory_user ON inventory(user_id);
+            CREATE INDEX IF NOT EXISTS idx_users_referred_by ON users(referred_by);
+            CREATE INDEX IF NOT EXISTS idx_deposits_user ON deposits(user_id);
+            CREATE INDEX IF NOT EXISTS idx_refwd_user ON referral_withdrawals(user_id);
+            ''')
+            cols = {r['column_name'] for r in conn.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='users'").fetchall()}
             migrations = {
                 'wallet_address': "ALTER TABLE users ADD COLUMN wallet_address TEXT DEFAULT ''",
                 'referral_balance': "ALTER TABLE users ADD COLUMN referral_balance DOUBLE PRECISION NOT NULL DEFAULT 0",
@@ -154,14 +273,18 @@ def init_db():
                 'bonus_claimed': "ALTER TABLE users ADD COLUMN bonus_claimed INTEGER NOT NULL DEFAULT 0",
             }
             for col, sql in migrations.items():
-                if col not in cols: conn.execute(sql)
-            icols = {r['column_name'] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='inventory'").fetchall()}
-            if 'status' not in icols: conn.execute("ALTER TABLE inventory ADD COLUMN status TEXT NOT NULL DEFAULT 'owned'")
-            ucols = {r['column_name'] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='upgrades'").fetchall()}
-            if 'angle' not in ucols: conn.execute("ALTER TABLE upgrades ADD COLUMN angle DOUBLE PRECISION NOT NULL DEFAULT 0")
-        return
+                if col not in cols:
+                    conn.execute(sql)
+            icols = {r['column_name'] for r in conn.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='inventory'").fetchall()}
+            if 'status' not in icols:
+                conn.execute("ALTER TABLE inventory ADD COLUMN status TEXT NOT NULL DEFAULT 'owned'")
+            ucols = {r['column_name'] for r in conn.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='upgrades'").fetchall()}
+            if 'angle' not in ucols:
+                conn.execute("ALTER TABLE upgrades ADD COLUMN angle DOUBLE PRECISION NOT NULL DEFAULT 0")
+            return
 
-    with db() as conn:
         conn.executescript('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,7 +351,8 @@ def init_db():
 try:
     init_db()
 except Exception:
-    logging.exception('DB init failed at startup (DB=%s)', POSTSQL or DB_PATH)
+    logging.exception('DB init failed at startup (%s)',
+                       'Postgres (POSTSQL)' if USE_POSTGRES else f'SQLite DB_PATH={DB_PATH}')
 
 
 def validate_init_data(init_data):
@@ -363,7 +487,7 @@ def leaders_payload():
             WHERE up.created_at >= ?
             GROUP BY u.id
             ORDER BY turnover DESC
-            LIMIT 50
+            LIMIT 30
         ''', (start_s,)).fetchall()
     entries = [{
         'tg_id': r['tg_id'], 'username': r['username'] or '', 'first_name': r['first_name'] or 'Игрок',
@@ -395,34 +519,24 @@ def upsert_user(user, start_param=None):
                     referred_by = ref['id']
             except ValueError:
                 pass
-        conn.execute('''INSERT INTO users
+        cur = conn.execute('''INSERT INTO users
             (tg_id, username, first_name, last_name, photo_url, balance, referred_by)
             VALUES (?, ?, ?, ?, ?, 0, ?)''', (tg_id, *fields, referred_by))
-        # Не используем sqlite-only lastrowid: это одинаково работает для SQLite и PostgreSQL.
-        return conn.execute('SELECT * FROM users WHERE tg_id=?', (tg_id,)).fetchone()
+        return conn.execute('SELECT * FROM users WHERE id=?', (cur.lastrowid,)).fetchone()
 
-
-def resolved_bot_username():
-    global BOT_USERNAME, _BOT_USERNAME_RESOLVED
-    if _BOT_USERNAME_RESOLVED:
-        return _BOT_USERNAME_RESOLVED
-    if BOT_USERNAME:
-        _BOT_USERNAME_RESOLVED = BOT_USERNAME.lstrip('@')
-        return _BOT_USERNAME_RESOLVED
-    me = tg_call('getMe')
-    if me and me.get('ok'):
-        _BOT_USERNAME_RESOLVED = (me['result'].get('username') or '').lstrip('@')
-        if _BOT_USERNAME_RESOLVED:
-            BOT_USERNAME = _BOT_USERNAME_RESOLVED
-    return _BOT_USERNAME_RESOLVED
 
 def referral_payload(row):
     with db() as conn:
         count = conn.execute('SELECT COUNT(*) c FROM users WHERE referred_by=?', (row['id'],)).fetchone()['c']
         pending = conn.execute("SELECT COALESCE(SUM(amount),0) a FROM referral_withdrawals WHERE user_id=? AND status='pending'", (row['id'],)).fetchone()['a']
+    # Ссылка формируется только когда мы ТОЧНО знаем username нашего бота
+    # (см. resolve_bot_username): без него ссылка вела бы на несуществующий
+    # аккаунт 'your_bot' или, что ещё хуже, на чужого бота с тем же именем.
+    link = f'https://t.me/{BOT_USERNAME}?start=ref_{row["tg_id"]}' if row['referral_created'] and BOT_USERNAME else ''
     return {
         'created': bool(row['referral_created']),
-        'link': f'https://t.me/{resolved_bot_username()}?start=ref_{row["tg_id"]}' if row['referral_created'] and resolved_bot_username() else '',
+        'link': link,
+        'bot_username_known': bool(BOT_USERNAME),
         'count': count, 'percent': REFERRAL_PERCENT,
         'earned_ton': round(row['referral_earnings'], 4),
         'balance_ton': round(row['referral_balance'], 4),
@@ -446,7 +560,7 @@ def state_payload(row):
             'topup_ton': TOPUP_AMOUNT, 'referral_percent': REFERRAL_PERCENT,
             'chance': {'min': CHANCE_MIN, 'max': CHANCE_MAX, 'default': CHANCE_DEFAULT, 'marks': list(CHANCE_MARKS)},
         },
-        'deposit': {'address': DEPOSIT_ADDRESS, 'memo': f'{DEPOSIT_MEMO}-' + str(row["tg_id"]) if DEPOSIT_MEMO else f'MU-{row["tg_id"]}'},
+        'deposit': {'address': DEPOSIT_ADDRESS, 'memo': DEPOSIT_MEMO or f'MU-{row["tg_id"]}'},
         'prizes': [dict(p) for p in prizes],
         'referral': referral_payload(row),
         'leaders': leaders_payload(),
@@ -495,10 +609,14 @@ def state():
 
 @app.post('/api/connect')
 def connect():
-    # Старый endpoint зачислял бонус простым нажатием. Оставляем маршрут
-    # только для обратной совместимости, но баланс здесь НИКОГДА не меняем.
     row = upsert_user(get_user())
-    return jsonify({'error': 'wallet_connection_only', **state_payload(row)}), 409
+    with db() as conn:
+        row = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
+        if row['bonus_claimed']:
+            return jsonify({'ok': False, 'error': 'bonus_already_claimed', 'user': state_payload(row)['user']}), 409
+        conn.execute('UPDATE users SET balance=ROUND(balance+?,4), bonus_claimed=1 WHERE id=?', (CONNECT_BONUS, row['id']))
+        row = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
+    return jsonify({'ok': True, 'bonus': CONNECT_BONUS, **state_payload(row)})
 
 
 @app.post('/api/wallet')
@@ -535,7 +653,7 @@ def spin():
         _last_spin_at[row['id']] = now
         won = secrets.randbelow(100) < pct
         angle = angle_for(chance, won)
-        conn.execute('UPDATE users SET balance=balance-? WHERE id=?', (price, row['id']))
+        conn.execute('UPDATE users SET balance=ROUND(balance-?,4) WHERE id=?', (price, row['id']))
         conn.execute('INSERT INTO upgrades(user_id,price,probability,won,angle) VALUES(?,?,?,?,?)', (row['id'],price,chance,1 if won else 0,angle))
         if won:
             conn.execute("INSERT INTO inventory(user_id,item_type,item_name,item_price,status) VALUES(?,?,?,?, 'owned')", (row['id'],'gift',PRIZE_NAME,HAT_PRICE))
@@ -583,9 +701,15 @@ def withdraw():
 
 @app.post('/api/topup')
 def topup():
-    # Безопасность: нажатие кнопки больше НИКОГДА не создаёт TON из воздуха.
-    # Реальное пополнение идёт только через TON Connect/подтверждённую транзакцию.
-    return jsonify({'error': 'topup_requires_payment'}), 409
+    # Каждое нажатие «Пополнить баланс» = +TOPUP_AMOUNT TON. Реферальный бонус
+    # тут намеренно не начисляется, чтобы из бесплатных пополнений нельзя было
+    # накрутить выводимый реферальный баланс.
+    row = upsert_user(get_user())
+    with db() as conn:
+        conn.execute('UPDATE users SET balance=ROUND(balance+?,4) WHERE id=?', (TOPUP_AMOUNT, row['id']))
+        conn.execute("INSERT INTO deposits(user_id,amount,source,status) VALUES(?,?, 'topup','confirmed')", (row['id'], TOPUP_AMOUNT))
+        updated = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
+    return jsonify({'ok': True, 'added': TOPUP_AMOUNT, **state_payload(updated)})
 
 
 @app.post('/api/sell')
@@ -600,101 +724,32 @@ def sell():
         # Условный UPDATE — защита от двойного нажатия: продать можно ровно один раз.
         cur = conn.execute("UPDATE inventory SET status='sold' WHERE id=? AND user_id=? AND status='owned'", (pid, row['id']))
         if cur.rowcount != 1: return jsonify({'error': 'not_sellable'}), 409
-        conn.execute('UPDATE users SET balance=balance+? WHERE id=?', (item['item_price'], row['id']))
+        conn.execute('UPDATE users SET balance=ROUND(balance+?,4) WHERE id=?', (item['item_price'], row['id']))
         updated = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
     return jsonify({'ok': True, 'sold_ton': item['item_price'], **state_payload(updated)})
 
 
 @app.post('/api/deposit')
 def internal_deposit():
-    # Старый endpoint позволял клиенту просто отправить amount и получить баланс.
-    # Теперь прямое зачисление с клиента запрещено.
-    return jsonify({'error': 'deposit_is_confirmed_server_side'}), 409
+    payload = request.get_json(silent=True) or {}
+    try: amount = float(payload.get('amount', 0))
+    except (TypeError, ValueError): amount = 0
+    if amount < MIN_DEPOSIT: return jsonify({'error':'invalid_amount'}), 400
+    row = upsert_user(get_user())
+    with db() as conn:
+        conn.execute('UPDATE users SET balance=ROUND(balance+?,4) WHERE id=?', (amount,row['id']))
+        conn.execute("INSERT INTO deposits(user_id,amount,source,status) VALUES(?,?, 'internal','confirmed')", (row['id'],amount))
+        if row['referred_by']:
+            bonus = round(amount * REFERRAL_PERCENT / 100, 4)
+            conn.execute('UPDATE users SET referral_balance=ROUND(referral_balance+?,4), referral_earnings=ROUND(referral_earnings+?,4) WHERE id=?', (bonus,bonus,row['referred_by']))
+        updated = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
+    return jsonify({'ok':True, **state_payload(updated)})
 
 
 @app.get('/tonconnect-manifest.json')
 def manifest():
     return jsonify({'url': request.host_url.rstrip('/'), 'name': 'Magic Upgrade', 'iconUrl': request.host_url.rstrip('/') + '/static/img/hat.png'})
 
-
-
-# ==================================================================== АВТОЗАЧИСЛЕНИЕ TON
-# Баланс не меняется от клика по кнопке. После реального входящего TON-платежа
-# сканер ищет подтверждённый TonTransfer с персональным memo MU-<telegram_id>.
-# TonAPI не требует ключа для базового чтения событий, но имеет rate limits.
-_DEPOSIT_SCANNER_STOP = False
-
-def _extract_ton_comment(action):
-    if not isinstance(action, dict):
-        return ''
-    transfer = action.get('TonTransfer') or action.get('tonTransfer') or {}
-    return str(transfer.get('comment') or action.get('comment') or '').strip()
-
-def _deposit_scanner_once():
-    if not DEPOSIT_ADDRESS:
-        return
-    url = f"https://tonapi.io/v2/accounts/{quote(DEPOSIT_ADDRESS, safe='')}/events?limit=50"
-    try:
-        req = urllib.request.Request(url, headers={'Accept': 'application/json'})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read().decode('utf-8'))
-    except Exception:
-        return
-
-    for event in data.get('events', []):
-        event_id = str(event.get('event_id') or event.get('id') or '')
-        if not event_id:
-            continue
-        for action in event.get('actions', []):
-            if action.get('type') not in ('TonTransfer', 'tonTransfer'):
-                continue
-            transfer = action.get('TonTransfer') or action.get('tonTransfer') or {}
-            if str(action.get('status', 'ok')).lower() not in ('ok', 'success'):
-                continue
-            recipient = ((transfer.get('recipient') or {}).get('address') or '')
-            if recipient and recipient != DEPOSIT_ADDRESS:
-                continue
-            comment = _extract_ton_comment(action)
-            prefix = (DEPOSIT_MEMO.strip() + '-') if DEPOSIT_MEMO.strip() else 'MU-'
-            match = re.fullmatch(re.escape(prefix) + r'(\d+)', comment)
-            if not match:
-                continue
-            tg_id = int(match.group(1))
-            try:
-                amount = float(transfer.get('amount', 0)) / 1_000_000_000
-            except (TypeError, ValueError):
-                continue
-            if amount < MIN_DEPOSIT:
-                continue
-
-            with db() as conn:
-                already = conn.execute("SELECT id FROM deposits WHERE tx_hash=?", (event_id,)).fetchone()
-                if already:
-                    continue
-                user = conn.execute("SELECT * FROM users WHERE tg_id=?", (tg_id,)).fetchone()
-                if not user:
-                    continue
-                conn.execute("UPDATE users SET balance=balance+? WHERE id=?", (amount, user['id']))
-                conn.execute(
-                    "INSERT INTO deposits(user_id,amount,source,tx_hash,status) VALUES(?,?, 'tonapi','confirmed')",
-                    (user['id'], amount, event_id))
-                if user['referred_by']:
-                    bonus = round(amount * REFERRAL_PERCENT / 100, 4)
-                    conn.execute(
-                        "UPDATE users SET referral_balance=referral_balance+?, referral_earnings=referral_earnings+? WHERE id=?",
-                        (bonus, bonus, user['referred_by']))
-
-def _deposit_scanner_loop():
-    while True:
-        try:
-            _deposit_scanner_once()
-        except Exception:
-            logging.exception('deposit scanner error')
-        time.sleep(20)
-
-def start_deposit_scanner():
-    if DEPOSIT_ADDRESS:
-        threading.Thread(target=_deposit_scanner_loop, name='ton-deposit-scanner', daemon=True).start()
 
 # ==================================================================== БОТ
 # Telegram-бот встроен в приложение: работает в фоновом потоке (long polling),
@@ -703,7 +758,7 @@ WELCOME_TEXT = (
     '✨ Привет, {name}!\n'
     '\n'
     'Подключай кошелёк, пополняй баланс в TON и крути апгрейд.\n'
-    'Приз — Шляпа волшебника (7 TON).\n'
+    'Приз — Шляпа волшебника (10 TON).\n'
     '\n'
     'Режимы ставки:\n'
     '• 0.7 TON → шанс 10%\n'
@@ -745,6 +800,34 @@ def tg_call(method, payload=None, timeout=15):
         return None
 
 
+def resolve_bot_username():
+    """Определяет @username бота через getMe и сохраняет его в BOT_USERNAME.
+
+    Вызывается синхронно при старте модуля (один раз, для всех воркеров),
+    а не только внутри фонового потока polling — иначе часть воркеров
+    gunicorn никогда не узнавала бы реальное имя бота (см. комментарий
+    у объявления BOT_USERNAME выше) и выдавала бы реферальные ссылки на
+    несуществующего 'your_bot'.
+    """
+    global BOT_USERNAME
+    if os.environ.get('BOT_USERNAME'):
+        return  # имя явно задано в переменной окружения — доверяем ему полностью
+    if not BOT_TOKEN:
+        return
+    me = tg_call('getMe', timeout=10)
+    if me and me.get('ok') and me['result'].get('username'):
+        BOT_USERNAME = me['result']['username']
+        logging.info('Бот определён: @%s', BOT_USERNAME)
+    elif me and me.get('error_code') == 401:
+        logging.error('BOT_TOKEN неверный (Telegram ответил 401 на getMe)')
+    else:
+        logging.warning('Не удалось определить username бота через getMe — реферальные ссылки '
+                         'будут недоступны, пока это не получится (проверь сеть/BOT_TOKEN)')
+
+
+resolve_bot_username()
+
+
 def bot_handle_update(upd):
     msg = upd.get('message')
     if not msg:
@@ -781,11 +864,10 @@ def bot_handle_update(upd):
 
 
 def bot_poll_loop():
-    global BOT_USERNAME
+    # Имя бота (BOT_USERNAME) уже определено синхронно при старте модуля,
+    # см. resolve_bot_username() — здесь его трогать не нужно.
     me = tg_call('getMe')
     if me and me.get('ok'):
-        if not os.environ.get('BOT_USERNAME'):
-            BOT_USERNAME = me['result'].get('username') or BOT_USERNAME
         logging.info('Бот запущен: @%s', me['result'].get('username'))
     elif me and me.get('error_code') == 401:
         logging.error('BOT_TOKEN неверный (Telegram ответил 401) — бот не запущен')
@@ -848,7 +930,6 @@ def start_bot():
 
 
 start_bot()
-start_deposit_scanner()
 
 
 if __name__ == '__main__':
