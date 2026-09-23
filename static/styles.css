@@ -90,7 +90,7 @@ button, input { font-family: inherit; font-weight: 400; }
   width: 132%;
   transform: translateX(-50%);
   aspect-ratio: 1;
-  background-image: url("assets/bg.webp");
+  background-image: url("/static/assets/bg.webp");
   background-repeat: no-repeat;
   background-position: center bottom;
   background-size: 100% 100%;
@@ -302,7 +302,7 @@ button, input { font-family: inherit; font-weight: 400; }
   appearance: none;
   width: 100%;
   height: 26px;
-  background: transparent;
+  background: linear-gradient(to right, var(--green) 0 var(--chance, 62%), #1a1040 var(--chance, 62%) 100%);
   cursor: pointer;
   margin: 0;
 }
@@ -670,8 +670,8 @@ button, input { font-family: inherit; font-weight: 400; }
   scrollbar-width: thin;
 }
 .lb-row {
-  flex: 0 0 178px;
-  min-height: 58px;
+  flex: 0 0 190px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   gap: 8px;

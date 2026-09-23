@@ -194,6 +194,9 @@ function applyMode() {
   $('arcWin').setAttribute('stroke-dasharray', `${green} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
   $('arcWin').style.setProperty('--win-pct', `${m.chance}%`);
+  const slider = $('modeSlider');
+  const ratio = (m.chance - chanceCfg.min) / Math.max(1, chanceCfg.max - chanceCfg.min);
+  slider.style.setProperty('--chance', `${Math.max(0, Math.min(1, ratio)) * 100}%`);
 
   updateSpinButton();
 }
@@ -264,7 +267,7 @@ function renderState(s) {
     setHidden(avImg, true);
     setHidden(avIcon, false);
   }
-  $('walletBtnText').textContent = s.user.bonus_claimed ? 'Получено +10' : 'Получить +10';
+  $('walletBtnText').textContent = s.user.wallet ? shortAddr(s.user.wallet) : 'Подключить';
 
   $('depAddress').textContent = s.deposit.address || 'не настроен';
   $('depMemo').textContent = s.deposit.memo;
@@ -701,28 +704,21 @@ function initTonConnect() {
 }
 
 async function onWalletClick() {
-  const btn = $('walletBtn');
-  if (btn.dataset.busy === '1') return;
-  btn.dataset.busy = '1';
-  const old = $('walletBtnText').textContent;
-  $('walletBtnText').textContent = 'Зачисление…';
-  btn.disabled = true;
+  // Кнопка кошелька только открывает TON Connect. Никаких начислений
+  // при клике здесь нет и быть не должно.
+  if (!tonUI) {
+    toast('Кошелёк недоступен', true);
+    return;
+  }
   try {
-    const res = await api('/api/connect');
-    if (res.ok) {
-      renderState(res);
-      toast('+10 TON зачислено');
-      haptic('notification', 'success');
-    } else if (res.error === 'bonus_already_claimed') {
-      toast('Бонус уже получен');
-      await refresh();
+    if (tonUI.connected) {
+      await tonUI.openModal();
+    } else {
+      await tonUI.openModal();
     }
   } catch (e) {
-    toast('Не удалось зачислить бонус', true);
-  } finally {
-    btn.disabled = false;
-    btn.dataset.busy = '0';
-    if (!state?.user?.wallet) $('walletBtnText').textContent = old === 'Зачисление…' ? 'Получить +10' : old;
+    console.error('TON Connect:', e);
+    toast('Не удалось открыть подключение кошелька', true);
   }
 }
 
