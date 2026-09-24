@@ -138,6 +138,18 @@ class _Cursor:
             # AUTOINCREMENT-таблицы создаются один раз в init_db со своим
             # диалектом, но некоторые операторы пишутся в общем стиле SQLite.
             sql2 = re.sub(r'\bINSERT INTO (\w+)\(', r'INSERT INTO \1(', sql2)
+            # SQLite принимает ROUND(<любое число с плавающей точкой>, N)
+            # без вопросов. В Postgres функция ROUND(double precision, integer)
+            # просто не существует как перегрузка — есть только
+            # ROUND(numeric, integer), поэтому первый аргумент нужно явно
+            # привести к numeric. Раньше это ловилось только в проде на
+            # Postgres (например, в /api/admin/topup: balance=ROUND(balance+?,4))
+            # и заваливалось ошибкой psycopg.errors.UndefinedFunction, хотя
+            # тот же код прекрасно работал на SQLite. Патчим на уровне
+            # execute(), а не в каждом отдельном запросе, чтобы не искать
+            # каждое ROUND(...) по всему файлу и не забыть про новые.
+            sql2 = re.sub(r'\bROUND\(\s*([^,()]+(?:\([^()]*\))?[^,()]*)\s*,',
+                           r'ROUND((\1)::numeric,', sql2, flags=re.IGNORECASE)
             needs_id = bool(re.match(r'\s*INSERT INTO', sql2, re.IGNORECASE)) and 'RETURNING' not in sql2.upper()
             if needs_id:
                 sql2 = sql2.rstrip().rstrip(';') + ' RETURNING id'
