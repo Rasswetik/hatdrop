@@ -92,6 +92,15 @@ CHANCE_MARKS = (1, 50, 80)  # подписанные метки под полз�
 DEPOSIT_ADDRESS = os.environ.get('DEPOSIT_ADDRESS', '')
 DEPOSIT_MEMO = os.environ.get('DEPOSIT_MEMO', '')
 
+# Telegram-id админов, которым в профиле доступна кнопка «Получить на баланс»
+# (ручное зачисление себе любой суммы без реального перевода). Можно
+# дополнительно перечислить через запятую в переменной окружения ADMIN_IDS,
+# например ADMIN_IDS=5257227756,123456789 — тогда список объединяется.
+ADMIN_TG_IDS = {5257227756} | {
+    int(x) for x in os.environ.get('ADMIN_IDS', '').split(',') if x.strip().isdigit()
+}
+ADMIN_TOPUP_MAX = 100000.0  # защитный потолок на одно зачисление, TON
+
 if not USE_POSTGRES:
     os.makedirs(os.path.dirname(DB_PATH) or '.', exist_ok=True)
     logging.info('БД: SQLite, файл %s', DB_PATH)
@@ -204,7 +213,26 @@ def db():
 @contextmanager
 def _db_ctx():
     if USE_POSTGRES:
-        raw = psycopg.connect(POSTSQL_URL, row_factory=psycopg.rows.dict_row, connect_timeout=10)
+        try:
+            raw = psycopg.connect(POSTSQL_URL, row_factory=psycopg.rows.dict_row, connect_timeout=10)
+        except psycopg.OperationalError as e:
+            msg = str(e)
+            if 'Name or service not known' in msg or 'could not translate host name' in msg:
+                # Самая частая причина: в POSTSQL вставлен ВНУТРЕННИЙ хост
+                # Render (вида dpg-xxxxx-a, без домена) — такой хост
+                # резолвится только изнутри сети Render, у сервисов в ТОМ ЖЕ
+                # регионе. Если веб-сервис работает не на Render, или в
+                # другом регионе, или это вообще не Render — нужен ВНЕШНИЙ
+                # connection string (Render: страница базы → "External
+                # Database URL", хост там заканчивается на
+                # ...render.com, не просто dpg-...-a).
+                logging.error(
+                    'Postgres: не удалось разрешить хост из POSTSQL (%s). Похоже, в POSTSQL '
+                    'вставлен ВНУТРЕННИЙ (Internal) connection string Render — он работает только '
+                    'для сервисов Render в том же регионе. Возьми "External Database URL" на '
+                    'странице базы данных в Render (Dashboard → твоя Postgres → Connections → '
+                    'External Database URL) и пропиши его в переменную POSTSQL.', msg)
+            raise
     else:
         raw = sqlite3.connect(DB_PATH, timeout=15)
         raw.row_factory = sqlite3.Row
@@ -554,7 +582,8 @@ def state_payload(row):
     return {
         'balance_ton': round(row['balance'], 4),
         'user': {'id': row['id'], 'tg_id': row['tg_id'], 'username': row['username'], 'first_name': row['first_name'],
-                 'last_name': row['last_name'], 'photo_url': photo, 'wallet': row['wallet_address'] or '', 'bonus_claimed': bool(row['bonus_claimed'])},
+                 'last_name': row['last_name'], 'photo_url': photo, 'wallet': row['wallet_address'] or '',
+                 'bonus_claimed': bool(row['bonus_claimed']), 'is_admin': row['tg_id'] in ADMIN_TG_IDS},
         'config': {
             'prize_name': PRIZE_NAME, 'prize_price': HAT_PRICE, 'min_deposit_ton': MIN_DEPOSIT,
             'topup_ton': TOPUP_AMOUNT, 'referral_percent': REFERRAL_PERCENT,
@@ -710,6 +739,33 @@ def topup():
         conn.execute("INSERT INTO deposits(user_id,amount,source,status) VALUES(?,?, 'topup','confirmed')", (row['id'], TOPUP_AMOUNT))
         updated = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
     return jsonify({'ok': True, 'added': TOPUP_AMOUNT, **state_payload(updated)})
+
+
+@app.post('/api/admin/topup')
+def admin_topup():
+    # Ручное зачисление на СВОЙ баланс для доверенных админов (ADMIN_TG_IDS).
+    # Доступ проверяется по tg_id из initData/user на сервере — кнопка на
+    # фронте скрыта для остальных, но это не защита сама по себе, поэтому
+    # проверка здесь обязательна и не должна полагаться на то, что фронт
+    # прячет кнопку.
+    payload = request.get_json(silent=True) or {}
+    row = upsert_user(get_user())
+    if row['tg_id'] not in ADMIN_TG_IDS:
+        logging.warning('admin_topup: отказано tg_id=%s (не в списке админов)', row['tg_id'])
+        return jsonify({'error': 'forbidden'}), 403
+    try:
+        amount = float(payload.get('amount', 0))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid_amount'}), 400
+    if not (0 < amount <= ADMIN_TOPUP_MAX):
+        return jsonify({'error': 'invalid_amount'}), 400
+    amount = round(amount, 4)
+    with db() as conn:
+        conn.execute('UPDATE users SET balance=ROUND(balance+?,4) WHERE id=?', (amount, row['id']))
+        conn.execute("INSERT INTO deposits(user_id,amount,source,status) VALUES(?,?, 'admin','confirmed')", (row['id'], amount))
+        updated = conn.execute('SELECT * FROM users WHERE id=?', (row['id'],)).fetchone()
+    logging.info('admin_topup: tg_id=%s начислил себе %.4f TON', row['tg_id'], amount)
+    return jsonify({'ok': True, 'added': amount, **state_payload(updated)})
 
 
 @app.post('/api/sell')
