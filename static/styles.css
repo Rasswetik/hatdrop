@@ -561,6 +561,11 @@ button, input { font-family: inherit; font-weight: 400; }
 .ref-desc  { margin: 6px 0 12px; font-size: 9px; color: var(--muted); line-height: 1.8; }
 .ref-desc b { color: var(--green); font-weight: 400; }
 
+/* Админ-панель: тот же стиль карточки, что и .ref-card, с золотой рамкой,
+   чтобы визуально выделяться, оставаясь в общей пиксельной эстетике сайта. */
+.admin-card { border-color: var(--gold-dark); }
+.admin-card .ref-title { color: var(--gold); }
+
 .ref-create { font-size: 11px; padding: 13px 8px; }
 
 .ref-link-box {

@@ -279,6 +279,7 @@ function renderState(s) {
     setHidden(avIcon, false);
   }
   $('walletBtnText').textContent = s.user.bonus_claimed ? 'Получено +10' : 'Получить +10';
+  $('adminCard').hidden = !s.user.is_admin;
 
   $('depAddress').textContent = s.deposit.address || 'не настроен';
   $('depMemo').textContent = s.deposit.memo;
@@ -820,6 +821,32 @@ function openDeposit() {
   $('depositModal').hidden = false;
 }
 
+/* -------------------------------------------------------- админ-пополнение */
+function openAdminTopup() {
+  $('adminTopupModal').hidden = false;
+}
+
+async function confirmAdminTopup() {
+  const amount = parseFloat($('adminTopupAmount').value);
+  if (!(amount > 0)) {
+    toast('Введи сумму больше нуля', true);
+    return;
+  }
+  const btn = $('adminTopupConfirmBtn');
+  btn.disabled = true;
+  try {
+    const res = await api('/api/admin/topup', { amount });
+    renderState(res);
+    $('adminTopupModal').hidden = true;
+    toast(`+${fmt(res.added, 2)} TON зачислено`);
+    haptic('notification', 'success');
+  } catch (e) {
+    toast(e.code === 'forbidden' ? 'Нет доступа' : 'Не удалось зачислить', true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 /* ------------------------------------------------------------ обновление */
 async function refresh() {
   // Сеть и отрисовку ловим отдельно: раньше любая ошибка в коде показывалась
@@ -875,11 +902,19 @@ function bind() {
     t.addEventListener('click', () => showView(t.dataset.view));
   });
 
-  document.querySelectorAll('.amt').forEach((b) => {
+  document.querySelectorAll('.amt:not(.admin-amt)').forEach((b) => {
     b.addEventListener('click', () => {
-      document.querySelectorAll('.amt').forEach((x) => x.classList.remove('active'));
+      document.querySelectorAll('.amt:not(.admin-amt)').forEach((x) => x.classList.remove('active'));
       b.classList.add('active');
       $('depositAmount').value = b.dataset.amt;
+    });
+  });
+
+  document.querySelectorAll('.admin-amt').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.admin-amt').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      $('adminTopupAmount').value = b.dataset.amt;
     });
   });
 
@@ -892,6 +927,13 @@ function bind() {
 
   $('depositModal').addEventListener('click', (e) => {
     if (e.target.id === 'depositModal') $('depositModal').hidden = true;
+  });
+
+  $('adminTopupBtn')?.addEventListener('click', openAdminTopup);
+  $('adminTopupConfirmBtn')?.addEventListener('click', confirmAdminTopup);
+  $('adminTopupCloseBtn')?.addEventListener('click', () => { $('adminTopupModal').hidden = true; });
+  $('adminTopupModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'adminTopupModal') $('adminTopupModal').hidden = true;
   });
 }
 
