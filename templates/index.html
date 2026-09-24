@@ -162,6 +162,15 @@
         <div class="stat"><b id="statPrizes">0</b><small id="statPrizesLabel">призов</small></div>
       </div>
 
+      <!-- Админ-панель: видна только пользователю из ADMIN_TG_IDS (сервер
+           отдаёт user.is_admin). Позволяет вручную зачислить себе баланс,
+           без реального перевода через TON Connect. -->
+      <div class="ref-card admin-card" id="adminCard" hidden>
+        <div class="ref-title">Админ</div>
+        <p class="ref-desc">Ручное зачисление на свой баланс</p>
+        <button class="cta" id="adminTopupBtn">Получить на баланс</button>
+      </div>
+
       <!-- Реферальная программа -->
       <div class="ref-card">
         <div class="ref-title">Рефералы</div>
@@ -276,6 +285,25 @@
     </details>
 
     <button class="ghost" id="depositCloseBtn">Закрыть</button>
+  </div>
+</div>
+
+<!-- ================= МОДАЛКА АДМИН-ПОПОЛНЕНИЯ ================= -->
+<div class="modal" id="adminTopupModal" hidden>
+  <div class="modal-card">
+    <h2>Пополнить себе баланс</h2>
+    <p class="muted">Ручное зачисление, без перевода. Только для админа.</p>
+
+    <div class="amount-row">
+      <button class="amt admin-amt" data-amt="10">10</button>
+      <button class="amt admin-amt" data-amt="50">50</button>
+      <button class="amt admin-amt" data-amt="100">100</button>
+      <button class="amt admin-amt" data-amt="500">500</button>
+    </div>
+    <input type="number" id="adminTopupAmount" min="0.01" step="0.01" value="100" inputmode="decimal">
+
+    <button class="cta" id="adminTopupConfirmBtn">Подтвердить</button>
+    <button class="ghost" id="adminTopupCloseBtn">Закрыть</button>
   </div>
 </div>
 
