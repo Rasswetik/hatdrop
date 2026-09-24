@@ -862,7 +862,16 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 .amt.active { background: var(--violet-dark); border-color: var(--violet-soft); color: var(--gold); }
 
-#depositAmount {
+.field-label {
+  display: block;
+  text-align: left;
+  font-size: 9px;
+  color: var(--muted);
+  margin: 2px 0 6px;
+  line-height: 1.6;
+}
+
+#depositAmount, #adminTopupAmount {
   width: 100%;
   padding: 13px;
   margin-bottom: 12px;
@@ -873,6 +882,8 @@ button, input { font-family: inherit; font-weight: 400; }
   line-height: 1;
   text-align: center;
 }
+#adminTopupAmount { border-color: var(--gold-dark); }
+#adminTopupAmount:focus { outline: none; border-color: var(--gold); }
 
 .manual { margin: 14px 0 6px; text-align: left; }
 .manual summary { cursor: pointer; font-size: 10px; color: var(--violet-soft); margin-bottom: 8px; line-height: 1.8; }
