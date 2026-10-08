@@ -7,7 +7,13 @@ BOARD_SIZE = 25
 MAX_BET = 300.0
 
 
-def register_mines(app, db, get_user, upsert_user):
+def register_mines(app, db, get_user, upsert_user, validate_init_data):
+    def verified_user():
+        payload = request.get_json(silent=True) or {}
+        user, verified = validate_init_data(payload.get('initData', ''))
+        if not verified or not user:
+            return None
+        return upsert_user(user)
     def initialize(conn):
         conn.execute("""CREATE TABLE IF NOT EXISTS hatdrop_mines (
             user_id BIGINT PRIMARY KEY,
@@ -40,7 +46,9 @@ def register_mines(app, db, get_user, upsert_user):
 
     @app.post("/api/mines/state")
     def mines_state():
-        user = upsert_user(get_user())
+        user = verified_user()
+        if user is None:
+            return jsonify(error='telegram_auth_required'), 401
         with db() as conn:
             s = state_for(conn, user["id"])
         return jsonify(visible(s))
@@ -55,7 +63,9 @@ def register_mines(app, db, get_user, upsert_user):
                 raise ValueError
         except (TypeError, ValueError, OverflowError):
             return jsonify(error="invalid_bet"), 400
-        user = upsert_user(get_user())
+        user = verified_user()
+        if user is None:
+            return jsonify(error='telegram_auth_required'), 401
         with db() as conn:
             old = state_for(conn, user["id"])
             if old and old["active"]:
@@ -85,7 +95,9 @@ def register_mines(app, db, get_user, upsert_user):
             return jsonify(error="invalid_cell"), 400
         if not 0 <= cell < BOARD_SIZE:
             return jsonify(error="invalid_cell"), 400
-        user = upsert_user(get_user())
+        user = verified_user()
+        if user is None:
+            return jsonify(error='telegram_auth_required'), 401
         with db() as conn:
             s = state_for(conn, user["id"])
             if not s or not s["active"]:
@@ -118,7 +130,9 @@ def register_mines(app, db, get_user, upsert_user):
 
     @app.post("/api/mines/cashout")
     def mines_cashout():
-        user = upsert_user(get_user())
+        user = verified_user()
+        if user is None:
+            return jsonify(error='telegram_auth_required'), 401
         with db() as conn:
             s = state_for(conn, user["id"])
             if not s or not s["active"] or not s["opened"]:
