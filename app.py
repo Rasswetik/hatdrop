@@ -8,7 +8,7 @@ import time
 import urllib.request
 from math import comb
 from decimal import ROUND_HALF_UP, Decimal
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, quote
 
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -62,7 +62,7 @@ CHEST_MIN_MULT = 1.01
 
 app = Flask(__name__, static_folder=None)
 lock = threading.RLock()
-db = {"users": {}, "prices": {}}
+db = {"users": {}, "prices": {}, "settings": {}}
 
 
 def load_db():
@@ -71,6 +71,10 @@ def load_db():
         with open(DB_PATH, encoding="utf-8") as f:
             db = json.load(f)
     db.setdefault("prices", {})
+    db.setdefault("settings", {})
+    # утешительных мишек больше нет: чистим старые у всех игроков
+    for u in db["users"].values():
+        u["prizes"] = [p for p in u.get("prizes", []) if p.get("tier") != "bear"]
 
 
 def save_db():
@@ -92,6 +96,20 @@ def handle_api_error(e):
     return jsonify({"error": e.code, **e.extra}), e.status
 
 
+def portals_url():
+    return (db["settings"].get("portals_url") or PORTALS_FLOORS_URL).strip()
+
+
+def portals_auth():
+    return (db["settings"].get("portals_auth") or PORTALS_AUTH).strip()
+
+
+def mask_key(key):
+    if not key:
+        return ""
+    return "••••" + key[-4:] if len(key) > 8 else "••••"
+
+
 def money(x):
     return float(Decimal(repr(float(x))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
@@ -108,13 +126,14 @@ def gift_models(slug):
     name, _, _, models = GIFTS[slug]
     floor = gift_floor(slug)
     return [
-        {"model": m, "price_ton": money(floor * (1 + MODEL_STEP * i)), "image": gift_image(slug)}
+        {"model": m, "price_ton": money(floor * (1 + MODEL_STEP * i)), "image": gift_image(slug, m)}
         for i, m in enumerate(models)
     ]
 
 
-def gift_image(slug):
-    return f"/gimg/{slug}.webp?v=2"
+def gift_image(slug, model=""):
+    suffix = f"&m={quote(model)}" if model else ""
+    return f"/gimg/{slug}.webp?v=3{suffix}"
 
 
 def gift_price(slug, model):
@@ -272,7 +291,7 @@ def prize_view(p):
 
 
 def visible_prizes(user):
-    return [prize_view(p) for p in reversed(user["prizes"]) if p["status"] != "sold"]
+    return [prize_view(p) for p in reversed(user["prizes"]) if p["status"] != "sold" and p["tier"] != "bear"]
 
 
 def tier_config(tier):
@@ -361,11 +380,7 @@ def record_game(user, kind, cost, win, target, image, bear):
 
 
 def consolation(user):
-    if user["bear_given"]:
-        return None
-    user["bear_given"] = True
-    add_prize(user, "bear", "Утешительный мишка", 0.1, "images/bear.svg")
-    return {"first": True}
+    return None
 
 
 def resolve_target(body, tier):
@@ -374,7 +389,7 @@ def resolve_target(body, tier):
         model = body.get("model", "")
         price = gift_price(slug, model)
         name = GIFTS[slug][0] + (f" · {model}" if model else "")
-        return {"tier": f"gift:{slug}:{model}", "name": name, "value": price, "image": gift_image(slug)}
+        return {"tier": f"gift:{slug}:{model}", "name": name, "value": price, "image": gift_image(slug, model)}
     if tier not in TIERS:
         raise ApiError("bad_request")
     return {"tier": tier, "name": TIERS[tier]["name"], "value": TIERS[tier]["value"], "image": ""}
@@ -841,10 +856,35 @@ def market_rows():
     ]
 
 
+def portals_status():
+    return {
+        "portals_configured": bool(portals_url()),
+        "portals_url": portals_url(),
+        "portals_key_set": bool(portals_auth()),
+        "portals_key_mask": mask_key(portals_auth()),
+    }
+
+
 @route("/api/admin/market")
 def admin_market(user, body):
     require_admin(user)
-    return {"rows": market_rows(), "portals_configured": bool(PORTALS_FLOORS_URL)}
+    return {"rows": market_rows(), **portals_status()}
+
+
+@route("/api/admin/portals/set")
+def admin_portals_set(user, body):
+    require_admin(user)
+    cfg = db["settings"]
+    if "url" in body:
+        url = str(body.get("url") or "").strip()
+        if url and not url.startswith(("http://", "https://")):
+            raise ApiError("bad_request")
+        cfg["portals_url"] = url[:500]
+    if body.get("clear_key"):
+        cfg["portals_auth"] = ""
+    elif str(body.get("auth") or "").strip():
+        cfg["portals_auth"] = str(body["auth"]).strip()[:2000]
+    return {"rows": market_rows(), **portals_status()}
 
 
 @route("/api/admin/market/set")
@@ -870,13 +910,14 @@ def normalize(text):
 @route("/api/admin/market/refresh")
 def admin_market_refresh(user, body):
     require_admin(user)
-    if not PORTALS_FLOORS_URL:
+    url = portals_url()
+    if not url:
         raise ApiError("portals_not_configured")
     headers = {"Accept": "application/json", "User-Agent": "magic-upgrade"}
-    if PORTALS_AUTH:
-        headers["Authorization"] = PORTALS_AUTH
+    if portals_auth():
+        headers["Authorization"] = portals_auth()
     try:
-        req = urllib.request.Request(PORTALS_FLOORS_URL, headers=headers)
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.load(resp)
     except Exception:
@@ -896,14 +937,20 @@ def admin_market_refresh(user, body):
         if slug and 0 < price < 1_000_000:
             db["prices"][slug] = money(price)
             updated += 1
-    return {"rows": market_rows(), "updated": updated}
+    return {"rows": market_rows(), "updated": updated, **portals_status()}
 
 
-def gift_svg(slug):
-    digest = hashlib.sha1(slug.encode()).digest()
+def gift_svg(slug, model=""):
+    digest = hashlib.sha1(f"{slug}:{model}".encode()).digest()
     hue = digest[0] * 360 // 256
     hue2 = (hue + 40) % 360
     initials = "".join(ch for ch in slug if ch.isupper())[:2] or slug[:2].upper()
+    tag = (model[:8] if model else "").replace("&", "").replace("<", "").replace(">", "")
+    label = (
+        f'<text x="64" y="104" font-family="sans-serif" font-size="13" font-weight="700" '
+        f'text-anchor="middle" fill="rgba(255,255,255,.9)">{tag}</text>'
+        if tag else ""
+    )
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">'
         f'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
@@ -911,8 +958,8 @@ def gift_svg(slug):
         "</linearGradient></defs>"
         '<rect x="14" y="14" width="100" height="100" rx="22" fill="url(#g)"/>'
         '<rect x="14" y="14" width="100" height="100" rx="22" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="3"/>'
-        '<text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" '
-        f'text-anchor="middle" fill="#fff">{initials}</text></svg>'
+        '<text x="64" y="72" font-family="sans-serif" font-size="40" font-weight="700" '
+        f'text-anchor="middle" fill="#fff">{initials}</text>{label}</svg>'
     )
 
 
@@ -920,9 +967,59 @@ def gift_svg(slug):
 def gimg(slug):
     if slug not in GIFTS:
         return ("", 404)
-    resp = app.response_class(gift_svg(slug), mimetype="image/svg+xml")
+    model = request.args.get("m", "")[:32]
+    resp = app.response_class(gift_svg(slug, model), mimetype="image/svg+xml")
     resp.headers["Cache-Control"] = "public, max-age=86400"
     return resp
+
+
+TON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28" fill="#0098EA"/>'
+    '<path d="M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45'
+    'c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07'
+    'l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z" fill="#fff"/></svg>'
+)
+HAT_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">'
+    '<rect x="6" y="44" width="52" height="8" fill="#2a1450"/><rect x="8" y="42" width="48" height="6" fill="#5b2bb0"/>'
+    '<rect x="20" y="20" width="24" height="24" fill="#4a1fa0"/><rect x="26" y="10" width="14" height="12" fill="#4a1fa0"/>'
+    '<rect x="32" y="4" width="8" height="8" fill="#5b2bb0"/><rect x="20" y="36" width="24" height="6" fill="#ffc043"/>'
+    '<rect x="29" y="36" width="6" height="6" fill="#fff0b0"/></svg>'
+)
+CAT_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">'
+    '<rect x="14" y="14" width="8" height="12" fill="#2b2b3a"/><rect x="42" y="14" width="8" height="12" fill="#2b2b3a"/>'
+    '<rect x="14" y="22" width="36" height="28" fill="#3a3a4e"/><rect x="22" y="30" width="6" height="6" fill="#ffe08a"/>'
+    '<rect x="36" y="30" width="6" height="6" fill="#ffe08a"/><rect x="30" y="40" width="4" height="4" fill="#ff8aa8"/></svg>'
+)
+AXE_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">'
+    '<rect x="30" y="14" width="6" height="44" fill="#7a4a26"/><rect x="30" y="14" width="2" height="44" fill="#a8713c"/>'
+    '<rect x="14" y="10" width="18" height="22" fill="#9aa3b5"/><rect x="10" y="14" width="6" height="14" fill="#cfd6e4"/>'
+    '<rect x="14" y="10" width="18" height="3" fill="#e8edf7"/></svg>'
+)
+STAFF_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">'
+    '<rect x="30" y="22" width="5" height="40" fill="#7a4a26"/><rect x="30" y="22" width="2" height="40" fill="#a8713c"/>'
+    '<rect x="22" y="6" width="20" height="18" fill="#8b4cf0"/><rect x="26" y="10" width="8" height="8" fill="#e0c8ff"/>'
+    '<rect x="20" y="10" width="2" height="10" fill="#b98bff"/><rect x="42" y="10" width="2" height="10" fill="#b98bff"/></svg>'
+)
+PLANK_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" preserveAspectRatio="none" shape-rendering="crispEdges">'
+    '<rect width="64" height="32" fill="#8a5429"/><rect width="64" height="4" fill="#b9814a"/>'
+    '<rect y="28" width="64" height="4" fill="#4a2a10"/><rect x="0" y="14" width="64" height="2" fill="#7a4a26"/></svg>'
+)
+SKY_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" preserveAspectRatio="none">'
+    '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f8fe8"/>'
+    '<stop offset="1" stop-color="#d3effd"/></linearGradient></defs><rect width="10" height="10" fill="url(#s)"/></svg>'
+)
+FALLBACK_ART = {
+    "ton": TON_SVG, "gram": TON_SVG, "hatcoin": TON_SVG, "hat": HAT_SVG, "cat": CAT_SVG,
+    "axe-icon": AXE_SVG, "staff-icon": STAFF_SVG,
+    "plank-left": PLANK_SVG, "plank-mid": PLANK_SVG, "plank-right": PLANK_SVG,
+    "sky": SKY_SVG, "sky-onyx": SKY_SVG, "sky-black": SKY_SVG,
+}
 
 
 @app.get("/tonconnect-manifest.json")
@@ -933,7 +1030,15 @@ def tonconnect_manifest():
 
 @app.get("/images/<path:name>")
 def images(name):
-    return send_from_directory(os.path.join(BASE_DIR, "images"), name)
+    folder = os.path.join(BASE_DIR, "images")
+    if os.path.isfile(os.path.join(folder, name)):
+        return send_from_directory(folder, name)
+    art = FALLBACK_ART.get(os.path.splitext(os.path.basename(name))[0])
+    if art:
+        resp = app.response_class(art, mimetype="image/svg+xml")
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+    return ("", 404)
 
 
 @app.get("/")
