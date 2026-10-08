@@ -2086,7 +2086,11 @@ def portals_refresh_worker():
 
 def start_portals_refresh():
     if db["settings"].get("active_market") == "portals" and not PORTALS_STATE["running"]:
-        threading.Thread(target=portals_refresh_worker, daemon=True).start()
+        PORTALS_STATE["running"] = True
+        def run():
+            PORTALS_STATE["running"] = False
+            portals_refresh_worker()
+        threading.Thread(target=run, daemon=True).start()
 
 
 def portals_loop():
@@ -2178,7 +2182,11 @@ def mrkt_refresh_worker():
 
 def start_mrkt_refresh():
     if db["settings"].get("active_market") == "mrkt" and not MRKT_STATE["running"]:
-        threading.Thread(target=mrkt_refresh_worker, daemon=True).start()
+        MRKT_STATE["running"] = True
+        def run():
+            MRKT_STATE["running"] = False
+            mrkt_refresh_worker()
+        threading.Thread(target=run, daemon=True).start()
 
 
 @route("/api/admin/mrkt/refresh")
