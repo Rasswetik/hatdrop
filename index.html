@@ -5260,8 +5260,12 @@ async function loadGiftCatalog(force = false) {
   return giftCatalog;
 }
 
-async function fetchModels(slug) {
+const cachedGiftModels = new Map();
+async function fetchModels(slug, force = false) {
+  const old = cachedGiftModels.get(slug);
+  if (!force && old && Date.now() - old.at < 120000) return old.value;
   const r = await api('/api/gifts/models', { slug });
+  if (r.models && r.models.length) cachedGiftModels.set(slug, {at: Date.now(), value: r});
   return r;
 }
 
@@ -5444,7 +5448,19 @@ async function openGiftModels(slug) {
   try {
     const r = await fetchModels(slug);
     if (gpModels !== 'loading') return true;
-    gpModels = { slug: r.slug, name: r.name, floor: r.floor, image: r.image, models: r.models || [] };
+    gpModels = { slug: r.slug, name: r.name, floor: r.floor, image: r.image, models: r.models || [], loading: !r.models?.length };
+    if (gpModels.loading) {
+      setTimeout(async () => {
+        if ($('giftPickModal').hidden || gpModels?.slug !== slug) return;
+        try {
+          const updated = await fetchModels(slug, true);
+          if (gpModels?.slug === slug && updated.models?.length) {
+            Object.assign(gpModels, {models:updated.models, loading:false});
+            renderGiftPicker();
+          }
+        } catch (_) {}
+      }, 4500);
+    }
   } catch (e) {
     gpModels = null;
     renderGiftPicker();
