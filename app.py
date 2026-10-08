@@ -325,8 +325,7 @@ def gift_models(slug):
 def gift_image(slug, model=""):
     entry = gifts_map().get(slug) or {}
     if not model:
-        # Originals have a separate image; never display an arbitrary model.
-        return f"/gimg/{quote(slug, safe='')}.webp?v=9"
+        return _original_image_url(entry, slug)
     for m in entry.get("models", []):
         if m.get("model") == model:
             direct = str(m.get("image") or "")
@@ -2363,69 +2362,168 @@ def _cached_image(key, loader):
     return data
 
 
+# Checked-in original Telegram collectible IDs. Avoid fetching a lookup table
+# on every HTTP image request (the old code serialised many 5+8s timeouts).
 ORIGINAL_GIFT_IDS = {}
-ORIGINAL_GIFT_IDS_UPDATED = 0
+for _pair in (
+    "5983471780763796287|Santa Hat",
+    "5936085638515261992|Signet Ring",
+    "5933671725160989227|Precious Peach",
+    "5936013938331222567|Plush Pepe",
+    "5913442287462908725|Spiced Wine",
+    "5915502858152706668|Jelly Bunny",
+    "5915521180483191380|Durov's Cap",
+    "5913517067138499193|Perfume Bottle",
+    "5882125812596999035|Eternal Rose",
+    "5882252952218894938|Berry Box",
+    "5857140566201991735|Vintage Cigar",
+    "5846226946928673709|Magic Potion",
+    "5845776576658015084|Kissed Frog",
+    "5825801628657124140|Hex Pot",
+    "5825480571261813595|Evil Eye",
+    "5841689550203650524|Sharp Tongue",
+    "5841391256135008713|Trapped Heart",
+    "5839038009193792264|Skull Flower",
+    "5837059369300132790|Scared Cat",
+    "5821261908354794038|Spy Agaric",
+    "5783075783622787539|Homemade Cake",
+    "5933531623327795414|Genie Lamp",
+    "6028426950047957932|Lunar Snake",
+    "6003643167683903930|Party Sparkler",
+    "5933590374185435592|Jester Hat",
+    "5821384757304362229|Witch Hat",
+    "5915733223018594841|Hanging Star",
+    "5915550639663874519|Love Candle",
+    "6001538689543439169|Cookie Heart",
+    "5782988952268964995|Desk Calendar",
+    "6001473264306619020|Jingle Bells",
+    "5980789805615678057|Snow Mittens",
+    "5836780359634649414|Voodoo Doll",
+    "5841632504448025405|Mad Pumpkin",
+    "5825895989088617224|Hypno Lollipop",
+    "5782984811920491178|B-Day Candle",
+    "5935936766358847989|Bunny Muffin",
+    "5933629604416717361|Astral Shard",
+    "5837063436634161765|Flying Broom",
+    "5841336413697606412|Crystal Ball",
+    "5821205665758053411|Eternal Candle",
+    "5936043693864651359|Swiss Watch",
+    "5983484377902875708|Ginger Cookie",
+    "5879737836550226478|Mini Oscar",
+    "5170594532177215681|Lol Pop",
+    "5843762284240831056|Ion Gem",
+    "5936017773737018241|Star Notepad",
+    "5868659926187901653|Loot Bag",
+    "5868348541058942091|Love Potion",
+    "5868220813026526561|Toy Bear",
+    "5868503709637411929|Diamond Ring",
+    "5167939598143193218|Sakura Flower",
+    "5981026247860290310|Sleigh Bell",
+    "5897593557492957738|Top Hat",
+    "5856973938650776169|Record Player",
+    "5983259145522906006|Winter Wreath",
+    "5981132629905245483|Snow Globe",
+    "5846192273657692751|Electric Skull",
+    "6023752243218481939|Tama Gadget",
+    "6003373314888696650|Candy Cane",
+    "5933793770951673155|Neko Helmet",
+    "6005659564635063386|Jack-in-the-Box",
+    "5773668482394620318|Easter Egg",
+    "5870661333703197240|Bonded Ring",
+    "6023917088358269866|Pet Snake",
+    "6023679164349940429|Snake Box",
+    "6003767644426076664|Xmas Stocking",
+    "6028283532500009446|Big Year",
+    "6003735372041814769|Holiday Drink",
+    "5859442703032386168|Gem Signet",
+    "5897581235231785485|Light Sword",
+    "5870784783948186838|Restless Jar",
+    "5870720080265871962|Nail Bracelet",
+    "5895328365971244193|Heroic Helmet",
+    "5895544372761461960|Bow Tie",
+    "5868455043362980631|Heart Locket",
+    "5871002671934079382|Lush Bouquet",
+    "5933543975653737112|Whip Cupcake",
+    "5870862540036113469|Joyful Bundle",
+    "5868561433997870501|Cupid Charm",
+    "5868595669182186720|Valentine Box",
+    "6014591077976114307|Snoop Dogg",
+    "6012607142387778152|Swag Bag",
+    "6012435906336654262|Snoop Cigar",
+    "6014675319464657779|Low Rider",
+    "6014697240977737490|Westside Sign",
+    "6042113507581755979|Stellar Rocket",
+    "6005880141270483700|Jolly Chimp",
+    "5998981470310368313|Moon Pendant",
+    "5933937398953018107|Ionic Dryer",
+    "5870972044522291836|Input Key",
+    "5895518353849582541|Mighty Arm",
+    "6005797617768858105|Artisan Brick",
+    "5960747083030856414|Clover Pin",
+    "5870947077877400011|Sky Stilettos",
+    "5895603153683874485|Fresh Socks",
+    "6006064678835323371|Happy Brownie",
+    "5900177027566142759|Ice Cream",
+    "5773725897517433693|Spring Basket",
+    "6005564615793050414|Instant Ramen",
+    "6003456431095808759|Faith Amulet",
+    "5935877878062253519|Mousse Cake",
+    "5902339509239940491|Bling Binky",
+    "5963238670868677492|Money Pot",
+    "5933737850477478635|Pretty Posy",
+    "5839094187366024301|Khabib's Papakha",
+    "5882260270843168924|UFC Strike",
+    "5830340739074097859|Victory Medal",
+    "5999116401002939514|Rare Bird",
+    "5886756255493523118|Mood Pack",
+    "5832644211639321671|Pool Float",
+    "5886387158889005864|Timeless Book",
+    "5999277561060787166|Chill Flame",
+    "5898012527257715797|Vice Cream",
+    "5832497899283415733|Surge Board",
+    "5999298447486747746|Liberty Figure",
+    "5834651202612102354|Durov's Glasses",
+    "5882129648002794519|Fine Pen",
+):
+    _gift_id, _gift_name = _pair.split("|", 1)
+    ORIGINAL_GIFT_IDS[normalize(_gift_name)] = _gift_id
+del _pair, _gift_id, _gift_name
 
 
-def _original_id_map():
-    """Read public gift IDs outside the game-state lock, caching results."""
-    global ORIGINAL_GIFT_IDS, ORIGINAL_GIFT_IDS_UPDATED
-    if ORIGINAL_GIFT_IDS and time.time() - ORIGINAL_GIFT_IDS_UPDATED < 86400:
-        return ORIGINAL_GIFT_IDS
-    try:
-        req = urllib.request.Request(
-            "https://cdn.changes.tg/gifts/id-to-name.json",
-            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.load(response)
-        result = {}
-        if isinstance(data, dict):
-            for key, value in data.items():
-                if str(key).isdigit() and isinstance(value, str):
-                    result[normalize(value)] = str(key)
-                elif str(value).isdigit():
-                    result[normalize(key)] = str(value)
-        if result:
-            ORIGINAL_GIFT_IDS = result
-            ORIGINAL_GIFT_IDS_UPDATED = time.time()
-    except Exception:
-        ORIGINAL_GIFT_IDS_UPDATED = time.time()
-    return ORIGINAL_GIFT_IDS
-
-
-def _load_original_art(slug, entry):
-    ids = _original_id_map()
-    uid = (str(entry.get("id") or "") if str(entry.get("id") or "").isdigit() else
-           ids.get(normalize(entry.get("name", "")), ""))
-    candidates = []
-    if uid:
-        candidates.append(f"https://cdn.changes.tg/gifts/originals/{uid}/Original.png")
-    original = str(entry.get("image") or "")
-    if original.startswith(("https://fragment.com/file/", "https://cdn.changes.tg/gifts/originals/")):
-        candidates.append(original)
-    name = quote(entry.get("name", ""), safe="")
-    candidates.append(f"https://cdn.changes.tg/gifts/originals/{name}/Original.png")
-    return _first_image(candidates)
+def _original_image_url(entry, slug):
+    name = str(entry.get("name") or slug)
+    saved = str(entry.get("original_image") or "")
+    if saved.startswith("https://cdn.changes.tg/gifts/originals/"):
+        return saved
+    listed_id = str(entry.get("gift_id") or "")
+    if listed_id.isdigit() and 16 <= len(listed_id) <= 22:
+        return f"https://cdn.changes.tg/gifts/originals/{listed_id}/Original.png"
+    id_from_map = ORIGINAL_GIFT_IDS.get(normalize(name))
+    if id_from_map:
+        return f"https://cdn.changes.tg/gifts/originals/{id_from_map}/Original.png"
+    # New collections not yet in the public ID list: use the ORIGINAL
+    # collection thumbnail directly rather than blocking the Flask worker.
+    short = str(entry.get("short") or "").strip().lower()
+    if re.fullmatch(r"[a-z0-9_-]{2,100}", short):
+        return f"https://fragment.com/file/gifts/{short}/thumb.webp"
+    return "/images/hat.png"
 
 
 @app.get("/gimg/<slug>.webp")
 def gimg(slug):
+    """Legacy image URLs: instant redirect, zero server-side image downloads."""
     entry = gifts_map().get(slug)
     if not entry:
         return ("", 404)
+    from flask import redirect
     model = request.args.get("m", "")[:128]
     if model:
-        from flask import redirect
-        return redirect(gift_image(slug, model), code=302)
-    hit = _cached_image((slug, "original-v9"), lambda: _load_original_art(slug, entry))
-    if hit:
-        response = app.response_class(hit[0], mimetype=hit[1])
-        response.headers["Cache-Control"] = "public, max-age=604800"
-        return response
-    response = app.response_class(gift_svg(slug), mimetype="image/svg+xml")
-    response.headers["Cache-Control"] = "public, max-age=300"
+        destination = gift_image(slug, model)
+    else:
+        destination = _original_image_url(entry, slug)
+    response = redirect(destination, code=302)
+    response.headers["Cache-Control"] = "public, max-age=86400"
     return response
-
 
 TON_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><circle cx="28" cy="28" r="28" fill="#0098EA"/>'
