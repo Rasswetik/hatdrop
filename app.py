@@ -12,7 +12,7 @@ import urllib.error
 import urllib.request
 from math import comb
 from decimal import ROUND_HALF_UP, Decimal
-from urllib.parse import parse_qsl, quote
+from urllib.parse import parse_qsl, quote, urlsplit
 
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -551,7 +551,7 @@ def full_state(user):
             "anon": user["anon"],
             "avatar": avatar(user, own=True),
         },
-        "deposit": {"address": os.environ.get("DEPOSIT_ADDRESS", ""), "memo": f"u{user['key']}"},
+        "deposit": {"address": tonconnect_config()["recipient_address"], "memo": f"u{user['key']}"},
         "prizes": visible_prizes(user),
         "chest_round": chest_view(user),
         "hatcoin": {"balance": 0, "percent": 0},
@@ -2426,10 +2426,112 @@ FALLBACK_ART = {
 }
 
 
+# TON Connect settings are persisted in the existing DB, not in a new file.
+# No private keys or seed phrases are stored here.
+def _tonconnect_site_origin():
+    return (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL") or request.host_url).rstrip("/")
+
+
+def tonconnect_config():
+    origin = _tonconnect_site_origin()
+    defaults = {
+        "recipient_address": _env_first("DEPOSIT_ADDRESS"),
+        "app_url": origin,
+        "app_name": _env_first("TONCONNECT_APP_NAME") or "Magic Upgrade",
+        "icon_url": _env_first("TONCONNECT_ICON_URL") or origin + "/images/hat.png",
+        "terms_url": _env_first("TONCONNECT_TERMS_URL"),
+        "privacy_url": _env_first("TONCONNECT_PRIVACY_URL"),
+    }
+    saved = db.get("settings", {}).get("tonconnect", {})
+    if isinstance(saved, dict):
+        for key in defaults:
+            value = saved.get(key)
+            if isinstance(value, str) and value.strip():
+                defaults[key] = value.strip()
+    return defaults
+
+
+def _valid_ton_address(address):
+    address = str(address or "").strip()
+    if not address:
+        return True
+    # Friendly base64url mainnet/testnet wallet or raw workchain:64 hex.
+    return bool(re.fullmatch(r"(?:[A-Za-z0-9_-]{48}|-?1:[0-9a-fA-F]{64}|0:[0-9a-fA-F]{64})", address))
+
+
+def _valid_tonconnect_url(value, optional=False, icon=False):
+    value = str(value or "").strip()
+    if not value:
+        return optional
+    if len(value) > 512 or any(c.isspace() for c in value):
+        return False
+    try:
+        parts = urlsplit(value)
+        if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+            return False
+        if icon and not parts.path.lower().endswith((".png", ".ico")):
+            return False
+        return True
+    except ValueError:
+        return False
+
+
+@route("/api/admin/tonconnect")
+def admin_tonconnect(user, body):
+    require_admin(user)
+    cfg = tonconnect_config()
+    return {
+        "config": cfg,
+        "using_saved": isinstance(db["settings"].get("tonconnect"), dict),
+        "manifest_url": request.host_url.rstrip("/") + "/tonconnect-manifest.json",
+        "deposit_ready": bool(cfg["recipient_address"]),
+    }
+
+
+@route("/api/admin/tonconnect/save")
+def admin_tonconnect_save(user, body):
+    require_admin(user)
+    if body.get("reset"):
+        db["settings"].pop("tonconnect", None)
+    else:
+        current = tonconnect_config()
+        fields = ("recipient_address", "app_url", "app_name", "icon_url",
+                  "terms_url", "privacy_url")
+        values = {k: str(body.get(k, current[k]) or "").strip() for k in fields}
+        if not _valid_ton_address(values["recipient_address"]):
+            raise ApiError("invalid_ton_address")
+        if not (1 <= len(values["app_name"]) <= 64):
+            raise ApiError("invalid_app_name")
+        if not _valid_tonconnect_url(values["app_url"]):
+            raise ApiError("invalid_app_url")
+        if not _valid_tonconnect_url(values["icon_url"], icon=True):
+            raise ApiError("invalid_icon_url")
+        if not _valid_tonconnect_url(values["terms_url"], optional=True):
+            raise ApiError("invalid_terms_url")
+        if not _valid_tonconnect_url(values["privacy_url"], optional=True):
+            raise ApiError("invalid_privacy_url")
+        db["settings"]["tonconnect"] = values
+    cfg = tonconnect_config()
+    return {
+        "ok": True, "config": cfg,
+        "using_saved": isinstance(db["settings"].get("tonconnect"), dict),
+        "manifest_url": request.host_url.rstrip("/") + "/tonconnect-manifest.json",
+        "deposit_ready": bool(cfg["recipient_address"]),
+    }
+
+
 @app.get("/tonconnect-manifest.json")
 def tonconnect_manifest():
-    origin = request.host_url.rstrip("/")
-    return jsonify({"url": origin, "name": "Magic Upgrade", "iconUrl": f"{origin}/images/hat.png"})
+    cfg = tonconnect_config()
+    result = {"url": cfg["app_url"], "name": cfg["app_name"], "iconUrl": cfg["icon_url"]}
+    if cfg["terms_url"]:
+        result["termsOfUseUrl"] = cfg["terms_url"]
+    if cfg["privacy_url"]:
+        result["privacyPolicyUrl"] = cfg["privacy_url"]
+    response = jsonify(result)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Cache-Control"] = "public, max-age=60, must-revalidate"
+    return response
 
 
 @app.get("/images/<path:name>")
