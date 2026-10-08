@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 import secrets
+import sqlite3
 import threading
 import time
 import re
@@ -15,11 +16,24 @@ from urllib.parse import parse_qsl, quote
 from flask import Flask, jsonify, request, send_from_directory
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))  # старый JSON-файл (только для миграции)
+SQLITE_PATH = os.environ.get("SQLITE_PATH") or (os.path.splitext(DB_PATH)[0] + ".sqlite3")
+_sqlite_lock = threading.Lock()
+def _env_first(*names):
+    for n in names:
+        v = os.environ.get(n, "").strip()
+        if v:
+            return v
+    return ""
+
+
+# Токен Telegram-бота: проверка входа, аватарки игроков
+BOT_TOKEN = _env_first("BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "TG_BOT_TOKEN")
 ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {"5257227756"}
 # Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+# Если задана любая из этих переменных - база живёт в PostgreSQL. Если нет - в локальном SQLite.
+DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
+                          "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI")
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
 # Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
 PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
@@ -51,7 +65,8 @@ SHELL_HAT_VALUE = 3.0
 SHELL_PRICE_SHARE = round(1 / SHELL_CUPS / (1 - MARGIN), 4)
 ROUND_TTL = 180
 HISTORY_LIMIT = 50
-CHANCES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+MIN_CHANCE_PCT, MAX_CHANCE_PCT = 1, 95
+CHANCES = [p / 100 for p in range(MIN_CHANCE_PCT, MAX_CHANCE_PCT + 1)]
 
 TIERS = {
     "random": {"value": 3.0, "name": "Шляпа волшебника"},
@@ -104,6 +119,31 @@ def _pg():
     return _pg_conn
 
 
+def _sqlite_conn():
+    d = os.path.dirname(SQLITE_PATH)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    conn = sqlite3.connect(SQLITE_PATH, timeout=15)
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except sqlite3.DatabaseError:
+        pass
+    conn.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+    return conn
+
+
+def _sqlite_get(key):
+    if not os.path.exists(SQLITE_PATH):
+        return None
+    with _sqlite_lock:
+        conn = _sqlite_conn()
+        try:
+            row = conn.execute("SELECT v FROM kv WHERE k=?", (key,)).fetchone()
+        finally:
+            conn.close()
+    return row[0] if row else None
+
+
 def store_get(key, path):
     if DATABASE_URL:
         with _pg().cursor() as c:
@@ -111,7 +151,14 @@ def store_get(key, path):
             row = c.fetchone()
         if row:
             return row[0]
-    if os.path.exists(path):  # первая миграция с файла в Postgres
+        text = _sqlite_get(key)  # перенос из SQLite, если раньше база была там
+        if text:
+            return text
+    else:
+        text = _sqlite_get(key)
+        if text:
+            return text
+    if os.path.exists(path):  # перенос из старого JSON-файла
         with open(path, encoding="utf-8") as f:
             return f.read()
     return None
@@ -133,11 +180,19 @@ def store_put(key, path, text):
                 if attempt == 2:
                     print(f"DB save failed: {e}", flush=True)
         return
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        f.write(text)
-    os.replace(tmp, path)
+    try:
+        with _sqlite_lock:
+            conn = _sqlite_conn()
+            try:
+                with conn:
+                    conn.execute(
+                        "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v",
+                        (key, text),
+                    )
+            finally:
+                conn.close()
+    except Exception as e:
+        print(f"SQLite save failed: {e}", flush=True)
 
 
 def load_db():
@@ -149,11 +204,11 @@ def load_db():
     db.setdefault("users", {})
     db.setdefault("prices", {})
     db.setdefault("settings", {})
-    where = "Postgres" if DATABASE_URL else DB_PATH
+    where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
-    if not DATABASE_URL and not os.environ.get("DB_PATH"):
-        print("WARNING: DB лежит в папке приложения - на хостинге без диска она сотрётся при деплое/рестарте. "
-              "Задай DATABASE_URL (Postgres) или DB_PATH на постоянном диске.", flush=True)
+    if not DATABASE_URL and not (os.environ.get("DB_PATH") or os.environ.get("SQLITE_PATH")):
+        print("WARNING: SQLite лежит в папке приложения - на хостинге без диска она сотрётся при деплое/рестарте. "
+              "Задай DATABASE_URL (Postgres) или SQLITE_PATH на постоянном диске.", flush=True)
     # утешительных мишек больше нет: чистим старые у всех игроков
     for u in db["users"].values():
         u["prizes"] = [p for p in u.get("prizes", []) if p.get("tier") != "bear"]
@@ -317,6 +372,7 @@ def current_user():
             "id": uid,
             "key": secrets.token_hex(6),
             "username": (tg or {}).get("username", ""),
+            "photo_url": (tg or {}).get("photo_url", ""),
             "first_name": (tg or {}).get("first_name", "") or f"Игрок {uid[-4:]}",
             "wallet": "",
             "anon": False,
@@ -337,6 +393,7 @@ def current_user():
     if tg:
         user["username"] = tg.get("username", user["username"])
         user["first_name"] = tg.get("first_name", user["first_name"])
+        user["photo_url"] = tg.get("photo_url") or user.get("photo_url", "")
     return user, body
 
 
@@ -460,6 +517,7 @@ def full_state(user):
             "first_name": user["first_name"],
             "wallet": user["wallet"],
             "anon": user["anon"],
+            "avatar": avatar(user, own=True),
         },
         "deposit": {"address": os.environ.get("DEPOSIT_ADDRESS", ""), "memo": f"u{user['key']}"},
         "prizes": visible_prizes(user),
@@ -525,8 +583,10 @@ def spin(user, body):
         chance = float(body.get("chance"))
     except (TypeError, ValueError):
         raise ApiError("bad_request")
-    if not any(abs(chance - c) < 1e-9 for c in CHANCES):
+    pct = chance * 100
+    if abs(pct - round(pct)) > 1e-6 or not (MIN_CHANCE_PCT <= round(pct) <= MAX_CHANCE_PCT):
         raise ApiError("bad_request")
+    chance = round(pct) / 100
     target = resolve_target(body, body.get("tier", "random"))
     cost = spin_cost(target["value"], chance)
     if body.get("tier") == "gift":
@@ -834,8 +894,69 @@ def ranking():
     return rows
 
 
-def avatar(user):
-    return ""
+def avatar(user, own=False):
+    """Ссылка на аватарку Telegram через наш сервер. В публичных списках аноним без аватарки."""
+    if (user.get("anon") and not own) or not str(user["id"]).startswith("tg"):
+        return ""
+    return f"/avatar/{user['key']}.jpg"
+
+
+AVATAR_CACHE = {}
+AVATAR_OK_TTL = 6 * 3600
+AVATAR_FAIL_TTL = 600
+
+
+def tg_api(method, **params):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
+    if params:
+        url += "?" + "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=8) as resp:
+        data = json.load(resp)
+    if not data.get("ok"):
+        raise ValueError(data.get("description", "telegram error"))
+    return data["result"]
+
+
+def fetch_tg_avatar(tg_id, photo_url):
+    """Фото профиля: сначала через бота (getUserProfilePhotos), затем по photo_url из initData."""
+    if BOT_TOKEN:
+        try:
+            photos = tg_api("getUserProfilePhotos", user_id=tg_id, limit=1).get("photos") or []
+            if photos:
+                sizes = photos[0]
+                pick = next((p for p in sizes if p.get("width", 0) >= 160), sizes[-1])
+                path = tg_api("getFile", file_id=pick["file_id"])["file_path"]
+                return _download_image(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}")
+        except Exception as e:
+            print(f"avatar via bot failed for {tg_id}: {e}", flush=True)
+    if photo_url:
+        try:
+            return _download_image(photo_url)
+        except Exception as e:
+            print(f"avatar via photo_url failed for {tg_id}: {e}", flush=True)
+    return None
+
+
+@app.get("/avatar/<key>.jpg")
+def avatar_image(key):
+    key = key[:32]
+    now = time.time()
+    hit = AVATAR_CACHE.get(key)
+    if hit is None or now - hit[1] > (AVATAR_OK_TTL if hit[0] else AVATAR_FAIL_TTL):
+        u = next((x for x in list(db["users"].values()) if x.get("key") == key), None)
+        data = None
+        if u and str(u["id"]).startswith("tg"):
+            data = fetch_tg_avatar(str(u["id"])[2:], u.get("photo_url", ""))
+        if len(AVATAR_CACHE) > 3000:
+            AVATAR_CACHE.clear()
+        hit = AVATAR_CACHE[key] = (data, now)
+    if not hit[0]:
+        resp = app.response_class("", status=404)
+        resp.headers["Cache-Control"] = "public, max-age=300"
+        return resp
+    resp = app.response_class(hit[0][0], mimetype=hit[0][1])
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 @route("/api/leaderboard")
