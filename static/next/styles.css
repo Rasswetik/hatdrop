@@ -2964,3 +2964,15 @@ img[src*="/gimg/"] { object-fit: contain; }
 .subtitle[hidden] { display: none; }
 html[data-theme="meadow"][data-sky="night"] .bg-wide { filter: brightness(.43) saturate(.72) hue-rotate(13deg); }
 html[data-theme="meadow"][data-sky="day"] .bg-wide { filter: none; }
+
+#view-mines .mines-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+#view-mines .mines-controls label{display:flex;flex-direction:column;gap:9px;font-size:10px;color:inherit}
+#view-mines .mines-controls input,#view-mines .mines-controls select{width:100%;min-width:0;min-height:43px;border:2px solid currentColor;border-radius:9px;background:rgba(18,20,30,.75);color:white;padding:9px;font:inherit;font-size:14px}
+#view-mines .mines-status{text-align:center;font-size:12px;line-height:1.65;min-height:42px;margin:10px 0;font-weight:700}
+#view-mines .mines-board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;width:100%;max-width:400px;margin:12px auto 20px}
+#view-mines .mine-cell{aspect-ratio:1;min-width:0;border:2px solid #33251c;box-shadow:inset 0 -5px rgba(0,0,0,.17),0 3px rgba(0,0,0,.16);background:linear-gradient(160deg,#dfb365,#a57738);border-radius:11px;color:#46311c;font-family:inherit;font-size:clamp(18px,6vw,31px);cursor:pointer;transition:transform .14s,background .14s}
+#view-mines .mine-cell:not(:disabled):active{transform:scale(.92)}
+#view-mines .mine-cell.revealed{background:linear-gradient(160deg,#f5d891,#d3ac67);box-shadow:inset 0 2px 5px rgba(0,0,0,.14)}
+#view-mines .mine-cell:disabled{cursor:default}
+#view-mines .mines-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+#view-mines .mines-actions .cta{min-width:170px}
