@@ -56,7 +56,7 @@ GIFT_THUMB_TEMPLATES = [
 ]
 
 START_BALANCE = 10.0
-PROMO_CODES = {"DEMO": 10.0}
+PROMO_CODES = {"DEMO": 10.0}  # legacy codes; new codes use persistent DB
 MARGIN = 0.05
 SELL_SHARE = 0.9
 MIN_DEPOSIT = 0.5
@@ -204,6 +204,7 @@ def load_db():
     db.setdefault("users", {})
     db.setdefault("prices", {})
     db.setdefault("settings", {})
+    db.setdefault("promocodes", {})
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
     if not DATABASE_URL and not (os.environ.get("DB_PATH") or os.environ.get("SQLITE_PATH")):
@@ -833,11 +834,86 @@ def withdraw(user, body):
 @route("/api/promo")
 def promo(user, body):
     code = str(body.get("code", "")).strip().upper()
-    amount = PROMO_CODES.get(code)
-    if amount is None:
-        raise ApiError("not_found")
-    user["balance"] = ton(user["balance"] + amount)
-    return {"balance_ton": ton(user["balance"]), "amount_ton": amount}
+    codes = db.setdefault("promocodes", {})
+    item = codes.get(code)
+    if item is None:
+        raise ApiError("not_found", 404)
+    if not item.get("active", True):
+        raise ApiError("promo_inactive")
+    redeemed = user.setdefault("promos", [])
+    if code in redeemed:
+        raise ApiError("promo_used")
+    if item.get("limit", 0) and item.get("uses", 0) >= item["limit"]:
+        raise ApiError("promo_exhausted")
+    if item["kind"] == "balance":
+        amount = money(item["amount"])
+        user["balance"] = ton(user["balance"] + amount)
+        result = {"balance_ton": ton(user["balance"]), "amount_ton": amount}
+    else:
+        slug = item["gift"]
+        model = item.get("model", "")
+        target = resolve_target({"gift": slug, "model": model}, "gift")
+        add_prize(user, target["tier"], target["name"], target["value"], target["image"])
+        result = {"balance_ton": ton(user["balance"]), "prizes": visible_prizes(user), "gift": target["name"]}
+    redeemed.append(code)
+    item["uses"] = item.get("uses", 0) + 1
+    return result
+
+
+@route("/api/admin/promos")
+def admin_promos(user, body):
+    require_admin(user)
+    return {"rows": [{"code": c, **v} for c, v in sorted(db.setdefault("promocodes", {}).items(), reverse=True)]}
+
+
+@route("/api/admin/promos/create")
+def admin_promos_create(user, body):
+    require_admin(user)
+    code = str(body.get("code") or secrets.token_hex(5)).strip().upper()
+    if not re.fullmatch(r"[A-Z0-9_-]{4,32}", code):
+        raise ApiError("bad_code")
+    codes = db.setdefault("promocodes", {})
+    if code in codes:
+        raise ApiError("promo_exists")
+    kind = str(body.get("kind") or "balance")
+    try:
+        limit = int(body.get("limit", 1))
+    except (TypeError, ValueError):
+        raise ApiError("bad_request")
+    if limit < 1 or limit > 100000:
+        raise ApiError("bad_request")
+    row = {"kind": kind, "limit": limit, "uses": 0, "active": True, "created": int(time.time())}
+    if kind == "balance":
+        try:
+            amount = money(float(body.get("amount")))
+        except (ValueError, TypeError, OverflowError):
+            raise ApiError("bad_request")
+        if not 0 < amount <= 100000:
+            raise ApiError("bad_request")
+        row["amount"] = amount
+    elif kind == "gift":
+        slug = str(body.get("gift") or "")
+        model = str(body.get("model") or "")
+        gift_price(slug, model)
+        row.update(gift=slug, model=model, name=gift_entry(slug)["name"])
+    else:
+        raise ApiError("bad_request")
+    codes[code] = row
+    return {"code": code, "ok": True}
+
+
+@route("/api/admin/promos/update")
+def admin_promos_update(user, body):
+    require_admin(user)
+    codes = db.setdefault("promocodes", {})
+    code = str(body.get("code", "")).upper()
+    if code not in codes:
+        raise ApiError("not_found", 404)
+    if body.get("delete"):
+        del codes[code]
+    else:
+        codes[code]["active"] = bool(body.get("active"))
+    return {"ok": True}
 
 
 @route("/api/wallet")
@@ -1160,6 +1236,7 @@ def portals_status():
         "portals_updated": PORTALS_STATE["updated"],
         "portals_gifts": len(CATALOG),
         "portals_models": sum(len(g.get("models", [])) for g in CATALOG.values()),
+        "mrkt_key_mask": mask_key(db.get("settings", {}).get("mrkt_auth", "")),
     }
 
 
@@ -1401,6 +1478,38 @@ def fetch_models_by_search(c, max_pages=15):
     return acc
 
 
+def mrkt_search_models(c, timeout=12):
+    """Optional MRKT listings fallback (not Portals API). Auth token entered by administrator."""
+    token = str(db.get("settings", {}).get("mrkt_auth") or "").strip()
+    if not token:
+        return {}
+    payload = {"collectionNames": [c["name"]], "modelNames": [], "backdropNames": [],
+               "symbolNames": [], "ordering": "Price", "lowToHigh": True,
+               "count": 20, "cursor": "", "query": None, "promotedFirst": False}
+    req = urllib.request.Request("https://api.tgmrkt.io/api/v1/gifts/saling",
+        data=json.dumps(payload).encode(), method="POST",
+        headers={"Authorization": token, "Content-Type": "application/json",
+                 "Accept": "application/json", "Referer": "https://cdn.tgmrkt.io/"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            data = json.load(response)
+    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as e:
+        raise PortalsError(f"MRKT: {e}")
+    result = {}
+    for nft in (data.get("gifts") or []):
+        model = nft.get("model") or nft.get("modelName") or ""
+        if isinstance(model, dict):
+            model = model.get("name") or ""
+        price = nft.get("price") or nft.get("sellingPrice") or 0
+        try:
+            price = float(price)
+        except (ValueError, TypeError):
+            continue
+        if model and price > 0:
+            result[str(model)] = min(result.get(str(model), price), price)
+    return result
+
+
 def fetch_collection_models(c, search=True, timeout=20):
     err = None
     models, backdrops = {}, {}
@@ -1413,6 +1522,11 @@ def fetch_collection_models(c, search=True, timeout=20):
     if not models and search:
         try:
             models = fetch_models_by_search(c)
+        except PortalsError as e:
+            err = err or e
+    if not models and db.get("settings", {}).get("mrkt_auth"):
+        try:
+            models = mrkt_search_models(c)
         except PortalsError as e:
             err = err or e
     if not models and err:
@@ -1550,6 +1664,16 @@ def admin_portals_set(user, body):
         cfg["portals_auth"] = str(body["auth"]).strip()[:4000]
         start_portals_refresh()
     return {"rows": market_rows(), **portals_status()}
+
+
+@route("/api/admin/mrkt/set")
+def admin_mrkt_set(user, body):
+    require_admin(user)
+    if body.get("clear_key"):
+        db["settings"]["mrkt_auth"] = ""
+    elif str(body.get("auth") or "").strip():
+        db["settings"]["mrkt_auth"] = str(body["auth"]).strip()[:4000]
+    return {"ok": True, "mrkt_key_mask": mask_key(db["settings"].get("mrkt_auth", ""))}
 
 
 @route("/api/admin/market/set")
