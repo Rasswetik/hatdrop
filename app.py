@@ -2367,23 +2367,14 @@ def _cached_image(key, loader):
 
 @app.get("/gimg/<slug>.webp")
 def gimg(slug):
-    entry = gifts_map().get(slug)
-    if not entry:
+    """Legacy image URL: redirect immediately instead of proxying slow CDN downloads."""
+    from flask import redirect
+    if slug not in gifts_map():
         return ("", 404)
-    asked = request.args.get("m", "")[:64]
-    model = asked
-    hit = None
-    if model:
-        hit = _cached_image((slug, model), lambda: fetch_gift_image(entry["name"], model, slug))
-    if not hit:
-        hit = _cached_image((slug, ""), lambda: fetch_collection_image(entry["name"], slug))
-    if hit:
-        resp = app.response_class(hit[0], mimetype=hit[1])
-        resp.headers["Cache-Control"] = "public, max-age=604800"
-        return resp
-    resp = app.response_class(gift_svg(slug, asked[:32]), mimetype="image/svg+xml")
-    resp.headers["Cache-Control"] = "no-cache"
-    return resp
+    url = gift_image(slug, request.args.get("m", "")[:128])
+    response = redirect(url, code=302)
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 TON_SVG = (
