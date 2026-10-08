@@ -1,0 +1,3081 @@
+/* ============================================================
+   Magic Upgrade — вертикальная мини-аппа 9:16
+   Пиксельная стилистика: шрифт Press Start 2P, блочные рамки,
+   никаких скруглений. У шрифта одно начертание, поэтому
+   font-weight везде 400 — синтетический жир мылит пиксели.
+   ============================================================ */
+:root {
+  --sky-0: #0b0a2a;
+  --violet: #8b4cf0;
+  --violet-soft: #b98bff;
+  --violet-dark: #4a1fa0;
+  --gold: #ffc043;
+  --gold-soft: #ffe08a;
+  --gold-dark: #a86d00;
+  --green: #35d67f;
+  --green-dark: #148a4a;
+  --red: #ff5d6c;
+  --text: #f2edff;
+  --muted: #a99fd4;
+  --card: rgba(28, 20, 66, 0.8);
+  --card-line: #6b4bb8;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Длительность прокрутки. Кнопка-молния вешает .fast на <body>,
+     и все анимации ускоряются разом — значения в одном месте. */
+  --spin-dur: 3.6s;
+  --staff-dur: 3.7s;
+  /* Фон сцены — картинка и градиент под ней. Тиры оникс/блэк ниже
+     переопределяют оба, весь остальной цвет уже держится на переменных
+     выше и перекрашивается сам. */
+  /* Колесо: проигрышная зона, обод, свечение, центр. Тиры задают свои. */
+  --wheel-lose-a: #3a2a6b;
+  --wheel-lose-b: #241a4a;
+  --wheel-base: rgba(12, 8, 38, .6);
+  --wheel-glow: rgba(150, 100, 255, .38);
+  --wheel-core-a: rgba(60, 35, 130, .85);
+  --wheel-core-b: rgba(20, 12, 52, .92);
+  --wheel-core-shine: rgba(140, 90, 255, .35);
+  /* Дорожка ползунка и главная кнопка */
+  --track-bg: #1a1040;
+  --cta-edge: #2d1370;
+  --cta-shine: #b07bff;
+  --cta-off-bg: #3b3360;
+  --cta-off-edge: #241f3d;
+  --cta-off-shine: #544a80;
+  --cta-off-text: #a79ecf;
+  --bg-art: url("assets/sky.webp");
+  --bg-sky-grad:
+    radial-gradient(120% 60% at 78% 8%,  rgba(120, 90, 220, 0.35) 0%, transparent 60%),
+    radial-gradient(90% 50% at 20% 0%,   rgba(70, 50, 170, 0.35) 0%, transparent 65%),
+    linear-gradient(180deg, #0a0926 0%, #140f44 38%, #1b1355 62%, #241a6b 100%);
+}
+
+body.fast {
+  --spin-dur: .6s;
+  --staff-dur: .65s;
+}
+
+/* ---------------------------------------------------- призовые тиры */
+/* Апгрейд один и тот же (шанс/бросок в JS и game.py не меняются) — тир
+   меняет только приз на кону и вот эту палитру. Раз почти все цвета в
+   файле уже заданы через var(), перекрасить интерфейс — это просто
+   переопределить переменные в одном месте.
+
+   Золото (--gold*) нарочно НЕ трогаем ни в одном тире: это тот же акцент,
+   что и на пряжке шляпы, и именно контраст «холодная база + тёплое золото»
+   делает тему приятной, а не проваливает всё в один плоский оттенок —
+   так и получилась предыдущая версия, которую забраковали. */
+body.tier-onyx {
+  --sky-0: #14161c;
+  --violet: #5c6579;
+  --violet-soft: #8b93a8;
+  --violet-dark: #2f3542;
+  --card: rgba(30, 33, 41, 0.85);
+  --card-line: #5a6273;
+  /* Колесо — холодная сталь с ледяным свечением */
+  --wheel-lose-a: #56607a;
+  --wheel-lose-b: #2d3342;
+  --wheel-base: rgba(16, 18, 24, .65);
+  --wheel-glow: rgba(150, 190, 240, .34);
+  --wheel-core-a: rgba(70, 80, 102, .88);
+  --wheel-core-b: rgba(18, 20, 27, .93);
+  --wheel-core-shine: rgba(160, 200, 255, .32);
+  --track-bg: #1b1f29;
+  --cta-edge: #262b37;
+  --cta-shine: #9aa5c0;
+  --cta-off-bg: #363b48;
+  --cta-off-edge: #22262f;
+  --cta-off-shine: #4c5364;
+  --cta-off-text: #9ba3b6;
+  --bg-art: url("assets/sky-onyx.webp");
+  --bg-sky-grad:
+    radial-gradient(120% 60% at 78% 8%, rgba(130, 140, 165, .28) 0%, transparent 60%),
+    radial-gradient(90% 50% at 20% 0%,  rgba(90, 98, 120, .28) 0%, transparent 65%),
+    linear-gradient(180deg, #14161c 0%, #1b1e26 38%, #232631 62%, #2b2f3b 100%);
+}
+
+body.tier-black {
+  --sky-0: #08080a;
+  --violet: #34343d;
+  --violet-soft: #55555f;
+  --violet-dark: #18181c;
+  --card: rgba(14, 14, 17, 0.88);
+  --card-line: #3c3c46;
+  /* Колесо — графит с тёплым золотым свечением */
+  --wheel-lose-a: #3a3740;
+  --wheel-lose-b: #1a191e;
+  --wheel-base: rgba(6, 6, 8, .7);
+  --wheel-glow: rgba(255, 190, 80, .26);
+  --wheel-core-a: rgba(48, 44, 40, .9);
+  --wheel-core-b: rgba(8, 8, 10, .95);
+  --wheel-core-shine: rgba(255, 190, 90, .26);
+  --track-bg: #111114;
+  --cta-edge: #101013;
+  --cta-shine: #6a6674;
+  --cta-off-bg: #25252b;
+  --cta-off-edge: #141417;
+  --cta-off-shine: #36363e;
+  --cta-off-text: #8a8894;
+  --bg-art: url("assets/sky-black.webp");
+  --bg-sky-grad:
+    radial-gradient(120% 60% at 78% 8%, rgba(70, 68, 78, .24) 0%, transparent 60%),
+    radial-gradient(90% 50% at 20% 0%,  rgba(48, 46, 54, .24) 0%, transparent 65%),
+    linear-gradient(180deg, #050506 0%, #0a0a0c 38%, #0e0e11 62%, #131318 100%);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--sky-0);
+  color: var(--text);
+  font-family: "Press Start 2P", "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  font-synthesis: none;
+  overscroll-behavior: none;
+}
+
+body { overflow: hidden; }
+
+button, input { font-family: inherit; font-weight: 400; }
+
+/* Пиксельные иконки из спрайта */
+.ic {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------- сцена и фон */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  max-width: 480px;           /* 9:16 на широких экранах */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* clip вместо hidden: фон шире кадра, и с hidden браузер прокручивал
+     контейнер вбок, когда кнопка получала фокус. clip запрещает прокрутку. */
+  overflow: hidden;
+  overflow: clip;
+  isolation: isolate;
+}
+
+.bg-sky, .bg-art, .bg-stars, .bg-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+.bg-sky {
+  background: var(--bg-sky-grad);
+}
+
+/* Арт квадратный, а кадр вертикальный: прижимаем его к низу собственным
+   блоком и растворяем верх в небе — маска считается от размеров картинки,
+   поэтому шва не видно на любой высоте экрана. */
+.bg-art {
+  inset: auto auto 0 50%;
+  width: 132%;
+  /* Опускаем арт: иначе рука с посохом приходится ровно на карточки
+     интерфейса и анимации волшебника не видно. Сдвиг в процентах от
+     размера самой картинки, поэтому держится на любом экране. */
+  transform: translate(-50%, 24%);
+  aspect-ratio: 1;
+  background-image: var(--bg-art);
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 100% 100%;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.28) 20%, rgba(0,0,0,.8) 42%, #000 60%);
+          mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.28) 20%, rgba(0,0,0,.8) 42%, #000 60%);
+  opacity: .96;
+}
+
+/* ------------------------------------------------- посох волшебника */
+/* Вырезан из фона отдельным спрайтом. Размеры и точка вращения заданы
+   в процентах от картинки фона, поэтому совпадают на любом экране. */
+.staff {
+  position: absolute;
+  left: 23.046%;
+  top: 29.266%;
+  width: 15.789%;
+  height: 26.874%;
+  transform-origin: 8.1% 97%;   /* кисть руки */
+  will-change: transform;
+}
+.staff img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* Раскрутка: колебание с растущей частотой и размахом — маг «накручивает»
+   всё быстрее. Кадры посчитаны по синусу с ускорением, отсюда неровные
+   проценты. Делаем на CSS, а не покадрово из JS: анимация идёт на
+   композиторе, не зависит от загрузки страницы и экономит батарею. */
+.staff.charging { animation: staffSwirl var(--staff-dur) linear forwards; }
+/* Второй ритм: начинает медленнее, к концу заметно злее.
+   Выбирается случайно, чтобы прокрутки не были одинаковыми. */
+.staff.charging-wild { animation: staffSwirlWild var(--staff-dur) linear forwards; }
+
+@keyframes staffSwirlWild {
+  0%      { transform: rotate(0deg); }
+  2.778%  { transform: rotate(0.37deg); }
+  5.556%  { transform: rotate(0.87deg); }
+  8.333%  { transform: rotate(1.49deg); }
+  11.11%  { transform: rotate(2.24deg); }
+  13.89%  { transform: rotate(3.12deg); }
+  16.67%  { transform: rotate(4.13deg); }
+  19.44%  { transform: rotate(5.23deg); }
+  22.22%  { transform: rotate(6.39deg); }
+  25%     { transform: rotate(7.51deg); }
+  27.78%  { transform: rotate(8.46deg); }
+  30.56%  { transform: rotate(9.08deg); }
+  33.33%  { transform: rotate(9.12deg); }
+  36.11%  { transform: rotate(8.33deg); }
+  38.89%  { transform: rotate(6.44deg); }
+  41.67%  { transform: rotate(3.33deg); }
+  44.44%  { transform: rotate(-0.93deg); }
+  47.22%  { transform: rotate(-5.87deg); }
+  50%     { transform: rotate(-10.52deg); }
+  52.78%  { transform: rotate(-13.43deg); }
+  55.56%  { transform: rotate(-13deg); }
+  58.33%  { transform: rotate(-8.18deg); }
+  61.11%  { transform: rotate(0.54deg); }
+  63.89%  { transform: rotate(10.32deg); }
+  66.67%  { transform: rotate(16.2deg); }
+  69.44%  { transform: rotate(13.38deg); }
+  72.22%  { transform: rotate(1.3deg); }
+  75%     { transform: rotate(-13.22deg); }
+  77.78%  { transform: rotate(-18.13deg); }
+  80.56%  { transform: rotate(-6.25deg); }
+  83.33%  { transform: rotate(13.5deg); }
+  86.11%  { transform: rotate(19.05deg); }
+  88.89%  { transform: rotate(0.02deg); }
+  91.67%  { transform: rotate(-20.55deg); }
+  94.44%  { transform: rotate(-9.88deg); }
+  97.22%  { transform: rotate(18.68deg); }
+  100%    { transform: rotate(13.52deg); }
+}
+
+@keyframes staffSwirl {
+  0%      { transform: rotate(0deg); }
+  2.778%  { transform: rotate(1.03deg); }
+  5.556%  { transform: rotate(2.18deg); }
+  8.333%  { transform: rotate(3.39deg); }
+  11.11%  { transform: rotate(4.63deg); }
+  13.89%  { transform: rotate(5.81deg); }
+  16.67%  { transform: rotate(6.85deg); }
+  19.44%  { transform: rotate(7.65deg); }
+  22.22%  { transform: rotate(8.08deg); }
+  25%     { transform: rotate(8.01deg); }
+  27.78%  { transform: rotate(7.33deg); }
+  30.56%  { transform: rotate(5.94deg); }
+  33.33%  { transform: rotate(3.79deg); }
+  36.11%  { transform: rotate(0.94deg); }
+  38.89%  { transform: rotate(-2.44deg); }
+  41.67%  { transform: rotate(-6deg); }
+  44.44%  { transform: rotate(-9.19deg); }
+  47.22%  { transform: rotate(-11.35deg); }
+  50%     { transform: rotate(-11.74deg); }
+  52.78%  { transform: rotate(-9.79deg); }
+  55.56%  { transform: rotate(-5.35deg); }
+  58.33%  { transform: rotate(1.01deg); }
+  61.11%  { transform: rotate(7.85deg); }
+  63.89%  { transform: rotate(12.95deg); }
+  66.67%  { transform: rotate(13.96deg); }
+  69.44%  { transform: rotate(9.45deg); }
+  72.22%  { transform: rotate(0.22deg); }
+  75%     { transform: rotate(-10.07deg); }
+  77.78%  { transform: rotate(-15.81deg); }
+  80.56%  { transform: rotate(-12.42deg); }
+  83.33%  { transform: rotate(-0.32deg); }
+  86.11%  { transform: rotate(13.08deg); }
+  88.89%  { transform: rotate(16.93deg); }
+  91.67%  { transform: rotate(5.92deg); }
+  94.44%  { transform: rotate(-11.74deg); }
+  97.22%  { transform: rotate(-18.17deg); }
+  100%    { transform: rotate(-3.95deg); }
+}
+
+/* Замах назад перед выстрелом */
+.staff.cast { transition: transform .16s steps(3, end); transform: rotate(-19deg); }
+/* Возврат в исходное положение */
+.staff.resting { transition: transform .9s ease-out; transform: rotate(0deg); }
+
+/* Заряд на конце посоха: разгорается, пока крутится апгрейд */
+.staff-orb {
+  position: absolute;
+  left: 51.5%;
+  top: 28.2%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.1);
+  background: radial-gradient(circle,
+              rgba(255, 255, 255, .95) 0%,
+              rgba(255, 224, 138, .85) 22%,
+              rgba(255, 192, 67, .45) 45%,
+              transparent 70%);
+  pointer-events: none;
+}
+.staff-orb.charging { animation: orbCharge 3.7s ease-in forwards; }
+.staff-orb.fading   { transition: opacity .9s ease-out, transform .9s ease-out;
+                      opacity: 0; transform: translate(-50%, -50%) scale(.1); }
+.staff-orb.spent    { transition: opacity .14s linear; opacity: 0; }
+
+@keyframes orbCharge {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(.1); }
+  60%  { opacity: .55; transform: translate(-50%, -50%) scale(.7); }
+  100% { opacity: .95; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* Молния от посоха к шляпе: тянется всё ближе, пока крутится апгрейд */
+.bolt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Позади интерфейса, но поверх фона: молния не должна закрывать надписи */
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s linear;
+}
+/* Прячем прозрачностью, а не атрибутом hidden: у SVG-элементов
+   свойство element.hidden из JS не убирает атрибут, и слой залипал скрытым. */
+
+/* Три слоя вместо одного: широкое сияние, средний контур и тонкая
+   белая жила. Так разряд выглядит объёмным, а не просто линией. */
+.bolt-halo, .bolt-aura, .bolt-mid, .bolt-core, .bolt-fork {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: miter;   /* острые изломы, а не скруглённая верёвка */
+}
+/* Внешний ореол: широкий и сильно размытый, даёт свет вокруг разряда */
+.bolt-halo {
+  stroke: rgba(255, 130, 25, .38);
+  stroke-width: 34;
+  filter: url(#boltHalo);
+}
+.bolt-aura {
+  stroke: rgba(255, 165, 55, .52);
+  stroke-width: 13;
+  filter: url(#boltGlow);
+}
+.bolt-mid {
+  stroke: rgba(255, 215, 130, .85);
+  stroke-width: 4.5;
+  filter: url(#boltGlow);
+}
+.bolt-core { stroke: #fffdf5; stroke-width: 2; }
+.bolt-fork { stroke: rgba(255, 224, 138, .7); stroke-width: 1.4; }
+
+/* Светящаяся голова разряда: мягкое пятно и яркое ядро */
+.bolt-tip-glow {
+  fill: rgba(255, 205, 100, .6);
+  filter: url(#boltHalo);
+}
+.bolt-tip {
+  fill: #fff;
+  filter: url(#boltGlow);
+}
+/* Искры, бегущие вдоль разряда */
+.bolt-spark {
+  fill: #fff3cf;
+  filter: url(#boltGlow);
+}
+
+/* Попадание: разряд вспыхивает */
+.bolt.strike .bolt-halo { stroke: rgba(255, 200, 90, .45); stroke-width: 40; }
+.bolt.strike .bolt-aura { stroke: rgba(255, 224, 138, .7); stroke-width: 16; }
+.bolt.strike .bolt-mid  { stroke: rgba(255, 245, 210, .9); stroke-width: 7; }
+.bolt.strike .bolt-core { stroke: #fff; stroke-width: 3; }
+.bolt.strike .bolt-tip  { r: 10; }
+.bolt.strike .bolt-tip-glow { r: 30; fill: rgba(255, 235, 170, .6); }
+
+/* Искры от удара по шляпе */
+.sparks {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+.sparks i {
+  position: absolute;
+  left: 0; top: 0;
+  width: 5px; height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: var(--gold-soft);
+  box-shadow: 0 0 8px 2px rgba(255, 192, 67, .8);
+  animation: sparkFly .6s ease-out forwards;
+}
+@keyframes sparkFly {
+  0%   { transform: translate(var(--sx), var(--sy)) scale(1);   opacity: 1; }
+  100% { transform: translate(var(--ex), var(--ey)) scale(.2);  opacity: 0; }
+}
+
+/* Выигранная шляпа улетает в иконку профиля */
+.prize-fly {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: 7;                 /* поверх всего: это момент награды */
+  width: 96px; height: auto;
+  margin: -48px 0 0 -48px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter: drop-shadow(0 0 16px rgba(255, 192, 67, .7));
+}
+.prize-fly[hidden] { display: none; }
+
+/* Траектория полёта задаётся из JS точками кривой: тремя кадрами в CSS
+   браузер соединил бы их прямыми, и вместо дуги получалась ломаная. */
+
+/* Иконка профиля принимает приз */
+.tab.got { animation: tabGot .55s ease-out; }
+@keyframes tabGot {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.22); color: var(--gold); }
+  100% { transform: scale(1); }
+}
+
+/* Сгусток, который летит от посоха к шляпе при выигрыше.
+   Координаты старта и финиша подставляет JS — они зависят от экрана. */
+.spell {
+  position: absolute;
+  left: 0; top: 0;
+  z-index: -1;              /* тоже за интерфейсом, как и молния */
+  width: 28px; height: 28px;
+  margin: -14px 0 0 -14px;      /* центр элемента в заданной точке */
+  border-radius: 50%;
+  background: radial-gradient(circle,
+              #fff 0%, var(--gold-soft) 32%, rgba(255, 192, 67, .6) 58%, transparent 74%);
+  box-shadow: 0 0 24px 10px rgba(255, 192, 67, .5);
+  pointer-events: none;
+  animation: spellFly .48s cubic-bezier(.3, .6, .2, 1) forwards;
+}
+.spell[hidden] { display: none; }
+
+@keyframes spellFly {
+  0%   { transform: translate(var(--x0), var(--y0)) scale(.55); opacity: 1; }
+  78%  { transform: translate(var(--x1), var(--y1)) scale(1.5); opacity: 1; }
+  100% { transform: translate(var(--x1), var(--y1)) scale(2.6); opacity: 0; }
+}
+
+.wheel-center.hit { animation: hitFlash .5s steps(6, end); }
+@keyframes hitFlash {
+  0%   { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, .9); }
+  100% { box-shadow: inset 0 0 0 999px rgba(255, 255, 255, 0); }
+}
+
+.bg-stars { overflow: hidden; }
+.bg-stars i {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: #fff;
+  opacity: 0;
+  animation: twinkle 3.6s steps(3, end) infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: .12; }
+  50%      { opacity: .95; }
+}
+
+.bg-vignette {
+  background:
+    radial-gradient(80% 55% at 50% 42%, transparent 0%, rgba(6, 4, 24, .55) 100%),
+    linear-gradient(180deg, rgba(6,4,24,.55) 0%, transparent 22%, transparent 70%, rgba(6,4,24,.72) 100%);
+}
+
+/* ---------------------------------------------------------------- шапка */
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: calc(10px + var(--safe-top)) 12px 8px;
+  flex: 0 0 auto;
+}
+
+.balance {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  font-size: 15px;
+  line-height: 1;
+}
+.balance .cur { color: var(--muted); font-size: 10px; }
+/* Баланс — кнопка пополнения: стоит справа, вместо «TON» в нём плюс */
+button.balance {
+  margin-left: auto;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+button.balance:active { transform: translate(1px, 1px); }
+.bal-plus {
+  display: grid;
+  place-items: center;
+  width: 19px; height: 19px;
+  margin-left: 2px;
+  font-size: 14px; line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 1px 1px 0 var(--gold-soft);
+}
+.wallet-btn[hidden], .tier-picker[hidden], .tab[hidden] { display: none; }
+
+/* ШляпоКоины в шапке: между «Подключить» и балансом. Чтобы три элемента
+   помещались на узком экране, шапка чуть плотнее: мельче шрифт и отступы. */
+.topbar { gap: 5px; }
+/* Коины и баланс свою ширину не уступают: число должно быть видно целиком.
+   Если места всё же не хватит (длинный баланс на узком телефоне), сжимается
+   кнопка «Подключить» — её подпись обрезается многоточием. */
+.topbar .wallet-btn {
+  flex: 0 1 auto; min-width: 34px;
+  padding: 9px 7px; font-size: 9px; gap: 4px;
+  overflow: hidden;
+}
+.topbar .wallet-btn .ic { flex: 0 0 auto; font-size: 12px; }
+.topbar .wallet-btn span { overflow: hidden; text-overflow: ellipsis; }
+.topbar .balance { flex: 0 0 auto; padding: 7px 7px; font-size: 12px; gap: 4px; }
+.topbar .balance .ton-ico { width: 15px; height: 15px; }
+.topbar .bal-plus { width: 17px; height: 17px; font-size: 13px; margin-left: 1px; }
+.coin-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 7px;
+  font-size: 11px; line-height: 1;
+  color: var(--gold);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  white-space: nowrap;
+}
+.coin-chip[hidden] { display: none; }
+.coin-ico { width: 16px; height: 16px; flex: 0 0 auto; }
+.coin-rim  { fill: #9a5b00; }
+.coin-face { fill: var(--gold); }
+.coin-hat  { fill: #6a35c9; }
+.coin-band { fill: #2a1500; }
+
+/* Кошелёк в окне пополнения: адрес, «Отвязать», «Сменить» */
+.dep-wallet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 7px 8px;
+  background: #0d0830;
+  border: 2px solid var(--violet-dark);
+}
+.dep-wallet-addr {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px; line-height: 1.4;
+  color: var(--muted);
+  text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dep-wallet-btn {
+  padding: 7px 8px;
+  font: inherit; font-size: 9px; line-height: 1;
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dep-wallet-btn:active { transform: translate(1px, 1px); }
+.dep-wallet-btn[hidden] { display: none; }
+.ton-ico { width: 17px; height: 17px; display: block; image-rendering: pixelated; }
+
+.wallet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wallet-btn .ic { font-size: 14px; }
+.wallet-btn:active { transform: translate(1px, 1px); }
+.wallet-btn.connected {
+  background: var(--card);
+  border-color: var(--card-line);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.1), inset -2px -2px 0 rgba(0,0,0,.35);
+  color: var(--text);
+  font-size: 10px;
+}
+
+/* -------------------------------------------------------------- контент */
+.content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overflow-x: clip;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 14px 14px;
+}
+
+.view { display: flex; flex-direction: column; align-items: center; }
+.view[hidden] { display: none; }
+
+.title {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 400;  line-height: 1.3;
+  color: var(--gold);
+  text-shadow: 3px 3px 0 #5a2a00;
+}
+.subtitle { margin: 4px 0 10px; font-size: 10px; color: var(--muted); text-align: center; }
+.subtitle span { color: var(--violet-soft); }
+
+/* --------------------------------------------------- режим «Три шляпы» */
+/* Вкладка целиком опущена к центру экрана: так до шляп и кнопки достаёт
+   большой палец, а не приходится тянуться к верху телефона. */
+.view-center {
+  min-height: 100%;
+  justify-content: flex-start;
+  gap: 2px;
+}
+/* «Три шляпы»: название и подпись — у верха экрана, шляпы с подсказкой
+   стоят посередине того, что осталось (отступы auto сверху и снизу),
+   «Играть» и плашка приза — у низа. */
+#view-shell .title { margin-top: 6px; }
+.shell-subtitle { font-size: 13px; line-height: 1.5; margin-bottom: 0; }
+#view-shell .shell-table { margin-top: auto; }
+#view-shell .shell-hint { margin-bottom: auto; }
+#view-shell .shell-prize { margin: 8px auto 0; }
+
+/* Стол: шляпы лежат абсолютно и двигаются transform'ом — так перестановки
+   идут на композиторе и не дёргаются даже на слабом телефоне. */
+.shell-table {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  margin: 10px 0 4px;
+}
+
+.shell-hat {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 92px;
+  height: 190px;
+  margin-left: -46px;
+  will-change: transform;
+}
+
+/* Кликать можно только когда игра ждёт выбор */
+.shell-table.picking .shell-hat { cursor: pointer; }
+.shell-table.picking .shell-hat:active .shell-cap { transform: translateY(-8px); }
+
+.shell-cap {
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 92px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .35));
+}
+
+/* Кот сидит под шляпой: он ниже по z-порядку и виден, только когда
+   шляпа подпрыгнула. Картинка — вырезанный кот из подарка Witch Hat. */
+.shell-cat {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 78px;
+  height: auto;
+  margin-left: -39px;
+  opacity: 0;
+}
+
+/* Кот вступления: висит над рядом шляп, ни к одной не привязан. */
+.shell-cat-intro {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  width: 92px;
+  height: auto;
+  margin-left: -46px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Под шляпой вместо кота — выбранный подарок: картинка квадратная и не
+   пиксель-арт, поэтому чуть меньше и со сглаживанием. */
+.shell-cat.is-gift { width: 64px; height: 64px; margin-left: -32px; object-fit: contain; image-rendering: auto; }
+.shell-cat-intro.is-gift { width: 84px; height: 84px; margin-left: -42px; object-fit: contain; image-rendering: auto; }
+
+/* Подъём шляпы и появление кота задаются из JS через element.animate():
+   одной цепочкой с перемешиванием их проще синхронизировать, и не надо
+   гадать, доиграл ли CSS-переход перед следующим шагом.
+   Стартовое состояние кота — здесь, остальное в app.js (shellLift). */
+
+/* Выбранная игроком шляпа — золотая подсветка */
+.shell-hat.chosen .shell-cap { filter: drop-shadow(0 0 8px var(--gold)) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
+.shell-hat.miss  .shell-cap { filter: grayscale(.6) brightness(.65) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
+
+.shell-hint {
+  min-height: 26px;
+  margin: 2px 0 10px;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.shell-hint.win  { color: var(--green); }
+.shell-hint.lose { color: var(--red); }
+
+/* Приз «Трёх шляп»: плашка-кнопка, по нажатию открывается список подарков */
+.shell-prize {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0 auto 6px;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+}
+.shell-prize[hidden] { display: none; }
+.shell-prize:active { transform: translate(1px, 1px); }
+.shell-prize:disabled { opacity: .6; cursor: default; }
+.shell-prize img { width: 38px; height: 38px; object-fit: contain; image-rendering: pixelated; flex: 0 0 auto; }
+.shell-prize img.is-gift { image-rendering: auto; }
+.shell-prize-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.shell-prize-text b { font-weight: 400; font-size: 10px; line-height: 1.3; color: var(--gold);
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-prize-text small { font-size: 8px; line-height: 1.2; color: var(--muted);
+                          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* «сменить» — заметная золотая плашка: видно, что приз можно поменять */
+.shell-prize-edit {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  font-size: 9px; line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 1px 1px 0 var(--gold-soft);
+}
+
+/* --------------------------------------------------------------- колесо */
+/* Ряд: колесо по центру, кнопка быстрой прокрутки прижата вправо.
+   Колесо остаётся ровно посередине экрана, кнопка на него не влияет. */
+.wheel-row {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Колесо крупное: почти во всю ширину экрана, но не выше 44% его высоты,
+   чтобы на невысоких телефонах ползунок и «Варить» оставались на виду. */
+.wheel-wrap {
+  position: relative;
+  width: min(88vw, 44vh, 350px);
+  aspect-ratio: 1;
+  margin: 0 0 12px;
+  display: grid;
+  place-items: center;
+}
+
+/* Нижний ряд апгрейда: UP строго по центру, по бокам равные колонки.
+   margin-top: auto прижимает ряд к низу экрана, под большой палец. */
+/* Всё стоит одной плотной группой по центру экрана: надпись приза прямо над
+   колесом, ползунок и кнопки — сразу под ним. Расстояния колесо–ползунок и
+   ползунок–UP одинаковые (UPGRADE_GAP), свободное место уходит вверх и вниз. */
+#view-upgrade { min-height: 100%; justify-content: center; --upgrade-gap: 14px; }
+#view-upgrade .upgrade-prize { margin: 0 0 8px; }
+#view-upgrade .wheel-wrap { margin-bottom: 0; }
+#view-upgrade .mode-picker { margin-top: var(--upgrade-gap); }
+#view-upgrade .hat-hint { margin: 6px auto 0; }
+.spin-row {
+  width: 100%;
+  margin-top: calc(var(--upgrade-gap) + 12px);     /* кнопки чуть ниже ползунка */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.spin-side { display: flex; align-items: center; }
+
+/* Быстрая прокрутка — справа от UP, крупная */
+.fast-btn {
+  width: 68px;
+  height: 68px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border-radius: 0;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  color: var(--muted);
+  transition: none;
+}
+.fast-btn .ic-bolt {
+  width: 26px;
+  height: 36px;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+}
+.fast-btn:active { transform: translate(1px, 1px); }
+
+/* Включено: заливка как у бегунка ползунка */
+.fast-btn[aria-pressed="true"] {
+  background: var(--gold);
+  border-color: var(--gold-dark);
+  color: #2a1500;
+  box-shadow: 0 0 10px rgba(255, 192, 67, .5);
+}
+
+.fast-btn:disabled { opacity: .45; cursor: default; }
+
+.wheel-glow {
+  position: absolute;
+  inset: -8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--wheel-glow) 0%, transparent 62%);
+  filter: blur(14px);
+  animation: pulse 3.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+
+/* «Стекло» под колесом: диск размером с кольцо (радиус 132 из 150 — отступ
+   6%). Размывает фон за собой, слегка светлее его, со светлой кромкой и
+   косым бликом сверху слева — колесо читается как отдельный предмет. */
+.wheel-glass {
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, .20), rgba(255, 255, 255, .05) 38%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(circle at 50% 55%, rgba(120, 100, 230, .22), rgba(14, 9, 44, .62) 78%);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .22),
+    inset 0 -18px 34px rgba(8, 4, 30, .55),
+    inset 0 14px 26px rgba(190, 170, 255, .12),
+    0 10px 34px rgba(0, 0, 0, .5);
+  overflow: hidden;
+}
+/* Косой блик по стеклу */
+.wheel-glass::after {
+  content: "";
+  position: absolute;
+  left: 12%; top: 6%;
+  width: 46%; height: 22%;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, .22), rgba(255, 255, 255, 0));
+  transform: rotate(-28deg);
+  filter: blur(3px);
+}
+
+.wheel { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.lose-a { stop-color: var(--wheel-lose-a); }
+.lose-b { stop-color: var(--wheel-lose-b); }
+/* Заливка круга полупрозрачная — сквозь неё видно «стекло» под колесом */
+.ring-base {
+  fill: var(--wheel-base);
+  fill-opacity: .3;
+  stroke: var(--card-line);
+  stroke-width: 2;
+}
+/* Без плавного перехода: дуга должна стоять ровно там, где ползунок, в тот
+   же кадр. С переходом она отставала при быстром движении ползунка. */
+.ring-arc {
+  fill: none;
+  stroke-width: 18;
+  stroke-linecap: butt;
+}
+
+/* Шкала процентов снаружи кольца, как на часах: числа на десятках и пустые
+   засечки между ними. В пределах выбранного шанса — зелёные (класс on).
+   Числа стоят у самого края рисунка, поэтому колесу разрешено выходить
+   за свою рамку — иначе крайние цифры обрезало бы. */
+.wheel { overflow: visible; }
+.wheel-scale text {
+  font-size: 9px;
+  fill: var(--muted);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.wheel-scale text.on { fill: #7ef7b0; }
+.wheel-scale line { stroke: var(--card-line); stroke-width: 2; }
+.wheel-scale line.on { stroke: #7ef7b0; }
+
+.pointer {
+  transform-origin: 150px 150px;
+  transform: rotate(0deg);
+  filter: drop-shadow(0 0 5px rgba(255, 192, 67, .55));
+}
+.pointer.spinning { transition: transform var(--spin-dur) cubic-bezier(.12, .72, .12, 1); }
+/* Пиксельная стрелка: контур, заливка и блик — три слоя квадратов */
+.ptr-outline { fill: #2a1500; }
+.ptr-fill    { fill: var(--gold); }
+.ptr-shine   { fill: var(--gold-soft); }
+.ptr-dot     { fill: #2a1500; }
+/* Посох: дерево древка и светящийся кристалл на конце */
+.staff-wood       { fill: #8a5a2b; }
+.staff-wood-shine { fill: #b9804a; }
+.staff-gem        { fill: #4fc3ff; }
+.staff-gem-shine  { fill: #d9f5ff; }
+
+/* Круга вокруг шляпы нет — она стоит прямо в колесе. Сам блок остался:
+   по нему считаются полёт приза, молния и вспышка при попадании. */
+.wheel-center {
+  position: relative;
+  width: 46%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+/* Приз в колесе медленно и плавно пульсирует золотым свечением — намекает,
+   что на него можно нажать и сменить. Пока идёт прокрутка, он застывает. */
+.hat {
+  width: 76%;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6));
+  animation: hatPulse 3.4s ease-in-out infinite;
+}
+@keyframes hatPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6)) drop-shadow(0 0 2px rgba(255, 192, 67, 0));
+  }
+  50% {
+    transform: scale(1.06);
+    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .6)) drop-shadow(0 0 18px rgba(255, 192, 67, .85));
+  }
+}
+@keyframes float { 0%,100% { transform: translateY(-3px); } 50% { transform: translateY(4px); } }
+
+.wheel-wrap.rolling .hat { animation-play-state: paused; }
+@keyframes shake {
+  0%,100% { transform: translate(0,0); }
+  50%     { transform: translate(-2px, 2px); }
+}
+
+/* ------------------------------------------------------ выбор приза */
+.tier-picker {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.tier-btn {
+  flex: 1;
+  padding: 9px 2px;
+  border: 2px solid var(--card-line);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tier-btn:active { transform: translate(1px, 1px); }
+.tier-btn.active {
+  background: var(--violet-dark);
+  border-color: var(--violet-soft);
+  color: var(--gold);
+}
+
+/* ------------------------------------------------- ползунок режимов */
+/* Без рамки и фона: цена, шанс и ползунок стоят прямо на экране.
+   Ползунок по центру, не во всю ширину, но заметно шире кнопки «Варить». */
+.mode-picker {
+  width: min(88%, 340px);
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Трек с подписями: сверху цена, снизу шанс. Обе стоят над и под бегунком —
+   их сдвиг (--thumb-x) ставит app.js (applyMode) при каждом движении. */
+.mode-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 26px 0 24px;      /* место под подписи над и под треком */
+}
+.mode-tag {
+  position: absolute;
+  left: var(--thumb-x, 50%);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  line-height: 1;
+  pointer-events: none;
+}
+/* Цена стоит на одном месте — над серединой полоски, за бегунком не ездит
+   (за бегунком ездит только процент под ним). Значок TON закреплён, число
+   растёт от него вправо: когда сумма меняет длину (4 → 4.5 → 12.34),
+   значок не дёргается. Сдвиг -34px ставит значок чуть левее середины,
+   чтобы пара «значок + число» в среднем смотрелась по центру. */
+.mode-cost {
+  top: -3px;
+  left: 50%;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 16px; color: var(--gold);
+  transform: translateX(-34px);
+}
+.mode-cost .ton-ico { width: 22px; height: 22px; flex: 0 0 auto; }
+.mode-chance { bottom: 0; font-size: 16px; color: var(--green); }
+
+/* Пиксельный range: квадратный трек и квадратный ползунок */
+#modeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 26px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+/* Полоска заполняется тем же зелёным, что дуга на колесе, — слева от бегунка,
+   до его середины (--fill ставит app.js). Справа от бегунка пусто: тёмный
+   фон, но со светлой каймой, чтобы полоска не терялась на фоне. */
+#modeSlider::-webkit-slider-runnable-track {
+  height: 12px;
+  background: linear-gradient(to right,
+    #7ef7b0 0, #25c46a var(--fill, 50%),
+    var(--track-bg) var(--fill, 50%), var(--track-bg) 100%);
+  border: 2px solid rgba(126, 247, 176, .55);
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,.35);
+}
+#modeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px;
+  margin-top: -9px;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+}
+#modeSlider::-moz-range-track {
+  height: 12px;
+  background: var(--track-bg);
+  border: 2px solid rgba(126, 247, 176, .55);
+}
+#modeSlider::-moz-range-progress {
+  height: 12px;
+  background: linear-gradient(to right, #7ef7b0, #25c46a);
+}
+#modeSlider::-moz-range-thumb {
+  width: 20px; height: 20px;
+  border-radius: 0;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+}
+#modeSlider:active::-webkit-slider-thumb { background: var(--gold-soft); }
+#modeSlider:disabled { opacity: .5; cursor: default; }
+
+.mode-marks { display: flex; justify-content: space-between; }
+.mode-edge { font-size: 13px; color: var(--text); line-height: 1.6; flex: 0 0 auto; }
+.mode-mark {
+  flex: 1;
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: center;
+}
+.mode-mark:first-child { text-align: left; }
+.mode-mark:last-child  { text-align: right; }
+.mode-mark b { display: block; font-size: 11px; font-weight: 400; }
+.mode-mark.active   { color: var(--text); }
+.mode-mark.active b { color: var(--gold); }
+
+/* --------------------------------------------------------------- кнопки */
+.cta {
+  width: 100%;
+  padding: 15px 8px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: #fff;
+  background: var(--violet);
+  border: 2px solid var(--cta-edge);
+  box-shadow: inset 3px 3px 0 var(--cta-shine), inset -3px -3px 0 var(--violet-dark);
+  cursor: pointer;
+  text-shadow: 2px 2px 0 rgba(0,0,0,.45);
+}
+.cta:active { transform: translate(1px, 1px); box-shadow: inset 2px 2px 0 var(--violet-dark); }
+/* Кнопка апгрейда — как затвор камеры: квадрат по центру внизу, под большим
+   пальцем, ничего не закрывает. Цвет — как у «Подключить», чтобы выделялась. */
+.cta.spin-btn {
+  width: 94px;
+  height: 94px;
+  min-width: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  font-size: 28px;
+  line-height: 1;
+  color: #2a1a00;
+  text-shadow: none;
+  background: var(--gold);
+  border: 3px solid var(--gold-dark);
+  box-shadow: inset 3px 3px 0 var(--gold-soft), inset -3px -3px 0 var(--gold-dark),
+              0 0 16px rgba(255, 192, 67, .45);
+}
+.cta.spin-btn:active { transform: translate(1px, 1px); box-shadow: inset 3px 3px 0 var(--gold-dark); }
+/* Не хватает баланса: кнопка приглушена, но нажимается — ведёт в пополнение */
+.cta.spin-btn.low { opacity: .6; box-shadow: inset 3px 3px 0 var(--gold-soft), inset -3px -3px 0 var(--gold-dark); }
+.cta.spin-btn:disabled { opacity: .45; }
+
+/* Заголовка «АПГРЕЙД» нет — строка с призом стала первой на экране, и она
+   крупнее обычной подписи: это главное, что игрок должен видеть. */
+.upgrade-prize { margin-top: 6px; font-size: 14px; line-height: 1.5; }
+.upgrade-prize span { color: var(--gold); }
+.cta:disabled {
+  background: var(--cta-off-bg);
+  border-color: var(--cta-off-edge);
+  box-shadow: inset 3px 3px 0 var(--cta-off-shine), inset -3px -3px 0 var(--cta-off-edge);
+  color: var(--cta-off-text);
+  cursor: default;
+}
+
+.ghost {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px 8px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.08), inset -2px -2px 0 rgba(0,0,0,.4);
+  cursor: pointer;
+}
+.ghost:active { transform: translate(1px, 1px); }
+
+/* -------------------------------------------------------------- профиль */
+.profile-head {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0 10px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+.avatar {
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  font-size: 28px;
+  color: var(--violet-soft);
+  background: var(--violet-dark);
+  border: 2px solid var(--card-line);
+  flex: 0 0 auto;
+}
+.profile-meta { min-width: 0; flex: 1; }
+.pname { font-size: 13px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Уровень: золотая плашка в шапке профиля и полоска прогресса под ней */
+.profile-head { margin-bottom: 0; }
+.lvl-badge {
+  flex: 0 0 auto;
+  padding: 8px 9px;
+  font-size: 13px; line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  white-space: nowrap;
+}
+.lvl-row {
+  width: 100%;
+  padding: 8px 12px 9px;
+  margin: 0 0 10px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  border-top: 0;
+}
+.lvl-bar {
+  height: 10px;
+  background: var(--track-bg);
+  border: 2px solid var(--violet-dark);
+}
+.lvl-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(to right, var(--gold-soft), var(--gold));
+  transition: width .4s ease-out;
+}
+.lvl-note { margin: 6px 0 0; font-size: 8px; line-height: 1.4; color: var(--muted); text-align: center; }
+
+/* Статистика: три плитки в ряд */
+.pstats { display: flex; gap: 6px; width: 100%; margin: 0 0 10px; }
+.pstat {
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 4px;
+  text-align: center;
+  background: #150e3d;
+  border: 2px solid var(--violet-dark);
+}
+.pstat small { font-size: 8px; line-height: 1; color: var(--muted); }
+.pstat b { font-size: 11px; font-weight: 400; line-height: 1.2; color: var(--gold); }
+.pstat span {
+  max-width: 100%;
+  font-size: 7px; line-height: 1.4; color: var(--violet-soft);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pstat-best img { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; }
+.pstat-best img.is-gift { image-rendering: auto; }
+.pstat-best img[hidden] { display: none; }
+
+/* Заголовок «Мои призы» и кнопка «Продать всё» в одну строку */
+.section-row {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 2px 0 8px;
+}
+.section-row .section-title { margin: 0; align-self: center; }
+.sell-all {
+  padding: 7px 9px;
+  font: inherit; font-size: 9px; line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+}
+.sell-all[hidden] { display: none; }
+.sell-all:active { transform: translate(1px, 1px); }
+.sell-all:disabled { opacity: .6; cursor: default; }
+.pwallet {
+  font-size: 9px; color: var(--muted); line-height: 1.6;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.section-title {
+  align-self: flex-start;
+  margin: 2px 0 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.prize-grid {
+  position: relative;   /* уходящая карточка висит поверх сетки, пока гаснет */
+  display: grid;  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.prize-card {
+  padding: 7px 5px 6px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+/* Появление — только у новой карточки и только один раз (.fresh снимается
+   по окончании). Без fill-mode: карточка видна сама по себе, анимация —
+   украшение. С `both` карточки на скрытой вкладке залипали на opacity 0. */
+.prize-card.fresh { animation: popIn .22s ease-out; }
+@keyframes popIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
+/* Проданная карточка: гаснет и уходит. Конечное состояние задано самим
+   классом, поэтому fill-mode не нужен — см. комментарий у popIn. */
+.prize-card.leaving {
+  z-index: 1;
+  opacity: 0;
+  transform: scale(.85);
+  pointer-events: none;
+  animation: popOut .24s ease-out;
+}
+@keyframes popOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.85); } }
+
+.prize-card .thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  background: radial-gradient(circle at 50% 40%, rgba(120, 70, 220, .5), rgba(16, 10, 44, .9));
+  display: grid; place-items: center;
+  border: 2px solid var(--violet-dark);
+}
+.prize-card .thumb img { width: 82%; image-rendering: pixelated; }
+
+/* Плашка приза красится под его собственный тир, а не под текущую тему
+   вкладки — оникс лежит на сером, блэк на чёрном, всегда. */
+.prize-card .thumb.thumb-onyx {
+  background: radial-gradient(circle at 50% 40%, rgba(140, 148, 168, .55), rgba(20, 22, 28, .92));
+  border-color: #545b6c;
+}
+.prize-card .thumb.thumb-black {
+  background: radial-gradient(circle at 50% 40%, rgba(70, 68, 78, .55), rgba(6, 6, 8, .95));
+  border-color: #3c3c46;
+}
+/* Утешительный мишка — тёплый медовый фон под цвет самого мишки */
+.prize-card .thumb.thumb-bear {
+  background: radial-gradient(circle at 50% 40%, rgba(214, 150, 72, .5), rgba(40, 22, 10, .92));
+  border-color: #7a4d22;
+}
+.bear-fly { width: 88px; margin: -44px 0 0 -44px; filter: drop-shadow(0 0 14px rgba(255, 190, 110, .6)); }
+
+.wd-btn {
+  width: 100%;
+  padding: 6px 1px;
+  font-size: 8px;
+  line-height: 1.2;
+  color: #05230f;
+  background: var(--green);
+  border: 2px solid var(--green-dark);
+  box-shadow: inset 2px 2px 0 #9dffc8, inset -2px -2px 0 var(--green-dark);
+  cursor: pointer;
+}
+.wd-btn:active { transform: translate(1px, 1px); }
+.wd-btn.pending {
+  background: #3a2f10;
+  border-color: var(--gold-dark);
+  box-shadow: none;
+  color: var(--gold-soft);
+  cursor: default;
+}
+.wd-btn:disabled:not(.pending) {
+  background: #2c2650;
+  border-color: #241f3d;
+  box-shadow: inset 2px 2px 0 #3f3770, inset -2px -2px 0 #1a1630;
+  color: #7d74a8;
+  cursor: default;
+}
+/* Вывод закрыт после пополнения подарком — на кнопке таймер */
+.wd-btn.locked { font-size: 7px; line-height: 1.4; color: var(--muted); }
+
+/* Продажа приза за баланс. Золотая, чтобы не путалась с зелёным выводом:
+   вывод — это деньги на кошелёк, продажа — на внутренний баланс. */
+.sell-btn {
+  width: 100%;
+  padding: 6px 1px;
+  font-size: 8px;
+  line-height: 1.2;
+  color: #2a1500;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+}
+.sell-btn:active { transform: translate(1px, 1px); }
+.sell-btn:disabled {
+  background: #3b3360;
+  border-color: #241f3d;
+  box-shadow: none;
+  color: #a79ecf;
+  cursor: default;
+}
+
+/* ------------------------------------------------ реферальная программа */
+.ref-card {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 4px 0 14px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+
+/* Промокод в профиле: поле и кнопка в одну строку */
+.promo-card {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.promo-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 10px;
+  font: inherit; font-size: 11px; line-height: 1;
+  color: var(--text);
+  text-transform: uppercase;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  outline: none;
+}
+.promo-input::placeholder { text-transform: none; color: var(--muted); }
+.promo-input:focus { border-color: var(--violet-soft); }
+.promo-btn {
+  padding: 9px 10px;
+  font: inherit; font-size: 10px; line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+}
+/* Выбор языка в профиле */
+.lang-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.lang-label { font-size: 10px; color: var(--muted); }
+.lang-btns { display: flex; gap: 6px; }
+.lang-btn {
+  padding: 7px 8px;
+  font: inherit; font-size: 9px; line-height: 1;
+  color: var(--text);
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, .22);
+  cursor: pointer;
+}
+.lang-btn.on { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); }
+/* В пиксельном шрифте нет иероглифов — китайский рисуем системным шрифтом
+   (латиница и цифры остаются пиксельными). */
+.lang-btn:last-child,
+html[data-lang="zh"] body {
+  font-family: "Press Start 2P", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+}
+/* Иероглифы в 8–9 px не читаются — мелкие подписи в китайском крупнее */
+html[data-lang="zh"] .lvl-note,
+html[data-lang="zh"] .pstat small,
+html[data-lang="zh"] .pstat span,
+html[data-lang="zh"] .lang-label,
+html[data-lang="zh"] .pwallet { font-size: 12px; }
+.promo-btn:active { transform: translate(1px, 1px); }
+.promo-btn:disabled { opacity: .6; cursor: default; }
+
+/* Шапка целиком — кнопка: попасть пальцем проще, чем по значку */
+.ref-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.ref-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--gold);
+  line-height: 1.4;
+}
+/* Зелёный квадратик, когда есть что выводить — иначе свёрнутый блок
+   можно не открыть месяцами и не узнать, что там накопились деньги. */
+.ref-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(53, 214, 127, .8);
+}
+.ref-dot[hidden] { display: none; }
+
+.ref-chevron {
+  flex: 0 0 auto;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+}
+.ref-chevron .ic { font-size: 16px; }
+.ref-head:active .ref-chevron { transform: translate(1px, 1px); }
+/* Поворот ровно на 180° — пиксели ложатся точно, картинка не мылится */
+.ref-head[aria-expanded="true"] .ref-chevron .ic { transform: rotate(180deg); }
+
+.ref-body { margin-top: 12px; }
+.ref-body[hidden] { display: none; }
+
+.ref-desc  { margin: 0 0 12px; font-size: 9px; color: var(--muted); line-height: 1.8; }
+.ref-desc b { color: var(--green); font-weight: 400; }
+
+.ref-create { font-size: 11px; padding: 13px 8px; }
+
+.ref-link-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: #0d0830;
+  border: 2px solid var(--violet-dark);
+}
+.ref-link-box[hidden] { display: none; }
+.ref-link {
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--violet-soft);
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.ref-copy {
+  width: 100%;
+  padding: 9px;
+  font-size: 11px;
+  line-height: 1;
+  color: #2a1a00;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+  cursor: pointer;
+}
+.ref-copy:active { transform: translate(1px, 1px); }
+.ref-copy.done { background: var(--green); border-color: var(--green-dark);
+                 box-shadow: inset 2px 2px 0 #9dffc8, inset -2px -2px 0 var(--green-dark);
+                 color: #05230f; }
+
+.ref-stats { display: flex; gap: 8px; margin-top: 12px; }
+.ref-stat {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 9px 4px;
+  background: #150e3d;
+  border: 2px solid var(--violet-dark);
+}
+.ref-stat b { font-size: 15px; font-weight: 400; color: var(--gold); line-height: 1; }
+.ref-stat small { font-size: 8px; color: var(--muted); line-height: 1; }
+
+.ref-withdraw {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.ref-balance { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.ref-balance small { font-size: 8px; color: var(--muted); line-height: 1; }
+.ref-balance b { font-size: 14px; font-weight: 400; color: var(--green); line-height: 1; }
+.ref-wd { width: auto; flex: 0 0 auto; padding: 9px 14px; font-size: 10px; }
+
+.ref-hint { margin: 8px 0 0; font-size: 8px; color: var(--muted); line-height: 1.6; }
+.ref-hint.pending { color: var(--gold-soft); }
+
+.empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
+.empty[hidden] { display: none; }
+
+/* --------------------------------------------------------------- таббар */
+.tabbar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  padding: 7px 10px calc(7px + var(--safe-bottom));
+  background: rgba(10, 6, 32, .9);
+  border-top: 2px solid var(--card-line);
+}
+.tab {
+  position: relative;
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  padding: 9px 0;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+}
+/* В меню только иконки — крупные. Подпись спрятана от глаз, но не от
+   экранных читалок. */
+.tab .ic { font-size: 30px; }
+.tab-name {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.tab.active {
+  color: var(--gold);
+  background: var(--violet-dark);
+  border-color: var(--card-line);
+}
+/* Вкладок четыре: на узких телефонах «Три шляпы» иначе не влезает */
+.tab { white-space: nowrap; min-width: 0; }
+@media (max-width: 380px) { .tab { font-size: 8px; } .tabbar { gap: 4px; padding-left: 6px; padding-right: 6px; } }
+
+/* ------------------------------------------------------------ лидерборд */
+.lb-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.18fr 1fr;
+  gap: 8px;
+  align-items: end;
+  width: 100%;
+  margin: 14px 0 12px;
+}
+.lb-place {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  min-width: 0;
+  padding: 16px 6px 8px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+/* Медальные цвета: золото, серебро, бронза */
+.lb-p1 {
+  padding-top: 20px;
+  border-color: var(--gold);
+  box-shadow: 0 0 18px rgba(255, 192, 67, .32), inset 0 0 0 2px rgba(255, 192, 67, .14);
+}
+.lb-p2 { border-color: #aeb7cc; }
+.lb-p3 { border-color: #c4854a; }
+
+.lb-medal {
+  position: absolute;
+  top: -13px; left: 50%;
+  transform: translateX(-50%);
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  font-size: 11px;
+  color: #2a1500;
+  background: var(--gold);
+  border: 2px solid var(--gold-dark);
+  box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
+}
+.lb-p2 .lb-medal { color: #1b1f29; background: #d6dce8; border-color: #6f7890;
+                   box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #8f98ad; }
+.lb-p3 .lb-medal { color: #2a1500; background: #e0a263; border-color: #7a4a1c;
+                   box-shadow: inset 2px 2px 0 #ffd2a0, inset -2px -2px 0 #a86a33; }
+
+/* Приз — как подарок в Telegram: фон с узором (SVG) и анимированная модель */
+.lb-prize {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, var(--bd-a), var(--bd-b) 78%);
+  border: 2px solid rgba(0, 0, 0, .35);
+}
+.lb-bd { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lb-poster, .lb-anim {
+  position: absolute;
+  inset: 6%;
+  width: 88%; height: 88%;
+}
+.lb-poster { object-fit: contain; transition: opacity .2s; }
+.lb-prize.live .lb-poster { opacity: 0; }
+.lb-anim svg { display: block; }
+
+/* Таймер до итогов сезона */
+.lb-timer {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  margin: 2px 0 4px;
+  padding: 9px 10px;
+  font-size: 9px;
+  color: var(--muted);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+.lb-timer:empty { display: none; }
+.lb-timer b {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gold);
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.lb-timer.done { color: var(--gold); border-color: var(--gold); line-height: 1.6; text-align: center; }
+
+.lb-prize-name {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 2.8em;
+  font-size: 8px;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--text);
+}
+.lb-p1 .lb-prize-name { color: var(--gold); }
+
+.lb-holder {
+  width: 100%;
+  min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding-top: 7px;
+  border-top: 2px dashed rgba(255, 255, 255, .08);
+}
+.lb-holder-name {
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 8px;
+  line-height: 1.4;
+}
+.lb-holder b { font-size: 8px; font-weight: 400; color: var(--gold); }
+.lb-holder.free {
+  justify-content: center;
+  min-height: 60px;
+  font-size: 7px;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Аватарка: буква на цветном фоне, сверху фото, если есть */
+.lb-ava {
+  position: relative;
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  overflow: hidden;
+  font-size: 13px;
+  color: #fff;
+  background: hsl(var(--ava-h, 260) 45% 34%);
+  border: 2px solid rgba(0, 0, 0, .45);
+}
+.lb-ava img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.lb-ava img.ok { opacity: 1; }
+.lb-ava-sm { width: 28px; height: 28px; font-size: 11px; }
+
+.lb-me {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  font-size: 10px;
+  background: var(--violet-dark);
+  border: 2px solid var(--violet);
+}
+.lb-me-rank { font-size: 16px; color: var(--gold); }
+.lb-me-label { flex: 1; }
+.lb-me b { font-weight: 400; color: var(--gold); }
+.lb-me.muted {
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--muted);
+  background: var(--card);
+  border-color: var(--card-line);
+}
+
+.lb-list {
+  width: 100%;
+  margin: 0; padding: 0;
+  list-style: none;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+.lb-rank { flex: 0 0 auto; width: 26px; font-size: 11px; text-align: center; color: var(--muted); }
+.lb-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.lb-sum { font-size: 9px; font-weight: 400; color: var(--gold); white-space: nowrap; }
+.lb-mini { flex: 0 0 auto; width: 26px; height: 26px; object-fit: contain; }
+.lb-row.top1 { border-color: var(--gold); }
+.lb-row.top2 { border-color: #aeb7cc; }
+.lb-row.top3 { border-color: #c4854a; }
+.lb-row.top1 .lb-rank { color: var(--gold); }
+.lb-row.top2 .lb-rank { color: #d6dce8; }
+.lb-row.top3 .lb-rank { color: #e0a263; }
+.lb-row.me { background: var(--violet-dark); box-shadow: inset 4px 0 0 var(--gold); }
+
+/* -------------------------------------------------------------- модалки */
+.modal {
+  position: fixed; inset: 0;
+  z-index: 50;
+  display: grid; place-items: center;
+  padding: 18px;
+  background: rgba(5, 3, 20, .85);
+  animation: fade .15s steps(3, end);
+}
+.modal[hidden] { display: none; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  max-height: 86dvh;
+  overflow-y: auto;
+  padding: 20px 16px 16px;
+  text-align: center;
+  background: #1b1350;
+  border: 3px solid var(--card-line);
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.08), inset -3px -3px 0 rgba(0,0,0,.45),
+              0 16px 0 rgba(0,0,0,.35);
+  animation: rise .18s steps(4, end);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.modal-card h2 { margin: 0 0 10px; font-size: 16px; font-weight: 400; color: var(--gold); line-height: 1.4; }
+.modal-card p { margin: 0 0 14px; font-size: 10px; color: var(--muted); line-height: 1.8; }
+
+.modal-hat {
+  width: 112px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 26px rgba(255, 192, 67, .6));
+  animation: prizePop .4s steps(6, end);
+}
+@keyframes prizePop { from { transform: scale(.2); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.modal-card.lose .modal-hat { filter: grayscale(1) brightness(.5); animation: none; opacity: .5; }
+.modal-card.lose h2 { color: var(--muted); }
+
+.burst {
+  position: absolute;
+  top: 70px; left: 50%;
+  width: 220px; height: 220px;
+  transform: translate(-50%, -50%);
+  background: repeating-conic-gradient(from 0deg,
+              rgba(255, 192, 67, .22) 0deg 5deg,
+              transparent 5deg 24deg);
+  border-radius: 50%;
+  -webkit-mask-image: radial-gradient(circle, #000 18%, rgba(0,0,0,.55) 45%, transparent 72%);
+          mask-image: radial-gradient(circle, #000 18%, rgba(0,0,0,.55) 45%, transparent 72%);
+  animation: spinSlow 12s steps(60, end) infinite;
+  pointer-events: none;
+}
+.modal-card.lose .burst { display: none; }
+@keyframes spinSlow { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+.amount-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.amt {
+  flex: 1; padding: 11px 0;
+  border: 2px solid var(--card-line);
+  background: #150e3d;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.amt.active { background: var(--violet-dark); border-color: var(--violet-soft); color: var(--gold); }
+
+#depositAmount {
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 12px;
+  border: 2px solid var(--card-line);
+  background: #0d0830;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1;
+  text-align: center;
+}
+
+.manual { margin: 14px 0 6px; text-align: left; }
+.manual summary { cursor: pointer; font-size: 10px; color: var(--violet-soft); margin-bottom: 8px; line-height: 1.8; }
+.modal-card label {
+  display: block;
+  margin: 9px 0 5px;
+  font-size: 9px; color: var(--muted);
+  text-align: left;
+  line-height: 1.6;
+}
+.copy-row { display: flex; gap: 6px; align-items: stretch; }
+.copy-row code {
+  flex: 1; min-width: 0;
+  padding: 9px;
+  background: #0d0830;
+  border: 2px solid var(--card-line);
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: left;
+}
+.copy-row button {
+  flex: 0 0 auto;
+  border: 2px solid var(--card-line);
+  padding: 0 10px;
+  background: var(--violet-dark);
+  color: var(--text);
+  font-size: 9px;
+  cursor: pointer;
+}
+.warn { margin-top: 10px !important; font-size: 9px !important; color: var(--gold-soft) !important; }
+
+/* ------------------------------------------------- пополнение подарком */
+.gift-dep-btn { margin-top: 8px; background: #2d6bd6; border-color: #143c86;
+                box-shadow: inset 3px 3px 0 #7fb0ff, inset -3px -3px 0 #143c86; }
+.gift-modal { max-width: 360px; }
+.gift-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+  text-align: left;
+}
+.gift-empty { grid-column: 1 / -1; text-align: center; line-height: 1.8; }
+.gift-list .warn { grid-column: 1 / -1; }
+.gift-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 6px;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  background: var(--card);
+  border: 2px solid var(--card-line);  cursor: pointer;
+}
+.gift-item.picked { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
+.gift-item img { width: 100%; aspect-ratio: 1; object-fit: cover; background: rgba(0, 0, 0, .25); }
+/* --------------------------------- выбор подарка для апгрейда */
+.gp-card { max-height: 86vh; display: flex; flex-direction: column; }
+.gp-head { display: flex; align-items: center; justify-content: center; gap: 8px; position: relative; }
+.gp-head h2 { margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gp-back {
+  position: absolute; left: 0; top: -2px;
+  padding: 4px 9px;
+  font: inherit; font-size: 12px;
+  color: var(--gold);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+}
+.gp-back[hidden] { display: none; }
+.gp-search {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  font: inherit; font-size: 10px;
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  outline: none;
+}
+.gp-search:focus { border-color: var(--violet-soft); }
+/* Сортировка списка: три кнопки в ряд, выбранная — золотая */
+.gp-sort { display: flex; gap: 5px; margin-bottom: 8px; }
+.gp-sort button {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 2px;
+  font: inherit; font-size: 8px; line-height: 1;
+  color: var(--muted);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+}
+.gp-sort button:active { transform: translate(1px, 1px); }
+.gp-sort button.active { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); }
+.gp-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  min-height: 120px;
+  margin-bottom: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.gp-empty { grid-column: 1 / -1; text-align: center; padding: 20px 0; }
+.gp-item {
+  display: flex; flex-direction: column; align-items: stretch; gap: 3px;
+  padding: 4px;
+  font: inherit;
+  color: var(--text);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+  min-width: 0;
+}
+.gp-item:active { transform: translate(1px, 1px); }
+.gp-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
+.gp-item img { width: 100%; aspect-ratio: 1; object-fit: contain; padding: 4px; background: rgba(0, 0, 0, .25); }
+/* Шляпа в списке — пиксель-арт, сглаживать её нельзя */
+.gp-hat img { image-rendering: pixelated; }
+/* Фоны шляпы — те же, что у призов в профиле */
+.gp-hat-onyx img { background: radial-gradient(circle at 50% 40%, rgba(140, 148, 168, .55), rgba(20, 22, 28, .92)); }
+.gp-hat-black img { background: radial-gradient(circle at 50% 40%, rgba(70, 68, 78, .55), rgba(6, 6, 8, .95)); }
+.gp-name { font-size: 7px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gp-price { font-size: 8px; color: var(--gold); }
+/* Фото подарка в центре колеса — не пиксель-арт, сглаживаем и скругляем */
+.hat.is-gift { image-rendering: auto; width: 70%; }
+.thumb-gift img { image-rendering: auto; object-fit: contain; }
+/* Шляпа в центре — кнопка выбора подарка */
+#centerHat { cursor: pointer; }
+#centerHat[hidden] { display: none; }
+/* Вопросик вместо шляпы, пока новичок не выбрал приз */
+.hat-q {
+  width: 76%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: clamp(54px, 22vw, 92px);
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 4px 4px 0 #5a2a00, 0 0 22px rgba(255, 192, 67, .55);
+  background: none;
+  border: none;
+  cursor: pointer;
+  animation: hatPulse 3.4s ease-in-out infinite;     /* пульсирует так же, как приз */
+}
+.hat-q[hidden] { display: none; }
+.hat-q:active { transform: scale(.94); }
+.hat-hint {
+  display: block;
+  margin: -2px auto 10px;
+  padding: 4px 8px;
+  font: inherit; font-size: 10px; line-height: 1.5;
+  color: var(--gold);
+  background: none;
+  border: none;
+  cursor: pointer;
+  animation: hintPulse 2.4s ease-in-out infinite;
+}
+.hat-hint::before { content: "▲ "; }
+.hat-hint[hidden] { display: none; }
+@keyframes hintPulse { 0%, 100% { opacity: .65; } 50% { opacity: 1; } }
+
+.gift-title { font-size: 9px; line-height: 1.4; }
+.gift-sub { font-size: 7px; line-height: 1.5; color: var(--muted); }
+.gift-val { font-size: 10px; color: var(--gold); }
+.gift-val.manual { color: var(--violet-soft); }
+.gift-note { font-size: 7px; line-height: 1.5; color: var(--muted); }
+.gift-how {
+  margin: 8px 0;
+  padding: 10px;
+  text-align: left;
+  background: var(--violet-dark);
+  border: 2px solid var(--violet);
+}
+.gift-how-text { margin: 0 0 10px; font-size: 9px; line-height: 1.8; white-space: pre-line; }
+.gift-tip { font-size: 8px; line-height: 1.7; }
+
+/* ----------------------------------------------------------------- тост */
+.toast {
+  position: fixed;
+  left: 50%; bottom: calc(90px + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 90;
+  max-width: 88vw;
+  padding: 11px 14px;
+  background: #1b1350;
+  border: 2px solid var(--card-line);
+  font-size: 10px;
+  line-height: 1.6;
+  box-shadow: 0 8px 0 rgba(0,0,0,.35);
+  animation: rise .15s steps(3, end);
+}
+.toast[hidden] { display: none; }
+.toast.err { border-color: var(--red); color: #ffc9ce; }
+
+@media (max-height: 700px) {
+  .wheel-wrap { width: min(50vw, 195px); }
+  .title { font-size: 18px; }
+  .cta { padding: 12px 8px; font-size: 12px; }
+  .mode-cost, .mode-chance { font-size: 14px; }
+}
+
+
+/* ================================================================
+   Тема «Поляна» — <html data-theme="meadow">
+   Живой пиксельный фон (scene.js), деревянные панели, пиксельные
+   подарки. Всё ниже действует только при этом атрибуте: убрать его
+   в index.html — и вернётся ночная тема с волшебником.
+   ================================================================ */
+.bg-scene, .bg-photo, .bg-video, .bg-dim { display: none; }
+
+html[data-theme="meadow"] .bg-scene,
+html[data-theme="meadow"] .bg-photo,
+html[data-theme="meadow"] .bg-video,
+html[data-theme="meadow"] .bg-dim {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+html[data-theme="meadow"] .bg-scene { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
+html[data-theme="meadow"] .bg-photo,
+html[data-theme="meadow"] .bg-video { object-fit: cover; object-position: center center; }
+html[data-theme="meadow"] .bg-scene[hidden],
+html[data-theme="meadow"] .bg-photo[hidden],
+html[data-theme="meadow"] .bg-video[hidden] { display: none; }
+/* Холст с облаками и бабочками лежит поверх своей картинки */
+html[data-theme="meadow"] .bg-photo { z-index: -3; }
+html[data-theme="meadow"] .bg-video { z-index: -3; }
+
+/* На вкладках со списками (профиль, топ) фон приглушён — иначе текст
+   теряется на яркой траве. Вкладку ставит app.js (showView). */
+html[data-theme="meadow"] .bg-dim { background: rgba(20, 12, 6, 0); }
+html[data-theme="meadow"] body[data-view="profile"] .bg-dim,
+html[data-theme="meadow"] body[data-view="leaders"] .bg-dim { background: rgba(20, 12, 6, .5); }
+
+/* Ночного неба, волшебника с посохом, звёзд и молнии от посоха здесь нет */
+html[data-theme="meadow"] .bg-sky,
+html[data-theme="meadow"] .bg-stars,
+html[data-theme="meadow"] .bg-vignette,
+html[data-theme="meadow"] .bolt { display: none; }
+html[data-theme="meadow"] .bg-art { visibility: hidden; }
+
+/* Палитра: тёплое дерево вместо фиолетового стекла. Золото прежнее. */
+html[data-theme="meadow"] body {
+  --sky-0: #3d9bee;
+  --card: rgba(74, 42, 20, .93);
+  --card-line: #a8713c;
+  --text: #fff6e2;
+  --muted: #e6cfa6;
+  --violet-soft: #ffe08a;
+  --track-bg: #2e1a0c;
+  background: #3d9bee;
+}
+html[data-theme="meadow"], html[data-theme="meadow"] body { background: #2f8fe8; }
+
+/* Текст прямо на фоне (заголовки, подсказки, подписи у колеса) — с тёмной
+   пиксельной обводкой, чтобы читался и на небе, и на траве. */
+html[data-theme="meadow"] .content {
+  text-shadow: 2px 0 0 #24122e, -2px 0 0 #24122e, 0 2px 0 #24122e, 0 -2px 0 #24122e,
+               2px 2px 0 #24122e, -2px 2px 0 #24122e, 2px -2px 0 #24122e, -2px -2px 0 #24122e;
+}
+html[data-theme="meadow"] .content svg text {
+  paint-order: stroke fill;
+  stroke: #24122e;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+/* Внутри панелей и кнопок обводка не нужна: там свой ровный фон */
+html[data-theme="meadow"] .content button,
+html[data-theme="meadow"] .content input,
+html[data-theme="meadow"] .profile-head,
+html[data-theme="meadow"] .lvl-row,
+html[data-theme="meadow"] .pstat,
+html[data-theme="meadow"] .ref-card,
+html[data-theme="meadow"] .prize-card,
+html[data-theme="meadow"] .lb-row,
+html[data-theme="meadow"] .lb-me,
+html[data-theme="meadow"] .lb-place,
+html[data-theme="meadow"] .lvl-badge { text-shadow: none; }
+html[data-theme="meadow"] .title { text-shadow: 3px 3px 0 #5a2a00, -2px 0 0 #24122e, 2px 0 0 #24122e, 0 -2px 0 #24122e; }
+html[data-theme="meadow"] .subtitle { color: #fff6e2; }
+
+/* Колесо на «Поляне» — только кольцо: без тёмного стекла и размытия в
+   середине, сквозь него виден пенёк с фона. Фон подгоняет scene.js так,
+   чтобы пенёк стоял под центром колеса, а приз парил над ним. */
+html[data-theme="meadow"] .wheel-glass { display: none; }
+html[data-theme="meadow"] .ring-base { fill: none; stroke: #24122e; stroke-width: 3; }
+html[data-theme="meadow"] .wheel-center .hat {
+  animation: meadowFloat 3.2s ease-in-out infinite;
+}
+@keyframes meadowFloat {
+  0%, 100% { transform: translateY(-5px); filter: drop-shadow(0 14px 6px rgba(0, 0, 0, .35)); }
+  50%      { transform: translateY(5px);  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, .5)); }
+}
+
+/* Деревянные панели: тёмная кромка и светлая фаска сверху */
+html[data-theme="meadow"] .balance,
+html[data-theme="meadow"] .coin-chip,
+html[data-theme="meadow"] .profile-head,
+html[data-theme="meadow"] .lvl-row,
+html[data-theme="meadow"] .ref-card,
+html[data-theme="meadow"] .prize-card,
+html[data-theme="meadow"] .lb-row,
+html[data-theme="meadow"] .shell-prize {
+  border-color: #3a2010;
+  box-shadow: inset 2px 2px 0 #b9814a, inset -2px -2px 0 #4f2d14;
+}
+html[data-theme="meadow"] .pstat { background: #4a2a14; border-color: #3a2010; box-shadow: inset 2px 2px 0 #7a4a26; }
+html[data-theme="meadow"] .lb-me { background: #5a3418; border-color: #c08a4d; }
+html[data-theme="meadow"] .lang-btn { background: rgba(74, 42, 20, .93); border-color: #a8713c; }
+html[data-theme="meadow"] .lang-btn.on { background: var(--gold); border-color: var(--gold-dark); }
+html[data-theme="meadow"] .lang-label,
+html[data-theme="meadow"] .section-title,
+html[data-theme="meadow"] .empty { color: #fff6e2; }
+
+/* Нижнее меню — деревянная доска */
+html[data-theme="meadow"] .tabbar {
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .09) 0 2px, transparent 2px 46px),
+    linear-gradient(180deg, #9a6233 0%, #7c4a24 55%, #5e3417 100%);
+  border-top: 3px solid #3a2010;
+  box-shadow: inset 0 3px 0 #c08a4d;
+}
+html[data-theme="meadow"] .tab { color: #f3e3c0; }
+html[data-theme="meadow"] .tab.active {
+  color: var(--gold);
+  background: #5b2fc4;
+  border-color: #2d1370;
+  box-shadow: inset 2px 2px 0 #8b5cf6, inset -2px -2px 0 #3b1a8a;
+}
+
+/* Подарки из каталога приходят маленькими пиксельными картинками
+   (app/catalog.py) — растягиваем без сглаживания */
+img[src*="/gimg/"] { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
+
+
+/* Нижнее меню «Поляны» — доска из картинки (assets/plank-*.webp): середина
+   тянется на всю ширину, по краям поверх неё лежат концы доски с листьями
+   и цветами. Концы выше самой доски в 1.61 раза и выступают над меню на
+   30% его высоты — так нарисована картинка. На нажатия не влияют. */
+html[data-theme="meadow"] .tabbar {
+  position: relative;
+  gap: 8px;
+  padding: 11px 64px calc(11px + var(--safe-bottom));
+  border: 0;
+  box-shadow: none;
+  background: url("assets/plank-mid.webp") center / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+html[data-theme="meadow"] .tab {
+  padding: 7px 0;
+  color: #f3e3c0;
+  background: rgba(46, 26, 12, .45);
+  border: 2px solid rgba(46, 26, 12, .7);
+}
+html[data-theme="meadow"] .tab.active {
+  color: var(--gold);
+  background: #5b2fc4;
+  border-color: #2d1370;
+  box-shadow: inset 2px 2px 0 #8b5cf6, inset -2px -2px 0 #3b1a8a;
+}
+html[data-theme="meadow"] .tabbar::before,
+html[data-theme="meadow"] .tabbar::after {
+  content: "";
+  position: absolute;
+  top: -30.1%;
+  height: 161.1%;
+  aspect-ratio: 151 / 171;
+  pointer-events: none;
+  image-rendering: pixelated;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+html[data-theme="meadow"] .tabbar::before { left: -24px; background-image: url("assets/plank-left.webp"); }
+html[data-theme="meadow"] .tabbar::after { right: -24px; background-image: url("assets/plank-right.webp"); }
+
+
+/* ---------------------------------------------- перелистывание вкладок */
+/* Новая вкладка въезжает сбоку, копия старой (.view-ghost, её ставит
+   app.js) уезжает в другую сторону. Длительность — VIEW_SLIDE_MS в app.js. */
+.view-ghost {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform;
+}
+.view-ghost.out-left  { animation: viewOutLeft  .26s cubic-bezier(.3, .7, .3, 1) forwards; }
+.view-ghost.out-right { animation: viewOutRight .26s cubic-bezier(.3, .7, .3, 1) forwards; }
+.view.in-right { animation: viewInRight .26s cubic-bezier(.3, .7, .3, 1); }
+.view.in-left  { animation: viewInLeft  .26s cubic-bezier(.3, .7, .3, 1); }
+@keyframes viewOutLeft  { to   { transform: translateX(-105%); } }
+@keyframes viewOutRight { to   { transform: translateX(105%); } }
+@keyframes viewInRight  { from { transform: translateX(105%); } }
+@keyframes viewInLeft   { from { transform: translateX(-105%); } }
+html[data-theme="meadow"] .view-ghost {
+  text-shadow: 2px 0 0 #24122e, -2px 0 0 #24122e, 0 2px 0 #24122e, 0 -2px 0 #24122e,
+               2px 2px 0 #24122e, -2px 2px 0 #24122e, 2px -2px 0 #24122e, -2px -2px 0 #24122e;
+}
+html[data-theme="meadow"] .view-ghost :is(button, input, .profile-head, .lvl-row, .pstat, .ref-card, .prize-card, .lb-row, .lb-me, .lb-place, .lvl-badge, .upgrade-prize) { text-shadow: none; }
+
+/* Кнопки нижнего меню «Поляны» — объёмные: светлая фаска сверху, тёмная
+   «толщина» снизу. При нажатии кнопка утапливается на эту толщину.
+   z-index — чтобы концы доски с листьями не перекрывали край крайних кнопок. */
+html[data-theme="meadow"] .tabbar { padding-top: 9px; padding-bottom: calc(14px + var(--safe-bottom)); }
+html[data-theme="meadow"] .tab {
+  z-index: 1;
+  padding: 8px 0;
+  color: #fff1d0;
+  background: linear-gradient(180deg, #a56a38 0%, #8a5429 55%, #7a4720 100%);
+  border: 2px solid #2e1a0c;
+  box-shadow:
+    inset 0 2px 0 #d39a5c,
+    inset 2px 0 0 #b9814a,
+    inset -2px 0 0 #6a3d1b,
+    inset 0 -2px 0 #5e3417,
+    0 5px 0 #2e1a0c,
+    0 7px 6px rgba(0, 0, 0, .35);
+  transform: translateY(0);
+  transition: transform .07s ease-out, box-shadow .07s ease-out, filter .07s;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="meadow"] .tab .ic { filter: drop-shadow(0 2px 0 rgba(46, 26, 12, .8)); }
+html[data-theme="meadow"] .tab:active {
+  transform: translateY(4px);
+  filter: brightness(.92);
+  box-shadow:
+    inset 0 2px 0 #b9814a,
+    inset 2px 0 0 #9a6233,
+    inset -2px 0 0 #6a3d1b,
+    inset 0 -2px 0 #5e3417,
+    0 1px 0 #2e1a0c,
+    0 2px 3px rgba(0, 0, 0, .35);
+}
+html[data-theme="meadow"] .tab.active {
+  color: var(--gold);
+  background: linear-gradient(180deg, #7446e0 0%, #5b2fc4 55%, #4a22a8 100%);
+  border-color: #1f0d52;
+  box-shadow:
+    inset 0 2px 0 #a57bff,
+    inset 2px 0 0 #8b5cf6,
+    inset -2px 0 0 #3b1a8a,
+    inset 0 -2px 0 #33157a,
+    0 5px 0 #1f0d52,
+    0 7px 6px rgba(0, 0, 0, .35);
+}
+html[data-theme="meadow"] .tab.active:active {
+  transform: translateY(4px);
+  box-shadow:
+    inset 0 2px 0 #8b5cf6,
+    inset 2px 0 0 #7446e0,
+    inset -2px 0 0 #3b1a8a,
+    inset 0 -2px 0 #33157a,
+    0 1px 0 #1f0d52,
+    0 2px 3px rgba(0, 0, 0, .35);
+}
+
+/* Колесо «Поляны», как на макете: тёмно-синее кольцо с зелёной дугой шанса,
+   по обеим кромкам — голубая неоновая линия, дуга и кромки светятся.
+   Меняются только цвета и свечение: геометрия колеса, шкала и стрелка те же. */
+.ring-edge { display: none; }
+html[data-theme="meadow"] body {
+  --wheel-lose-a: #2f36b0;
+  --wheel-lose-b: #1f2484;
+  --wheel-glow: rgba(70, 140, 255, .32);
+}
+html[data-theme="meadow"] #gradWin stop:first-child { stop-color: #5cff6e; }
+html[data-theme="meadow"] #gradWin stop:last-child { stop-color: #12e08c; }
+html[data-theme="meadow"] .ring-base { fill: none; stroke: none; }
+html[data-theme="meadow"] .ring-edge {
+  display: inline;
+  fill: none;
+  stroke: #4c94ff;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px #4c94ff) drop-shadow(0 0 9px rgba(60, 120, 255, .95));
+}
+html[data-theme="meadow"] #arcWin {
+  filter: drop-shadow(0 0 5px #4dffa6) drop-shadow(0 0 13px rgba(40, 255, 170, .75));
+}
+html[data-theme="meadow"] .wheel-scale text { fill: #ffffff; }
+html[data-theme="meadow"] .content .wheel-scale text { stroke: #1b2070; }
+html[data-theme="meadow"] .wheel-scale text.on { fill: #b9ffd9; }
+html[data-theme="meadow"] .wheel-scale line { stroke: #a9d4ff; }
+html[data-theme="meadow"] .wheel-scale line.on { stroke: #7ef7b0; }
+
+/* UP и молния — две золотые кнопки с макета: тёмно-коричневая рамка, внутри
+   светлая рамка-фаска, значок тёмный. Нажимаются с утапливанием. */
+html[data-theme="meadow"] .cta.spin-btn,
+html[data-theme="meadow"] .fast-btn {
+  color: #3a1f00;
+  text-shadow: none;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border: 3px solid #7a4a10;
+  box-shadow:
+    inset 0 0 0 3px #f2a52a,
+    inset 3px 3px 0 3px #ffe39a,
+    inset -3px -3px 0 3px #dc8f1c,
+    0 5px 0 #5a340a,
+    0 8px 8px rgba(0, 0, 0, .35);
+  transform: translateY(0);
+  transition: transform .07s ease-out, box-shadow .07s ease-out, filter .07s;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="meadow"] .cta.spin-btn:active:not(:disabled),
+html[data-theme="meadow"] .fast-btn:active:not(:disabled) {
+  transform: translateY(4px);
+  filter: brightness(.94);
+  box-shadow:
+    inset 0 0 0 3px #f2a52a,
+    inset 3px 3px 0 3px #ffd77a,
+    inset -3px -3px 0 3px #dc8f1c,
+    0 1px 0 #5a340a,
+    0 2px 3px rgba(0, 0, 0, .35);
+}
+html[data-theme="meadow"] .cta.spin-btn:disabled { filter: grayscale(.55) brightness(.82); cursor: default; }
+/* Быстрая прокрутка включена — кнопка остаётся нажатой и светится */
+html[data-theme="meadow"] .fast-btn[aria-pressed="true"] {
+  transform: translateY(3px);
+  background: linear-gradient(180deg, #ffe07a 0%, #ffc640 100%);
+  box-shadow:
+    inset 0 0 0 3px #ffd24a,
+    inset 3px 3px 0 3px #fff0b8,
+    inset -3px -3px 0 3px #e8a020,
+    0 2px 0 #5a340a,
+    0 0 0 2px #fff3c0,
+    0 0 16px 4px rgba(255, 214, 90, .9);
+}
+
+
+/* --- «Поляна»: скруглённые кнопки и плашки с обводкой по всему периметру,
+   полоска шанса и значки монет — как на макете --- */
+.coin-ico, .ton-ico { image-rendering: pixelated; object-fit: contain; }
+html[data-theme="meadow"] .topbar .coin-ico { width: 20px; height: 20px; }
+html[data-theme="meadow"] .topbar .balance .ton-ico { width: 19px; height: 19px; }
+html[data-theme="meadow"] .mode-cost .ton-ico { width: 26px; height: 26px; }
+
+/* UP и молния: скруглённые углы */
+html[data-theme="meadow"] .cta.spin-btn { border-radius: 12px; }
+html[data-theme="meadow"] .fast-btn { border-radius: 10px; }
+
+/* Шапка: «Подключить», коины и баланс — скруглённые, тёмная обводка вокруг
+   всей плашки (раньше край терялся на фоне), внутри светлая фаска */
+html[data-theme="meadow"] .topbar .wallet-btn,
+html[data-theme="meadow"] .topbar .balance,
+html[data-theme="meadow"] .topbar .coin-chip {
+  border-radius: 8px;
+  border: 3px solid #3a2010;
+}
+html[data-theme="meadow"] .topbar .wallet-btn {
+  color: #3a1f00;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border-color: #7a4a10;
+  box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a, 0 5px 5px rgba(0, 0, 0, .3);
+}
+html[data-theme="meadow"] .topbar .balance,
+html[data-theme="meadow"] .topbar .coin-chip {
+  background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%);
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 3px 0 #2e1a0c, 0 5px 5px rgba(0, 0, 0, .3);
+}
+html[data-theme="meadow"] .topbar .bal-plus { border-radius: 4px; }
+
+/* Полоска шанса: жирная тёмно-синяя обводка, заполненная часть ярко-зелёная,
+   пустая — тёмно-зелёная (а не чёрная), концы скруглены. Подписи вокруг —
+   в такой же синей обводке. */
+html[data-theme="meadow"] #modeSlider::-webkit-slider-runnable-track {
+  height: 16px;
+  border: 3px solid #1b2070;
+  border-radius: 6px;
+  background: linear-gradient(to right,
+    #7dffb6 0, #2fe08a var(--fill, 50%),
+    #1c6e55 var(--fill, 50%), #175c48 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), 0 2px 0 rgba(0, 0, 0, .25);
+}
+html[data-theme="meadow"] #modeSlider::-webkit-slider-thumb {
+  width: 24px; height: 28px;
+  margin-top: -9px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffd24a 0%, #f9b233 100%);
+  border: 3px solid #7a4a10;
+  box-shadow: inset 2px 2px 0 #ffe9a8, inset -2px -2px 0 #dc8f1c;
+}
+html[data-theme="meadow"] #modeSlider::-moz-range-track {
+  height: 16px; border: 3px solid #1b2070; border-radius: 6px; background: #1c6e55;
+}
+html[data-theme="meadow"] #modeSlider::-moz-range-progress {
+  height: 16px; border-radius: 4px; background: linear-gradient(to right, #7dffb6, #2fe08a);
+}
+html[data-theme="meadow"] #modeSlider::-moz-range-thumb {
+  width: 20px; height: 24px; border-radius: 5px; border: 3px solid #7a4a10;
+}
+html[data-theme="meadow"] .mode-picker {
+  text-shadow: 2px 0 0 #1b2070, -2px 0 0 #1b2070, 0 2px 0 #1b2070, 0 -2px 0 #1b2070,
+               2px 2px 0 #1b2070, -2px 2px 0 #1b2070, 2px -2px 0 #1b2070, -2px -2px 0 #1b2070,
+               0 4px 0 #1b2070;
+}
+html[data-theme="meadow"] .mode-edge { font-size: 14px; color: #ffffff; }
+html[data-theme="meadow"] .mode-cost { font-size: 18px; color: #ffc64a; }
+html[data-theme="meadow"] .mode-chance { font-size: 17px; color: #5dffc0; }
+/* Шапка на «Поляне» стала шире из-за обводок — поджимаем отступы, чтобы
+   «Подключить» помещалось целиком на телефоне 360–375 px */
+html[data-theme="meadow"] .topbar { gap: 4px; padding-left: 8px; padding-right: 8px; }
+html[data-theme="meadow"] .topbar .wallet-btn { padding: 8px 5px; font-size: 8.5px; gap: 3px; }
+html[data-theme="meadow"] .topbar .coin-chip { padding: 5px 5px; font-size: 10px; gap: 3px; }
+html[data-theme="meadow"] .topbar .balance { padding: 5px 5px; font-size: 11.5px; gap: 3px; }
+html[data-theme="meadow"] .topbar .coin-ico { width: 18px; height: 18px; }
+/* Нижнее меню: у невыбранных вкладок кнопки нет — только значок на доске.
+   Объёмная фиолетовая кнопка остаётся только у выбранной вкладки. */
+html[data-theme="meadow"] .tab:not(.active) {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+html[data-theme="meadow"] .tab:not(.active) .ic { filter: drop-shadow(0 3px 0 rgba(46, 26, 12, .85)); transition: transform .07s ease-out; }
+html[data-theme="meadow"] .tab:not(.active):active .ic { transform: translateY(3px) scale(.92); }
+/* ================================================================
+   «Поляна»: профиль, «Три шляпы», топ — плашки и кнопки по тому же
+   принципу, что на апгрейде: скруглённые углы, тёмная обводка по всему
+   периметру, светлая фаска внутри, «толщина» снизу, кнопки утапливаются.
+   ================================================================ */
+
+/* --- деревянные плашки --- */
+html[data-theme="meadow"] :is(.profile-head, .lvl-row, .ref-card, .prize-card, .lb-row, .lb-me, .shell-prize) {
+  background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3);
+}
+/* шапка профиля и полоска уровня — одна плашка из двух частей */
+html[data-theme="meadow"] .profile-head { border-radius: 10px 10px 0 0; box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d; }
+html[data-theme="meadow"] .lvl-row { border-top: 0; border-radius: 0 0 10px 10px; margin-bottom: 14px; }
+html[data-theme="meadow"] .lb-me { background: linear-gradient(180deg, #8f5a2c 0%, #744420 100%); border-color: #2e1a0c; }
+
+/* --- утопленные ячейки внутри плашек и поле ввода --- */
+html[data-theme="meadow"] :is(.pstat, .ref-stat, .ref-link-box, .promo-input, .lvl-bar) {
+  background: #3f2411;
+  border: 3px solid #2e1a0c;
+  border-radius: 8px;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, .35), 0 2px 0 rgba(255, 220, 160, .18);
+}
+html[data-theme="meadow"] .pstat { box-shadow: inset 0 3px 0 rgba(0, 0, 0, .35), 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3); }
+html[data-theme="meadow"] .promo-input { color: #fff6e2; }
+html[data-theme="meadow"] .promo-input::placeholder { color: #c9a878; }
+html[data-theme="meadow"] .lvl-bar { height: 14px; border-radius: 6px; overflow: hidden; box-shadow: inset 0 2px 0 rgba(0, 0, 0, .4); }
+html[data-theme="meadow"] .ref-link { color: #ffe08a; }
+html[data-theme="meadow"] .avatar {
+  color: #ffe08a;
+  background: linear-gradient(180deg, #7446e0 0%, #4a22a8 100%);
+  border: 3px solid #1f0d52;
+  border-radius: 8px;
+  box-shadow: inset 2px 2px 0 #a57bff, inset -2px -2px 0 #33157a;
+}
+html[data-theme="meadow"] .thumb { border-radius: 6px; overflow: hidden; }
+
+/* --- золотые кнопки --- */
+html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .ref-chevron, .shell-prize-edit, .lang-btn.on, .lvl-badge) {
+  color: #3a1f00;
+  text-shadow: none;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border: 3px solid #7a4a10;
+  border-radius: 9px;
+  box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 4px 0 #5a340a, 0 6px 6px rgba(0, 0, 0, .3);
+  transform: translateY(0);
+  transition: transform .07s ease-out, box-shadow .07s ease-out, filter .07s;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .shell-prize-edit):active:not(:disabled),
+html[data-theme="meadow"] .ref-head:active .ref-chevron {
+  transform: translateY(3px);
+  filter: brightness(.94);
+  box-shadow: inset 2px 2px 0 #ffd77a, inset -2px -2px 0 #dc8f1c, 0 1px 0 #5a340a, 0 2px 3px rgba(0, 0, 0, .3);
+}
+html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn):disabled {
+  color: #6b5a44;
+  background: linear-gradient(180deg, #b9a586 0%, #9c8a6e 100%);
+  border-color: #4a3a26;
+  box-shadow: inset 2px 2px 0 #d2c2a6, inset -2px -2px 0 #85755c, 0 3px 0 #3a2c1c;
+  cursor: default;
+}
+/* главная кнопка «Играть» в «Трёх шляпах» — крупнее и с толстой кромкой */
+html[data-theme="meadow"] #shellBtn {
+  padding: 16px 8px;
+  font-size: 15px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 3px #f2a52a, inset 3px 3px 0 3px #ffe39a, inset -3px -3px 0 3px #dc8f1c, 0 5px 0 #5a340a, 0 8px 8px rgba(0, 0, 0, .35);
+}
+html[data-theme="meadow"] #shellBtn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: inset 0 0 0 3px #f2a52a, inset 3px 3px 0 3px #ffd77a, inset -3px -3px 0 3px #dc8f1c, 0 1px 0 #5a340a, 0 2px 3px rgba(0, 0, 0, .35);
+}
+/* маленькие кнопки в карточках призов: кромка тоньше, чтобы влезал текст */
+html[data-theme="meadow"] .prize-card :is(.sell-btn, .wd-btn) { border-width: 2px; border-radius: 7px; padding: 7px 1px; }
+html[data-theme="meadow"] .prize-card .sell-btn { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
+html[data-theme="meadow"] .lvl-badge { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
+html[data-theme="meadow"] .shell-prize-edit { border-width: 2px; border-radius: 7px; padding: 7px 8px; box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }html[data-theme="meadow"] .ref-chevron { border-radius: 8px; }
+
+/* --- зелёная кнопка вывода --- */
+html[data-theme="meadow"] .wd-btn {
+  border-radius: 9px;
+  border-width: 3px;
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="meadow"] .wd-btn:not(.pending):not(:disabled) {
+  color: #05230f;
+  background: linear-gradient(180deg, #5df09a 0%, #2fcf78 100%);
+  border-color: #0e6a38;
+  box-shadow: inset 2px 2px 0 #b4ffd4, inset -2px -2px 0 #1ea45c, 0 3px 0 #0a4a26, 0 5px 5px rgba(0, 0, 0, .3);
+}
+html[data-theme="meadow"] .wd-btn:not(.pending):not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow: inset 2px 2px 0 #9dffc8, inset -2px -2px 0 #1ea45c, 0 0 0 #0a4a26;
+}
+html[data-theme="meadow"] .wd-btn.pending { background: #4a3210; border-color: #7a4a10; color: #ffe08a; box-shadow: inset 0 2px 0 rgba(0, 0, 0, .35); }
+html[data-theme="meadow"] .wd-btn:disabled:not(.pending) { background: #5a4630; border-color: #3a2c1c; color: #c9b08a; box-shadow: inset 0 2px 0 rgba(0, 0, 0, .3); }
+
+/* --- деревянные кнопки второго плана: язык (невыбранный), «Пополнить» --- */
+html[data-theme="meadow"] :is(.lang-btn, .ghost) {
+  color: #fff1d0;
+  text-shadow: none;
+  background: linear-gradient(180deg, #8a5429 0%, #6e401c 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 9px;
+  box-shadow: inset 2px 2px 0 #b9814a, inset -2px -2px 0 #5e3417, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3);
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+}
+html[data-theme="meadow"] :is(.lang-btn, .ghost):active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #9a6233, inset -2px -2px 0 #5e3417, 0 1px 0 #2e1a0c; }
+html[data-theme="meadow"] .lang-btn { padding: 8px 9px; }
+html[data-theme="meadow"] .lang-btns { gap: 7px; }
+html[data-theme="meadow"] .lang-row { margin-bottom: 18px; }
+html[data-theme="meadow"] .promo-card { margin-bottom: 18px; gap: 8px; }
+html[data-theme="meadow"] .prize-grid { row-gap: 12px; }html[data-theme="meadow"] .pstat { padding: 8px 2px; }
+html[data-theme="meadow"] .pstat b { font-size: 10px; white-space: nowrap; }
+/* «Три шляпы»: кнопка «Угадать» и плашка приза — компактные, по центру,
+   а не во всю ширину экрана */
+html[data-theme="meadow"] #shellBtn {
+  width: auto;
+  min-width: 190px;
+  max-width: 78%;
+  align-self: center;
+  padding: 13px 20px;
+  font-size: 13px;
+}
+html[data-theme="meadow"] #view-shell .shell-prize {
+  width: auto;
+  min-width: 190px;
+  max-width: 78%;
+  margin: 12px auto 0;
+  padding: 5px 8px;
+  gap: 7px;
+}
+html[data-theme="meadow"] #view-shell .shell-prize img { width: 30px; height: 30px; }
+html[data-theme="meadow"] #view-shell .shell-prize b { font-size: 9px; }
+html[data-theme="meadow"] #view-shell .shell-prize small { font-size: 7px; }
+html[data-theme="meadow"] #view-shell .shell-prize-edit { padding: 6px 7px; font-size: 8px; }
+html[data-theme="meadow"] #shellDepositBtn { width: auto; min-width: 190px; align-self: center; }
+
+/* Всплывающее уведомление («Продано…», про мишку, ошибки) — деревянная
+   плашка, как остальные: скругление, тёмная обводка, фаска, толщина снизу */
+html[data-theme="meadow"] .toast {
+  bottom: calc(108px + var(--safe-bottom));
+  max-width: min(86vw, 400px);
+  padding: 12px 16px;
+  color: #fff6e2;
+  font-size: 10px;
+  line-height: 1.7;
+  text-align: center;
+  background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 4px 0 #2e1a0c, 0 8px 10px rgba(0, 0, 0, .4);
+  animation: toastIn .16s ease-out;
+}
+html[data-theme="meadow"] .toast.err {
+  color: #ffe1dc;
+  background: linear-gradient(180deg, #a8452f 0%, #86301f 100%);
+  border-color: #3a120a;
+  box-shadow: inset 0 0 0 2px #cf6a4f, inset 2px 2px 0 2px #e08a6e, 0 4px 0 #3a120a, 0 8px 10px rgba(0, 0, 0, .4);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+
+/* Значки монет: у каждого дизайна свои. Старый — значок TON и нарисованная
+   монета, новый — кристалл и золотая монета-картинка. */
+.coin-new, .ton-new { display: none; }
+html[data-theme="meadow"] .coin-new, html[data-theme="meadow"] .ton-new { display: block; }
+html[data-theme="meadow"] .coin-old, html[data-theme="meadow"] .ton-old { display: none; }
+/* выбор дизайна и языка в китайском: подписи кнопок системным шрифтом */
+html[data-lang="zh"] #themeBtns .lang-btn { font-family: "Press Start 2P", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; }
+
+/* ---------------------------------------------- фон «Поляны» на всё окно */
+/* Раньше фон жил внутри колонки приложения (.stage, до 480 px) и на широком
+   экране по бокам оставалась пустота. Теперь он в .bg-wide под колонкой и
+   закрывает всё окно: на телефоне видна середина сцены, на компьютере — вся. */
+.bg-wide { display: none; }
+html[data-theme="meadow"] .bg-wide {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #2f8fe8;
+}
+html[data-theme="meadow"] .stage { z-index: 1; }
+html[data-theme="meadow"] .bg-photo { image-rendering: auto; }
+
+/* ------------------------------------------- стрелка-топор («Поляна») */
+.ptr-axe { display: none; }
+html[data-theme="meadow"] .pointer > * { display: none; }
+html[data-theme="meadow"] .pointer > .ptr-axe { display: inline; image-rendering: pixelated; }
+html[data-theme="meadow"] .pointer { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 6px rgba(255, 255, 255, .35)); }
+
+/* ----------------------------------- статистика профиля: всё по центру */
+.pstat { justify-content: center; }
+
+/* ------------------------------ профиль: «Топ уровней» и «История» */
+.profile-actions { display: flex; gap: 8px; width: 100%; margin: 0 0 10px; }
+.pbtn {
+  flex: 1;
+  padding: 11px 4px;
+  font: inherit; font-size: 10px; line-height: 1.2;
+  color: var(--gold);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, .08), inset -2px -2px 0 rgba(0, 0, 0, .4);
+  cursor: pointer;
+}
+.pbtn:active { transform: translate(1px, 1px); }
+
+/* окна-списки: топ уровней, история */
+.list-modal { display: flex; flex-direction: column; max-height: 86vh; }
+.list-modal .gp-head h2, .list-modal > h2 { margin-bottom: 8px; }
+.list-modal .muted { margin: 0 0 10px; font-size: 8px; line-height: 1.7; }
+.lv-list {
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 120px;
+  margin-bottom: 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  text-align: left;
+}
+.lv-list[hidden], .pcard[hidden], .lv-me[hidden] { display: none; }
+.lv-row { width: 100%; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.lv-row:active { transform: translate(1px, 1px); }
+.lv-badge { flex: 0 0 auto; font-size: 10px; font-weight: 400; color: var(--gold); white-space: nowrap; }
+.lv-me {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  font-size: 9px; line-height: 1.5;
+  color: var(--gold);
+  background: var(--violet-dark);
+  border: 2px solid var(--violet);
+}
+.pcard { margin-bottom: 10px; }
+.pcard-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pcard-head .lvl-bar { flex: 1; }
+.pcard-ava { width: 46px; height: 46px; font-size: 18px; }
+.pcard .pstats { margin-bottom: 0; }
+
+.hist-row {
+  display: flex; align-items: center; gap: 9px;
+  min-width: 0;
+  padding: 7px 9px;
+  background: var(--card);
+  border: 2px solid var(--card-line);
+}
+.hist-row.win { box-shadow: inset 4px 0 0 var(--green); }
+.hist-row.lose { box-shadow: inset 4px 0 0 rgba(255, 93, 108, .75); }
+.hist-img { flex: 0 0 auto; width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; }
+.hist-row.lose .hist-img { filter: grayscale(.7) brightness(.8); }
+.hist-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hist-mid b { font-size: 9px; font-weight: 400; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-mid small { font-size: 7px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-right { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.hist-right b { font-size: 9px; font-weight: 400; line-height: 1.3; }
+.hist-row.win .hist-right b { color: var(--green); }
+.hist-row.lose .hist-right b { color: #ff9aa4; }
+.hist-right small { font-size: 7px; line-height: 1.3; color: var(--gold); white-space: nowrap; }
+
+/* --- те же окна и кнопки в «Поляне»: дерево, скругления, обводка --- */
+html[data-theme="meadow"] .pbtn {
+  color: #fff1d0;
+  background: linear-gradient(180deg, #8a5429 0%, #6e401c 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 9px;
+  box-shadow: inset 2px 2px 0 #b9814a, inset -2px -2px 0 #5e3417, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3);
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+  text-shadow: none;
+}
+html[data-theme="meadow"] .pbtn:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #9a6233, inset -2px -2px 0 #5e3417, 0 1px 0 #2e1a0c; }
+html[data-theme="meadow"] .profile-actions { margin-bottom: 14px; }
+html[data-theme="meadow"] .list-modal {
+  background: linear-gradient(180deg, #7c4a24 0%, #5e3417 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 6px 0 #2e1a0c, 0 12px 14px rgba(0, 0, 0, .45);
+}
+html[data-theme="meadow"] .list-modal :is(.lv-row, .hist-row) {
+  background: #4a2a14;
+  border: 3px solid #2e1a0c;
+  border-radius: 9px;
+  box-shadow: inset 0 2px 0 rgba(255, 220, 160, .14);
+}
+html[data-theme="meadow"] .list-modal .hist-row.win { box-shadow: inset 5px 0 0 #35d67f; }
+html[data-theme="meadow"] .list-modal .hist-row.lose { box-shadow: inset 5px 0 0 #d9624f; }
+html[data-theme="meadow"] .list-modal .lv-row.me { background: #5b2fc4; border-color: #1f0d52; }
+html[data-theme="meadow"] .list-modal .lv-row.top1 { border-color: #ffc043; }
+html[data-theme="meadow"] .list-modal .lv-row.top2 { border-color: #cfd6e4; }
+html[data-theme="meadow"] .list-modal .lv-row.top3 { border-color: #d38b4a; }
+html[data-theme="meadow"] .list-modal .lv-me { background: #3f2411; border: 3px solid #2e1a0c; border-radius: 9px; color: #ffe08a; }
+html[data-theme="meadow"] .list-modal .lb-ava { border-radius: 6px; }
+html[data-theme="meadow"] .list-modal .gp-back {
+  color: #3a1f00;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border: 3px solid #7a4a10;
+  border-radius: 8px;
+}
+html[data-theme="meadow"] .modal { background: rgba(20, 12, 6, .72); }
+
+/* ------------------------------------- выбор оружия и бросок («Поляна») */
+.spin-side-left { position: relative; justify-content: flex-end; }
+.weapon-btn, .weapon-menu { display: none; }
+html[data-theme="meadow"] .weapon-btn { display: grid; }
+.weapon-btn img { width: 60%; height: 60%; object-fit: contain; image-rendering: pixelated; transform: rotate(35deg); }
+html[data-theme="meadow"] .weapon-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  z-index: 5;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px;
+  background: linear-gradient(180deg, #7c4a24 0%, #5e3417 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px #a8713c, 0 4px 0 #2e1a0c, 0 8px 10px rgba(0, 0, 0, .4);
+}
+html[data-theme="meadow"] .weapon-menu[hidden] { display: none; }
+html[data-theme="meadow"] .weapon-menu button {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 118px;
+  padding: 6px 9px;
+  font: inherit; font-size: 10px; line-height: 1;
+  color: #fff1d0;
+  text-shadow: none;
+  background: #4a2a14;
+  border: 3px solid #2e1a0c;
+  border-radius: 8px;
+  box-shadow: none;
+  cursor: pointer;
+}
+html[data-theme="meadow"] .weapon-menu button.on {
+  color: #3a1f00;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border-color: #7a4a10;
+}
+html[data-theme="meadow"] .weapon-menu img { width: 26px; height: 26px; object-fit: contain; image-rendering: pixelated; }
+
+/* посох вместо топора, если игрок его выбрал */
+html[data-theme="meadow"][data-weapon="staff"] .pointer > * { display: inline; }
+html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-axe { display: none; }
+
+/* пока стрелка летит — светится сильнее */
+html[data-theme="meadow"] .wheel-wrap.throwing .pointer {
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(255, 255, 255, .8)) drop-shadow(0 0 18px rgba(120, 200, 255, .7));
+}
+
+
+/* ------------------------------ шестерёнка: тип крутки («Поляна») */
+.gear-btn, .spin-menu { display: none; }
+.spin-side-right { position: relative; gap: 6px; }
+html[data-theme="meadow"] .gear-btn { display: grid; width: 42px; height: 42px; border-radius: 8px; }
+html[data-theme="meadow"] .gear-btn svg { width: 22px; height: 22px; fill: currentColor; }
+/* три кнопки по бокам от UP должны поместиться на телефоне 360 px */
+html[data-theme="meadow"] .spin-row { gap: 12px; }
+html[data-theme="meadow"] .spin-side .fast-btn:not(.gear-btn) { width: 58px; height: 58px; }
+html[data-theme="meadow"] .spin-side .ic-bolt { width: 22px; height: 30px; }
+html[data-theme="meadow"] .weapon-menu.spin-menu { left: auto; right: 0; }
+html[data-theme="meadow"] .weapon-menu.spin-menu button { min-width: 112px; justify-content: center; padding: 9px 9px; }
+
+
+/* ------------------------------------- день / ночь («Поляна») */
+/* Кнопка стоит в правом верхнем углу квадрата колеса — круг туда не доходит.
+   Днём на ней солнце, ночью луна: показан текущий вид фона. */
+.sky-btn { display: none; }
+html[data-theme="meadow"] .sky-btn {
+  position: absolute;
+  top: -6px; right: -4px;
+  z-index: 3;
+  display: grid; place-items: center;
+  width: 42px; height: 42px;
+  padding: 0;
+  background: linear-gradient(180deg, #8a5429 0%, #6e401c 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 10px;
+  box-shadow: inset 2px 2px 0 #b9814a, inset -2px -2px 0 #5e3417, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="meadow"] .sky-btn:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #9a6233, inset -2px -2px 0 #5e3417, 0 1px 0 #2e1a0c; }
+.sky-btn svg { width: 24px; height: 24px; }
+.sky-btn .sky-moon { display: none; }
+html[data-sky="night"] .sky-btn .sky-sun { display: none; }
+html[data-sky="night"] .sky-btn .sky-moon { display: block; }
+html[data-theme="meadow"][data-sky="night"] .sky-btn { background: linear-gradient(180deg, #3a3f8f 0%, #262a6b 100%); border-color: #12143a; box-shadow: inset 2px 2px 0 #5d63c4, inset -2px -2px 0 #1b1e52, 0 4px 0 #12143a, 0 6px 6px rgba(0, 0, 0, .3); }
+/* ночью небо за окном тёмное */
+html[data-theme="meadow"][data-sky="night"] .bg-wide { background: #0b1030; }
+html[data-theme="meadow"][data-sky="night"], html[data-theme="meadow"][data-sky="night"] body { background: #0b1030; }
+
+/* стрелка возвращается на ноль после броска */
+.pointer.returning { transition: transform .55s cubic-bezier(.4, 0, .2, 1); }
+
+/* Пиксельный шрифт чёткий только на размерах, кратных 8 px: на 13 и 22 px
+   его точки попадают между точками экрана и буквы выглядят смазанными.
+   Заголовки вкладок и подпись «Трёх шляп» — на ровных размерах. */
+.title { font-size: 24px; }
+.shell-subtitle { font-size: 16px; line-height: 1.4; }
+@media (max-height: 700px) { .title { font-size: 16px; } }
+@media (max-width: 350px) { .shell-subtitle { font-size: 8px; line-height: 1.8; } }
+/* шляпа перерисована по ровной сетке — растягиваем без сглаживания */
+.shell-cap, .wheel-center .hat, .thumb img, .shell-prize img { image-rendering: pixelated; }
+/* Иконка оружия на кнопке и в меню — готовая квадратная картинка с предметом
+   по центру: без поворота, растягивается без сглаживания. */
+.weapon-btn img { width: 78%; height: 78%; transform: none; object-fit: contain; image-rendering: pixelated; }
+html[data-theme="meadow"] .weapon-menu img { width: 30px; height: 30px; }
+
+/* Иконки оружия наклонены на 50 градусов прямо в картинке (гладкие края клеток),
+   поэтому показываем их обычным сглаживанием, а не «по пикселям». */
+.weapon-btn img, html[data-theme="meadow"] .weapon-menu img { image-rendering: auto; }
+.weapon-btn img { width: 84%; height: 84%; }
+/* мишка перерисован по ровной сетке */
+img[src*="bear.png"] { image-rendering: pixelated; }
+
+/* ------------------------------------------------ подарки снова гладкие */
+img[src*="/gimg/"], .thumb-gift img { image-rendering: auto; }
+
+/* ----------------------------------------------------------------- меню */
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 18px; }
+.menu-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  min-height: 132px;
+  padding: 14px 6px;
+  font: inherit; font-size: 12px; line-height: 1.4;
+  color: var(--gold);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  box-shadow: inset 2px 2px 0 rgba(255, 255, 255, .08), inset -2px -2px 0 rgba(0, 0, 0, .4);
+  cursor: pointer;
+}
+.menu-card[hidden] { display: none; }
+.menu-card:active { transform: translate(1px, 1px); }
+.menu-card .ic { font-size: 52px; }
+.menu-card img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
+/* возврат в меню со страниц «Три шляпы» и «Лидеры» */
+.view { position: relative; }
+.view-back {
+  position: absolute; left: 0; top: 2px; z-index: 2;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  padding: 0;
+  font: inherit; font-size: 14px; line-height: 1;
+  color: var(--gold);
+  background: var(--card);
+  border: 2px solid var(--card-line);
+  cursor: pointer;
+}
+.view-back:active { transform: translate(1px, 1px); }
+html[data-theme="meadow"] .menu-card {
+  color: #fff1d0;
+  text-shadow: none;
+  background: linear-gradient(180deg, #8a5429 0%, #6e401c 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 5px 0 #2e1a0c, 0 8px 8px rgba(0, 0, 0, .35);
+  transition: transform .07s ease-out, box-shadow .07s ease-out;
+}
+html[data-theme="meadow"] .menu-card:active { transform: translateY(4px); box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #b9814a, 0 1px 0 #2e1a0c; }
+html[data-theme="meadow"] .menu-card .ic { color: #ffc64a; filter: drop-shadow(0 3px 0 rgba(46, 26, 12, .85)); }
+html[data-theme="meadow"] .view-back {
+  color: #3a1f00;
+  text-shadow: none;
+  background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
+  border: 3px solid #7a4a10;
+  border-radius: 9px;
+  box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a;
+}
+html[data-theme="meadow"] .view-back:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #ffd77a, inset -2px -2px 0 #dc8f1c; }
+html[data-theme="meadow"] body[data-view="menu"] .bg-dim { background: rgba(20, 12, 6, .25); }
+
+/* ---------------------------------- деревянное колесо («Поляна») */
+/* Обод — дерево с тёмной чёткой обводкой и двумя бороздками, зелёная дуга
+   шанса лежит на нём. Числа стоят на деревянных табличках на ножках, между
+   ними — колышки. Геометрия и логика колеса прежние, меняется только вид. */
+.ring-rim, .scale-plate, .scale-leg { display: none; }
+html[data-theme="meadow"] body {
+  --wheel-lose-a: #b9722f;
+  --wheel-lose-b: #8f5222;
+  --wheel-glow: rgba(255, 196, 110, .22);
+}
+html[data-theme="meadow"] .ring-base { fill: none; stroke: #2e1a0c; stroke-width: 4; }
+html[data-theme="meadow"] .ring-edge { stroke: #2e1a0c; stroke-width: 3; filter: none; }
+html[data-theme="meadow"] .ring-rim { display: inline; fill: none; stroke: rgba(46, 26, 12, .55); stroke-width: 1.5; }
+html[data-theme="meadow"] #arcWin { filter: drop-shadow(0 0 4px rgba(60, 255, 150, .8)); }
+html[data-theme="meadow"] #gradWin stop:first-child { stop-color: #6dff7c; }
+html[data-theme="meadow"] #gradWin stop:last-child { stop-color: #1fd27a; }
+html[data-theme="meadow"] .scale-leg { display: inline; stroke: #2e1a0c; stroke-width: 6; stroke-linecap: round; }
+html[data-theme="meadow"] .scale-plate {
+  display: inline;
+  fill: #a8642c;
+  stroke: #2e1a0c;
+  stroke-width: 2.5;
+}
+html[data-theme="meadow"] .scale-plate.on { fill: #3f9a52; }
+html[data-theme="meadow"] .wheel-scale text { fill: #fff3d6; font-size: 8.5px; }
+html[data-theme="meadow"] .content .wheel-scale text { stroke: #2e1a0c; stroke-width: 2.5px; }
+html[data-theme="meadow"] .wheel-scale text.on { fill: #ffffff; }
+/* колышки между табличками */
+html[data-theme="meadow"] .wheel-scale line:not(.scale-leg) { stroke: #2e1a0c; stroke-width: 6; stroke-linecap: round; }
+html[data-theme="meadow"] .wheel-scale line.on:not(.scale-leg) { stroke: #2e1a0c; }
+html[data-theme="meadow"] .wheel-wrap { margin-top: 10px; }/* ножки и колышки — деревянные, с тёмной обводкой */
+html[data-theme="meadow"] .scale-leg,
+html[data-theme="meadow"] .wheel-scale line:not(.scale-leg),
+html[data-theme="meadow"] .wheel-scale line.on:not(.scale-leg) {
+  stroke: #c98a4b; stroke-width: 4;
+  filter: drop-shadow(1px 0 0 #2e1a0c) drop-shadow(-1px 0 0 #2e1a0c) drop-shadow(0 1px 0 #2e1a0c) drop-shadow(0 -1px 0 #2e1a0c);
+}
+/* числа на табличках: тонкая обводка, чтобы дерево таблички было видно */
+html[data-theme="meadow"] .wheel-scale text { font-size: 9.5px; }
+html[data-theme="meadow"] .content .wheel-scale text { stroke: #2e1a0c; stroke-width: 1.6px; }
+html[data-theme="meadow"] .scale-plate { fill: #b9722f; stroke-width: 2.2; }
+html[data-theme="meadow"] .scale-plate.on { fill: #2f9e58; }
+html[data-theme="meadow"] .wheel-wrap { margin-top: 16px; margin-bottom: 8px; }
+html[data-theme="meadow"] .sky-btn { top: -14px; right: -10px; }
+html[data-theme="meadow"] .wheel-scale text { text-shadow: none; }
+html[data-theme="meadow"] .wheel-scale line.scale-leg,
+html[data-theme="meadow"] .wheel-scale line.scale-leg.on {
+  display: inline; stroke: #c98a4b; stroke-width: 4; stroke-linecap: round;
+  filter: drop-shadow(1px 0 0 #2e1a0c) drop-shadow(-1px 0 0 #2e1a0c) drop-shadow(0 1px 0 #2e1a0c) drop-shadow(0 -1px 0 #2e1a0c);
+}
+
+/* ------------------------------------------- настройки (окно в профиле) */
+/* Шестерёнка в правом верхнем углу профиля открывает окно с языком,
+   дизайном и режимом анонима — раньше эти строки занимали сам профиль. */
+.view-gear { left: auto; right: 0; }
+.view-gear svg { width: 18px; height: 18px; fill: currentColor; }
+.settings-modal { text-align: left; }
+.settings-modal h2 { text-align: center; margin-bottom: 14px; }
+.settings-modal .lang-row { margin-bottom: 12px; }
+.settings-modal .lang-label { font-size: 10px; color: var(--text); }
+.settings-modal .ghost { margin-top: 6px; }
+html[data-theme="meadow"] .settings-modal .lang-row {
+  padding: 9px 10px;
+  margin-bottom: 10px;
+  background: #4a2a14;
+  border: 3px solid #2e1a0c;
+  border-radius: 9px;
+}
+html[data-theme="meadow"] .settings-modal .lang-label { color: #fff6e2; text-shadow: none; }
+html[data-theme="meadow"] .settings-modal .lang-btn { padding: 7px 7px; box-shadow: 0 3px 0 #2e1a0c; }
+html[data-theme="meadow"] .settings-modal .lang-btn.on { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
+
+
+/* Подарок в центре колеса всегда вписан в квадрат: высокая картинка (флакон,
+   свеча) уменьшается по высоте, а не вылезает за кольцо. */
+.wheel-center .hat.is-gift { width: 78%; height: 78%; object-fit: contain; image-rendering: auto; }
+img[src*="/gimg/"] { object-fit: contain; }
+/* Квадрат центра колеса задан жёстко: без этого высокая картинка растягивала
+   его по высоте вместе с собой. */
+.wheel-center { height: 46%; aspect-ratio: auto; min-height: 0; overflow: visible; }
+.wheel-center .hat.is-gift { min-height: 0; max-height: 78%; }
+.lb-podium[hidden] { display: none; }
+
+.lb-timer[hidden] { display: none; }
+
+.subtitle[hidden] { display: none; }
