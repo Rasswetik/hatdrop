@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="meadow">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -8,7 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+<script>
+  try { if (localStorage.getItem('theme') === 'classic') document.documentElement.removeAttribute('data-theme'); } catch (e) {}
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='next/styles.css') }}?v=20261008">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 </head>
@@ -19,6 +23,13 @@
   <symbol id="ic-upgrade" viewBox="0 0 16 16">
     <path d="M7 2h2v2h2v2h2v2h-2v6H5V8H3V6h2V4h2z"/>
   </symbol>
+  <symbol id="ic-menu" viewBox="0 0 16 16">
+    <path d="M1 2h6v5H1zM9 2h6v5H9zM1 9h6v5H1zM9 9h6v5H9z"/>
+  </symbol>
+  <symbol id="ic-trophy" viewBox="0 0 16 16">
+    <path d="M3 2h10v6h-1v1h-1v1H9v2h2v2H5v-2h2v-2H5V9H4V8H3z"/>
+    <path d="M1 3h2v1H2v2h1v1H1zM13 3h2v4h-2V6h1V4h-1z"/>
+  </symbol>
   <symbol id="ic-profile" viewBox="0 0 16 16">
     <path d="M6 2h4v4H6z"/>
     <path d="M4 8h8v1h1v1h1v4H2v-4h1V9h1z"/>
@@ -28,39 +39,171 @@
     <path fill-rule="evenodd" d="M1 4h14v10H1zM3 6h10v6H3zm7 2h4v2h-4z"/>
   </symbol>
   
-  <symbol id="ic-leaders" viewBox="0 0 16 16">
-    <rect x="1" y="9" width="4" height="5"/>
-    <rect x="6" y="4" width="4" height="10"/>
-    <rect x="11" y="7" width="4" height="7"/>
+  <symbol id="ic-chevron" viewBox="0 0 16 16">
+    <rect x="1"  y="4"  width="3" height="3"/>
+    <rect x="12" y="4"  width="3" height="3"/>
+    <rect x="4"  y="7"  width="3" height="3"/>
+    <rect x="9"  y="7"  width="3" height="3"/>
+    <rect x="6"  y="10" width="4" height="3"/>
+  </symbol>
+  
+  <symbol id="ic-cat" viewBox="0 0 16 16">
+    <path d="M2 2h2v2h2V3h4v1h2V2h2v10h-2v2H4v-2H2z"/>
+  </symbol>
+  
+  <symbol id="ic-bolt" viewBox="0 0 10 14">
+    <rect x="4" y="0"  width="6"  height="2"/>
+    <rect x="2" y="2"  width="6"  height="2"/>
+    <rect x="0" y="4"  width="6"  height="2"/>
+    <rect x="0" y="6"  width="10" height="2"/>
+    <rect x="4" y="8"  width="6"  height="2"/>
+    <rect x="2" y="10" width="6"  height="2"/>
+    <rect x="0" y="12" width="6"  height="2"/>
   </symbol>
 </svg>
 
+
+<div class="bg-wide" aria-hidden="true">
+  <canvas class="bg-scene" id="bgScene"></canvas>
+  <img class="bg-photo" id="bgPhoto" alt="" hidden>
+  <div class="bg-dim"></div>
+</div>
+
 <div class="stage">
   <div class="bg-sky"></div>
-  <div class="bg-art"></div>
+  
+  <div class="bg-art">
+    <div class="staff" id="staff">
+      <img src="assets/staff.png" alt="">
+      <div class="staff-orb" id="staffOrb"></div>
+    </div>
+  </div>
+  
+  <svg class="bolt" id="bolt" aria-hidden="true">
+    <defs>
+      <filter id="boltGlow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="4" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="boltHalo" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="12"/>
+      </filter>
+    </defs>
+    <path class="bolt-halo" id="boltHalo" d=""/>
+    <path class="bolt-aura" id="boltAura" d=""/>
+    <path class="bolt-mid"  id="boltMid"  d=""/>
+    <path class="bolt-fork" id="boltFork" d=""/>
+    <path class="bolt-core" id="boltCore" d=""/>
+    
+    <circle class="bolt-spark" id="boltP1" r="3" cx="-50" cy="-50"/>
+    <circle class="bolt-spark" id="boltP2" r="2.4" cx="-50" cy="-50"/>
+    <circle class="bolt-spark" id="boltP3" r="2" cx="-50" cy="-50"/>
+    <circle class="bolt-tip-glow" id="boltTipGlow" r="16" cx="-50" cy="-50"/>
+    <circle class="bolt-tip" id="boltTip" r="5" cx="-50" cy="-50"/>
+  </svg>
+  <div class="spell" id="spell" hidden></div>
+  <div class="sparks" id="sparks" aria-hidden="true"></div>
+  <img class="prize-fly" id="prizeFly" src="/static/img/hat.png" alt="" hidden>
   <div class="bg-stars" id="stars"></div>
   <div class="bg-vignette"></div>
 
+  
   <header class="topbar">
-    <div class="balance" id="balanceChip">
-      <img src="/static/img/ton.svg" alt="" class="ton-ico">
-      <span id="balanceValue">0</span><span class="cur">TON</span>
-    </div>
     <button class="wallet-btn" id="walletBtn">
       <svg class="ic"><use href="#ic-wallet"/></svg>
       <span id="walletBtnText">Подключить</span>
+    </button>
+    
+    <div class="coin-chip" id="coinChip" title="ШляпоКоины — кешбэк за игры" aria-label="ШляпоКоины">
+      <img class="coin-ico coin-new" src="assets/hatcoin.webp" alt="">
+      <svg class="coin-ico coin-old" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <path class="coin-rim" d="M5 0h6v1h2v1h1v1h1v2h1v6h-1v2h-1v1h-1v1h-2v1H5v-1H3v-1H2v-1H1v-2H0V5h1V3h1V2h1V1h2z"/>
+        <path class="coin-face" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"/>
+        <path class="coin-hat" d="M8 3h2v1h1v1H9v1H8v1H7v2H6v1H4v1h9v-1h-2V9h-1V8H9V7h1V6H9V5H8z"/>
+        <path class="coin-band" d="M6 9h5v1H6z"/>
+      </svg>
+      <span id="coinValue">0</span>
+    </div>
+    <button class="balance" id="balanceChip" type="button" aria-label="Баланс, пополнить">
+      <img src="assets/gram.webp" alt="" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="" class="ton-ico ton-old">
+      <span id="balanceValue">0</span><span class="bal-plus" aria-hidden="true">+</span>
     </button>
   </header>
 
   <main class="content">
 
     
-    <section class="view" id="view-upgrade">
-      <h1 class="title">АПГРЕЙД</h1>
-      <p class="subtitle">приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
+    
+    <section class="view" id="view-menu" hidden>
+      <h1 class="title">МЕНЮ</h1>
+      <div class="menu-grid">
+        <button class="menu-card" id="menuLeaders" type="button">
+          <svg class="ic"><use href="#ic-trophy"/></svg>
+          <span>Лидеры</span>
+        </button>
+        <button class="menu-card" id="menuShell" type="button">
+          <img src="/static/img/hat.png" alt="">
+          <span id="shellTabName">Три шляпы</span>
+        </button>
+      </div>
+    </section>
 
+    
+    <section class="view view-center" id="view-shell" hidden>
+      
+      <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
+      <h1 class="title">ТРИ ШЛЯПЫ</h1>
+      <p class="subtitle shell-subtitle" id="shellSubtitle">под одной сидит кот — найди его</p>
+
+      <div class="shell-table" id="shellTable">
+        
+        <img class="shell-cat-intro" id="shellCatIntro" src="assets/cat.png" alt="">
+        <div class="shell-hat" data-i="0">          <img class="shell-cat" src="assets/cat.png" alt="">
+          <img class="shell-cap" src="/static/img/hat.png" alt="">
+        </div>
+        <div class="shell-hat" data-i="1">
+          <img class="shell-cat" src="assets/cat.png" alt="">
+          <img class="shell-cap" src="/static/img/hat.png" alt="">
+        </div>
+        <div class="shell-hat" data-i="2">
+          <img class="shell-cat" src="assets/cat.png" alt="">
+          <img class="shell-cap" src="/static/img/hat.png" alt="">
+        </div>
+      </div>
+
+      <p class="shell-hint" id="shellHint">—</p>
+
+      <button class="cta" id="shellBtn">Угадать</button>
+
+      
+      <button class="shell-prize" id="shellPrize" type="button" hidden>
+        <img id="shellPrizeImg" src="/static/img/hat.png" alt="">
+        <span class="shell-prize-text">
+          <b id="shellPrizeName">Шляпа волшебника</b>
+          <small id="shellPrizeInfo">шанс 1 из 3</small>
+        </span>
+        <span class="shell-prize-edit">сменить</span>
+      </button>
+      <button class="ghost" id="shellDepositBtn" hidden>Пополнить баланс</button>
+    </section>
+
+    
+    <section class="view" id="view-upgrade">
+      <p class="subtitle upgrade-prize">Приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
+
+      
+      <div class="tier-picker" id="tierPicker" role="group" aria-label="Выбор приза" hidden>
+        <button class="tier-btn" data-tier="random" type="button" hidden>Рандом</button>
+        <button class="tier-btn active" data-tier="gift" type="button">Подарки</button>
+        <button class="tier-btn" data-tier="onyx" type="button">Оникс</button>
+        <button class="tier-btn" data-tier="black" type="button">Блэк</button>
+      </div>
+
+      <div class="wheel-row">
       <div class="wheel-wrap">
         <div class="wheel-glow"></div>
+        
+        <div class="wheel-glass"></div>
         <svg class="wheel" viewBox="0 0 300 300" id="wheel">
           <defs>
             <linearGradient id="gradWin" x1="0" y1="0" x2="1" y2="1">
@@ -68,8 +211,8 @@
               <stop offset="100%" stop-color="#25c46a"/>
             </linearGradient>
             <linearGradient id="gradLose" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%"  stop-color="#3a2a6b"/>
-              <stop offset="100%" stop-color="#241a4a"/>
+              <stop offset="0%"  stop-color="#3a2a6b" class="lose-a"/>
+              <stop offset="100%" stop-color="#241a4a" class="lose-b"/>
             </linearGradient>
             <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="5" result="b"/>
@@ -84,159 +227,262 @@
                   stroke="url(#gradWin)" transform="rotate(-90 150 150)" filter="url(#softGlow)"/>
 
           
+          <circle cx="150" cy="150" r="130.5" class="ring-edge"/>
+          <circle cx="150" cy="150" r="109.5" class="ring-edge"/>
+          
+          <circle cx="150" cy="150" r="126" class="ring-rim"/>
+          <circle cx="150" cy="150" r="114" class="ring-rim"/>
+
+          
+          <g id="wheelScale" class="wheel-scale"></g>
+
+          
           <g id="pointer" class="pointer" shape-rendering="crispEdges">
             <g class="ptr-outline">
-              <rect x="144" y="21"  width="12" height="12"/>
-              <rect x="138" y="27"  width="24" height="12"/>
-              <rect x="132" y="33"  width="36" height="12"/>
-              <rect x="126" y="39"  width="48" height="12"/>
-              <rect x="144" y="45"  width="12" height="102"/>
+              <rect x="144" y="18"  width="12" height="12"/>
+              <rect x="138" y="24"  width="24" height="12"/>
+              <rect x="135" y="30"  width="30" height="12"/>
+              <rect x="129" y="39"  width="42" height="21"/>
+              <rect x="138" y="54"  width="24" height="12"/>
+              <rect x="144" y="60"  width="12" height="87"/>
               <rect x="138" y="138" width="24" height="24"/>
             </g>
+            
+            <rect class="staff-wood" x="147" y="63" width="6" height="81"/>
+            <rect class="staff-wood-shine" x="147" y="63" width="3" height="81"/>
+            
             <g class="ptr-fill">
-              <rect x="147" y="24"  width="6"  height="6"/>
-              <rect x="141" y="30"  width="18" height="6"/>
-              <rect x="135" y="36"  width="30" height="6"/>
-              <rect x="129" y="42"  width="42" height="6"/>
-              <rect x="147" y="48"  width="6"  height="96"/>
+              <rect x="132" y="42"  width="6"  height="15"/>
+              <rect x="162" y="42"  width="6"  height="15"/>
+              <rect x="132" y="51"  width="36" height="6"/>
+              <rect x="141" y="57"  width="18" height="6"/>
               <rect x="141" y="141" width="18" height="18"/>
             </g>
             <g class="ptr-shine">
-              <rect x="141" y="30"  width="6" height="6"/>
-              <rect x="135" y="36"  width="6" height="6"/>
-              <rect x="129" y="42"  width="6" height="6"/>
-              <rect x="147" y="48"  width="3" height="96"/>
+              <rect x="132" y="42"  width="3" height="9"/>
+              <rect x="141" y="57"  width="6" height="3"/>
               <rect x="141" y="141" width="6" height="6"/>
             </g>
+            
+            <g class="staff-gem">
+              <rect x="147" y="21" width="6"  height="6"/>
+              <rect x="141" y="27" width="18" height="6"/>
+              <rect x="138" y="33" width="24" height="18"/>
+            </g>
+            <g class="staff-gem-shine">
+              <rect x="147" y="21" width="3" height="6"/>
+              <rect x="141" y="27" width="6" height="6"/>
+              <rect x="138" y="33" width="6" height="9"/>
+            </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"/>
+            
+            <image class="ptr-axe" href="assets/axe.webp?v=3" x="128.1" y="14" width="65.6" height="150"/>
           </g>
         </svg>
 
+        
+        <button class="sky-btn" id="skyBtn" type="button" title="День / ночь" aria-label="День / ночь">
+          <svg class="sky-sun" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            <path fill="#ffb300" d="M7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2 2h2v2H2zM12 2h2v2h-2zM2 12h2v2H2zM12 12h2v2h-2z"/>
+            <path fill="#ffd23f" d="M6 4h4v1h1v1h1v4h-1v1h-1v1H6v-1H5v-1H4V6h1V5h1z"/>
+            <path fill="#fff3b0" d="M6 5h2v1H6zM5 6h1v2H5z"/>
+          </svg>
+          <svg class="sky-moon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+            
+            <path fill="#fff2a8" d="M4 1h3v1h-3zM3 2h3v1h-3zM2 3h4v1h-4zM1 4h4v1h-4zM1 5h4v1h-4zM0 6h5v1h-5zM0 7h5v1h-5zM0 8h5v1h-5zM0 9h6v1h-6zM1 10h6v1h-6zM1 11h7v1h-7zM2 12h11v1h-11zM3 13h9v1h-9zM4 14h7v1h-7z"/>
+            <path fill="#e6c95a" d="M4 1h1v1h-1zM3 2h1v1h-1zM2 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM0 6h1v1h-1zM0 7h1v1h-1zM0 8h1v1h-1zM0 9h1v1h-1zM1 10h1v1h-1zM1 11h1v1h-1zM2 12h1v1h-1zM3 13h1v1h-1zM4 14h1v1h-1z"/>
+            <path fill="#ffffff" d="M12 3h1v1h-1zM14 6h1v1h-1zM11 7h1v1h-1z"/>
+          </svg>
+        </button>
+
         <div class="wheel-center">
           <img src="/static/img/hat.png" alt="Приз" class="hat" id="centerHat">
+          
+          <button class="hat-q" id="hatQuestion" type="button" aria-label="Выбрать подарок" hidden>?</button>
         </div>
+
+      </div>
       </div>
 
       
-      <div class="mode-picker">
-        <div class="mode-head">
-          <span class="mode-cost" id="modeCost">1.75 TON</span>
-          <span class="mode-chance" id="modeChance">25%</span>
-        </div>
-        <input type="range" id="modeSlider" min="1" max="99" step="1" value="25"
-               aria-label="Шанс апгрейда">
-        <div class="mode-marks" id="modeMarks"></div>
-      </div>
+      <button class="hat-hint" id="hatHint" type="button" hidden>Нажми, чтобы выбрать любой подарок</button>
 
-      <button class="cta" id="spinBtn">
-        <span id="spinBtnText">Крутить</span>
-      </button>
-      <button class="ghost" id="depositBtn">Пополнить баланс</button>
+      
+      
+      <div class="mode-picker">
+        <span class="mode-edge" id="chanceMin">—</span>
+        <div class="mode-track" id="modeTrack">
+          <span class="mode-tag mode-cost">
+            <img src="assets/gram.webp" alt="TON" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="TON" class="ton-ico ton-old"><span id="modeCost">—</span>
+          </span>
+          <input type="range" id="modeSlider" min="0" max="60" step="1" value="30"
+                 aria-label="Шанс выигрыша">
+          <span class="mode-tag mode-chance" id="modeChance">—</span>
+        </div>
+        <span class="mode-edge" id="chanceMax">—</span>      </div>
+
+      
+      <div class="spin-row">
+        
+        <span class="spin-side spin-side-left">
+          <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
+            <img id="weaponIcon" src="assets/axe-icon.webp?v=2" alt="">
+          </button>
+          <div class="weapon-menu" id="weaponMenu" hidden>
+            <button type="button" data-weapon="axe"><img src="assets/axe-icon.webp?v=2" alt=""><span>Топор</span></button>
+            <button type="button" data-weapon="staff"><img src="assets/staff-icon.webp?v=2" alt=""><span>Посох</span></button>
+          </div>
+        </span>
+        <button class="cta spin-btn" id="spinBtn">
+          <span id="spinBtnText">UP</span>
+        </button>
+        <span class="spin-side spin-side-right">
+          <button class="fast-btn" id="fastBtn" type="button" aria-pressed="false"
+                  title="Быстрая прокрутка" aria-label="Быстрая прокрутка">
+            <svg class="ic-bolt" aria-hidden="true"><use href="#ic-bolt"/></svg>
+          </button>
+          
+          <button class="fast-btn gear-btn" id="gearBtn" type="button" title="Тип крутки" aria-label="Тип крутки">
+            <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+              <path fill-rule="evenodd" d="M6 0h4v2h2V1h2v2h1v2h-1v1h2v4h-2v1h1v2h-1v2h-2v-1h-2v2H6v-2H4v1H2v-2H1v-2h1v-1H0V6h2V5H1V3h1V1h2v1h2zM6 6v4h4V6z"/>
+            </svg>
+          </button>
+          <div class="weapon-menu spin-menu" id="spinMenu" hidden>
+            <button type="button" data-spin="plain"><span>Обычная</span></button>
+            <button type="button" data-spin="wild"><span>Азартная</span></button>
+          </div>
+        </span>
+      </div>
     </section>
 
     
-    <button class="ghost" id="testTopupBtn" hidden>Тест: +10 TON</button>
-
-    
     <section class="view" id="view-profile" hidden>
+      
+      <button class="view-back view-gear" id="settingsBtn" type="button" title="Настройки" aria-label="Настройки">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+          <path fill-rule="evenodd" d="M6 0h4v2h2V1h2v2h1v2h-1v1h2v4h-2v1h1v2h-1v2h-2v-1h-2v2H6v-2H4v1H2v-2H1v-2h1v-1H0V6h2V5H1V3h1V1h2v1h2zM6 6v4h4V6z"/>
+        </svg>
+      </button>
       <h1 class="title">ПРОФИЛЬ</h1>
       <div class="profile-head">
-        <div class="avatar" id="avatar">
-          <img id="avatarImg" alt="" hidden>
-          <svg class="ic" id="avatarIcon"><use href="#ic-profile"/></svg>
-        </div>
+        <div class="avatar"><svg class="ic"><use href="#ic-profile"/></svg></div>
         <div class="profile-meta">
           <div class="pname" id="profileName">—</div>
           <div class="pwallet" id="profileWallet">Кошелёк не подключён</div>
         </div>
+        
+        <div class="lvl-badge" id="lvlBadge">LVL 1</div>
       </div>
-
-      <div class="stats-row">
-        <div class="stat"><b id="statPrizes">0</b><small id="statPrizesLabel">призов</small></div>
+      <div class="lvl-row">
+        <div class="lvl-bar"><i id="lvlFill"></i></div>
+        <p class="lvl-note" id="lvlNote">—</p>
       </div>
 
       
-      <div class="ref-card admin-card" id="adminCard" hidden>
-        <div class="ref-title">Админ</div>
-        <p class="ref-desc">Ручное зачисление на свой баланс</p>
-        <button class="cta" id="adminTopupBtn">Получить на баланс</button>
+      <div class="pstats">
+        <div class="pstat">
+          <small>Выведено</small>
+          <b id="statWithdrawn">0 TON</b>
+          <span id="statWithdrawnCount">0 призов</span>
+        </div>
+        <div class="pstat pstat-best">
+          <small>Лучший дроп</small>
+          <img id="statBestImg" src="/static/img/hat.png" alt="" hidden>
+          <b id="statBestValue">—</b>
+          <span id="statBestName">пока нет</span>
+        </div>
+        <div class="pstat">
+          <small>Оборот</small>
+          <b id="statTurnover">0 TON</b>
+          <span id="statGames">0 игр</span>
+        </div>
+      </div>
+
+      
+      <div class="profile-actions">
+        <button class="pbtn" id="levelsBtn" type="button">Топ уровней</button>
+        <button class="pbtn" id="historyBtn" type="button">История</button>
       </div>
 
       
       <div class="ref-card">
-        <div class="ref-title">Рефералы</div>
-        <p class="ref-desc">Получай <b id="refPercent">2%</b> с каждого депозита друзей</p>
+        <button class="ref-head" id="refToggle" aria-expanded="false">
+          <span class="ref-title">Рефералы<i class="ref-dot" id="refDot" hidden></i></span>
+          <span class="ref-chevron"><svg class="ic"><use href="#ic-chevron"/></svg></span>
+        </button>
 
-        <button class="cta ref-create" id="refCreateBtn">Создать реферальную ссылку</button>
+        <div class="ref-body" id="refBody" hidden>
+          <p class="ref-desc">Получай <b id="refPercent">10%</b> с каждого депозита друзей</p>
 
-        <div class="ref-link-box" id="refLinkBox" hidden>
-          <div class="ref-link" id="refLink">—</div>
-          <button class="ref-copy" id="refCopyBtn">Копировать</button>
-        </div>
+          <button class="cta ref-create" id="refCreateBtn">Создать реферальную ссылку</button>
 
-        <div class="ref-stats">
-          <div class="ref-stat"><b id="refCount">0</b><small id="refCountLabel">рефералов</small></div>
-          <div class="ref-stat"><b id="refEarned">0</b><small>заработано TON</small></div>
-        </div>
-
-        <div class="ref-withdraw">
-          <div class="ref-balance">
-            <small>Доступно</small>
-            <b id="refBalance">0 TON</b>
+          <div class="ref-link-box" id="refLinkBox" hidden>
+            <div class="ref-link" id="refLink">—</div>
+            <button class="ref-copy" id="refCopyBtn">Копировать</button>
           </div>
-          <button class="wd-btn ref-wd" id="refWithdrawBtn" disabled>Вывести</button>
+
+          <div class="ref-stats">
+            <div class="ref-stat"><b id="refCount">0</b><small id="refCountLabel">рефералов</small></div>
+            <div class="ref-stat"><b id="refEarned">0</b><small>заработано TON</small></div>
+          </div>
+
+          <div class="ref-withdraw">
+            <div class="ref-balance">
+              <small>Доступно</small>
+              <b id="refBalance">0 TON</b>
+            </div>
+            <button class="wd-btn ref-wd" id="refWithdrawBtn" disabled>Вывести</button>
+          </div>
+          <p class="ref-hint" id="refHint">Вывод от 1 TON</p>
         </div>
-        <p class="ref-hint" id="refHint">Вывод от 1 TON</p>
       </div>
 
-      <h2 class="section-title">Мои призы</h2>
+      
+      <form class="promo-card" id="promoForm" autocomplete="off">
+        <input class="promo-input" id="promoInput" type="text" placeholder="Промокод" maxlength="32"
+               autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Промокод">
+        <button class="promo-btn" id="promoBtn" type="submit">Активировать</button>
+      </form>
+
+      <div class="section-row">
+        <h2 class="section-title">Мои призы</h2>
+        
+        <button class="sell-all" id="sellAllBtn" type="button" hidden>Продать всё</button>
+      </div>
       <div class="prize-grid" id="prizeGrid"></div>
-      <p class="empty" id="prizeEmpty">Пока пусто. Крути апгрейд — выбитые шляпы появятся здесь.</p>
+      <p class="empty" id="prizeEmpty">Пока пусто. Крути апгрейд — выбитые призы появятся здесь.</p>
     </section>
 
     
+    
     <section class="view" id="view-leaders" hidden>
-      <h1 class="title">ЛИДЕРЫ</h1>
-      <p class="lb-countdown" id="lbCountdown" hidden>До конца лидеров: <b id="lbTimer">—</b></p>
-      <p class="empty" id="lbEmpty">Таблица лидеров скоро появится здесь.</p>
-
-      <div class="podium" id="podium" hidden>
-        <div class="podium-slot p2" id="slot-2">
-          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
-          <div class="podium-name">—</div>
-          <div class="podium-turnover">—</div>
-          <div class="podium-stand"><b>2</b></div>
-        </div>
-        <div class="podium-slot p1" id="slot-1">
-          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
-          <div class="podium-name">—</div>
-          <div class="podium-turnover">—</div>
-          <div class="podium-stand"><b>1</b></div>
-        </div>
-        <div class="podium-slot p3" id="slot-3">
-          <div class="podium-avatar"><img alt="" hidden><svg class="ic"><use href="#ic-profile"/></svg></div>
-          <div class="podium-name">—</div>
-          <div class="podium-turnover">—</div>
-          <div class="podium-stand"><b>3</b></div>
-        </div>
-      </div>
-
-      <div class="lb-list" id="lbList"></div>
+      <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
+      <h1 class="title">ТОП ИГРОКОВ</h1>
+      
+      <p class="subtitle" id="lbSubAll">по обороту за всё время</p>
+      <p class="subtitle" id="lbSubSeason" hidden>по объёму игры · сезон с <span id="lbSince">—</span></p>
+      <div class="lb-timer" id="lbTimer"></div>
+      <div class="lb-podium" id="lbPodium"></div>
+      <div class="lb-me" id="lbMe"></div>
+      <h2 class="section-title">Рейтинг</h2>
+      <ol class="lb-list" id="lbList"></ol>
+      <p class="empty" id="lbEmpty" hidden>Пока никто не играл. Крути — и займёшь первое место!</p>
     </section>
   </main>
 
   <nav class="tabbar">
-    <button class="tab active" data-view="upgrade">
-      <svg class="ic"><use href="#ic-upgrade"/></svg>Апгрейд
+    
+    
+    <button class="tab" data-view="menu" id="tabMenu" aria-label="Меню">
+      <svg class="ic"><use href="#ic-menu"/></svg><span class="tab-name">Меню</span>
     </button>
-    <button class="tab" data-view="profile">
-      <svg class="ic"><use href="#ic-profile"/></svg>Профиль
+    <button class="tab active" data-view="upgrade" aria-label="Апгрейд">
+      <svg class="ic"><use href="#ic-upgrade"/></svg><span class="tab-name">Апгрейд</span>
     </button>
-    <button class="tab" data-view="leaders">
-      <svg class="ic"><use href="#ic-leaders"/></svg>Лидеры
+    <button class="tab" data-view="profile" aria-label="Профиль">
+      <svg class="ic"><use href="#ic-profile"/></svg><span class="tab-name">Профиль</span>
     </button>
-  </nav>
-</div>
+  </nav></div>
 
 
 <div class="modal" id="resultModal" hidden>
@@ -256,6 +502,13 @@
     <h2>Пополнение</h2>
     <p class="muted">Перевод в TON зачислится автоматически в течение минуты.</p>
 
+    
+    <div class="dep-wallet">
+      <span class="dep-wallet-addr" id="depWalletAddr">Кошелёк не подключён</span>
+      <button class="dep-wallet-btn" id="depWalletBtn" type="button">Подключить</button>
+      <button class="dep-wallet-btn" id="depWalletSwitch" type="button" hidden>Сменить</button>
+    </div>
+
     <div class="amount-row">
       <button class="amt" data-amt="5">5</button>
       <button class="amt" data-amt="10">10</button>
@@ -265,6 +518,7 @@
     <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
 
     <button class="cta" id="depositSendBtn">Отправить</button>
+    <button class="cta gift-dep-btn" id="giftDepositBtn" hidden>🎁 Пополнить подарком</button>
 
     <details class="manual">
       <summary>Перевести вручную</summary>
@@ -280,29 +534,101 @@
 </div>
 
 
-<div class="modal" id="adminTopupModal" hidden>
-  <div class="modal-card">
-    <h2>Пополнить себе баланс</h2>
-    <p class="muted">Ручное зачисление, без перевода. Только для админа.</p>
 
-    <label class="field-label" for="adminTopupAmount">Сумма, TON</label>
-    <input type="number" id="adminTopupAmount" min="0.01" step="0.01" value="100"
-           inputmode="decimal" placeholder="Введи сумму" autofocus>
-
-    <div class="amount-row">
-      <button class="amt admin-amt" data-amt="10">10</button>
-      <button class="amt admin-amt" data-amt="50">50</button>
-      <button class="amt admin-amt" data-amt="100">100</button>
-      <button class="amt admin-amt" data-amt="500">500</button>
+<div class="modal" id="giftModal" hidden>
+  <div class="modal-card gift-modal">
+    <h2>Пополнить подарком</h2>
+    <p class="muted" id="giftIntro"></p>
+    <div class="gift-list" id="giftList"></div>
+    <div class="gift-how" id="giftHow" hidden>
+      <p class="gift-how-text" id="giftHowText"></p>
+      <button class="cta" id="giftOpenAccount">Открыть аккаунт</button>
     </div>
+    <p class="muted gift-tip">Не видишь подарок? Включи его показ в профиле Telegram.
+      Обычные (не улучшенные) подарки не принимаются.</p>
+    <button class="ghost" id="giftCloseBtn">Закрыть</button>
+  </div>
+</div>
 
-    <button class="cta" id="adminTopupConfirmBtn">Подтвердить</button>
-    <button class="ghost" id="adminTopupCloseBtn">Закрыть</button>
+
+
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card list-modal settings-modal">
+    <h2>Настройки</h2>
+      
+      <div class="lang-row">
+        <span class="lang-label">Язык</span>
+        <div class="lang-btns" id="langBtns"></div>
+      </div>
+
+      
+      <div class="lang-row">
+        <span class="lang-label">Дизайн</span>
+        <div class="lang-btns" id="themeBtns">
+          <button class="lang-btn" type="button" data-theme-pick="meadow">Новый</button>
+          <button class="lang-btn" type="button" data-theme-pick="classic">Старый</button>
+        </div>
+      </div>
+
+      
+      <div class="lang-row">
+        <span class="lang-label">Аноним</span>
+        <div class="lang-btns" id="anonBtns">
+          <button class="lang-btn" type="button" data-anon="0">Выкл</button>
+          <button class="lang-btn" type="button" data-anon="1">Вкл</button>
+        </div>
+      </div>
+    <button class="ghost" id="settingsClose" type="button">Закрыть</button>
+  </div>
+</div>
+
+
+<div class="modal" id="levelsModal" hidden>
+  <div class="modal-card list-modal">
+    <div class="gp-head">
+      <button class="gp-back" id="lvBack" type="button" hidden aria-label="Назад">&lt;</button>
+      <h2 id="lvTitle">Топ уровней</h2>
+    </div>
+    <p class="muted" id="lvNote">Награды за места в топе скоро появятся — какие именно, пока секрет.</p>
+    <div class="lv-me" id="lvMe" hidden></div>
+    <div class="lv-list" id="lvList"></div>
+    <div class="pcard" id="lvCard" hidden></div>
+    <button class="ghost" id="lvClose" type="button">Закрыть</button>
+  </div>
+</div>
+
+
+<div class="modal" id="historyModal" hidden>
+  <div class="modal-card list-modal">
+    <h2>История игр</h2>
+    <div class="lv-list" id="histList"></div>
+    <button class="ghost" id="histClose" type="button">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal" id="giftPickModal" hidden>
+  <div class="modal-card gp-card">
+    <div class="gp-head">
+      <button class="gp-back" id="gpBack" type="button" hidden aria-label="Назад">&lt;</button>
+      <h2 id="gpTitle">Выбери подарок</h2>
+    </div>
+    <p class="muted">Шляпа — приз по умолчанию. Или выбери коллекцию, потом модель — или «Любая модель».</p>
+    <input class="gp-search" id="gpSearch" type="search" placeholder="Поиск" autocomplete="off">
+    
+    <div class="gp-sort" id="gpSort" role="group" aria-label="Сортировка">
+      <button type="button" data-sort="popular" class="active">Популярные</button>
+      <button type="button" data-sort="expensive">Дорогие</button>
+      <button type="button" data-sort="cheap">Дешёвые</button>
+    </div>
+    <div class="gp-list" id="gpList"></div>
+    <button class="ghost" id="gpClose" type="button">Закрыть</button>
   </div>
 </div>
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='next/scene.js') }}?v=20261008"></script>
+<script src="{{ url_for('static', filename='next/i18n.js') }}?v=20261008"></script>
+<script src="{{ url_for('static', filename='next/app.js') }}?v=20261008"></script>
 </body>
 </html>
