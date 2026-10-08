@@ -2910,6 +2910,45 @@ img[src*="/gimg/"] { object-fit: contain; }
 .cx-note { font-size: 9px; line-height: 1.6; color: var(--muted); padding: 6px 0; }
 #cxBtn { margin-top: 4px; }
 #cxDeposit { width: auto; min-width: 190px; align-self: center; }
+
+/* ===== fixes: TON-иконка, фон, сундуки ===== */
+.ton-ico, .ton-new, .ton-old { image-rendering: auto !important; object-fit: contain; }
+html[data-theme="meadow"] .ton-new { display: block; }
+html[data-theme="meadow"] .ton-old { display: none; }
+
+html, body { min-height: 100%; }
+html[data-theme="meadow"] .bg-wide {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw; height: 100vh; height: 100dvh; min-height: 100%;
+}
+html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; }
+.stage { min-height: 100vh; min-height: 100dvh; }
+
+.cx-info, .cx-grid, .cx-setup, #cxBtn, #cxDeposit, #cxHint { flex: 0 0 auto; }
+.cx-info > div { min-width: 0; }
+.cx-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  gap: 8px;
+  width: 100%;
+  max-width: 330px;
+}
+.cx-cell {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 5px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+.cx-cell img { display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+#view-chests { padding-bottom: 12px; }
+.view-ghost { pointer-events: none; }
+.cx-row .cx-chip { flex: 1 1 auto; }
+.adm-key { width: 100%; margin: 4px 0 10px; text-align: left; }
+.adm-key .adm-form { margin-top: 6px; }
+.adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
 </style>
 </head>
 <body>
@@ -3009,7 +3048,7 @@ img[src*="/gimg/"] { object-fit: contain; }
       <span id="coinValue">0</span>
     </div>
     <button class="balance" id="balanceChip" type="button" aria-label="Баланс, пополнить">
-      <img src="images/gram.webp" alt="" class="ton-ico ton-new"><img src="images/ton.svg" alt="" class="ton-ico ton-old">
+      <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E" alt="" class="ton-ico">
       <span id="balanceValue">0</span><span class="bal-plus" aria-hidden="true">+</span>
     </button>
   </header>
@@ -3211,7 +3250,7 @@ img[src*="/gimg/"] { object-fit: contain; }
         <span class="mode-edge" id="chanceMin">—</span>
         <div class="mode-track" id="modeTrack">
           <span class="mode-tag mode-cost">
-            <img src="images/gram.webp" alt="TON" class="ton-ico ton-new"><img src="images/ton.svg" alt="TON" class="ton-ico ton-old"><span id="modeCost">—</span>
+            <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E" alt="TON" class="ton-ico"><span id="modeCost">—</span>
           </span>
           <input type="range" id="modeSlider" min="0" max="60" step="1" value="30" aria-label="Шанс выигрыша">
           <span class="mode-tag mode-chance" id="modeChance">—</span>
@@ -3510,6 +3549,20 @@ img[src*="/gimg/"] { object-fit: contain; }
     </div>
     <div id="admUser" hidden=""></div>
     <div id="admMarket" hidden="">
+      <div class="adm-box adm-key">
+        <h3>Ключ Portals</h3>
+        <p class="adm-status" id="admPortalsStatus">—</p>
+        <div class="adm-form">
+          <input id="admPortalsUrl" type="url" placeholder="URL флоров (https://…)" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="adm-form">
+          <input id="admPortalsKey" type="password" placeholder="Ключ / Authorization" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="adm-form">
+          <button type="button" id="admPortalsSave">Сохранить</button>
+          <button type="button" id="admPortalsClear" class="danger">Удалить ключ</button>
+        </div>
+      </div>
       <button class="ghost" id="admRefresh" type="button">Обновить цены с Портала</button>
       <p class="muted" id="admMarketNote"></p>
       <div class="adm-market" id="admMarketList"></div>
@@ -3519,6 +3572,30 @@ img[src*="/gimg/"] { object-fit: contain; }
 </div>
 
 <div id="toast" class="toast" hidden=""></div>
+
+<script>
+(function () {
+  const TON = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E';
+  const HAT = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="6" y="44" width="52" height="8" fill="#2a1450"/><rect x="8" y="42" width="48" height="6" fill="#5b2bb0"/><rect x="20" y="20" width="24" height="24" fill="#4a1fa0"/><rect x="26" y="10" width="14" height="12" fill="#4a1fa0"/><rect x="32" y="4" width="8" height="8" fill="#5b2bb0"/><rect x="20" y="36" width="24" height="6" fill="#ffc043"/><rect x="29" y="36" width="6" height="6" fill="#fff0b0"/></svg>');
+  const CAT = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="14" y="14" width="8" height="12" fill="#2b2b3a"/><rect x="42" y="14" width="8" height="12" fill="#2b2b3a"/><rect x="14" y="22" width="36" height="28" fill="#3a3a4e"/><rect x="22" y="30" width="6" height="6" fill="#ffe08a"/><rect x="36" y="30" width="6" height="6" fill="#ffe08a"/><rect x="30" y="40" width="4" height="4" fill="#ff8aa8"/></svg>');
+  const AXE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="30" y="14" width="6" height="44" fill="#7a4a26"/><rect x="30" y="14" width="2" height="44" fill="#a8713c"/><rect x="14" y="10" width="18" height="22" fill="#9aa3b5"/><rect x="10" y="14" width="6" height="14" fill="#cfd6e4"/><rect x="14" y="10" width="18" height="3" fill="#e8edf7"/></svg>');
+  const STAFF = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="30" y="22" width="5" height="40" fill="#7a4a26"/><rect x="30" y="22" width="2" height="40" fill="#a8713c"/><rect x="22" y="6" width="20" height="18" fill="#8b4cf0"/><rect x="26" y="10" width="8" height="8" fill="#e0c8ff"/></svg>');
+  const ART = { ton: TON, gram: TON, hatcoin: TON, hat: HAT, cat: CAT, 'staff-icon': STAFF, 'axe-icon': AXE };
+  document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG' || img.dataset.fb) return;
+    const m = (img.getAttribute('src') || '').match(/images\/([^./?]+)/);
+    if (!m) return;
+    img.dataset.fb = '1';
+    img.onerror = null;
+    img.src = ART[m[1]] || HAT;
+  }, true);
+
+  const kick = () => window.dispatchEvent(new Event('resize'));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', kick);
+  window.addEventListener('orientationchange', () => setTimeout(kick, 200));
+})();
+</script>
 
 <script>
 (function () {
@@ -4429,12 +4506,25 @@ function giftImage(slug) {
   return `/gimg/${slug}.webp?v=2`;
 }
 
+function localGiftArt(src) {
+  const m = String(src || '').match(/gimg\/([^.?]+)/);
+  const slug = m ? decodeURIComponent(m[1]) : 'Gift';
+  let h = 0;
+  for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  const ini = (slug.match(/[A-Z]/g) || [slug.slice(0, 2).toUpperCase()]).slice(0, 2).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${h},70%,62%)"/><stop offset="1" stop-color="hsl(${(h + 40) % 360},65%,38%)"/></linearGradient></defs><rect x="14" y="14" width="100" height="100" rx="22" fill="url(#g)"/><text x="64" y="78" font-family="sans-serif" font-size="40" font-weight="700" text-anchor="middle" fill="#fff">${ini}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
 function setGiftImg(img, src, fallback) {
   let tries = 0;
   img.onerror = () => {
     tries += 1;
-    if (tries <= 4) setTimeout(() => { img.src = `${src}${src.includes('?') ? '&' : '?'}r=${tries}`; }, 2000 * tries);
-    else if (fallback && img.src.indexOf(fallback) < 0) { img.onerror = null; img.src = fallback; }
+    if (tries === 1 && src && !String(src).startsWith('data:')) {
+      setTimeout(() => { img.src = `${src}${src.includes('?') ? '&' : '?'}r=1`; }, 400);
+    } else {
+      img.onerror = null;
+      img.src = localGiftArt(src || fallback);
+    }
   };
   img.src = src;
 }
@@ -5671,6 +5761,9 @@ function viewGhost(view) {
   box.className = 'view-ghost';
   box.style.cssText = `left:${cr.left - sr.left}px;top:${cr.top - sr.top}px;width:${cr.width}px;height:${cr.height}px`;
   const copy = view.cloneNode(true);
+  copy.removeAttribute('id');
+  copy.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+  copy.querySelectorAll('button, input').forEach((n) => { n.tabIndex = -1; n.disabled = true; });
   copy.style.cssText = `position:absolute;left:${vr.left - cr.left}px;top:${vr.top - cr.top}px;width:${vr.width}px;margin:0`;
   box.appendChild(copy);
   return { box, stage };
@@ -7937,10 +8030,33 @@ async function admLoadMarket(action, body) {
   } catch (e) { admErr(e); }
 }
 
+function admRenderPortals(res) {
+  if (res.portals_configured === undefined) return;
+  admin.portals = res.portals_configured;
+  const parts = [
+    res.portals_url ? 'URL задан' : 'URL не задан',
+    res.portals_key_set ? `ключ: ${res.portals_key_mask}` : 'ключ не задан',
+  ];
+  $('admPortalsStatus').textContent = parts.join(' · ');
+  if (document.activeElement !== $('admPortalsUrl')) $('admPortalsUrl').value = res.portals_url || '';
+  $('admPortalsKey').value = '';
+}
+
+async function admSavePortals(clear) {
+  const body = { url: $('admPortalsUrl').value.trim() };
+  if (clear) body.clear_key = true;
+  else if ($('admPortalsKey').value.trim()) body.auth = $('admPortalsKey').value.trim();
+  try {
+    const out = await api('/api/admin/portals/set', body);
+    admRenderMarket(out);
+    toast(clear ? 'Ключ удалён' : 'Сохранено');
+  } catch (e) { admErr(e); }
+}
+
 function admRenderMarket(res) {
-  if (res.portals_configured !== undefined) admin.portals = res.portals_configured;
+  admRenderPortals(res);
   $('admMarketNote').textContent = admin.portals === false
-    ? 'Автообновление выключено: на сервере не задан PORTALS_FLOORS_URL. Цены можно менять вручную.'
+    ? 'Автообновление выключено: вставь URL флоров и ключ Portals выше. Цены можно менять вручную.'
     : 'Цена — самая низкая цена коллекции (флор). Модели считаются от неё.';
   const list = $('admMarketList');
   list.textContent = '';
@@ -7978,6 +8094,8 @@ function initAdmin() {
     admin.timer = setTimeout(admLoadUsers, 250);
   });
   $('admRefresh').addEventListener('click', () => admLoadMarket('/api/admin/market/refresh'));
+  $('admPortalsSave').addEventListener('click', () => admSavePortals(false));
+  $('admPortalsClear').addEventListener('click', () => admSavePortals(true));
 }
 
 initTelegram();
