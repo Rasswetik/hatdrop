@@ -1093,6 +1093,21 @@ def start_bot():
     threading.Thread(target=_bot_supervisor, name='tg-bot', daemon=True).start()
 
 
+
+def _verified_admin():
+    data = request.get_json(silent=True) or {}
+    user, verified = validate_init_data(data.get('initData', ''))
+    return bool(verified and user and int(user.get('id', 0)) in ADMIN_TG_IDS)
+
+
+@app.post('/api/admin/portal/status')
+def admin_portal_status():
+    if not _verified_admin():
+        return jsonify({'error': 'forbidden'}), 403
+    return jsonify({'configured': bool(os.environ.get('PORTAL_MARKET_TOKEN')),
+                    'available': False,
+                    'message': 'Portal Market requires a verified provider integration. No external prices are invented.'})
+
 from mines_routes import register_mines
 register_mines(app, db, get_user, upsert_user)
 
