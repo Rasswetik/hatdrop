@@ -2894,6 +2894,21 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .chance-custom input:disabled { opacity: .5; }
 /* Admin section chooser */
+#adminModal { overflow:hidden; overscroll-behavior:contain; touch-action:pan-y; }
+#adminModal .modal-card { width:min(100% - 20px, 460px); max-width:460px; min-width:0; max-height:calc(100dvh - 28px); overflow-x:hidden; overflow-y:auto; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; box-sizing:border-box; }
+#adminModal .modal-card > * {min-width:0; max-width:100%;}
+#adminModal .adm-box { min-width:0; max-width:100%; overflow-wrap:anywhere; padding:10px; border-radius:10px; background:var(--card); border:1px solid var(--card-line); }
+#adminModal input, #adminModal select, #adminModal button { max-width:100%; box-sizing:border-box; }
+#adminModal #admPromos > .adm-box > .gp-search { display:block; width:100%; min-width:0; margin:0 0 9px; border-radius:9px; padding:12px; font-size:10px; border:2px solid var(--card-line); background:var(--track-bg); color:var(--text); }
+#adminModal #admPromoChoose, #adminModal #admPromoCreate, #adminModal .adm-form button, .adm-promo-picker-close { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:10px 12px; font:inherit; font-size:10px; line-height:1.4; cursor:pointer; color:var(--text); background:var(--violet-dark); border:2px solid var(--card-line); border-radius:10px; box-shadow:inset 1px 1px 0 rgba(255,255,255,.14),0 2px 0 rgba(0,0,0,.2); }
+#adminModal #admPromoChoose { width:100%; margin:3px 0 10px; }
+#adminModal #admPromoCreate { width:100%; min-height:52px; color:#281500; background:var(--gold); border-color:var(--gold-dark); font-size:11px; margin-top:10px; }
+#adminModal #admPromoCreate:active, #adminModal #admPromoChoose:active { transform:translateY(1px); }
+#adminModal .adm-form { min-width:0; max-width:100%; }
+#adminModal .adm-form > button { flex:1 1 110px; min-width:0; white-space:normal; }
+#adminModal .adm-form > button.danger { background:#782d32; }
+.adm-promo-picker-close { width:100%; margin-top:10px; }
+
 .adm-tabs.adm-home {display:flex;flex-direction:column;gap:10px;margin:18px 0}
 .adm-tabs.adm-home[hidden]{display:none!important}
 .adm-tabs.adm-home button{width:100%;min-height:64px;border-radius:10px;font-size:12px}
@@ -8683,7 +8698,7 @@ function admRenderPortals(res) {
   if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
   $('admPortalsStatus').textContent = parts.join(' · ');
   $('admPortalsKey').value = '';
-  $('admMrktStatus').textContent = [res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан',res.mrkt_refreshing ? 'идёт загрузка…' : '',res.mrkt_checked ? `проверено коллекций: ${res.mrkt_checked}` : '',res.mrkt_error ? `ошибка: ${res.mrkt_error}` : ''].filter(Boolean).join(' · ');
+  $('admMrktStatus').textContent = [res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан',res.mrkt_refreshing ? 'идёт загрузка…' : '',`проверено: ${res.mrkt_checked || 0}/${res.mrkt_total || 0}`,`моделей: ${res.mrkt_models || 0}`,res.mrkt_error ? `ошибка: ${res.mrkt_error}` : ''].filter(Boolean).join(' · ');
 }
 
 async function admSavePortals(clear) {
@@ -8699,9 +8714,7 @@ async function admSavePortals(clear) {
 
 function admRenderMarket(res) {
   admRenderPortals(res);
-  $('admMarketNote').textContent = admin.portals === false
-    ? 'Автообновление выключено: вставь ключ Portals (Authorization) выше. Цены можно менять вручную.'
-    : 'Цена — флор коллекции с Portals. Модели и их цены подгружаются автоматически (обновление раз в 30 минут).';
+  $('admMarketNote').textContent = 'Portals и MRKT обновляются отдельно. MRKT получает модели и их минимальные цены из /api/v1/gifts/models. Цены коллекций можно менять вручную.';
   const list = $('admMarketList');
   list.textContent = '';
   for (const r of res.rows) {
@@ -8746,11 +8759,11 @@ async function admLoadPromos() {
 async function admChoosePromoGift() {
   try {
     const catalog = await api('/api/gifts/catalog');
-    const modal = document.createElement('div'); modal.className = 'modal'; modal.style.zIndex = '9999';
+    const modal = document.createElement('div'); modal.className = 'modal adm-promo-picker'; modal.style.zIndex = '9999'; modal.style.overflowX='hidden';
     const panel = admField('div', {className: 'modal-card list-modal'});
-    panel.style.maxHeight = '85vh'; panel.style.overflowY = 'auto';
+    panel.style.maxHeight = '85dvh'; panel.style.width='min(100% - 20px, 460px)'; panel.style.maxWidth='460px'; panel.style.minWidth='0'; panel.style.overflowX='hidden'; panel.style.overflowY='auto';
     const search = admField('input', {className: 'gp-search', placeholder:'Поиск подарка'});
-    const list = admField('div', {className:'gift-list'});
+    const list = admField('div', {className:'gift-list'}); list.style.gridTemplateColumns='repeat(3,minmax(0,1fr))'; list.style.width='100%';
     const render = () => { list.replaceChildren();
       for (const g of catalog.items.filter(g=>g.name.toLowerCase().includes(search.value.toLowerCase()))) {
         const b=admField('button',{type:'button',className:'gift-item'});
@@ -8761,7 +8774,7 @@ async function admChoosePromoGift() {
       }
     };
     search.oninput=render; render();
-    const close=admField('button',{type:'button',textContent:'Закрыть'}); close.onclick=()=>modal.remove();
+    const close=admField('button',{type:'button',className:'adm-promo-picker-close',textContent:'✕ Закрыть выбор'}); close.onclick=()=>modal.remove();
     panel.append(search,list,close);modal.append(panel); document.body.append(modal); modal.hidden=false;
   } catch(e) { admErr(e); }
 }
@@ -8780,7 +8793,7 @@ function initAdmin() {
   });
   $('admClose').addEventListener('click', () => { $('adminModal').hidden = true; });
   $('adminModal').addEventListener('click', (e) => { if (e.target.id === 'adminModal') $('adminModal').hidden = true; });
-  $('admBack').addEventListener('click', () => admShow(admin.key ? 'users' : 'home'));
+  $('admBack').addEventListener('click', () => admShow(admin.tab === 'user' ? 'users' : 'home'));
   document.querySelectorAll('#admTabs button').forEach((b) => b.addEventListener('click', () => admShow(b.dataset.tab)));
   $('admSearch').addEventListener('input', () => {
     clearTimeout(admin.timer);
