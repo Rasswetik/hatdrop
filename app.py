@@ -1093,6 +1093,9 @@ def start_bot():
     threading.Thread(target=_bot_supervisor, name='tg-bot', daemon=True).start()
 
 
+from mines_routes import register_mines
+register_mines(app, db, get_user, upsert_user)
+
 start_bot()
 
 
