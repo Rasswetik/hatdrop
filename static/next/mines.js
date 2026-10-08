@@ -10,6 +10,9 @@ const api=async(path,body={})=>{
  return data;
 };
 const error=e=>{status.textContent='Ошибка: '+e.message;};
+const modal=document.getElementById('minesResultModal');
+document.getElementById('minesResultClose')?.addEventListener('click',()=>{modal.hidden=true;});
+
 const apply=d=>{
  game=d;board.replaceChildren();
  (d.cells||Array(25).fill(null)).forEach((v,i)=>{
@@ -30,7 +33,7 @@ const apply=d=>{
  if(d.balance_ton!==undefined){const b=document.getElementById('balanceValue');if(b)b.textContent=Number(d.balance_ton).toFixed(2);}
  if(d.result==='win'||d.result==='lose')window.setTimeout(()=>window.hatMinesRefresh?.(),4500);
 };
-const act=async(path,body={})=>{if(busy)return;busy=true;try{const d=await api(path,body);apply(d);}catch(e){error(e);}finally{busy=false;}};
+const act=async(path,body={})=>{if(busy)return;busy=true;try{const d=await api(path,body);apply(d);if(d.result && (path==='/api/mines/open'||path==='/api/mines/cashout')){document.getElementById('minesResultIcon').textContent=d.result==='win'?'💰':'🪹';document.getElementById('minesResultTitle').textContent=d.result==='win'?'ПОБЕДА!':'ПРОИГРЫШ';document.getElementById('minesResultText').textContent=d.result==='win'?'Выигрыш: '+Number(d.payout_ton||d.bet*d.multiplier).toFixed(2)+' TON':'Попался пустой мешок';modal.hidden=false;}}catch(e){error(e);}finally{busy=false;}};
 start.addEventListener('click',()=>act('/api/mines/start',{bet:document.getElementById('minesBet').value,mines:document.getElementById('minesCount').value}));
 cash.addEventListener('click',()=>act('/api/mines/cashout'));
 window.hatMinesRefresh=async()=>{try{apply(await api('/api/mines/state'));}catch(e){error(e);}};
