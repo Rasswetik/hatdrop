@@ -29,6 +29,17 @@ PORTALS_AUTH = os.environ.get("PORTALS_AUTH", "")
 GIFT_IMG_TEMPLATE = os.environ.get(
     "GIFT_IMG_TEMPLATE", "https://cdn.changes.tg/gifts/models/{name}/png/{model}.png"
 )
+# Запасные источники PNG модели (через запятую в GIFT_IMG_FALLBACKS). Пробуются по очереди.
+GIFT_IMG_FALLBACKS = [t.strip() for t in os.environ.get(
+    "GIFT_IMG_FALLBACKS",
+    "https://cdn.changes.tg/gifts/models/{name}/png/{model}.png,"
+    "https://cdn.changes.tg/gifts/models/{name_nospace}/png/{model}.png",
+).split(",") if t.strip()]
+# Картинка коллекции целиком (когда модель неизвестна)
+GIFT_THUMB_TEMPLATES = [
+    "https://fragment.com/file/gifts/{slug_lower}/thumb.webp",
+    "https://cdn.changes.tg/gifts/originals/{name}/Original.png",
+]
 
 START_BALANCE = 10.0
 PROMO_CODES = {"DEMO": 10.0}
@@ -241,7 +252,7 @@ def gift_models(slug):
 
 def gift_image(slug, model=""):
     suffix = f"&m={quote(model)}" if model else ""
-    return f"/gimg/{slug}.webp?v=4{suffix}"
+    return f"/gimg/{slug}.webp?v=5{suffix}"
 
 
 def gift_price(slug, model):
@@ -1156,6 +1167,32 @@ def apply_tier_values():
                 break
 
 
+def fetch_collection_filters(c):
+    """Модели и фоны коллекции. Сначала с ключом, затем публично; рабочий путь запоминается."""
+    paths = [
+        f"/collections/filters?short_name={quote(c['short'])}",
+        f"/collections/filters?collection_id={quote(c['id'])}",
+        f"/collections/{quote(c['id'])}/filters",
+        f"/collections/filters?name={quote(c['name'])}",
+    ]
+    n = len(paths)
+    first = _filters_first["i"] % n
+    last_err = None
+    for step in range(n):
+        idx = (first + step) % n
+        try:
+            models, backdrops = parse_filters(portals_get([paths[idx]], public_ok=True))
+        except PortalsError as e:
+            last_err = e
+            continue
+        if models:
+            _filters_first["i"] = idx
+            return models, backdrops
+    if last_err:
+        raise last_err
+    return {}, {}
+
+
 def portals_refresh_worker():
     if PORTALS_STATE["running"]:
         return
@@ -1164,7 +1201,8 @@ def portals_refresh_worker():
         collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"], public_ok=True))
         if not collections:
             raise PortalsError("Portals вернул пустой список коллекций")
-        new, filter_fails, models_total = {}, 0, 0
+        new, models_total, consecutive_fails, no_models = {}, 0, 0, 0
+        last_error = ""
         for c in collections:
             slug = re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"])
             old = CATALOG.get(slug, {})
@@ -1172,24 +1210,21 @@ def portals_refresh_worker():
                 "name": c["name"], "short": c["short"], "floor": money(c["floor"] or old.get("floor") or 1.0),
                 "pop": int(c["volume"]), "models": old.get("models", []), "backdrops": old.get("backdrops", {}),
             }
-            if filter_fails < 3:
-                q = quote(c["short"])
-                paths = [
-                    f"/collections/filters?short_name={q}",
-                    f"/collections/filters?collection_id={quote(c['id'])}",
-                    f"/collections/{quote(c['id'])}/filters",
-                ]
-                i = _filters_first["i"]
-                paths = paths[i:] + paths[:i]
+            # 8 ошибок подряд - Portals, скорее всего, ограничил частоту; остальным оставляем прошлые модели
+            if consecutive_fails < 8:
                 try:
-                    models, backdrops = parse_filters(portals_get(paths))
+                    models, backdrops = fetch_collection_filters(c)
+                    consecutive_fails = 0
                     if models:
                         entry["models"] = [{"model": m, "floor": money(f)} for m, f in sorted(models.items(), key=lambda kv: kv[1])]
                         entry["backdrops"] = {b: money(f) for b, f in backdrops.items()}
                 except PortalsError as e:
-                    filter_fails += 1
-                    PORTALS_STATE["error"] = f"модели не загрузились: {e}"
-                time.sleep(0.12)
+                    consecutive_fails += 1
+                    last_error = f"модели не загрузились: {e}"
+                    time.sleep(1.0)
+                time.sleep(0.15)
+            if not entry["models"]:
+                no_models += 1
             models_total += len(entry["models"])
             new[slug] = entry
         with lock:
@@ -1197,7 +1232,12 @@ def portals_refresh_worker():
             CATALOG.update(new)
             apply_tier_values()
             save_catalog()
+        IMG_CACHE.clear()
         PORTALS_STATE.update(updated=int(time.time()), gifts=len(new), models=models_total)
+        if models_total == 0:
+            PORTALS_STATE["error"] = last_error or "модели не пришли ни для одной коллекции"
+        elif no_models:
+            PORTALS_STATE["error"] = f"модели получены, но у {no_models} коллекций их пока нет" + (f" ({last_error})" if last_error else "")
     except PortalsError as e:
         PORTALS_STATE["error"] = str(e)
     except Exception as e:
@@ -1215,11 +1255,11 @@ def portals_loop():
     time.sleep(5)
     while True:
         try:
-            if portals_auth():
-                portals_refresh_worker()
+            portals_refresh_worker()
         except Exception as e:
             print(f"portals loop: {e}", flush=True)
-        time.sleep(1800)
+        have_models = any(g.get("models") for g in CATALOG.values())
+        time.sleep(1800 if have_models else 300)
 
 
 @route("/api/admin/market")
@@ -1260,8 +1300,6 @@ def admin_market_set(user, body):
 @route("/api/admin/market/refresh")
 def admin_market_refresh(user, body):
     require_admin(user)
-    if not portals_auth():
-        raise ApiError("portals_not_configured")
     start_portals_refresh()
     return {"rows": market_rows(), "refreshing": True, **portals_status()}
 
@@ -1290,17 +1328,71 @@ def gift_svg(slug, model=""):
 
 
 IMG_CACHE = {}
+IMG_FAIL_TTL = 600
 
 
-def fetch_gift_image(name, model):
-    url = GIFT_IMG_TEMPLATE.format(name=quote(name), model=quote(model))
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=6) as resp:
+def _download_image(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "image/png,image/webp,image/*;q=0.8"})
+    with urllib.request.urlopen(req, timeout=8) as resp:
         data = resp.read(3_000_000)
-        ctype = resp.headers.get("Content-Type", "image/png")
-    if not ctype.startswith("image/") or not data:
+        ctype = resp.headers.get("Content-Type", "image/png").split(";")[0].strip()
+    if not data or not (ctype.startswith("image/") or data[:4] == b"\x89PNG" or data[:4] == b"RIFF"):
         raise ValueError("not an image")
+    if not ctype.startswith("image/"):
+        ctype = "image/png" if data[:4] == b"\x89PNG" else "image/webp"
     return data, ctype
+
+
+def _first_image(urls):
+    seen = set()
+    for url in urls:
+        if url in seen:
+            continue
+        seen.add(url)
+        try:
+            return _download_image(url)
+        except Exception:
+            continue
+    return None
+
+
+def fetch_gift_image(name, model, slug=""):
+    """PNG модели подарка. Возвращает (bytes, mimetype) или None."""
+    q_name, q_model = quote(name), quote(model)
+    ctx = {"name": q_name, "model": q_model, "name_nospace": quote(name.replace(" ", ""))}
+    urls = []
+    for tpl in [GIFT_IMG_TEMPLATE] + GIFT_IMG_FALLBACKS:
+        try:
+            urls.append(tpl.format(**ctx))
+        except (KeyError, IndexError):
+            continue
+    return _first_image(urls)
+
+
+def fetch_collection_image(name, slug):
+    ctx = {"name": quote(name), "slug_lower": slug.lower(), "name_nospace": quote(name.replace(" ", ""))}
+    urls = []
+    for tpl in GIFT_THUMB_TEMPLATES:
+        try:
+            urls.append(tpl.format(**ctx))
+        except (KeyError, IndexError):
+            continue
+    return _first_image(urls)
+
+
+def _cached_image(key, loader):
+    now = time.time()
+    hit = IMG_CACHE.get(key)
+    if hit is not None and (hit[0] is not None or now - hit[1] < IMG_FAIL_TTL):
+        return hit[0]
+    if len(IMG_CACHE) > 2500:
+        IMG_CACHE.clear()
+    try:
+        data = loader()
+    except Exception:
+        data = None
+    IMG_CACHE[key] = (data, now)
+    return data
 
 
 @app.get("/gimg/<slug>.webp")
@@ -1308,25 +1400,21 @@ def gimg(slug):
     entry = gifts_map().get(slug)
     if not entry:
         return ("", 404)
-    model = request.args.get("m", "")[:64]
+    asked = request.args.get("m", "")[:64]
+    model = asked
     if not model and entry.get("models"):
         model = entry["models"][0]["model"]
-    if CATALOG and slug in CATALOG and model:
-        key = (slug, model)
-        if key not in IMG_CACHE:
-            if len(IMG_CACHE) > 1500:
-                IMG_CACHE.clear()
-            try:
-                IMG_CACHE[key] = fetch_gift_image(entry["name"], model)
-            except Exception:
-                IMG_CACHE[key] = None
-        hit = IMG_CACHE[key]
-        if hit:
-            resp = app.response_class(hit[0], mimetype=hit[1])
-            resp.headers["Cache-Control"] = "public, max-age=604800"
-            return resp
-    resp = app.response_class(gift_svg(slug, request.args.get("m", "")[:32]), mimetype="image/svg+xml")
-    resp.headers["Cache-Control"] = "public, max-age=3600"
+    hit = None
+    if model:
+        hit = _cached_image((slug, model), lambda: fetch_gift_image(entry["name"], model, slug))
+    if not hit:
+        hit = _cached_image((slug, ""), lambda: fetch_collection_image(entry["name"], slug))
+    if hit:
+        resp = app.response_class(hit[0], mimetype=hit[1])
+        resp.headers["Cache-Control"] = "public, max-age=604800"
+        return resp
+    resp = app.response_class(gift_svg(slug, asked[:32]), mimetype="image/svg+xml")
+    resp.headers["Cache-Control"] = "no-cache"
     return resp
 
 
