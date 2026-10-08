@@ -1,9 +1,4 @@
-/* ============================================================
-   Magic Upgrade — вертикальная мини-аппа 9:16
-   Пиксельная стилистика: шрифт Press Start 2P, блочные рамки,
-   никаких скруглений. У шрифта одно начертание, поэтому
-   font-weight везде 400 — синтетический жир мылит пиксели.
-   ============================================================ */
+
 :root {
   --sky-0: #0b0a2a;
   --violet: #8b4cf0;
@@ -21,14 +16,11 @@
   --card-line: #6b4bb8;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  /* Длительность прокрутки. Кнопка-молния вешает .fast на <body>,
-     и все анимации ускоряются разом — значения в одном месте. */
+  
   --spin-dur: 3.6s;
   --staff-dur: 3.7s;
-  /* Фон сцены — картинка и градиент под ней. Тиры оникс/блэк ниже
-     переопределяют оба, весь остальной цвет уже держится на переменных
-     выше и перекрашивается сам. */
-  /* Колесо: проигрышная зона, обод, свечение, центр. Тиры задают свои. */
+  
+  
   --wheel-lose-a: #3a2a6b;
   --wheel-lose-b: #241a4a;
   --wheel-base: rgba(12, 8, 38, .6);
@@ -36,7 +28,7 @@
   --wheel-core-a: rgba(60, 35, 130, .85);
   --wheel-core-b: rgba(20, 12, 52, .92);
   --wheel-core-shine: rgba(140, 90, 255, .35);
-  /* Дорожка ползунка и главная кнопка */
+  
   --track-bg: #1a1040;
   --cta-edge: #2d1370;
   --cta-shine: #b07bff;
@@ -56,16 +48,8 @@ body.fast {
   --staff-dur: .65s;
 }
 
-/* ---------------------------------------------------- призовые тиры */
-/* Апгрейд один и тот же (шанс/бросок в JS и game.py не меняются) — тир
-   меняет только приз на кону и вот эту палитру. Раз почти все цвета в
-   файле уже заданы через var(), перекрасить интерфейс — это просто
-   переопределить переменные в одном месте.
 
-   Золото (--gold*) нарочно НЕ трогаем ни в одном тире: это тот же акцент,
-   что и на пряжке шляпы, и именно контраст «холодная база + тёплое золото»
-   делает тему приятной, а не проваливает всё в один плоский оттенок —
-   так и получилась предыдущая версия, которую забраковали. */
+
 body.tier-onyx {
   --sky-0: #14161c;
   --violet: #5c6579;
@@ -73,7 +57,7 @@ body.tier-onyx {
   --violet-dark: #2f3542;
   --card: rgba(30, 33, 41, 0.85);
   --card-line: #5a6273;
-  /* Колесо — холодная сталь с ледяным свечением */
+  
   --wheel-lose-a: #56607a;
   --wheel-lose-b: #2d3342;
   --wheel-base: rgba(16, 18, 24, .65);
@@ -102,7 +86,7 @@ body.tier-black {
   --violet-dark: #18181c;
   --card: rgba(14, 14, 17, 0.88);
   --card-line: #3c3c46;
-  /* Колесо — графит с тёплым золотым свечением */
+  
   --wheel-lose-a: #3a3740;
   --wheel-lose-b: #1a191e;
   --wheel-base: rgba(6, 6, 8, .7);
@@ -143,7 +127,7 @@ body { overflow: hidden; }
 
 button, input { font-family: inherit; font-weight: 400; }
 
-/* Пиксельные иконки из спрайта */
+
 .ic {
   width: 1em;
   height: 1em;
@@ -153,17 +137,16 @@ button, input { font-family: inherit; font-weight: 400; }
   flex: 0 0 auto;
 }
 
-/* ---------------------------------------------------------- сцена и фон */
+
 .stage {
   position: relative;
   width: 100%;
   height: 100dvh;
-  max-width: 480px;           /* 9:16 на широких экранах */
+  max-width: 480px;           
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  /* clip вместо hidden: фон шире кадра, и с hidden браузер прокручивал
-     контейнер вбок, когда кнопка получала фокус. clip запрещает прокрутку. */
+  
   overflow: hidden;
   overflow: clip;
   isolation: isolate;
@@ -180,15 +163,11 @@ button, input { font-family: inherit; font-weight: 400; }
   background: var(--bg-sky-grad);
 }
 
-/* Арт квадратный, а кадр вертикальный: прижимаем его к низу собственным
-   блоком и растворяем верх в небе — маска считается от размеров картинки,
-   поэтому шва не видно на любой высоте экрана. */
+
 .bg-art {
   inset: auto auto 0 50%;
   width: 132%;
-  /* Опускаем арт: иначе рука с посохом приходится ровно на карточки
-     интерфейса и анимации волшебника не видно. Сдвиг в процентах от
-     размера самой картинки, поэтому держится на любом экране. */
+  
   transform: translate(-50%, 24%);
   aspect-ratio: 1;
   background-image: var(--bg-art);
@@ -200,16 +179,15 @@ button, input { font-family: inherit; font-weight: 400; }
   opacity: .96;
 }
 
-/* ------------------------------------------------- посох волшебника */
-/* Вырезан из фона отдельным спрайтом. Размеры и точка вращения заданы
-   в процентах от картинки фона, поэтому совпадают на любом экране. */
+
+
 .staff {
   position: absolute;
   left: 23.046%;
   top: 29.266%;
   width: 15.789%;
   height: 26.874%;
-  transform-origin: 8.1% 97%;   /* кисть руки */
+  transform-origin: 8.1% 97%;   
   will-change: transform;
 }
 .staff img {
@@ -219,13 +197,9 @@ button, input { font-family: inherit; font-weight: 400; }
   image-rendering: pixelated;
 }
 
-/* Раскрутка: колебание с растущей частотой и размахом — маг «накручивает»
-   всё быстрее. Кадры посчитаны по синусу с ускорением, отсюда неровные
-   проценты. Делаем на CSS, а не покадрово из JS: анимация идёт на
-   композиторе, не зависит от загрузки страницы и экономит батарею. */
+
 .staff.charging { animation: staffSwirl var(--staff-dur) linear forwards; }
-/* Второй ритм: начинает медленнее, к концу заметно злее.
-   Выбирается случайно, чтобы прокрутки не были одинаковыми. */
+
 .staff.charging-wild { animation: staffSwirlWild var(--staff-dur) linear forwards; }
 
 @keyframes staffSwirlWild {
@@ -308,12 +282,12 @@ button, input { font-family: inherit; font-weight: 400; }
   100%    { transform: rotate(-3.95deg); }
 }
 
-/* Замах назад перед выстрелом */
+
 .staff.cast { transition: transform .16s steps(3, end); transform: rotate(-19deg); }
-/* Возврат в исходное положение */
+
 .staff.resting { transition: transform .9s ease-out; transform: rotate(0deg); }
 
-/* Заряд на конце посоха: разгорается, пока крутится апгрейд */
+
 .staff-orb {
   position: absolute;
   left: 51.5%;
@@ -341,29 +315,27 @@ button, input { font-family: inherit; font-weight: 400; }
   100% { opacity: .95; transform: translate(-50%, -50%) scale(1.1); }
 }
 
-/* Молния от посоха к шляпе: тянется всё ближе, пока крутится апгрейд */
+
 .bolt {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  /* Позади интерфейса, но поверх фона: молния не должна закрывать надписи */
+  
   z-index: -1;
   pointer-events: none;
   opacity: 0;
   transition: opacity .25s linear;
 }
-/* Прячем прозрачностью, а не атрибутом hidden: у SVG-элементов
-   свойство element.hidden из JS не убирает атрибут, и слой залипал скрытым. */
 
-/* Три слоя вместо одного: широкое сияние, средний контур и тонкая
-   белая жила. Так разряд выглядит объёмным, а не просто линией. */
+
+
 .bolt-halo, .bolt-aura, .bolt-mid, .bolt-core, .bolt-fork {
   fill: none;
   stroke-linecap: round;
-  stroke-linejoin: miter;   /* острые изломы, а не скруглённая верёвка */
+  stroke-linejoin: miter;   
 }
-/* Внешний ореол: широкий и сильно размытый, даёт свет вокруг разряда */
+
 .bolt-halo {
   stroke: rgba(255, 130, 25, .38);
   stroke-width: 34;
@@ -382,7 +354,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .bolt-core { stroke: #fffdf5; stroke-width: 2; }
 .bolt-fork { stroke: rgba(255, 224, 138, .7); stroke-width: 1.4; }
 
-/* Светящаяся голова разряда: мягкое пятно и яркое ядро */
+
 .bolt-tip-glow {
   fill: rgba(255, 205, 100, .6);
   filter: url(#boltHalo);
@@ -391,13 +363,13 @@ button, input { font-family: inherit; font-weight: 400; }
   fill: #fff;
   filter: url(#boltGlow);
 }
-/* Искры, бегущие вдоль разряда */
+
 .bolt-spark {
   fill: #fff3cf;
   filter: url(#boltGlow);
 }
 
-/* Попадание: разряд вспыхивает */
+
 .bolt.strike .bolt-halo { stroke: rgba(255, 200, 90, .45); stroke-width: 40; }
 .bolt.strike .bolt-aura { stroke: rgba(255, 224, 138, .7); stroke-width: 16; }
 .bolt.strike .bolt-mid  { stroke: rgba(255, 245, 210, .9); stroke-width: 7; }
@@ -405,7 +377,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .bolt.strike .bolt-tip  { r: 10; }
 .bolt.strike .bolt-tip-glow { r: 30; fill: rgba(255, 235, 170, .6); }
 
-/* Искры от удара по шляпе */
+
 .sparks {
   position: absolute;
   inset: 0;
@@ -426,11 +398,11 @@ button, input { font-family: inherit; font-weight: 400; }
   100% { transform: translate(var(--ex), var(--ey)) scale(.2);  opacity: 0; }
 }
 
-/* Выигранная шляпа улетает в иконку профиля */
+
 .prize-fly {
   position: absolute;
   left: 0; top: 0;
-  z-index: 7;                 /* поверх всего: это момент награды */
+  z-index: 7;                 
   width: 96px; height: auto;
   margin: -48px 0 0 -48px;
   image-rendering: pixelated;
@@ -439,10 +411,9 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 .prize-fly[hidden] { display: none; }
 
-/* Траектория полёта задаётся из JS точками кривой: тремя кадрами в CSS
-   браузер соединил бы их прямыми, и вместо дуги получалась ломаная. */
 
-/* Иконка профиля принимает приз */
+
+
 .tab.got { animation: tabGot .55s ease-out; }
 @keyframes tabGot {
   0%   { transform: scale(1); }
@@ -450,14 +421,13 @@ button, input { font-family: inherit; font-weight: 400; }
   100% { transform: scale(1); }
 }
 
-/* Сгусток, который летит от посоха к шляпе при выигрыше.
-   Координаты старта и финиша подставляет JS — они зависят от экрана. */
+
 .spell {
   position: absolute;
   left: 0; top: 0;
-  z-index: -1;              /* тоже за интерфейсом, как и молния */
+  z-index: -1;              
   width: 28px; height: 28px;
-  margin: -14px 0 0 -14px;      /* центр элемента в заданной точке */
+  margin: -14px 0 0 -14px;      
   border-radius: 50%;
   background: radial-gradient(circle,
               #fff 0%, var(--gold-soft) 32%, rgba(255, 192, 67, .6) 58%, transparent 74%);
@@ -498,7 +468,7 @@ button, input { font-family: inherit; font-weight: 400; }
     linear-gradient(180deg, rgba(6,4,24,.55) 0%, transparent 22%, transparent 70%, rgba(6,4,24,.72) 100%);
 }
 
-/* ---------------------------------------------------------------- шапка */
+
 .topbar {
   position: relative;
   display: flex;
@@ -520,7 +490,7 @@ button, input { font-family: inherit; font-weight: 400; }
   line-height: 1;
 }
 .balance .cur { color: var(--muted); font-size: 10px; }
-/* Баланс — кнопка пополнения: стоит справа, вместо «TON» в нём плюс */
+
 button.balance {
   margin-left: auto;
   font-family: inherit;
@@ -541,12 +511,9 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .wallet-btn[hidden], .tier-picker[hidden], .tab[hidden] { display: none; }
 
-/* ШляпоКоины в шапке: между «Подключить» и балансом. Чтобы три элемента
-   помещались на узком экране, шапка чуть плотнее: мельче шрифт и отступы. */
+
 .topbar { gap: 5px; }
-/* Коины и баланс свою ширину не уступают: число должно быть видно целиком.
-   Если места всё же не хватит (длинный баланс на узком телефоне), сжимается
-   кнопка «Подключить» — её подпись обрезается многоточием. */
+
 .topbar .wallet-btn {
   flex: 0 1 auto; min-width: 34px;
   padding: 9px 7px; font-size: 9px; gap: 4px;
@@ -576,7 +543,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .coin-hat  { fill: #6a35c9; }
 .coin-band { fill: #2a1500; }
 
-/* Кошелёк в окне пополнения: адрес, «Отвязать», «Сменить» */
+
 .dep-wallet {
   display: flex;
   align-items: center;
@@ -631,7 +598,7 @@ button.balance:active { transform: translate(1px, 1px); }
   font-size: 10px;
 }
 
-/* -------------------------------------------------------------- контент */
+
 .content {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -654,25 +621,21 @@ button.balance:active { transform: translate(1px, 1px); }
 .subtitle { margin: 4px 0 10px; font-size: 10px; color: var(--muted); text-align: center; }
 .subtitle span { color: var(--violet-soft); }
 
-/* --------------------------------------------------- режим «Три шляпы» */
-/* Вкладка целиком опущена к центру экрана: так до шляп и кнопки достаёт
-   большой палец, а не приходится тянуться к верху телефона. */
+
+
 .view-center {
   min-height: 100%;
   justify-content: flex-start;
   gap: 2px;
 }
-/* «Три шляпы»: название и подпись — у верха экрана, шляпы с подсказкой
-   стоят посередине того, что осталось (отступы auto сверху и снизу),
-   «Играть» и плашка приза — у низа. */
+
 #view-shell .title { margin-top: 6px; }
 .shell-subtitle { font-size: 13px; line-height: 1.5; margin-bottom: 0; }
 #view-shell .shell-table { margin-top: auto; }
 #view-shell .shell-hint { margin-bottom: auto; }
 #view-shell .shell-prize { margin: 8px auto 0; }
 
-/* Стол: шляпы лежат абсолютно и двигаются transform'ом — так перестановки
-   идут на композиторе и не дёргаются даже на слабом телефоне. */
+
 .shell-table {
   position: relative;
   width: 100%;
@@ -690,7 +653,7 @@ button.balance:active { transform: translate(1px, 1px); }
   will-change: transform;
 }
 
-/* Кликать можно только когда игра ждёт выбор */
+
 .shell-table.picking .shell-hat { cursor: pointer; }
 .shell-table.picking .shell-hat:active .shell-cap { transform: translateY(-8px); }
 
@@ -702,8 +665,7 @@ button.balance:active { transform: translate(1px, 1px); }
   filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .35));
 }
 
-/* Кот сидит под шляпой: он ниже по z-порядку и виден, только когда
-   шляпа подпрыгнула. Картинка — вырезанный кот из подарка Witch Hat. */
+
 .shell-cat {
   position: absolute;
   left: 50%;
@@ -714,7 +676,7 @@ button.balance:active { transform: translate(1px, 1px); }
   opacity: 0;
 }
 
-/* Кот вступления: висит над рядом шляп, ни к одной не привязан. */
+
 .shell-cat-intro {
   position: absolute;
   left: 50%;
@@ -727,17 +689,13 @@ button.balance:active { transform: translate(1px, 1px); }
   z-index: 2;
 }
 
-/* Под шляпой вместо кота — выбранный подарок: картинка квадратная и не
-   пиксель-арт, поэтому чуть меньше и со сглаживанием. */
+
 .shell-cat.is-gift { width: 64px; height: 64px; margin-left: -32px; object-fit: contain; image-rendering: auto; }
 .shell-cat-intro.is-gift { width: 84px; height: 84px; margin-left: -42px; object-fit: contain; image-rendering: auto; }
 
-/* Подъём шляпы и появление кота задаются из JS через element.animate():
-   одной цепочкой с перемешиванием их проще синхронизировать, и не надо
-   гадать, доиграл ли CSS-переход перед следующим шагом.
-   Стартовое состояние кота — здесь, остальное в app.js (shellLift). */
 
-/* Выбранная игроком шляпа — золотая подсветка */
+
+
 .shell-hat.chosen .shell-cap { filter: drop-shadow(0 0 8px var(--gold)) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
 .shell-hat.miss  .shell-cap { filter: grayscale(.6) brightness(.65) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
 
@@ -752,7 +710,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .shell-hint.win  { color: var(--green); }
 .shell-hint.lose { color: var(--red); }
 
-/* Приз «Трёх шляп»: плашка-кнопка, по нажатию открывается список подарков */
+
 .shell-prize {
   display: flex;
   align-items: center;
@@ -777,7 +735,7 @@ button.balance:active { transform: translate(1px, 1px); }
                       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell-prize-text small { font-size: 8px; line-height: 1.2; color: var(--muted);
                           overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* «сменить» — заметная золотая плашка: видно, что приз можно поменять */
+
 .shell-prize-edit {
   flex: 0 0 auto;
   padding: 5px 7px;
@@ -788,9 +746,8 @@ button.balance:active { transform: translate(1px, 1px); }
   box-shadow: inset 1px 1px 0 var(--gold-soft);
 }
 
-/* --------------------------------------------------------------- колесо */
-/* Ряд: колесо по центру, кнопка быстрой прокрутки прижата вправо.
-   Колесо остаётся ровно посередине экрана, кнопка на него не влияет. */
+
+
 .wheel-row {
   position: relative;
   width: 100%;
@@ -798,8 +755,7 @@ button.balance:active { transform: translate(1px, 1px); }
   justify-content: center;
 }
 
-/* Колесо крупное: почти во всю ширину экрана, но не выше 44% его высоты,
-   чтобы на невысоких телефонах ползунок и «Варить» оставались на виду. */
+
 .wheel-wrap {
   position: relative;
   width: min(88vw, 44vh, 350px);
@@ -809,11 +765,8 @@ button.balance:active { transform: translate(1px, 1px); }
   place-items: center;
 }
 
-/* Нижний ряд апгрейда: UP строго по центру, по бокам равные колонки.
-   margin-top: auto прижимает ряд к низу экрана, под большой палец. */
-/* Всё стоит одной плотной группой по центру экрана: надпись приза прямо над
-   колесом, ползунок и кнопки — сразу под ним. Расстояния колесо–ползунок и
-   ползунок–UP одинаковые (UPGRADE_GAP), свободное место уходит вверх и вниз. */
+
+
 #view-upgrade { min-height: 100%; justify-content: center; --upgrade-gap: 14px; }
 #view-upgrade .upgrade-prize { margin: 0 0 8px; }
 #view-upgrade .wheel-wrap { margin-bottom: 0; }
@@ -821,7 +774,7 @@ button.balance:active { transform: translate(1px, 1px); }
 #view-upgrade .hat-hint { margin: 6px auto 0; }
 .spin-row {
   width: 100%;
-  margin-top: calc(var(--upgrade-gap) + 12px);     /* кнопки чуть ниже ползунка */
+  margin-top: calc(var(--upgrade-gap) + 12px);     
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -829,7 +782,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .spin-side { display: flex; align-items: center; }
 
-/* Быстрая прокрутка — справа от UP, крупная */
+
 .fast-btn {
   width: 68px;
   height: 68px;
@@ -851,7 +804,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .fast-btn:active { transform: translate(1px, 1px); }
 
-/* Включено: заливка как у бегунка ползунка */
+
 .fast-btn[aria-pressed="true"] {
   background: var(--gold);
   border-color: var(--gold-dark);
@@ -871,9 +824,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 @keyframes pulse { 0%,100% { opacity:.55; } 50% { opacity:1; } }
 
-/* «Стекло» под колесом: диск размером с кольцо (радиус 132 из 150 — отступ
-   6%). Размывает фон за собой, слегка светлее его, со светлой кромкой и
-   косым бликом сверху слева — колесо читается как отдельный предмет. */
+
 .wheel-glass {
   position: absolute;
   inset: 6%;
@@ -890,7 +841,7 @@ button.balance:active { transform: translate(1px, 1px); }
     0 10px 34px rgba(0, 0, 0, .5);
   overflow: hidden;
 }
-/* Косой блик по стеклу */
+
 .wheel-glass::after {
   content: "";
   position: absolute;
@@ -906,25 +857,21 @@ button.balance:active { transform: translate(1px, 1px); }
 
 .lose-a { stop-color: var(--wheel-lose-a); }
 .lose-b { stop-color: var(--wheel-lose-b); }
-/* Заливка круга полупрозрачная — сквозь неё видно «стекло» под колесом */
+
 .ring-base {
   fill: var(--wheel-base);
   fill-opacity: .3;
   stroke: var(--card-line);
   stroke-width: 2;
 }
-/* Без плавного перехода: дуга должна стоять ровно там, где ползунок, в тот
-   же кадр. С переходом она отставала при быстром движении ползунка. */
+
 .ring-arc {
   fill: none;
   stroke-width: 18;
   stroke-linecap: butt;
 }
 
-/* Шкала процентов снаружи кольца, как на часах: числа на десятках и пустые
-   засечки между ними. В пределах выбранного шанса — зелёные (класс on).
-   Числа стоят у самого края рисунка, поэтому колесу разрешено выходить
-   за свою рамку — иначе крайние цифры обрезало бы. */
+
 .wheel { overflow: visible; }
 .wheel-scale text {
   font-size: 9px;
@@ -942,19 +889,18 @@ button.balance:active { transform: translate(1px, 1px); }
   filter: drop-shadow(0 0 5px rgba(255, 192, 67, .55));
 }
 .pointer.spinning { transition: transform var(--spin-dur) cubic-bezier(.12, .72, .12, 1); }
-/* Пиксельная стрелка: контур, заливка и блик — три слоя квадратов */
+
 .ptr-outline { fill: #2a1500; }
 .ptr-fill    { fill: var(--gold); }
 .ptr-shine   { fill: var(--gold-soft); }
 .ptr-dot     { fill: #2a1500; }
-/* Посох: дерево древка и светящийся кристалл на конце */
+
 .staff-wood       { fill: #8a5a2b; }
 .staff-wood-shine { fill: #b9804a; }
 .staff-gem        { fill: #4fc3ff; }
 .staff-gem-shine  { fill: #d9f5ff; }
 
-/* Круга вокруг шляпы нет — она стоит прямо в колесе. Сам блок остался:
-   по нему считаются полёт приза, молния и вспышка при попадании. */
+
 .wheel-center {
   position: relative;
   width: 46%;
@@ -963,8 +909,7 @@ button.balance:active { transform: translate(1px, 1px); }
   place-items: center;
   border-radius: 50%;
 }
-/* Приз в колесе медленно и плавно пульсирует золотым свечением — намекает,
-   что на него можно нажать и сменить. Пока идёт прокрутка, он застывает. */
+
 .hat {
   width: 76%;
   image-rendering: pixelated;
@@ -989,7 +934,7 @@ button.balance:active { transform: translate(1px, 1px); }
   50%     { transform: translate(-2px, 2px); }
 }
 
-/* ------------------------------------------------------ выбор приза */
+
 .tier-picker {
   display: flex;
   gap: 6px;
@@ -1013,9 +958,8 @@ button.balance:active { transform: translate(1px, 1px); }
   color: var(--gold);
 }
 
-/* ------------------------------------------------- ползунок режимов */
-/* Без рамки и фона: цена, шанс и ползунок стоят прямо на экране.
-   Ползунок по центру, не во всю ширину, но заметно шире кнопки «Варить». */
+
+
 .mode-picker {
   width: min(88%, 340px);
   align-self: center;
@@ -1023,13 +967,12 @@ button.balance:active { transform: translate(1px, 1px); }
   align-items: center;
   gap: 8px;
 }
-/* Трек с подписями: сверху цена, снизу шанс. Обе стоят над и под бегунком —
-   их сдвиг (--thumb-x) ставит app.js (applyMode) при каждом движении. */
+
 .mode-track {
   position: relative;
   flex: 1;
   min-width: 0;
-  padding: 26px 0 24px;      /* место под подписи над и под треком */
+  padding: 26px 0 24px;      
 }
 .mode-tag {
   position: absolute;
@@ -1039,11 +982,7 @@ button.balance:active { transform: translate(1px, 1px); }
   line-height: 1;
   pointer-events: none;
 }
-/* Цена стоит на одном месте — над серединой полоски, за бегунком не ездит
-   (за бегунком ездит только процент под ним). Значок TON закреплён, число
-   растёт от него вправо: когда сумма меняет длину (4 → 4.5 → 12.34),
-   значок не дёргается. Сдвиг -34px ставит значок чуть левее середины,
-   чтобы пара «значок + число» в среднем смотрелась по центру. */
+
 .mode-cost {
   top: -3px;
   left: 50%;
@@ -1054,7 +993,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .mode-cost .ton-ico { width: 22px; height: 22px; flex: 0 0 auto; }
 .mode-chance { bottom: 0; font-size: 16px; color: var(--green); }
 
-/* Пиксельный range: квадратный трек и квадратный ползунок */
+
 #modeSlider {
   -webkit-appearance: none;
   appearance: none;
@@ -1065,9 +1004,7 @@ button.balance:active { transform: translate(1px, 1px); }
   cursor: pointer;
   margin: 0;
 }
-/* Полоска заполняется тем же зелёным, что дуга на колесе, — слева от бегунка,
-   до его середины (--fill ставит app.js). Справа от бегунка пусто: тёмный
-   фон, но со светлой каймой, чтобы полоска не терялась на фоне. */
+
 #modeSlider::-webkit-slider-runnable-track {
   height: 12px;
   background: linear-gradient(to right,
@@ -1121,7 +1058,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .mode-mark.active   { color: var(--text); }
 .mode-mark.active b { color: var(--gold); }
 
-/* --------------------------------------------------------------- кнопки */
+
 .cta {
   width: 100%;
   padding: 15px 8px;
@@ -1135,8 +1072,7 @@ button.balance:active { transform: translate(1px, 1px); }
   text-shadow: 2px 2px 0 rgba(0,0,0,.45);
 }
 .cta:active { transform: translate(1px, 1px); box-shadow: inset 2px 2px 0 var(--violet-dark); }
-/* Кнопка апгрейда — как затвор камеры: квадрат по центру внизу, под большим
-   пальцем, ничего не закрывает. Цвет — как у «Подключить», чтобы выделялась. */
+
 .cta.spin-btn {
   width: 94px;
   height: 94px;
@@ -1155,12 +1091,11 @@ button.balance:active { transform: translate(1px, 1px); }
               0 0 16px rgba(255, 192, 67, .45);
 }
 .cta.spin-btn:active { transform: translate(1px, 1px); box-shadow: inset 3px 3px 0 var(--gold-dark); }
-/* Не хватает баланса: кнопка приглушена, но нажимается — ведёт в пополнение */
+
 .cta.spin-btn.low { opacity: .6; box-shadow: inset 3px 3px 0 var(--gold-soft), inset -3px -3px 0 var(--gold-dark); }
 .cta.spin-btn:disabled { opacity: .45; }
 
-/* Заголовка «АПГРЕЙД» нет — строка с призом стала первой на экране, и она
-   крупнее обычной подписи: это главное, что игрок должен видеть. */
+
 .upgrade-prize { margin-top: 6px; font-size: 14px; line-height: 1.5; }
 .upgrade-prize span { color: var(--gold); }
 .cta:disabled {
@@ -1185,7 +1120,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .ghost:active { transform: translate(1px, 1px); }
 
-/* -------------------------------------------------------------- профиль */
+
 .profile-head {
   display: flex; align-items: center; gap: 12px;
   width: 100%;
@@ -1206,7 +1141,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .profile-meta { min-width: 0; flex: 1; }
 .pname { font-size: 13px; line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Уровень: золотая плашка в шапке профиля и полоска прогресса под ней */
+
 .profile-head { margin-bottom: 0; }
 .lvl-badge {
   flex: 0 0 auto;
@@ -1240,7 +1175,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .lvl-note { margin: 6px 0 0; font-size: 8px; line-height: 1.4; color: var(--muted); text-align: center; }
 
-/* Статистика: три плитки в ряд */
+
 .pstats { display: flex; gap: 6px; width: 100%; margin: 0 0 10px; }
 .pstat {
   flex: 1;
@@ -1262,7 +1197,7 @@ button.balance:active { transform: translate(1px, 1px); }
 .pstat-best img.is-gift { image-rendering: auto; }
 .pstat-best img[hidden] { display: none; }
 
-/* Заголовок «Мои призы» и кнопка «Продать всё» в одну строку */
+
 .section-row {
   width: 100%;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -1295,7 +1230,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 
 .prize-grid {
-  position: relative;   /* уходящая карточка висит поверх сетки, пока гаснет */
+  position: relative;   
   display: grid;  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
@@ -1307,13 +1242,10 @@ button.balance:active { transform: translate(1px, 1px); }
   border: 2px solid var(--card-line);
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
-/* Появление — только у новой карточки и только один раз (.fresh снимается
-   по окончании). Без fill-mode: карточка видна сама по себе, анимация —
-   украшение. С `both` карточки на скрытой вкладке залипали на opacity 0. */
+
 .prize-card.fresh { animation: popIn .22s ease-out; }
 @keyframes popIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: scale(1); } }
-/* Проданная карточка: гаснет и уходит. Конечное состояние задано самим
-   классом, поэтому fill-mode не нужен — см. комментарий у popIn. */
+
 .prize-card.leaving {
   z-index: 1;
   opacity: 0;
@@ -1332,8 +1264,7 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .prize-card .thumb img { width: 82%; image-rendering: pixelated; }
 
-/* Плашка приза красится под его собственный тир, а не под текущую тему
-   вкладки — оникс лежит на сером, блэк на чёрном, всегда. */
+
 .prize-card .thumb.thumb-onyx {
   background: radial-gradient(circle at 50% 40%, rgba(140, 148, 168, .55), rgba(20, 22, 28, .92));
   border-color: #545b6c;
@@ -1342,7 +1273,7 @@ button.balance:active { transform: translate(1px, 1px); }
   background: radial-gradient(circle at 50% 40%, rgba(70, 68, 78, .55), rgba(6, 6, 8, .95));
   border-color: #3c3c46;
 }
-/* Утешительный мишка — тёплый медовый фон под цвет самого мишки */
+
 .prize-card .thumb.thumb-bear {
   background: radial-gradient(circle at 50% 40%, rgba(214, 150, 72, .5), rgba(40, 22, 10, .92));
   border-color: #7a4d22;
@@ -1375,11 +1306,10 @@ button.balance:active { transform: translate(1px, 1px); }
   color: #7d74a8;
   cursor: default;
 }
-/* Вывод закрыт после пополнения подарком — на кнопке таймер */
+
 .wd-btn.locked { font-size: 7px; line-height: 1.4; color: var(--muted); }
 
-/* Продажа приза за баланс. Золотая, чтобы не путалась с зелёным выводом:
-   вывод — это деньги на кошелёк, продажа — на внутренний баланс. */
+
 .sell-btn {
   width: 100%;
   padding: 6px 1px;
@@ -1400,7 +1330,7 @@ button.balance:active { transform: translate(1px, 1px); }
   cursor: default;
 }
 
-/* ------------------------------------------------ реферальная программа */
+
 .ref-card {
   width: 100%;
   padding: 10px 12px;
@@ -1409,7 +1339,7 @@ button.balance:active { transform: translate(1px, 1px); }
   border: 2px solid var(--card-line);
 }
 
-/* Промокод в профиле: поле и кнопка в одну строку */
+
 .promo-card {
   width: 100%;
   display: flex;
@@ -1438,7 +1368,7 @@ button.balance:active { transform: translate(1px, 1px); }
   box-shadow: inset 2px 2px 0 var(--gold-soft), inset -2px -2px 0 var(--gold-dark);
   cursor: pointer;
 }
-/* Выбор языка в профиле */
+
 .lang-row {
   width: 100%;
   display: flex;
@@ -1458,13 +1388,12 @@ button.balance:active { transform: translate(1px, 1px); }
   cursor: pointer;
 }
 .lang-btn.on { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); }
-/* В пиксельном шрифте нет иероглифов — китайский рисуем системным шрифтом
-   (латиница и цифры остаются пиксельными). */
+
 .lang-btn:last-child,
 html[data-lang="zh"] body {
   font-family: "Press Start 2P", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
 }
-/* Иероглифы в 8–9 px не читаются — мелкие подписи в китайском крупнее */
+
 html[data-lang="zh"] .lvl-note,
 html[data-lang="zh"] .pstat small,
 html[data-lang="zh"] .pstat span,
@@ -1473,7 +1402,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .promo-btn:active { transform: translate(1px, 1px); }
 .promo-btn:disabled { opacity: .6; cursor: default; }
 
-/* Шапка целиком — кнопка: попасть пальцем проще, чем по значку */
+
 .ref-head {
   width: 100%;
   display: flex;
@@ -1493,8 +1422,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   color: var(--gold);
   line-height: 1.4;
 }
-/* Зелёный квадратик, когда есть что выводить — иначе свёрнутый блок
-   можно не открыть месяцами и не узнать, что там накопились деньги. */
+
 .ref-dot {
   width: 8px; height: 8px;
   background: var(--green);
@@ -1513,7 +1441,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .ref-chevron .ic { font-size: 16px; }
 .ref-head:active .ref-chevron { transform: translate(1px, 1px); }
-/* Поворот ровно на 180° — пиксели ложатся точно, картинка не мылится */
+
 .ref-head[aria-expanded="true"] .ref-chevron .ic { transform: rotate(180deg); }
 
 .ref-body { margin-top: 12px; }
@@ -1586,7 +1514,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
-/* --------------------------------------------------------------- таббар */
+
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -1607,8 +1535,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   line-height: 1;
   cursor: pointer;
 }
-/* В меню только иконки — крупные. Подпись спрятана от глаз, но не от
-   экранных читалок. */
+
 .tab .ic { font-size: 30px; }
 .tab-name {
   position: absolute;
@@ -1622,11 +1549,11 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   background: var(--violet-dark);
   border-color: var(--card-line);
 }
-/* Вкладок четыре: на узких телефонах «Три шляпы» иначе не влезает */
+
 .tab { white-space: nowrap; min-width: 0; }
 @media (max-width: 380px) { .tab { font-size: 8px; } .tabbar { gap: 4px; padding-left: 6px; padding-right: 6px; } }
 
-/* ------------------------------------------------------------ лидерборд */
+
 .lb-podium {
   display: grid;
   grid-template-columns: 1fr 1.18fr 1fr;
@@ -1643,7 +1570,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   background: var(--card);
   border: 2px solid var(--card-line);
 }
-/* Медальные цвета: золото, серебро, бронза */
+
 .lb-p1 {
   padding-top: 20px;
   border-color: var(--gold);
@@ -1669,7 +1596,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .lb-p3 .lb-medal { color: #2a1500; background: #e0a263; border-color: #7a4a1c;
                    box-shadow: inset 2px 2px 0 #ffd2a0, inset -2px -2px 0 #a86a33; }
 
-/* Приз — как подарок в Telegram: фон с узором (SVG) и анимированная модель */
+
 .lb-prize {
   position: relative;
   width: 100%;
@@ -1688,7 +1615,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .lb-prize.live .lb-poster { opacity: 0; }
 .lb-anim svg { display: block; }
 
-/* Таймер до итогов сезона */
+
 .lb-timer {
   display: flex; align-items: center; justify-content: center; gap: 10px;
   width: 100%;
@@ -1742,7 +1669,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   text-align: center;
 }
 
-/* Аватарка: буква на цветном фоне, сверху фото, если есть */
+
 .lb-ava {
   position: relative;
   flex: 0 0 auto;
@@ -1811,7 +1738,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .lb-row.top3 .lb-rank { color: #e0a263; }
 .lb-row.me { background: var(--violet-dark); box-shadow: inset 4px 0 0 var(--gold); }
 
-/* -------------------------------------------------------------- модалки */
+
 .modal {
   position: fixed; inset: 0;
   z-index: 50;
@@ -1925,7 +1852,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .warn { margin-top: 10px !important; font-size: 9px !important; color: var(--gold-soft) !important; }
 
-/* ------------------------------------------------- пополнение подарком */
+
 .gift-dep-btn { margin-top: 8px; background: #2d6bd6; border-color: #143c86;
                 box-shadow: inset 3px 3px 0 #7fb0ff, inset -3px -3px 0 #143c86; }
 .gift-modal { max-width: 360px; }
@@ -1949,7 +1876,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .gift-item.picked { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
 .gift-item img { width: 100%; aspect-ratio: 1; object-fit: cover; background: rgba(0, 0, 0, .25); }
-/* --------------------------------- выбор подарка для апгрейда */
+
 .gp-card { max-height: 86vh; display: flex; flex-direction: column; }
 .gp-head { display: flex; align-items: center; justify-content: center; gap: 8px; position: relative; }
 .gp-head h2 { margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1974,7 +1901,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   outline: none;
 }
 .gp-search:focus { border-color: var(--violet-soft); }
-/* Сортировка списка: три кнопки в ряд, выбранная — золотая */
+
 .gp-sort { display: flex; gap: 5px; margin-bottom: 8px; }
 .gp-sort button {
   flex: 1;
@@ -2011,20 +1938,20 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gp-item:active { transform: translate(1px, 1px); }
 .gp-item.active { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
 .gp-item img { width: 100%; aspect-ratio: 1; object-fit: contain; padding: 4px; background: rgba(0, 0, 0, .25); }
-/* Шляпа в списке — пиксель-арт, сглаживать её нельзя */
+
 .gp-hat img { image-rendering: pixelated; }
-/* Фоны шляпы — те же, что у призов в профиле */
+
 .gp-hat-onyx img { background: radial-gradient(circle at 50% 40%, rgba(140, 148, 168, .55), rgba(20, 22, 28, .92)); }
 .gp-hat-black img { background: radial-gradient(circle at 50% 40%, rgba(70, 68, 78, .55), rgba(6, 6, 8, .95)); }
 .gp-name { font-size: 7px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gp-price { font-size: 8px; color: var(--gold); }
-/* Фото подарка в центре колеса — не пиксель-арт, сглаживаем и скругляем */
+
 .hat.is-gift { image-rendering: auto; width: 70%; }
 .thumb-gift img { image-rendering: auto; object-fit: contain; }
-/* Шляпа в центре — кнопка выбора подарка */
+
 #centerHat { cursor: pointer; }
 #centerHat[hidden] { display: none; }
-/* Вопросик вместо шляпы, пока новичок не выбрал приз */
+
 .hat-q {
   width: 76%;
   aspect-ratio: 1;
@@ -2038,7 +1965,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   background: none;
   border: none;
   cursor: pointer;
-  animation: hatPulse 3.4s ease-in-out infinite;     /* пульсирует так же, как приз */
+  animation: hatPulse 3.4s ease-in-out infinite;     
 }
 .hat-q[hidden] { display: none; }
 .hat-q:active { transform: scale(.94); }
@@ -2072,7 +1999,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gift-how-text { margin: 0 0 10px; font-size: 9px; line-height: 1.8; white-space: pre-line; }
 .gift-tip { font-size: 8px; line-height: 1.7; }
 
-/* ----------------------------------------------------------------- тост */
+
 .toast {
   position: fixed;
   left: 50%; bottom: calc(90px + var(--safe-bottom));
@@ -2098,12 +2025,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 
 
-/* ================================================================
-   Тема «Поляна» — <html data-theme="meadow">
-   Живой пиксельный фон (scene.js), деревянные панели, пиксельные
-   подарки. Всё ниже действует только при этом атрибуте: убрать его
-   в index.html — и вернётся ночная тема с волшебником.
-   ================================================================ */
+
 .bg-scene, .bg-photo, .bg-video, .bg-dim { display: none; }
 
 html[data-theme="meadow"] .bg-scene,
@@ -2124,24 +2046,23 @@ html[data-theme="meadow"] .bg-video { object-fit: cover; object-position: center
 html[data-theme="meadow"] .bg-scene[hidden],
 html[data-theme="meadow"] .bg-photo[hidden],
 html[data-theme="meadow"] .bg-video[hidden] { display: none; }
-/* Холст с облаками и бабочками лежит поверх своей картинки */
+
 html[data-theme="meadow"] .bg-photo { z-index: -3; }
 html[data-theme="meadow"] .bg-video { z-index: -3; }
 
-/* На вкладках со списками (профиль, топ) фон приглушён — иначе текст
-   теряется на яркой траве. Вкладку ставит app.js (showView). */
+
 html[data-theme="meadow"] .bg-dim { background: rgba(20, 12, 6, 0); }
 html[data-theme="meadow"] body[data-view="profile"] .bg-dim,
 html[data-theme="meadow"] body[data-view="leaders"] .bg-dim { background: rgba(20, 12, 6, .5); }
 
-/* Ночного неба, волшебника с посохом, звёзд и молнии от посоха здесь нет */
+
 html[data-theme="meadow"] .bg-sky,
 html[data-theme="meadow"] .bg-stars,
 html[data-theme="meadow"] .bg-vignette,
 html[data-theme="meadow"] .bolt { display: none; }
 html[data-theme="meadow"] .bg-art { visibility: hidden; }
 
-/* Палитра: тёплое дерево вместо фиолетового стекла. Золото прежнее. */
+
 html[data-theme="meadow"] body {
   --sky-0: #3d9bee;
   --card: rgba(74, 42, 20, .93);
@@ -2154,8 +2075,7 @@ html[data-theme="meadow"] body {
 }
 html[data-theme="meadow"], html[data-theme="meadow"] body { background: #2f8fe8; }
 
-/* Текст прямо на фоне (заголовки, подсказки, подписи у колеса) — с тёмной
-   пиксельной обводкой, чтобы читался и на небе, и на траве. */
+
 html[data-theme="meadow"] .content {
   text-shadow: 2px 0 0 #24122e, -2px 0 0 #24122e, 0 2px 0 #24122e, 0 -2px 0 #24122e,
                2px 2px 0 #24122e, -2px 2px 0 #24122e, 2px -2px 0 #24122e, -2px -2px 0 #24122e;
@@ -2166,7 +2086,7 @@ html[data-theme="meadow"] .content svg text {
   stroke-width: 3px;
   stroke-linejoin: round;
 }
-/* Внутри панелей и кнопок обводка не нужна: там свой ровный фон */
+
 html[data-theme="meadow"] .content button,
 html[data-theme="meadow"] .content input,
 html[data-theme="meadow"] .profile-head,
@@ -2181,9 +2101,7 @@ html[data-theme="meadow"] .lvl-badge { text-shadow: none; }
 html[data-theme="meadow"] .title { text-shadow: 3px 3px 0 #5a2a00, -2px 0 0 #24122e, 2px 0 0 #24122e, 0 -2px 0 #24122e; }
 html[data-theme="meadow"] .subtitle { color: #fff6e2; }
 
-/* Колесо на «Поляне» — только кольцо: без тёмного стекла и размытия в
-   середине, сквозь него виден пенёк с фона. Фон подгоняет scene.js так,
-   чтобы пенёк стоял под центром колеса, а приз парил над ним. */
+
 html[data-theme="meadow"] .wheel-glass { display: none; }
 html[data-theme="meadow"] .ring-base { fill: none; stroke: #24122e; stroke-width: 3; }
 html[data-theme="meadow"] .wheel-center .hat {
@@ -2194,7 +2112,7 @@ html[data-theme="meadow"] .wheel-center .hat {
   50%      { transform: translateY(5px);  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, .5)); }
 }
 
-/* Деревянные панели: тёмная кромка и светлая фаска сверху */
+
 html[data-theme="meadow"] .balance,
 html[data-theme="meadow"] .coin-chip,
 html[data-theme="meadow"] .profile-head,
@@ -2214,7 +2132,7 @@ html[data-theme="meadow"] .lang-label,
 html[data-theme="meadow"] .section-title,
 html[data-theme="meadow"] .empty { color: #fff6e2; }
 
-/* Нижнее меню — деревянная доска */
+
 html[data-theme="meadow"] .tabbar {
   background:
     repeating-linear-gradient(90deg, rgba(0, 0, 0, .09) 0 2px, transparent 2px 46px),
@@ -2230,15 +2148,11 @@ html[data-theme="meadow"] .tab.active {
   box-shadow: inset 2px 2px 0 #8b5cf6, inset -2px -2px 0 #3b1a8a;
 }
 
-/* Подарки из каталога приходят маленькими пиксельными картинками
-   (app/catalog.py) — растягиваем без сглаживания */
+
 img[src*="/gimg/"] { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
 
 
-/* Нижнее меню «Поляны» — доска из картинки (assets/plank-*.webp): середина
-   тянется на всю ширину, по краям поверх неё лежат концы доски с листьями
-   и цветами. Концы выше самой доски в 1.61 раза и выступают над меню на
-   30% его высоты — так нарисована картинка. На нажатия не влияют. */
+
 html[data-theme="meadow"] .tabbar {
   position: relative;
   gap: 8px;
@@ -2276,9 +2190,8 @@ html[data-theme="meadow"] .tabbar::before { left: -24px; background-image: url("
 html[data-theme="meadow"] .tabbar::after { right: -24px; background-image: url("assets/plank-right.webp"); }
 
 
-/* ---------------------------------------------- перелистывание вкладок */
-/* Новая вкладка въезжает сбоку, копия старой (.view-ghost, её ставит
-   app.js) уезжает в другую сторону. Длительность — VIEW_SLIDE_MS в app.js. */
+
+
 .view-ghost {
   position: absolute;
   z-index: 1;
@@ -2300,9 +2213,7 @@ html[data-theme="meadow"] .view-ghost {
 }
 html[data-theme="meadow"] .view-ghost :is(button, input, .profile-head, .lvl-row, .pstat, .ref-card, .prize-card, .lb-row, .lb-me, .lb-place, .lvl-badge, .upgrade-prize) { text-shadow: none; }
 
-/* Кнопки нижнего меню «Поляны» — объёмные: светлая фаска сверху, тёмная
-   «толщина» снизу. При нажатии кнопка утапливается на эту толщину.
-   z-index — чтобы концы доски с листьями не перекрывали край крайних кнопок. */
+
 html[data-theme="meadow"] .tabbar { padding-top: 9px; padding-bottom: calc(14px + var(--safe-bottom)); }
 html[data-theme="meadow"] .tab {
   z-index: 1;
@@ -2356,9 +2267,7 @@ html[data-theme="meadow"] .tab.active:active {
     0 2px 3px rgba(0, 0, 0, .35);
 }
 
-/* Колесо «Поляны», как на макете: тёмно-синее кольцо с зелёной дугой шанса,
-   по обеим кромкам — голубая неоновая линия, дуга и кромки светятся.
-   Меняются только цвета и свечение: геометрия колеса, шкала и стрелка те же. */
+
 .ring-edge { display: none; }
 html[data-theme="meadow"] body {
   --wheel-lose-a: #2f36b0;
@@ -2384,8 +2293,7 @@ html[data-theme="meadow"] .wheel-scale text.on { fill: #b9ffd9; }
 html[data-theme="meadow"] .wheel-scale line { stroke: #a9d4ff; }
 html[data-theme="meadow"] .wheel-scale line.on { stroke: #7ef7b0; }
 
-/* UP и молния — две золотые кнопки с макета: тёмно-коричневая рамка, внутри
-   светлая рамка-фаска, значок тёмный. Нажимаются с утапливанием. */
+
 html[data-theme="meadow"] .cta.spin-btn,
 html[data-theme="meadow"] .fast-btn {
   color: #3a1f00;
@@ -2414,7 +2322,7 @@ html[data-theme="meadow"] .fast-btn:active:not(:disabled) {
     0 2px 3px rgba(0, 0, 0, .35);
 }
 html[data-theme="meadow"] .cta.spin-btn:disabled { filter: grayscale(.55) brightness(.82); cursor: default; }
-/* Быстрая прокрутка включена — кнопка остаётся нажатой и светится */
+
 html[data-theme="meadow"] .fast-btn[aria-pressed="true"] {
   transform: translateY(3px);
   background: linear-gradient(180deg, #ffe07a 0%, #ffc640 100%);
@@ -2428,19 +2336,17 @@ html[data-theme="meadow"] .fast-btn[aria-pressed="true"] {
 }
 
 
-/* --- «Поляна»: скруглённые кнопки и плашки с обводкой по всему периметру,
-   полоска шанса и значки монет — как на макете --- */
+
 .coin-ico, .ton-ico { image-rendering: pixelated; object-fit: contain; }
 html[data-theme="meadow"] .topbar .coin-ico { width: 20px; height: 20px; }
 html[data-theme="meadow"] .topbar .balance .ton-ico { width: 19px; height: 19px; }
 html[data-theme="meadow"] .mode-cost .ton-ico { width: 26px; height: 26px; }
 
-/* UP и молния: скруглённые углы */
+
 html[data-theme="meadow"] .cta.spin-btn { border-radius: 12px; }
 html[data-theme="meadow"] .fast-btn { border-radius: 10px; }
 
-/* Шапка: «Подключить», коины и баланс — скруглённые, тёмная обводка вокруг
-   всей плашки (раньше край терялся на фоне), внутри светлая фаска */
+
 html[data-theme="meadow"] .topbar .wallet-btn,
 html[data-theme="meadow"] .topbar .balance,
 html[data-theme="meadow"] .topbar .coin-chip {
@@ -2460,9 +2366,7 @@ html[data-theme="meadow"] .topbar .coin-chip {
 }
 html[data-theme="meadow"] .topbar .bal-plus { border-radius: 4px; }
 
-/* Полоска шанса: жирная тёмно-синяя обводка, заполненная часть ярко-зелёная,
-   пустая — тёмно-зелёная (а не чёрная), концы скруглены. Подписи вокруг —
-   в такой же синей обводке. */
+
 html[data-theme="meadow"] #modeSlider::-webkit-slider-runnable-track {
   height: 16px;
   border: 3px solid #1b2070;
@@ -2497,15 +2401,13 @@ html[data-theme="meadow"] .mode-picker {
 html[data-theme="meadow"] .mode-edge { font-size: 14px; color: #ffffff; }
 html[data-theme="meadow"] .mode-cost { font-size: 18px; color: #ffc64a; }
 html[data-theme="meadow"] .mode-chance { font-size: 17px; color: #5dffc0; }
-/* Шапка на «Поляне» стала шире из-за обводок — поджимаем отступы, чтобы
-   «Подключить» помещалось целиком на телефоне 360–375 px */
+
 html[data-theme="meadow"] .topbar { gap: 4px; padding-left: 8px; padding-right: 8px; }
 html[data-theme="meadow"] .topbar .wallet-btn { padding: 8px 5px; font-size: 8.5px; gap: 3px; }
 html[data-theme="meadow"] .topbar .coin-chip { padding: 5px 5px; font-size: 10px; gap: 3px; }
 html[data-theme="meadow"] .topbar .balance { padding: 5px 5px; font-size: 11.5px; gap: 3px; }
 html[data-theme="meadow"] .topbar .coin-ico { width: 18px; height: 18px; }
-/* Нижнее меню: у невыбранных вкладок кнопки нет — только значок на доске.
-   Объёмная фиолетовая кнопка остаётся только у выбранной вкладки. */
+
 html[data-theme="meadow"] .tab:not(.active) {
   background: none;
   border-color: transparent;
@@ -2515,25 +2417,21 @@ html[data-theme="meadow"] .tab:not(.active) {
 }
 html[data-theme="meadow"] .tab:not(.active) .ic { filter: drop-shadow(0 3px 0 rgba(46, 26, 12, .85)); transition: transform .07s ease-out; }
 html[data-theme="meadow"] .tab:not(.active):active .ic { transform: translateY(3px) scale(.92); }
-/* ================================================================
-   «Поляна»: профиль, «Три шляпы», топ — плашки и кнопки по тому же
-   принципу, что на апгрейде: скруглённые углы, тёмная обводка по всему
-   периметру, светлая фаска внутри, «толщина» снизу, кнопки утапливаются.
-   ================================================================ */
 
-/* --- деревянные плашки --- */
+
+
 html[data-theme="meadow"] :is(.profile-head, .lvl-row, .ref-card, .prize-card, .lb-row, .lb-me, .shell-prize) {
   background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%);
   border: 3px solid #2e1a0c;
   border-radius: 10px;
   box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0, 0, 0, .3);
 }
-/* шапка профиля и полоска уровня — одна плашка из двух частей */
+
 html[data-theme="meadow"] .profile-head { border-radius: 10px 10px 0 0; box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d; }
 html[data-theme="meadow"] .lvl-row { border-top: 0; border-radius: 0 0 10px 10px; margin-bottom: 14px; }
 html[data-theme="meadow"] .lb-me { background: linear-gradient(180deg, #8f5a2c 0%, #744420 100%); border-color: #2e1a0c; }
 
-/* --- утопленные ячейки внутри плашек и поле ввода --- */
+
 html[data-theme="meadow"] :is(.pstat, .ref-stat, .ref-link-box, .promo-input, .lvl-bar) {
   background: #3f2411;
   border: 3px solid #2e1a0c;
@@ -2554,7 +2452,7 @@ html[data-theme="meadow"] .avatar {
 }
 html[data-theme="meadow"] .thumb { border-radius: 6px; overflow: hidden; }
 
-/* --- золотые кнопки --- */
+
 html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .ref-chevron, .shell-prize-edit, .lang-btn.on, .lvl-badge) {
   color: #3a1f00;
   text-shadow: none;
@@ -2579,7 +2477,7 @@ html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn):disabled {
   box-shadow: inset 2px 2px 0 #d2c2a6, inset -2px -2px 0 #85755c, 0 3px 0 #3a2c1c;
   cursor: default;
 }
-/* главная кнопка «Играть» в «Трёх шляпах» — крупнее и с толстой кромкой */
+
 html[data-theme="meadow"] #shellBtn {
   padding: 16px 8px;
   font-size: 15px;
@@ -2590,13 +2488,13 @@ html[data-theme="meadow"] #shellBtn:active:not(:disabled) {
   transform: translateY(4px);
   box-shadow: inset 0 0 0 3px #f2a52a, inset 3px 3px 0 3px #ffd77a, inset -3px -3px 0 3px #dc8f1c, 0 1px 0 #5a340a, 0 2px 3px rgba(0, 0, 0, .35);
 }
-/* маленькие кнопки в карточках призов: кромка тоньше, чтобы влезал текст */
+
 html[data-theme="meadow"] .prize-card :is(.sell-btn, .wd-btn) { border-width: 2px; border-radius: 7px; padding: 7px 1px; }
 html[data-theme="meadow"] .prize-card .sell-btn { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
 html[data-theme="meadow"] .lvl-badge { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
 html[data-theme="meadow"] .shell-prize-edit { border-width: 2px; border-radius: 7px; padding: 7px 8px; box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }html[data-theme="meadow"] .ref-chevron { border-radius: 8px; }
 
-/* --- зелёная кнопка вывода --- */
+
 html[data-theme="meadow"] .wd-btn {
   border-radius: 9px;
   border-width: 3px;
@@ -2616,7 +2514,7 @@ html[data-theme="meadow"] .wd-btn:not(.pending):not(:disabled):active {
 html[data-theme="meadow"] .wd-btn.pending { background: #4a3210; border-color: #7a4a10; color: #ffe08a; box-shadow: inset 0 2px 0 rgba(0, 0, 0, .35); }
 html[data-theme="meadow"] .wd-btn:disabled:not(.pending) { background: #5a4630; border-color: #3a2c1c; color: #c9b08a; box-shadow: inset 0 2px 0 rgba(0, 0, 0, .3); }
 
-/* --- деревянные кнопки второго плана: язык (невыбранный), «Пополнить» --- */
+
 html[data-theme="meadow"] :is(.lang-btn, .ghost) {
   color: #fff1d0;
   text-shadow: none;
@@ -2633,8 +2531,7 @@ html[data-theme="meadow"] .lang-row { margin-bottom: 18px; }
 html[data-theme="meadow"] .promo-card { margin-bottom: 18px; gap: 8px; }
 html[data-theme="meadow"] .prize-grid { row-gap: 12px; }html[data-theme="meadow"] .pstat { padding: 8px 2px; }
 html[data-theme="meadow"] .pstat b { font-size: 10px; white-space: nowrap; }
-/* «Три шляпы»: кнопка «Угадать» и плашка приза — компактные, по центру,
-   а не во всю ширину экрана */
+
 html[data-theme="meadow"] #shellBtn {
   width: auto;
   min-width: 190px;
@@ -2657,8 +2554,7 @@ html[data-theme="meadow"] #view-shell .shell-prize small { font-size: 7px; }
 html[data-theme="meadow"] #view-shell .shell-prize-edit { padding: 6px 7px; font-size: 8px; }
 html[data-theme="meadow"] #shellDepositBtn { width: auto; min-width: 190px; align-self: center; }
 
-/* Всплывающее уведомление («Продано…», про мишку, ошибки) — деревянная
-   плашка, как остальные: скругление, тёмная обводка, фаска, толщина снизу */
+
 html[data-theme="meadow"] .toast {
   bottom: calc(108px + var(--safe-bottom));
   max-width: min(86vw, 400px);
@@ -2685,18 +2581,15 @@ html[data-theme="meadow"] .toast.err {
 }
 
 
-/* Значки монет: у каждого дизайна свои. Старый — значок TON и нарисованная
-   монета, новый — кристалл и золотая монета-картинка. */
+
 .coin-new, .ton-new { display: none; }
 html[data-theme="meadow"] .coin-new, html[data-theme="meadow"] .ton-new { display: block; }
 html[data-theme="meadow"] .coin-old, html[data-theme="meadow"] .ton-old { display: none; }
-/* выбор дизайна и языка в китайском: подписи кнопок системным шрифтом */
+
 html[data-lang="zh"] #themeBtns .lang-btn { font-family: "Press Start 2P", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; }
 
-/* ---------------------------------------------- фон «Поляны» на всё окно */
-/* Раньше фон жил внутри колонки приложения (.stage, до 480 px) и на широком
-   экране по бокам оставалась пустота. Теперь он в .bg-wide под колонкой и
-   закрывает всё окно: на телефоне видна середина сцены, на компьютере — вся. */
+
+
 .bg-wide { display: none; }
 html[data-theme="meadow"] .bg-wide {
   display: block;
@@ -2710,16 +2603,16 @@ html[data-theme="meadow"] .bg-wide {
 html[data-theme="meadow"] .stage { z-index: 1; }
 html[data-theme="meadow"] .bg-photo { image-rendering: auto; }
 
-/* ------------------------------------------- стрелка-топор («Поляна») */
+
 .ptr-axe { display: none; }
 html[data-theme="meadow"] .pointer > * { display: none; }
 html[data-theme="meadow"] .pointer > .ptr-axe { display: inline; image-rendering: pixelated; }
 html[data-theme="meadow"] .pointer { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 6px rgba(255, 255, 255, .35)); }
 
-/* ----------------------------------- статистика профиля: всё по центру */
+
 .pstat { justify-content: center; }
 
-/* ------------------------------ профиль: «Топ уровней» и «История» */
+
 .profile-actions { display: flex; gap: 8px; width: 100%; margin: 0 0 10px; }
 .pbtn {
   flex: 1;
@@ -2733,7 +2626,7 @@ html[data-theme="meadow"] .pointer { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .
 }
 .pbtn:active { transform: translate(1px, 1px); }
 
-/* окна-списки: топ уровней, история */
+
 .list-modal { display: flex; flex-direction: column; max-height: 86vh; }
 .list-modal .gp-head h2, .list-modal > h2 { margin-bottom: 8px; }
 .list-modal .muted { margin: 0 0 10px; font-size: 8px; line-height: 1.7; }
@@ -2783,7 +2676,7 @@ html[data-theme="meadow"] .pointer { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .
 .hist-row.lose .hist-right b { color: #ff9aa4; }
 .hist-right small { font-size: 7px; line-height: 1.3; color: var(--gold); white-space: nowrap; }
 
-/* --- те же окна и кнопки в «Поляне»: дерево, скругления, обводка --- */
+
 html[data-theme="meadow"] .pbtn {
   color: #fff1d0;
   background: linear-gradient(180deg, #8a5429 0%, #6e401c 100%);
@@ -2823,7 +2716,7 @@ html[data-theme="meadow"] .list-modal .gp-back {
 }
 html[data-theme="meadow"] .modal { background: rgba(20, 12, 6, .72); }
 
-/* ------------------------------------- выбор оружия и бросок («Поляна») */
+
 .spin-side-left { position: relative; justify-content: flex-end; }
 .weapon-btn, .weapon-menu { display: none; }
 html[data-theme="meadow"] .weapon-btn { display: grid; }
@@ -2861,22 +2754,22 @@ html[data-theme="meadow"] .weapon-menu button.on {
 }
 html[data-theme="meadow"] .weapon-menu img { width: 26px; height: 26px; object-fit: contain; image-rendering: pixelated; }
 
-/* посох вместо топора, если игрок его выбрал */
+
 html[data-theme="meadow"][data-weapon="staff"] .pointer > * { display: inline; }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-axe { display: none; }
 
-/* пока стрелка летит — светится сильнее */
+
 html[data-theme="meadow"] .wheel-wrap.throwing .pointer {
   filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(255, 255, 255, .8)) drop-shadow(0 0 18px rgba(120, 200, 255, .7));
 }
 
 
-/* ------------------------------ шестерёнка: тип крутки («Поляна») */
+
 .gear-btn, .spin-menu { display: none; }
 .spin-side-right { position: relative; gap: 6px; }
 html[data-theme="meadow"] .gear-btn { display: grid; width: 42px; height: 42px; border-radius: 8px; }
 html[data-theme="meadow"] .gear-btn svg { width: 22px; height: 22px; fill: currentColor; }
-/* три кнопки по бокам от UP должны поместиться на телефоне 360 px */
+
 html[data-theme="meadow"] .spin-row { gap: 12px; }
 html[data-theme="meadow"] .spin-side .fast-btn:not(.gear-btn) { width: 58px; height: 58px; }
 html[data-theme="meadow"] .spin-side .ic-bolt { width: 22px; height: 30px; }
@@ -2884,9 +2777,8 @@ html[data-theme="meadow"] .weapon-menu.spin-menu { left: auto; right: 0; }
 html[data-theme="meadow"] .weapon-menu.spin-menu button { min-width: 112px; justify-content: center; padding: 9px 9px; }
 
 
-/* ------------------------------------- день / ночь («Поляна») */
-/* Кнопка стоит в правом верхнем углу квадрата колеса — круг туда не доходит.
-   Днём на ней солнце, ночью луна: показан текущий вид фона. */
+
+
 .sky-btn { display: none; }
 html[data-theme="meadow"] .sky-btn {
   position: absolute;
@@ -2909,38 +2801,34 @@ html[data-theme="meadow"] .sky-btn:active { transform: translateY(3px); box-shad
 html[data-sky="night"] .sky-btn .sky-sun { display: none; }
 html[data-sky="night"] .sky-btn .sky-moon { display: block; }
 html[data-theme="meadow"][data-sky="night"] .sky-btn { background: linear-gradient(180deg, #3a3f8f 0%, #262a6b 100%); border-color: #12143a; box-shadow: inset 2px 2px 0 #5d63c4, inset -2px -2px 0 #1b1e52, 0 4px 0 #12143a, 0 6px 6px rgba(0, 0, 0, .3); }
-/* ночью небо за окном тёмное */
+
 html[data-theme="meadow"][data-sky="night"] .bg-wide { background: #0b1030; }
 html[data-theme="meadow"][data-sky="night"], html[data-theme="meadow"][data-sky="night"] body { background: #0b1030; }
 
-/* стрелка возвращается на ноль после броска */
+
 .pointer.returning { transition: transform .55s cubic-bezier(.4, 0, .2, 1); }
 
-/* Пиксельный шрифт чёткий только на размерах, кратных 8 px: на 13 и 22 px
-   его точки попадают между точками экрана и буквы выглядят смазанными.
-   Заголовки вкладок и подпись «Трёх шляп» — на ровных размерах. */
+
 .title { font-size: 24px; }
 .shell-subtitle { font-size: 16px; line-height: 1.4; }
 @media (max-height: 700px) { .title { font-size: 16px; } }
 @media (max-width: 350px) { .shell-subtitle { font-size: 8px; line-height: 1.8; } }
-/* шляпа перерисована по ровной сетке — растягиваем без сглаживания */
+
 .shell-cap, .wheel-center .hat, .thumb img, .shell-prize img { image-rendering: pixelated; }
-/* Иконка оружия на кнопке и в меню — готовая квадратная картинка с предметом
-   по центру: без поворота, растягивается без сглаживания. */
+
 .weapon-btn img { width: 78%; height: 78%; transform: none; object-fit: contain; image-rendering: pixelated; }
 html[data-theme="meadow"] .weapon-menu img { width: 30px; height: 30px; }
 
-/* Иконки оружия наклонены на 50 градусов прямо в картинке (гладкие края клеток),
-   поэтому показываем их обычным сглаживанием, а не «по пикселям». */
+
 .weapon-btn img, html[data-theme="meadow"] .weapon-menu img { image-rendering: auto; }
 .weapon-btn img { width: 84%; height: 84%; }
-/* мишка перерисован по ровной сетке */
+
 img[src*="bear.png"] { image-rendering: pixelated; }
 
-/* ------------------------------------------------ подарки снова гладкие */
+
 img[src*="/gimg/"], .thumb-gift img { image-rendering: auto; }
 
-/* ----------------------------------------------------------------- меню */
+
 .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; margin-top: 18px; }
 .menu-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
@@ -2957,7 +2845,7 @@ img[src*="/gimg/"], .thumb-gift img { image-rendering: auto; }
 .menu-card:active { transform: translate(1px, 1px); }
 .menu-card .ic { font-size: 52px; }
 .menu-card img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
-/* возврат в меню со страниц «Три шляпы» и «Лидеры» */
+
 .view { position: relative; }
 .view-back {
   position: absolute; left: 0; top: 2px; z-index: 2;
@@ -2993,10 +2881,8 @@ html[data-theme="meadow"] .view-back {
 html[data-theme="meadow"] .view-back:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #ffd77a, inset -2px -2px 0 #dc8f1c; }
 html[data-theme="meadow"] body[data-view="menu"] .bg-dim { background: rgba(20, 12, 6, .25); }
 
-/* ---------------------------------- деревянное колесо («Поляна») */
-/* Обод — дерево с тёмной чёткой обводкой и двумя бороздками, зелёная дуга
-   шанса лежит на нём. Числа стоят на деревянных табличках на ножках, между
-   ними — колышки. Геометрия и логика колеса прежние, меняется только вид. */
+
+
 .ring-rim, .scale-plate, .scale-leg { display: none; }
 html[data-theme="meadow"] body {
   --wheel-lose-a: #b9722f;
@@ -3020,17 +2906,17 @@ html[data-theme="meadow"] .scale-plate.on { fill: #3f9a52; }
 html[data-theme="meadow"] .wheel-scale text { fill: #fff3d6; font-size: 8.5px; }
 html[data-theme="meadow"] .content .wheel-scale text { stroke: #2e1a0c; stroke-width: 2.5px; }
 html[data-theme="meadow"] .wheel-scale text.on { fill: #ffffff; }
-/* колышки между табличками */
+
 html[data-theme="meadow"] .wheel-scale line:not(.scale-leg) { stroke: #2e1a0c; stroke-width: 6; stroke-linecap: round; }
 html[data-theme="meadow"] .wheel-scale line.on:not(.scale-leg) { stroke: #2e1a0c; }
-html[data-theme="meadow"] .wheel-wrap { margin-top: 10px; }/* ножки и колышки — деревянные, с тёмной обводкой */
+html[data-theme="meadow"] .wheel-wrap { margin-top: 10px; }
 html[data-theme="meadow"] .scale-leg,
 html[data-theme="meadow"] .wheel-scale line:not(.scale-leg),
 html[data-theme="meadow"] .wheel-scale line.on:not(.scale-leg) {
   stroke: #c98a4b; stroke-width: 4;
   filter: drop-shadow(1px 0 0 #2e1a0c) drop-shadow(-1px 0 0 #2e1a0c) drop-shadow(0 1px 0 #2e1a0c) drop-shadow(0 -1px 0 #2e1a0c);
 }
-/* числа на табличках: тонкая обводка, чтобы дерево таблички было видно */
+
 html[data-theme="meadow"] .wheel-scale text { font-size: 9.5px; }
 html[data-theme="meadow"] .content .wheel-scale text { stroke: #2e1a0c; stroke-width: 1.6px; }
 html[data-theme="meadow"] .scale-plate { fill: #b9722f; stroke-width: 2.2; }
@@ -3044,9 +2930,8 @@ html[data-theme="meadow"] .wheel-scale line.scale-leg.on {
   filter: drop-shadow(1px 0 0 #2e1a0c) drop-shadow(-1px 0 0 #2e1a0c) drop-shadow(0 1px 0 #2e1a0c) drop-shadow(0 -1px 0 #2e1a0c);
 }
 
-/* ------------------------------------------- настройки (окно в профиле) */
-/* Шестерёнка в правом верхнем углу профиля открывает окно с языком,
-   дизайном и режимом анонима — раньше эти строки занимали сам профиль. */
+
+
 .view-gear { left: auto; right: 0; }
 .view-gear svg { width: 18px; height: 18px; fill: currentColor; }
 .settings-modal { text-align: left; }
@@ -3066,12 +2951,10 @@ html[data-theme="meadow"] .settings-modal .lang-btn { padding: 7px 7px; box-shad
 html[data-theme="meadow"] .settings-modal .lang-btn.on { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
 
 
-/* Подарок в центре колеса всегда вписан в квадрат: высокая картинка (флакон,
-   свеча) уменьшается по высоте, а не вылезает за кольцо. */
+
 .wheel-center .hat.is-gift { width: 78%; height: 78%; object-fit: contain; image-rendering: auto; }
 img[src*="/gimg/"] { object-fit: contain; }
-/* Квадрат центра колеса задан жёстко: без этого высокая картинка растягивала
-   его по высоте вместе с собой. */
+
 .wheel-center { height: 46%; aspect-ratio: auto; min-height: 0; overflow: visible; }
 .wheel-center .hat.is-gift { min-height: 0; max-height: 78%; }
 .lb-podium[hidden] { display: none; }
