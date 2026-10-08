@@ -5,6 +5,8 @@ import os
 import secrets
 import threading
 import time
+import re
+import urllib.error
 import urllib.request
 from math import comb
 from decimal import ROUND_HALF_UP, Decimal
@@ -16,8 +18,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {"5257227756"}
-PORTALS_FLOORS_URL = os.environ.get("PORTALS_FLOORS_URL", "")
+# Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+# Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
+PORTALS_API = os.environ.get("PORTALS_API", "https://portals-market.com/api").rstrip("/")
 PORTALS_AUTH = os.environ.get("PORTALS_AUTH", "")
+GIFT_IMG_TEMPLATE = os.environ.get(
+    "GIFT_IMG_TEMPLATE", "https://cdn.changes.tg/gifts/models/{name}/png/{model}.png"
+)
 
 START_BALANCE = 10.0
 PROMO_CODES = {"DEMO": 10.0}
@@ -29,7 +37,7 @@ SHELL_HAT_VALUE = 3.0
 SHELL_PRICE_SHARE = round(1 / SHELL_CUPS / (1 - MARGIN), 4)
 ROUND_TTL = 180
 HISTORY_LIMIT = 50
-CHANCES = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+CHANCES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
 TIERS = {
     "random": {"value": 3.0, "name": "Шляпа волшебника"},
@@ -65,23 +73,99 @@ lock = threading.RLock()
 db = {"users": {}, "prices": {}, "settings": {}}
 
 
+CATALOG = {}
+_last_saved = {"db": None, "catalog": None}
+_pg_conn = None
+
+
+def _pg():
+    global _pg_conn
+    import psycopg2
+
+    if _pg_conn is None or _pg_conn.closed:
+        _pg_conn = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+        _pg_conn.autocommit = True
+        with _pg_conn.cursor() as c:
+            c.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+    return _pg_conn
+
+
+def store_get(key, path):
+    if DATABASE_URL:
+        with _pg().cursor() as c:
+            c.execute("SELECT v FROM kv WHERE k=%s", (key,))
+            row = c.fetchone()
+        if row:
+            return row[0]
+    if os.path.exists(path):  # первая миграция с файла в Postgres
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    return None
+
+
+def store_put(key, path, text):
+    global _pg_conn
+    if DATABASE_URL:
+        for attempt in (1, 2):
+            try:
+                with _pg().cursor() as c:
+                    c.execute(
+                        "INSERT INTO kv (k, v) VALUES (%s, %s) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v",
+                        (key, text),
+                    )
+                return
+            except Exception as e:
+                _pg_conn = None
+                if attempt == 2:
+                    print(f"DB save failed: {e}", flush=True)
+        return
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
 def load_db():
     global db
-    if os.path.exists(DB_PATH):
-        with open(DB_PATH, encoding="utf-8") as f:
-            db = json.load(f)
+    text = store_get("db", DB_PATH)
+    if text:
+        db = json.loads(text)
+        _last_saved["db"] = text
+    db.setdefault("users", {})
     db.setdefault("prices", {})
     db.setdefault("settings", {})
+    where = "Postgres" if DATABASE_URL else DB_PATH
+    print(f"DB: {where}, users: {len(db['users'])}", flush=True)
+    if not DATABASE_URL and not os.environ.get("DB_PATH"):
+        print("WARNING: DB лежит в папке приложения - на хостинге без диска она сотрётся при деплое/рестарте. "
+              "Задай DATABASE_URL (Postgres) или DB_PATH на постоянном диске.", flush=True)
     # утешительных мишек больше нет: чистим старые у всех игроков
     for u in db["users"].values():
         u["prizes"] = [p for p in u.get("prizes", []) if p.get("tier") != "bear"]
 
 
 def save_db():
-    tmp = DB_PATH + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(db, f, ensure_ascii=False)
-    os.replace(tmp, DB_PATH)
+    text = json.dumps(db, ensure_ascii=False)
+    if text == _last_saved["db"]:
+        return
+    store_put("db", DB_PATH, text)
+    _last_saved["db"] = text
+
+
+def load_catalog():
+    text = store_get("catalog", DB_PATH + ".catalog")
+    if text:
+        CATALOG.clear()
+        CATALOG.update(json.loads(text))
+        _last_saved["catalog"] = text
+
+
+def save_catalog():
+    text = json.dumps(CATALOG, ensure_ascii=False)
+    if text != _last_saved["catalog"]:
+        store_put("catalog", DB_PATH + ".catalog", text)
+        _last_saved["catalog"] = text
 
 
 class ApiError(Exception):
@@ -94,10 +178,6 @@ class ApiError(Exception):
 @app.errorhandler(ApiError)
 def handle_api_error(e):
     return jsonify({"error": e.code, **e.extra}), e.status
-
-
-def portals_url():
-    return (db["settings"].get("portals_url") or PORTALS_FLOORS_URL).strip()
 
 
 def portals_auth():
@@ -118,26 +198,51 @@ def ton(x):
     return round(float(x), 6)
 
 
+def gifts_map():
+    """Каталог подарков: из Portals (если ключ задан и обновление прошло), иначе встроенный набор."""
+    if CATALOG:
+        return CATALOG
+    out = {}
+    for slug, (name, floor, pop, models) in GIFTS.items():
+        out[slug] = {
+            "name": name,
+            "floor": floor,
+            "pop": pop,
+            "models": [{"model": m, "floor": money(floor * (1 + MODEL_STEP * i))} for i, m in enumerate(models)],
+        }
+    return out
+
+
+def gift_entry(slug):
+    entry = gifts_map().get(slug)
+    if not entry:
+        raise ApiError("gift_unavailable")
+    return entry
+
+
 def gift_floor(slug):
-    return db["prices"].get(slug, GIFTS[slug][1])
+    entry = gift_entry(slug)
+    return db["prices"].get(slug, entry["floor"])
 
 
 def gift_models(slug):
-    name, _, _, models = GIFTS[slug]
+    entry = gift_entry(slug)
     floor = gift_floor(slug)
-    return [
-        {"model": m, "price_ton": money(floor * (1 + MODEL_STEP * i)), "image": gift_image(slug, m)}
-        for i, m in enumerate(models)
-    ]
+    ratio = floor / entry["floor"] if entry["floor"] else 1.0
+    out = []
+    for m in entry.get("models", []):
+        price = money((m.get("floor") or entry["floor"]) * ratio)
+        out.append({"model": m["model"], "price_ton": price, "image": gift_image(slug, m["model"])})
+    return out
 
 
 def gift_image(slug, model=""):
     suffix = f"&m={quote(model)}" if model else ""
-    return f"/gimg/{slug}.webp?v=3{suffix}"
+    return f"/gimg/{slug}.webp?v=4{suffix}"
 
 
 def gift_price(slug, model):
-    if slug not in GIFTS:
+    if slug not in gifts_map():
         raise ApiError("gift_unavailable")
     if not model:
         return gift_floor(slug)
@@ -326,7 +431,7 @@ def public_config():
             "prize_name": TIERS["random"]["name"],
             "cups": SHELL_CUPS,
             "gifts": True,
-            "cost_ton": shell_cost_for(SHELL_HAT_VALUE),
+            "cost_ton": shell_cost_for(TIERS["random"]["value"]),
             "price_share": SHELL_PRICE_SHARE,
         },
     }
@@ -388,7 +493,7 @@ def resolve_target(body, tier):
         slug = body.get("gift", "")
         model = body.get("model", "")
         price = gift_price(slug, model)
-        name = GIFTS[slug][0] + (f" · {model}" if model else "")
+        name = gift_entry(slug)["name"] + (f" · {model}" if model else "")
         return {"tier": f"gift:{slug}:{model}", "name": name, "value": price, "image": gift_image(slug, model)}
     if tier not in TIERS:
         raise ApiError("bad_request")
@@ -437,8 +542,8 @@ def shell_start(user, body):
             raise ApiError("price_changed", price_ton=target["value"], cost_ton=cost)
     else:
         target = resolve_target({}, "random")
-        target["value"] = SHELL_HAT_VALUE
-        cost = shell_cost_for(SHELL_HAT_VALUE)
+        target["value"] = TIERS["random"]["value"]
+        cost = shell_cost_for(TIERS["random"]["value"])
     old = user["round"]
     if old:
         user["balance"] = ton(user["balance"] + old["cost"])
@@ -527,6 +632,7 @@ def chests_start(user, body):
         "bad": secrets.SystemRandom().sample(range(CHEST_CELLS), empties),
         "opened": [],
         "source": source,
+        "tier": prize["tier"] if prize else "",
         "name": name,
         "image": image,
         "at": time.time(),
@@ -534,19 +640,44 @@ def chests_start(user, body):
     return {"balance_ton": ton(user["balance"]), "prizes": visible_prizes(user), "round": chest_view(user)}
 
 
+def pick_gift_for(payout):
+    """Самый дорогой подарок (флор коллекции), который не дороже выплаты."""
+    best = None
+    for slug in gifts_map():
+        value = gift_floor(slug)
+        if value <= payout + 1e-9 and (best is None or value > best[0]):
+            best = (value, slug)
+    return best
+
+
 def chest_cash(user, extra=None):
     r = user["chest"]
     mult = chest_mult(r["empties"], len(r["opened"]))
     payout = money(r["bet"] * mult)
-    user["balance"] = ton(user["balance"] + payout)
+    gift = None
+    if r.get("source") == "gift" and r.get("tier") and payout + 1e-9 >= r["bet"]:
+        # ставили подарком - он возвращается, а прибыль идёт в TON
+        gift = add_prize(user, r["tier"], r["name"], r["bet"], r.get("image", ""))
+    else:
+        pick = pick_gift_for(payout)
+        if pick:
+            value, slug = pick
+            gift = add_prize(user, f"gift:{slug}:", gift_entry(slug)["name"], value, gift_image(slug))
+    ton_part = money(payout - gift["value"]) if gift else payout
+    user["balance"] = ton(user["balance"] + ton_part)
     user["chest"] = None
-    record_game(user, "chests", r["bet"], True, f"Сундуки · x{mult:g} · +{payout:g} TON", "chests:win", False)
+    label = f"Сундуки · x{mult:g} · +{payout:g}"
+    if gift:
+        label = f"Сундуки · x{mult:g} · {gift['name']} + {ton_part:g} TON"
+    record_game(user, "chests", r["bet"], True, label, "chests:win", False)
     return {
         **(extra or {}),
         "finished": True,
         "win": True,
         "mult": mult,
         "payout_ton": payout,
+        "ton_part": ton_part,
+        "gift": prize_view(gift) if gift else None,
         "bad": r["bad"],
         "balance_ton": ton(user["balance"]),
         "prizes": visible_prizes(user),
@@ -655,8 +786,8 @@ def history(user, body):
 @route("/api/gifts/catalog")
 def gifts_catalog(user, body):
     items = [
-        {"slug": s, "name": n, "price_ton": gift_floor(s), "image": gift_image(s), "popular": pop}
-        for s, (n, _, pop, _) in GIFTS.items()
+        {"slug": s, "name": g["name"], "price_ton": gift_floor(s), "image": gift_image(s), "popular": g.get("pop", 0)}
+        for s, g in gifts_map().items()
     ]
     return {"items": items, "margin": MARGIN, "price_steps": [], "price_base": 1}
 
@@ -664,10 +795,8 @@ def gifts_catalog(user, body):
 @route("/api/gifts/models")
 def gifts_models(user, body):
     slug = body.get("slug", "")
-    if slug not in GIFTS:
-        raise ApiError("gift_unavailable")
-    name = GIFTS[slug][0]
-    return {"slug": slug, "name": name, "floor": gift_floor(slug), "image": gift_image(slug), "models": gift_models(slug)}
+    entry = gift_entry(slug)
+    return {"slug": slug, "name": entry["name"], "floor": gift_floor(slug), "image": gift_image(slug), "models": gift_models(slug)}
 
 
 @route("/api/gifts/mine")
@@ -849,20 +978,220 @@ def admin_prize_remove(user, body):
     return {"user": admin_user_detail(target)}
 
 
+def normalize(text):
+    return "".join(ch for ch in str(text).lower() if ch.isalnum())
+
+
 def market_rows():
     return [
-        {"slug": s, "name": n, "price_ton": gift_floor(s), "default_ton": p, "custom": s in db["prices"]}
-        for s, (n, p, _, _) in GIFTS.items()
+        {
+            "slug": s,
+            "name": g["name"],
+            "price_ton": gift_floor(s),
+            "default_ton": g["floor"],
+            "custom": s in db["prices"],
+            "models": len(g.get("models", [])),
+        }
+        for s, g in sorted(gifts_map().items(), key=lambda kv: kv[1]["name"].lower())
     ]
+
+
+class PortalsError(Exception):
+    pass
+
+
+PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0}
+_filters_first = {"i": 0}
 
 
 def portals_status():
     return {
-        "portals_configured": bool(portals_url()),
-        "portals_url": portals_url(),
+        "portals_configured": bool(portals_auth()),
         "portals_key_set": bool(portals_auth()),
         "portals_key_mask": mask_key(portals_auth()),
+        "portals_refreshing": PORTALS_STATE["running"],
+        "portals_error": PORTALS_STATE["error"],
+        "portals_updated": PORTALS_STATE["updated"],
+        "portals_gifts": len(CATALOG),
+        "portals_models": sum(len(g.get("models", [])) for g in CATALOG.values()),
     }
+
+
+def portals_headers():
+    auth = portals_auth()
+    if auth and not auth.lower().startswith("tma "):
+        auth = "tma " + auth
+    return {
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Mobile Safari/537.36",
+        "Authorization": auth,
+        "Origin": "https://portals-market.com",
+        "Referer": "https://portals-market.com/",
+    }
+
+
+def portals_get(paths):
+    headers = portals_headers()
+    if not headers["Authorization"]:
+        raise PortalsError("ключ не задан")
+    errors = []
+    for path in paths:
+        try:
+            req = urllib.request.Request(PORTALS_API + path, headers=headers)
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                return json.load(resp)
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                raise PortalsError(f"ключ отклонён (HTTP {e.code}) - вставь свежий Authorization")
+            errors.append(f"{path.split('?')[0]} -> HTTP {e.code}")
+        except Exception as e:
+            errors.append(f"{path.split('?')[0]} -> {type(e).__name__}")
+    raise PortalsError("; ".join(errors[:3]))
+
+
+def _num(v):
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return 0.0
+    return x if x > 0 else 0.0
+
+
+def _floor_of(v):
+    if isinstance(v, dict):
+        for k in ("floor_price", "floor", "price", "min_price"):
+            if k in v:
+                return _num(v[k])
+        return 0.0
+    return _num(v)
+
+
+def parse_collections(data):
+    items = data
+    if isinstance(data, dict):
+        items = data.get("collections") or data.get("items") or data.get("data") or []
+    out = []
+    for c in items if isinstance(items, list) else []:
+        if not isinstance(c, dict):
+            continue
+        name = str(c.get("name") or c.get("short_name") or "").strip()
+        if not name:
+            continue
+        out.append({
+            "name": name,
+            "short": str(c.get("short_name") or c.get("shortName") or normalize(name)),
+            "id": str(c.get("id") or ""),
+            "floor": _floor_of(c.get("floor_price", c.get("floor", 0))),
+            "volume": _num(c.get("day_volume") or c.get("volume") or 0),
+        })
+    return out
+
+
+def parse_attr_floors(node):
+    out = {}
+    if isinstance(node, dict):
+        for k, v in node.items():
+            f = _floor_of(v)
+            if f:
+                out[re.sub(r"\s*\([^)]*\)\s*$", "", str(k)).strip()] = f
+    elif isinstance(node, list):
+        for v in node:
+            if not isinstance(v, dict):
+                continue
+            n = v.get("value") or v.get("name") or v.get("model") or v.get("title")
+            f = _floor_of(v)
+            if n and f:
+                out[re.sub(r"\s*\([^)]*\)\s*$", "", str(n)).strip()] = f
+    return out
+
+
+def parse_filters(data):
+    root = data
+    if isinstance(data, dict):
+        root = data.get("floors") or data.get("filters") or data
+    if not isinstance(root, dict):
+        return {}, {}
+    return parse_attr_floors(root.get("models")), parse_attr_floors(root.get("backdrops"))
+
+
+def apply_tier_values():
+    """Шляпа волшебника = Witch Hat на Portals; оникс/блэк - её флор по фону."""
+    hat = CATALOG.get("WitchHat")
+    if not hat:
+        return
+    TIERS["random"]["value"] = gift_floor("WitchHat")
+    backdrops = {normalize(k): v for k, v in hat.get("backdrops", {}).items()}
+    for tier, keys in (("onyx", ("onyxblack", "onyx")), ("black", ("black",))):
+        for k in keys:
+            if k in backdrops:
+                TIERS[tier]["value"] = money(backdrops[k])
+                break
+
+
+def portals_refresh_worker():
+    if PORTALS_STATE["running"]:
+        return
+    PORTALS_STATE.update(running=True, error="")
+    try:
+        collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"]))
+        if not collections:
+            raise PortalsError("Portals вернул пустой список коллекций")
+        new, filter_fails, models_total = {}, 0, 0
+        for c in collections:
+            slug = re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"])
+            old = CATALOG.get(slug, {})
+            entry = {
+                "name": c["name"], "short": c["short"], "floor": money(c["floor"] or old.get("floor") or 1.0),
+                "pop": int(c["volume"]), "models": old.get("models", []), "backdrops": old.get("backdrops", {}),
+            }
+            if filter_fails < 3:
+                q = quote(c["short"])
+                paths = [
+                    f"/collections/filters?short_name={q}",
+                    f"/collections/filters?collection_id={quote(c['id'])}",
+                    f"/collections/{quote(c['id'])}/filters",
+                ]
+                i = _filters_first["i"]
+                paths = paths[i:] + paths[:i]
+                try:
+                    models, backdrops = parse_filters(portals_get(paths))
+                    if models:
+                        entry["models"] = [{"model": m, "floor": money(f)} for m, f in sorted(models.items(), key=lambda kv: kv[1])]
+                        entry["backdrops"] = {b: money(f) for b, f in backdrops.items()}
+                except PortalsError as e:
+                    filter_fails += 1
+                    PORTALS_STATE["error"] = f"модели не загрузились: {e}"
+                time.sleep(0.12)
+            models_total += len(entry["models"])
+            new[slug] = entry
+        with lock:
+            CATALOG.clear()
+            CATALOG.update(new)
+            apply_tier_values()
+            save_catalog()
+        PORTALS_STATE.update(updated=int(time.time()), gifts=len(new), models=models_total)
+    except PortalsError as e:
+        PORTALS_STATE["error"] = str(e)
+    except Exception as e:
+        PORTALS_STATE["error"] = f"{type(e).__name__}: {e}"
+    finally:
+        PORTALS_STATE["running"] = False
+
+
+def start_portals_refresh():
+    if not PORTALS_STATE["running"]:
+        threading.Thread(target=portals_refresh_worker, daemon=True).start()
+
+
+def portals_loop():
+    time.sleep(5)
+    while True:
+        try:
+            if portals_auth():
+                portals_refresh_worker()
+        except Exception as e:
+            print(f"portals loop: {e}", flush=True)
+        time.sleep(1800)
 
 
 @route("/api/admin/market")
@@ -875,15 +1204,11 @@ def admin_market(user, body):
 def admin_portals_set(user, body):
     require_admin(user)
     cfg = db["settings"]
-    if "url" in body:
-        url = str(body.get("url") or "").strip()
-        if url and not url.startswith(("http://", "https://")):
-            raise ApiError("bad_request")
-        cfg["portals_url"] = url[:500]
     if body.get("clear_key"):
         cfg["portals_auth"] = ""
     elif str(body.get("auth") or "").strip():
-        cfg["portals_auth"] = str(body["auth"]).strip()[:2000]
+        cfg["portals_auth"] = str(body["auth"]).strip()[:4000]
+        start_portals_refresh()
     return {"rows": market_rows(), **portals_status()}
 
 
@@ -891,7 +1216,7 @@ def admin_portals_set(user, body):
 def admin_market_set(user, body):
     require_admin(user)
     slug = body.get("slug")
-    if slug not in GIFTS:
+    if slug not in gifts_map():
         raise ApiError("not_found", 404)
     try:
         price = float(body.get("price"))
@@ -900,44 +1225,17 @@ def admin_market_set(user, body):
     if not 0 < price < 1_000_000:
         raise ApiError("bad_request")
     db["prices"][slug] = money(price)
-    return {"rows": market_rows()}
-
-
-def normalize(text):
-    return "".join(ch for ch in str(text).lower() if ch.isalnum())
+    apply_tier_values()
+    return {"rows": market_rows(), **portals_status()}
 
 
 @route("/api/admin/market/refresh")
 def admin_market_refresh(user, body):
     require_admin(user)
-    url = portals_url()
-    if not url:
+    if not portals_auth():
         raise ApiError("portals_not_configured")
-    headers = {"Accept": "application/json", "User-Agent": "magic-upgrade"}
-    if portals_auth():
-        headers["Authorization"] = portals_auth()
-    try:
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.load(resp)
-    except Exception:
-        raise ApiError("portals_unavailable", 502)
-    floors = data.get("floors", data) if isinstance(data, dict) else {}
-    known = {}
-    for slug, (name, _, _, _) in GIFTS.items():
-        known[normalize(slug)] = slug
-        known[normalize(name)] = slug
-    updated = 0
-    for key, value in floors.items():
-        slug = known.get(normalize(key))
-        try:
-            price = float(value)
-        except (TypeError, ValueError):
-            continue
-        if slug and 0 < price < 1_000_000:
-            db["prices"][slug] = money(price)
-            updated += 1
-    return {"rows": market_rows(), "updated": updated, **portals_status()}
+    start_portals_refresh()
+    return {"rows": market_rows(), "refreshing": True, **portals_status()}
 
 
 def gift_svg(slug, model=""):
@@ -963,13 +1261,44 @@ def gift_svg(slug, model=""):
     )
 
 
+IMG_CACHE = {}
+
+
+def fetch_gift_image(name, model):
+    url = GIFT_IMG_TEMPLATE.format(name=quote(name), model=quote(model))
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=6) as resp:
+        data = resp.read(3_000_000)
+        ctype = resp.headers.get("Content-Type", "image/png")
+    if not ctype.startswith("image/") or not data:
+        raise ValueError("not an image")
+    return data, ctype
+
+
 @app.get("/gimg/<slug>.webp")
 def gimg(slug):
-    if slug not in GIFTS:
+    entry = gifts_map().get(slug)
+    if not entry:
         return ("", 404)
-    model = request.args.get("m", "")[:32]
-    resp = app.response_class(gift_svg(slug, model), mimetype="image/svg+xml")
-    resp.headers["Cache-Control"] = "public, max-age=86400"
+    model = request.args.get("m", "")[:64]
+    if not model and entry.get("models"):
+        model = entry["models"][0]["model"]
+    if CATALOG and slug in CATALOG and model:
+        key = (slug, model)
+        if key not in IMG_CACHE:
+            if len(IMG_CACHE) > 1500:
+                IMG_CACHE.clear()
+            try:
+                IMG_CACHE[key] = fetch_gift_image(entry["name"], model)
+            except Exception:
+                IMG_CACHE[key] = None
+        hit = IMG_CACHE[key]
+        if hit:
+            resp = app.response_class(hit[0], mimetype=hit[1])
+            resp.headers["Cache-Control"] = "public, max-age=604800"
+            return resp
+    resp = app.response_class(gift_svg(slug, request.args.get("m", "")[:32]), mimetype="image/svg+xml")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
     return resp
 
 
@@ -1047,6 +1376,9 @@ def index():
 
 
 load_db()
+load_catalog()
+apply_tier_values()
+threading.Thread(target=portals_loop, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")), threaded=True)
