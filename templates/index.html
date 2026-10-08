@@ -12,7 +12,7 @@
 <script>
   try { if (localStorage.getItem('theme') === 'classic') document.documentElement.removeAttribute('data-theme'); } catch (e) {}
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='next/styles.css') }}?v=20261008">
+<link rel="stylesheet" href="{{ url_for('static', filename='next/styles.css') }}?v=20261008b">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 </head>
@@ -74,7 +74,7 @@
   
   <div class="bg-art">
     <div class="staff" id="staff">
-      <img src="assets/staff.png" alt="">
+      <img src="/static/img/hat.png" alt="">
       <div class="staff-orb" id="staffOrb"></div>
     </div>
   </div>
@@ -115,7 +115,7 @@
     </button>
     
     <div class="coin-chip" id="coinChip" title="ШляпоКоины — кешбэк за игры" aria-label="ШляпоКоины">
-      <img class="coin-ico coin-new" src="assets/hatcoin.webp" alt="">
+      <img class="coin-ico coin-new" src="/static/img/hat.png" alt="">
       <svg class="coin-ico coin-old" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
         <path class="coin-rim" d="M5 0h6v1h2v1h1v1h1v2h1v6h-1v2h-1v1h-1v1h-2v1H5v-1H3v-1H2v-1H1v-2H0V5h1V3h1V2h1V1h2z"/>
         <path class="coin-face" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"/>
@@ -125,7 +125,7 @@
       <span id="coinValue">0</span>
     </div>
     <button class="balance" id="balanceChip" type="button" aria-label="Баланс, пополнить">
-      <img src="assets/gram.webp" alt="" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="" class="ton-ico ton-old">
+      <img src="/static/img/hat.png" alt="" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="" class="ton-ico ton-old">
       <span id="balanceValue">0</span><span class="bal-plus" aria-hidden="true">+</span>
     </button>
   </header>
@@ -157,16 +157,16 @@
 
       <div class="shell-table" id="shellTable">
         
-        <img class="shell-cat-intro" id="shellCatIntro" src="assets/cat.png" alt="">
-        <div class="shell-hat" data-i="0">          <img class="shell-cat" src="assets/cat.png" alt="">
+        <img class="shell-cat-intro" id="shellCatIntro" src="/static/img/hat.png" alt="">
+        <div class="shell-hat" data-i="0">          <img class="shell-cat" src="/static/img/hat.png" alt="">
           <img class="shell-cap" src="/static/img/hat.png" alt="">
         </div>
         <div class="shell-hat" data-i="1">
-          <img class="shell-cat" src="assets/cat.png" alt="">
+          <img class="shell-cat" src="/static/img/hat.png" alt="">
           <img class="shell-cap" src="/static/img/hat.png" alt="">
         </div>
         <div class="shell-hat" data-i="2">
-          <img class="shell-cat" src="assets/cat.png" alt="">
+          <img class="shell-cat" src="/static/img/hat.png" alt="">
           <img class="shell-cap" src="/static/img/hat.png" alt="">
         </div>
       </div>
@@ -276,7 +276,7 @@
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"/>
             
-            <image class="ptr-axe" href="assets/axe.webp?v=3" x="128.1" y="14" width="65.6" height="150"/>
+            <image class="ptr-axe" href="/static/img/hat.png?v=3" x="128.1" y="14" width="65.6" height="150"/>
           </g>
         </svg>
 
@@ -313,7 +313,7 @@
         <span class="mode-edge" id="chanceMin">—</span>
         <div class="mode-track" id="modeTrack">
           <span class="mode-tag mode-cost">
-            <img src="assets/gram.webp" alt="TON" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="TON" class="ton-ico ton-old"><span id="modeCost">—</span>
+            <img src="/static/img/hat.png" alt="TON" class="ton-ico ton-new"><img src="/static/img/ton.svg" alt="TON" class="ton-ico ton-old"><span id="modeCost">—</span>
           </span>
           <input type="range" id="modeSlider" min="0" max="60" step="1" value="30"
                  aria-label="Шанс выигрыша">
@@ -326,11 +326,11 @@
         
         <span class="spin-side spin-side-left">
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
-            <img id="weaponIcon" src="assets/axe-icon.webp?v=2" alt="">
+            <img id="weaponIcon" src="/static/img/hat.png?v=2" alt="">
           </button>
           <div class="weapon-menu" id="weaponMenu" hidden>
-            <button type="button" data-weapon="axe"><img src="assets/axe-icon.webp?v=2" alt=""><span>Топор</span></button>
-            <button type="button" data-weapon="staff"><img src="assets/staff-icon.webp?v=2" alt=""><span>Посох</span></button>
+            <button type="button" data-weapon="axe"><img src="/static/img/hat.png?v=2" alt=""><span>Топор</span></button>
+            <button type="button" data-weapon="staff"><img src="/static/img/hat.png?v=2" alt=""><span>Посох</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -627,8 +627,8 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script src="{{ url_for('static', filename='next/scene.js') }}?v=20261008"></script>
-<script src="{{ url_for('static', filename='next/i18n.js') }}?v=20261008"></script>
-<script src="{{ url_for('static', filename='next/app.js') }}?v=20261008"></script>
+<script src="{{ url_for('static', filename='next/scene.js') }}?v=20261008b"></script>
+<script src="{{ url_for('static', filename='next/i18n.js') }}?v=20261008b"></script>
+<script src="{{ url_for('static', filename='next/app.js') }}?v=20261008b"></script>
 </body>
 </html>
