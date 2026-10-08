@@ -1796,8 +1796,8 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gift-modal { max-width: 360px; }
 .gift-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
   margin: 10px 0;
   text-align: left;
 }
@@ -1814,6 +1814,8 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   cursor: pointer;
 }
 .gift-item.picked { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
+.gift-list .gift-item { min-width: 0; padding: 3px; font-size: 7px; overflow-wrap: anywhere; }
+.gift-list .gift-title,.gift-list .gift-sub,.gift-list .gift-val { font-size: 7px; overflow-wrap: anywhere; }
 .gift-item img { width: 100%; aspect-ratio: 1; object-fit: cover; background: rgba(0, 0, 0, .25); }
 
 .gp-card { max-height: 86vh; display: flex; flex-direction: column; }
@@ -1856,7 +1858,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gp-sort button.active { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); }
 .gp-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   min-height: 120px;
   margin-bottom: 10px;
@@ -2926,7 +2928,7 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-chip.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9, 0 2px 0 #0a3a1f; }
 .cx-label { margin: 4px 0 6px; font-size: 9px; color: #fff1d0; text-align: left; width: 100%; text-shadow: 2px 2px 0 #24122e; }
 #cxHint { text-shadow: 2px 2px 0 #24122e; }
-.cx-gifts { display: flex; gap: 6px; width: 100%; margin: 0 0 6px; padding: 2px 0 6px; overflow-x: auto; }
+.cx-gifts { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; width: 100%; margin: 0 0 6px; padding: 2px 0 6px; }
 .cx-gift { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; font: inherit; font-size: 8px; color: var(--gold); background: var(--card); border: 2px solid var(--card-line); cursor: pointer; }
 .cx-gift img { width: 36px; height: 36px; object-fit: contain; image-rendering: auto; }
 .cx-gift.on { border-color: var(--gold); box-shadow: 0 0 8px rgba(255, 198, 74, .5); }
@@ -3593,6 +3595,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     <div class="adm-tabs" id="admTabs">
       <button type="button" data-tab="users" class="on">Пользователи</button>
       <button type="button" data-tab="market">Портал маркет</button>
+      <button type="button" data-tab="promos">Промокоды</button>
     </div>
     <div id="admUsers">
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
@@ -3611,9 +3614,24 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
           <button type="button" id="admPortalsClear" class="danger">Удалить ключ</button>
         </div>
       </div>
+      <div class="adm-box"><h3>MRKT — запасной источник моделей</h3>
+        <p class="adm-status" id="admMrktStatus">Ключ не задан</p>
+        <input id="admMrktKey" class="gp-search" type="password" placeholder="Токен MRKT (отдельный от Portals)" autocomplete="off">
+        <div class="adm-form"><button type="button" id="admMrktSave">Сохранить MRKT</button><button type="button" id="admMrktClear" class="danger">Удалить ключ</button></div>
+      </div>
       <button class="ghost" id="admRefresh" type="button">Обновить цены с Портала</button>
       <p class="muted" id="admMarketNote"></p>
       <div class="adm-market" id="admMarketList"></div>
+    </div>
+    <div id="admPromos" hidden="">
+      <div class="adm-box"><h3>Создать промокод</h3>
+        <select id="admPromoKind" class="gp-search"><option value="balance">Баланс TON</option><option value="gift">Подарок</option></select>
+        <input id="admPromoCode" class="gp-search" placeholder="Код (пусто = случайный)" maxlength="32">
+        <input id="admPromoLimit" class="gp-search" type="number" min="1" value="1" placeholder="Количество активаций">
+        <input id="admPromoAmount" class="gp-search" type="number" step="0.01" min="0.01" placeholder="Сумма TON">
+        <div id="admPromoGiftField" hidden=""><button type="button" id="admPromoChoose">Выбрать подарок из каталога</button><p id="admPromoSelected" class="muted">Подарок не выбран</p></div>
+        <button type="button" id="admPromoCreate">Создать промокод</button>
+      </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>
     </div>
     <button class="ghost" id="admClose" type="button">Закрыть</button>
   </div>
@@ -5750,12 +5768,15 @@ async function activatePromo(e) {
     input.value = '';
     setBalance(r.balance_ton);
     updateSpinButton();
-    toast(tr('Промокод активирован: +{sum} TON', { sum: fmt(r.amount_ton, 2) }));
+    if (r.prizes) { state.prizes = r.prizes; renderPrizes(r.prizes); }
+    toast(r.gift ? `Получен подарок: ${r.gift}` : tr('Промокод активирован: +{sum} TON', { sum: fmt(r.amount_ton, 2) }));
     haptic('notification', 'success');
   } catch (err) {
     const messages = {
       not_found: tr('Такого промокода нет'),
-      inactive: tr('Этот промокод больше не действует'),
+      promo_inactive: tr('Этот промокод больше не действует'),
+      promo_used: tr('Ты уже активировал этот промокод'),
+      promo_exhausted: tr('Этот промокод уже разобрали'),
       exhausted: tr('Этот промокод уже разобрали'),
       already_used: tr('Ты уже активировал этот промокод'),
       too_fast: tr('Слишком много попыток, подожди минуту'),
@@ -8493,8 +8514,10 @@ function admShow(tab) {
   $('admUsers').hidden = tab !== 'users';
   $('admUser').hidden = true;
   $('admMarket').hidden = tab !== 'market';
+  $('admPromos').hidden = tab !== 'promos';
   if (tab === 'users') admLoadUsers();
-  else admLoadMarket();
+  else if (tab === 'market') admLoadMarket();
+  else admLoadPromos();
 }
 
 async function admLoadUsers() {
@@ -8655,6 +8678,7 @@ function admRenderPortals(res) {
   if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
   $('admPortalsStatus').textContent = parts.join(' · ');
   $('admPortalsKey').value = '';
+  $('admMrktStatus').textContent = res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан';
 }
 
 async function admSavePortals(clear) {
@@ -8694,6 +8718,56 @@ function admRenderMarket(res) {
   }
 }
 
+let promoGift = null;
+async function admLoadPromos() {
+  try {
+    const {rows} = await api('/api/admin/promos');
+    const list = $('admPromoRows'); list.replaceChildren();
+    for (const item of rows) {
+      const row = admField('div', {className: 'adm-box'});
+      const detail = admField('p', {textContent: `${item.code} · ${item.kind === 'balance' ? item.amount + ' TON' : item.name + (item.model ? ' / ' + item.model : '')} · ${item.uses}/${item.limit} · ${item.active ? 'Активен' : 'Отключён'}`});
+      const buttons = admField('div', {className: 'adm-form'});
+      const copy = admField('button', {type: 'button', textContent: 'Копировать'});
+      copy.onclick = async () => { try { await navigator.clipboard.writeText(item.code); toast('Код скопирован'); } catch(e) { toast(item.code); } };
+      const toggle = admField('button', {type: 'button', textContent: item.active ? 'Отключить' : 'Включить'});
+      toggle.onclick = async () => { await api('/api/admin/promos/update', {code:item.code, active: !item.active}); admLoadPromos(); };
+      const del = admField('button', {type:'button', className:'danger', textContent:'Удалить'});
+      del.onclick = async () => { if (!confirm(`Удалить ${item.code}?`)) return; await api('/api/admin/promos/update', {code:item.code, delete:true}); admLoadPromos(); };
+      buttons.append(copy,toggle,del); row.append(detail,buttons); list.appendChild(row);
+    }
+    if (!rows.length) list.textContent = 'Пока нет промокодов';
+  } catch(e) { admErr(e); }
+}
+async function admChoosePromoGift() {
+  try {
+    const catalog = await api('/api/gifts/catalog');
+    const modal = document.createElement('div'); modal.className = 'modal'; modal.style.zIndex = '9999';
+    const panel = admField('div', {className: 'modal-card list-modal'});
+    panel.style.maxHeight = '85vh'; panel.style.overflowY = 'auto';
+    const search = admField('input', {className: 'gp-search', placeholder:'Поиск подарка'});
+    const list = admField('div', {className:'gift-list'});
+    const render = () => { list.replaceChildren();
+      for (const g of catalog.items.filter(g=>g.name.toLowerCase().includes(search.value.toLowerCase()))) {
+        const b=admField('button',{type:'button',className:'gift-item'});
+        const img=admField('img',{src:g.image,alt:''});
+        const name=admField('span',{textContent:g.name}); const price=admField('span',{textContent:`${g.price_ton} TON`});
+        b.append(img,name,price); b.onclick=()=>{ promoGift=g; $('admPromoSelected').textContent=`${g.name} · ${g.price_ton} TON`; modal.remove(); };
+        list.append(b);
+      }
+    };
+    search.oninput=render; render();
+    const close=admField('button',{type:'button',textContent:'Закрыть'}); close.onclick=()=>modal.remove();
+    panel.append(search,list,close);modal.append(panel); document.body.append(modal); modal.hidden=false;
+  } catch(e) { admErr(e); }
+}
+async function admSaveMrkt(clear) {
+  try {
+    const res=await api('/api/admin/mrkt/set', clear ? {clear_key:true} : {auth:$('admMrktKey').value.trim()});
+    $('admMrktStatus').textContent=res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан';
+    $('admMrktKey').value='';toast('Настройки MRKT сохранены');
+  } catch(e) { admErr(e); }
+}
+
 function initAdmin() {
   $('adminBtn').addEventListener('click', () => {
     haptic('impact', 'light');
@@ -8711,6 +8785,22 @@ function initAdmin() {
   $('admRefresh').addEventListener('click', () => admLoadMarket('/api/admin/market/refresh'));
   $('admPortalsSave').addEventListener('click', () => admSavePortals(false));
   $('admPortalsClear').addEventListener('click', () => admSavePortals(true));
+  $('admMrktSave').addEventListener('click', () => admSaveMrkt(false));
+  $('admMrktClear').addEventListener('click', () => admSaveMrkt(true));
+  $('admPromoKind').addEventListener('change', () => {
+    const gift=$('admPromoKind').value==='gift'; $('admPromoAmount').hidden=gift; $('admPromoGiftField').hidden=!gift;
+  });
+  $('admPromoChoose').addEventListener('click', admChoosePromoGift);
+  $('admPromoCreate').addEventListener('click', async () => {
+    const kind=$('admPromoKind').value;
+    if (kind==='gift' && !promoGift) return toast('Выбери подарок',true);
+    try {
+      const result=await api('/api/admin/promos/create', {kind,code:$('admPromoCode').value.trim(),
+        limit: Number($('admPromoLimit').value),amount:Number($('admPromoAmount').value),
+        gift:promoGift?.slug});
+      $('admPromoCode').value='';toast(`Создан промокод ${result.code}`);admLoadPromos();
+    } catch(e) { admErr(e); }
+  });
 }
 
 initTelegram();
