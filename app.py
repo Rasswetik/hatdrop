@@ -819,7 +819,7 @@ def chests_cashout(user, body):
 @route("/api/sell")
 def sell(user, body):
     prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
-    if not prize or prize["status"] not in ("owned", "withdraw_pending"):
+    if not prize or prize["status"] != "owned":
         raise ApiError("not_sellable")
     payout = money(prize["value"] * SELL_SHARE)
     prize["status"] = "sold"
@@ -847,6 +847,12 @@ def withdraw(user, body):
     if prize["status"] != "owned":
         raise ApiError("already_requested")
     prize["status"] = "withdraw_pending"
+    key = f"{user['id']}:{prize['id']}"
+    db.setdefault("withdrawals", {})[key] = {"id": key, "uid": user["id"],
+        "prize_id": prize["id"], "status": "pending", "created": int(time.time()),
+        "updated": int(time.time()), "name": prize["name"], "image": prize.get("image", ""),
+        "value_ton": prize["value"], "tier": prize["tier"]}
+    _send_tg_async(user["id"], "🎁 Заявка на вывод подарка «" + prize["name"] + "» получена. Мы сообщим о решении.")
     return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": False}
 
 
@@ -877,6 +883,152 @@ def promo(user, body):
     redeemed.append(code)
     item["uses"] = item.get("uses", 0) + 1
     return result
+
+
+def _send_tg_async(uid, message):
+    if not BOT_TOKEN or not str(uid).startswith("tg"):
+        return
+    try:
+        chat = int(str(uid)[2:])
+    except ValueError:
+        return
+    def job():
+        try:
+            tg_api("sendMessage", chat_id=chat, text=message)
+        except Exception as e:
+            print("Telegram notification failed:", str(e), flush=True)
+    threading.Thread(target=job, daemon=True).start()
+
+
+def withdrawal_record(row):
+    u = db["users"].get(row["uid"], {})
+    return {**row, "username": u.get("username", ""),
+            "user_id": row["uid"], "first_name": u.get("first_name", ""),
+            "telegram_id": str(row["uid"])[2:] if str(row["uid"]).startswith("tg") else ""}
+
+
+@route("/api/admin/withdrawals")
+def admin_withdrawals(user, body):
+    require_admin(user)
+    rows = list(db.setdefault("withdrawals", {}).values())
+    # Legacy requests made before this feature existed.
+    existing = {r["id"] for r in rows}
+    for uid, u in db["users"].items():
+        for prize in u.get("prizes", []):
+            if prize.get("status") == "withdraw_pending":
+                key = f"{uid}:{prize['id']}"
+                if key not in existing:
+                    rows.append({"id": key, "uid": uid, "prize_id": prize["id"],
+                        "status": "pending", "created": 0, "updated": 0,
+                        "name": prize["name"], "image": prize.get("image", ""),
+                        "value_ton": prize.get("value", 0), "tier": prize.get("tier", "")})
+    rows.sort(key=lambda r: r.get("created", 0), reverse=True)
+    return {"rows": [withdrawal_record(r) for r in rows[:500]],
+            "bot_enabled": bool(BOT_TOKEN),
+            "bot_username": db["settings"].get("bot_username", "")}
+
+
+@route("/api/admin/withdrawals/resolve")
+def admin_withdrawals_resolve(user, body):
+    require_admin(user)
+    key = str(body.get("id") or "")
+    action = str(body.get("action") or "")
+    if action not in ("approve", "reject", "complete"):
+        raise ApiError("bad_request")
+    req = db.setdefault("withdrawals", {}).get(key)
+    if req is None:
+        uid, _, prize_id = key.rpartition(":")
+        target = db["users"].get(uid)
+        prize = next((p for p in target.get("prizes", []) if str(p["id"]) == prize_id), None) if target else None
+        if not prize or prize.get("status") != "withdraw_pending":
+            raise ApiError("not_found", 404)
+        req = {"id": key, "uid": uid, "prize_id": prize["id"],
+               "name": prize["name"], "image": prize.get("image", ""),
+               "value_ton": prize.get("value", 0),
+               "status": "pending", "created": 0}
+        db["withdrawals"][key] = req
+    target = db["users"].get(req["uid"])
+    prize = next((p for p in target.get("prizes", []) if p.get("id") == req["prize_id"]), None) if target else None
+    if not prize:
+        raise ApiError("not_found", 404)
+    current = req.get("status", "pending")
+    if action == "approve" and current == "pending":
+        req["status"] = "approved"
+        prize["status"] = "withdraw_processing"
+        msg = f"✅ Ваш подарок «{prize['name']}» найден. Заявка одобрена, ожидайте отправки."
+    elif action == "reject" and current == "pending":
+        req["status"] = "rejected"
+        prize["status"] = "owned"
+        msg = f"❌ Заявка на подарок «{prize['name']}» отклонена. Подарок возвращён в инвентарь."
+    elif action == "complete" and current == "approved":
+        # Manual confirmation only; no pretend NFT transfer.
+        req["status"] = "completed"
+        prize["status"] = "withdrawn"
+        msg = f"🎉 Вывод подарка «{prize['name']}» отмечен как выполненный администратором."
+    else:
+        raise ApiError("invalid_status_transition")
+    req["updated"] = int(time.time())
+    req["moderator"] = user["id"]
+    _send_tg_async(req["uid"], msg)
+    return {"ok": True, "request": withdrawal_record(req)}
+
+
+def _bot_reply(chat_id, text):
+    if BOT_TOKEN and chat_id:
+        try:
+            tg_api("sendMessage", chat_id=chat_id, text=text)
+        except Exception as e:
+            print("Telegram bot reply failed:", str(e), flush=True)
+
+
+@app.post("/telegram/webhook")
+def bot_webhook():
+    secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+    if not secret or not hmac.compare_digest(
+            request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), secret):
+        return ("Forbidden", 403)
+    payload = request.get_json(silent=True) or {}
+    message = payload.get("message") or {}
+    sender = message.get("from") or {}
+    chat = message.get("chat") or {}
+    if not sender.get("id") or chat.get("type") != "private":
+        return jsonify({"ok": True})
+    text = str(message.get("text") or "").strip()
+    if text.startswith("/start"):
+        _send_tg_async(f"tg{sender['id']}", "👋 Добро пожаловать в HatDrop! Здесь вы получите уведомления о выводе подарков.")
+    elif text.startswith("/help"):
+        _send_tg_async(f"tg{sender['id']}", "Для игры откройте приложение HatDrop. Бот сообщит о статусе заявок на вывод.")
+    return jsonify({"ok": True})
+
+
+@route("/api/admin/bot/status")
+def admin_bot_status(user, body):
+    require_admin(user)
+    return {"configured": bool(BOT_TOKEN),
+            "webhook_secret_configured": bool(os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")),
+            "bot_username": db["settings"].get("bot_username", ""),
+            "webhook_path": "/telegram/webhook"}
+
+
+@route("/api/admin/bot/setup")
+def admin_bot_setup(user, body):
+    require_admin(user)
+    if not BOT_TOKEN:
+        raise ApiError("bot_token_missing")
+    secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+    if not secret:
+        raise ApiError("webhook_secret_missing")
+    host = request.host_url.rstrip("/")
+    if not host.startswith("https://"):
+        raise ApiError("https_required")
+    try:
+        result = tg_api("setWebhook", url=host + "/telegram/webhook",
+                        secret_token=secret, allowed_updates='["message"]')
+        bot = tg_api("getMe")
+        db["settings"]["bot_username"] = bot.get("username", "")
+    except Exception:
+        raise ApiError("telegram_webhook_failed")
+    return {"ok": bool(result), "bot_username": db["settings"]["bot_username"]}
 
 
 @route("/api/admin/promos")
