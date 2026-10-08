@@ -1562,9 +1562,9 @@ function slideViews(ghost, next, dir) {
 
 
 
-const VIEWS = ['menu', 'shell', 'leaders', 'upgrade', 'profile'];
-const VIEW_TAB = { menu: 'menu', shell: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
-const VIEW_POS = { menu: 0, shell: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };   // порядок слева направо — для анимации
+const VIEWS = ['menu', 'mines', 'shell', 'leaders', 'upgrade', 'profile'];
+const VIEW_TAB = { menu: 'menu', mines: 'menu', shell: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
+const VIEW_POS = { menu: 0, mines: 0.5, shell: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };   // порядок слева направо — для анимации
 let currentView = 'upgrade';
 
 function showView(name) {
@@ -3602,6 +3602,7 @@ function bind() {
   
   
   $('menuLeaders').addEventListener('click', () => { haptic('impact', 'light'); showView('leaders'); });
+  $('menuMines').addEventListener('click', () => { showView('mines'); window.hatMinesRefresh?.(); });
   $('menuShell').addEventListener('click', () => { haptic('impact', 'light'); showView('shell'); });
   document.querySelectorAll('.view-back').forEach((b) => {
     b.addEventListener('click', () => {
