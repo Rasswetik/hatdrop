@@ -1,26 +1,16 @@
-/* ============================================================
-   Magic Upgrade — клиент мини-аппы.
-   Исход прокрутки решает сервер; здесь только анимация и UI.
-   ============================================================ */
+
 (() => {
 'use strict';
 
 const tg = window.Telegram?.WebApp;
 const $ = (id) => document.getElementById(id);
 
-/* Перевод (web/i18n.js грузится раньше этого файла). Ключ — русский текст:
-   tr('Не удалось продать') вернёт его на выбранном языке, а если перевода
-   нет — сам русский текст. tn(5, 'prize') — число со словом в нужной форме
-   («5 призов» / «5 prizes» / «5 个奖品»). Язык меняется в профиле на месте,
-   без перезагрузки: по событию langchange всё перерисовывается (onLangChange),
-   поэтому тексты нельзя запоминать в константах — только брать при отрисовке. */
+
 const I18N = window.I18N || { lang: 'ru', tr: (s) => s, tn: (n) => String(n), setLang() {}, langs: [] };
 const tr = (key, vars) => I18N.tr(key, vars);
 const tn = (n, noun, wordOnly) => I18N.tn(n, noun, wordOnly);
 
-/** Язык сменили в профиле: перерисовываем всё, что собрано кодом, на месте —
-    без перезагрузки, вкладка и прокрутка не трогаются. Статичную разметку
-    переводит сам i18n.js. */
+
 function onLangChange() {
   document.querySelectorAll('#langBtns .lang-btn').forEach((b) => b.classList.toggle('on', b.dataset.lang === I18N.lang));
   const content = document.querySelector('.content');
@@ -29,8 +19,7 @@ function onLangChange() {
   if (content) content.scrollTop = top;
 }
 
-/** Название приза с сервера на выбранном языке. Сервер отдаёт названия
-    по-русски: «Шляпа на ониксе», «Lol Pop (любая модель)». */
+
 function trName(name) {
   const s = String(name || '');
   const any = ' (любая модель)';
@@ -48,7 +37,7 @@ let pointerDeg = 0;
 let modeIndex = 0;          // позиция ползунка
 let modes = [];             // режимы ставки с сервера
 
-/* ----------------------------------------------------------- телеграм */
+
 function initTelegram() {
   if (!tg) return;
   tg.ready();
@@ -67,7 +56,7 @@ function haptic(type = 'impact', style = 'medium') {
   } catch {}
 }
 
-/* ---------------------------------------------------------------- API */
+
 async function api(path, body = {}) {
   const res = await fetch(path, {
     method: 'POST',
@@ -85,11 +74,11 @@ async function api(path, body = {}) {
   return data;
 }
 
-/* -------------------------------------------------------------- утилиты */
+
 const fmt = (n, d = 4) => Number(n).toFixed(d).replace(/\.?0+$/, '') || '0';
 const shortAddr = (a) => (a && a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a || '');
 
-// 1 приз / 2 приза / 5 призов
+
 function plural(n, one, few, many) {
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -98,8 +87,8 @@ function plural(n, one, few, many) {
   return many;
 }
 
-// Копирование с запасным путём: в WebView Telegram Clipboard API бывает
-// недоступен, тогда копируем через скрытое поле и execCommand.
+
+
 async function copyText(text) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -124,7 +113,7 @@ async function copyText(text) {
 }
 
 let toastTimer = null;
-/** Показать баланс сразу, не дожидаясь полного обновления состояния. */
+
 function setBalance(ton) {
   if (!state || typeof ton !== 'number' || !Number.isFinite(ton)) return;
   state.balance_ton = Math.max(0, ton);
@@ -155,11 +144,11 @@ function makeStars(n = 42) {
   box.appendChild(frag);
 }
 
-/* ------------------------------------------------------- призовые тиры */
-// Тот же самый апгрейд, тот же самый бросок — эта часть его вообще не
-// трогает. Тир меняет только то, ЧТО стоит на кону (приз и его цена) и
-// то, как выглядит экран. Шанс и результат по-прежнему считает только
-// сервер, как и раньше.
+
+
+
+
+
 const TIER_HAT_ASSET = {
   random: 'assets/hat.png',
   onyx: 'assets/hat-onyx.png',
@@ -169,13 +158,13 @@ const TIER_HAT_ASSET = {
 const TIER_ORDER = ['random', 'onyx', 'black', 'gift'];
 
 let currentTier = 'random';
-// Тир, на который крутили последний раз: по нему красится улетающая шляпа,
-// даже если игрок успел переключить тир, пока шёл выстрел и полёт.
+
+
 let spinTier = 'random';
 
-/* Апгрейд на любой подарок: каталог коллекций с ценами (app/catalog.py) */
+
 let giftCatalog = null;          // { items: [{slug, name, price_ton, image}], margin }
-// Что на кону: { slug, model ('' — любая модель), name, price_ton, image }
+
 let selectedGift = null;
 let giftCatalogAt = 0;
 let gpModels = null;             // открытая в выборе коллекция с моделями
@@ -185,8 +174,7 @@ function giftImage(slug) {
   return `/gimg/${slug}.webp?v=2`;  // обложка коллекции без фона, отдаёт наш сервер (v — как IMG_VER)
 }
 
-/** Картинка подарка с повтором: сервер мог ещё качать её с CDN — пробуем
-    ещё 4 раза с растущей паузой (2, 4, 6, 8 с), потом показываем запасную. */
+
 function setGiftImg(img, src, fallback) {
   let tries = 0;
   img.onerror = () => {
@@ -203,16 +191,13 @@ function hatAsset(tier) {
   return TIER_HAT_ASSET[tier] || TIER_HAT_ASSET.random;
 }
 
-/** Цена прокрутки на подарок — та же формула, что на сервере (catalog.cost_for).
-    Сервер всё равно считает сам и списывает свою цену. */
+
 function giftCost(price, chance) {
   const m = giftCatalog ? giftCatalog.margin || 0 : 0;
   return roundTon(price * chance / Math.max(0.01, (1 - m) * giftPriceFactor(price)));
 }
 
-/** Множитель ценовой ступени подарка (catalog.price_factor): чем дороже
-    подарок, тем своя маржа в цене. Ступени приходят с каталогом, от дорогих
-    к дешёвым; подходит первая, чей порог цена строго превышает. */
+
 function giftPriceFactor(price) {
   if (!giftCatalog) return 1;
   for (const [limit, factor] of giftCatalog.steps || []) {
@@ -221,15 +206,12 @@ function giftPriceFactor(price) {
   return giftCatalog.base || 1;
 }
 
-/** Округление до сотых так же, как round(x, 2) на сервере. Math.round(x*100)
-    здесь не годится: 14.145 в памяти — это 14.14499…, сервер даёт 14.14,
-    а Math.round(1414.5) дал бы 14.15, и на кнопке была бы не та цена. */
+
 function roundTon(x) {
   return Number(x.toFixed(2));
 }
 
-/** Часть конфига, которая зависит от выбранного тира. Если сервер ещё не
-    прислал tiers (старая версия на бэкенде) — работает как раньше. */
+
 function tierMeta(cfg) {
   if (currentTier === 'gift' && selectedGift) {
     const base = cfg.chances || [];
@@ -247,22 +229,19 @@ function tierMeta(cfg) {
 }
 
 function saveTier(tier) {
-  try { localStorage.setItem('prizeTier', tier); } catch (e) { /* не страшно */ }
+  try { localStorage.setItem('prizeTier', tier); } catch (e) {  }
 }
 
 function loadSavedTier() {
   try {
     const saved = localStorage.getItem('prizeTier');
-    // Подарок восстанавливается отдельно, когда загрузится каталог
+    
     if (TIER_ORDER.includes(saved) && saved !== 'gift') return saved;
-  } catch (e) { /* не страшно */ }
+  } catch (e) {  }
   return 'random';
 }
 
-/** Перекраска интерфейса под тир. Нарочно ограничена вкладкой «Апгрейд» —
-    ушёл в «Три шляпы» или в «Профиль», там всегда обычный вид, независимо
-    от того, какой тир выбран. Тир — это про то, что на кону, а не про то,
-    в каком цвете должно быть вообще всё приложение. */
+
 function applyBodyTierClass() {
   const onUpgrade = !$('view-upgrade').hidden;
   document.body.classList.remove('tier-onyx', 'tier-black');
@@ -271,24 +250,21 @@ function applyBodyTierClass() {
   }
 }
 
-// Вкладка «Топ» в нижнем меню. false — спрятана; чтобы вернуть, поставь true.
+
 const SHOW_LEADERS = false;
 
-// Плитки шляп в списке подарков: обычная и её фоны. Слаги коллекций — только
-// буквы и цифры, с такими ключами не пересекутся.
+
+
 const HAT_KEY = '__hat__';
 const HAT_TIER_KEYS = { [HAT_KEY]: 'random', __onyx__: 'onyx', __black__: 'black' };
-// Коллекция шляп в каталоге: её модели открываются по нажатию на плитку шляпы
+
 const HAT_SLUG = 'WitchHat';
 
-/** Кнопки тиров. Кнопки «Рандом» нет: обычная шляпа — приз по умолчанию и
-    первая плитка в списке подарков, а подсвечивается при ней «Подарки».
-    Если апгрейд на подарки выключен, списка нет — тогда «Рандом» возвращается,
-    иначе с оникса и блэка было бы не вернуться на обычную шляпу. */
+
 function syncTierButtons() {
   const gifts = state ? !!state.config.gift_upgrade : true;
-  // Со списком подарков кнопки не нужны вовсе: шляпа, её фоны и подарки
-  // выбираются там. Без списка — остаются, иначе приз было бы не сменить.
+  
+  
   $('tierPicker').hidden = gifts;
   document.querySelectorAll('.tier-btn').forEach((b) => {
     const t = b.dataset.tier;
@@ -299,22 +275,16 @@ function syncTierButtons() {
   });
 }
 
-/* Новичок и подсказка под колесом.
-   needsPick — игрок ещё ни разу не выбирал приз: вместо шляпы в колесе стоит
-   вопросик, «Варить» ведёт в список подарков. Новичком считаем того, кто
-   ещё не играл (счётчик бросков на сервере 0) и у кого на этом устройстве
-   нет ни сохранённого приза, ни отметки о выборе.
-   Подсказка «Нажми, чтобы выбрать любой подарок» видна всем, пока человек
-   один раз не нажмёт на колесо или на неё саму, — потом пропадает насовсем. */
+
 function lsGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
 }
 function lsSet(key, value) {
-  try { localStorage.setItem(key, value); } catch (e) { /* не страшно */ }
+  try { localStorage.setItem(key, value); } catch (e) {  }
 }
 
-// До ответа сервера гадаем по памяти устройства: так новичок сразу видит
-// вопросик, а не шляпу, которая через секунду сменилась бы на вопросик.
+
+
 let needsPick = lsGet('prizeChosen') !== '1' && !lsGet('prizeTier');
 let needsPickChecked = false;
 
@@ -325,7 +295,7 @@ function syncPickUI() {
   $('hatHint').hidden = !giftsOn || lsGet('hatHintSeen') === '1';
 }
 
-/** Первый приход данных с сервера: решаем, новичок ли это. */
+
 function checkNeedsPick() {
   if (needsPickChecked || !state) return;
   needsPickChecked = true;
@@ -334,24 +304,22 @@ function checkNeedsPick() {
     && !(state.fairness && state.fairness.nonce > 0);
 }
 
-/** Игрок сам выбрал приз — вопросик больше не нужен. */
+
 function markPrizeChosen() {
   lsSet('prizeChosen', '1');
   needsPick = false;
 }
 
-/** Игрок нажал на колесо или подсказку — подсказка своё отработала. */
+
 function markHintSeen() {
   lsSet('hatHintSeen', '1');
   $('hatHint').hidden = true;
 }
 
-/** Переключает тир: тема, картинка приза сразу, а таблицу цен — как только
-    данные с сервера уже есть. save=false — при восстановлении из
-    localStorage на старте, чтобы не перезаписывать то же самое значение. */
+
 function setTier(tier, save = true) {
   if (!TIER_ORDER.includes(tier)) tier = 'random';
-  // Подарок без выбранной коллекции — сначала выбор, тир переключится по нему
+  
   if (tier === 'gift' && !selectedGift) {
     openGiftPicker();
     return;
@@ -375,7 +343,7 @@ function setTier(tier, save = true) {
     if (tier === 'gift') {
       try {
         localStorage.setItem('prizeGift', JSON.stringify({ slug: selectedGift.slug, model: selectedGift.model }));
-      } catch (e) { /* не страшно */ }
+      } catch (e) {  }
     }
   }
 
@@ -386,11 +354,11 @@ function setTier(tier, save = true) {
   }
 }
 
-/* ------------------------------------------- выбор подарка для апгрейда */
-// Два шага: коллекция → модель («Любая модель» первой — цена флора коллекции).
+
+
 async function loadGiftCatalog(force = false) {
-  // Пустой каталог не запоминаем: сервер мог ещё грузить цены, и минуту
-  // показывать «подарки недоступны» после того, как они появились, незачем.
+  
+  
   if (!force && giftCatalog && giftCatalog.items.length && Date.now() - giftCatalogAt < 60000) return giftCatalog;
   const r = await api('/api/gifts/catalog');
   giftCatalog = { items: r.items || [], margin: r.margin || 0, steps: r.price_steps || [], base: r.price_base || 1 };
@@ -404,8 +372,7 @@ async function fetchModels(slug) {
   return r;
 }
 
-/** Цены меняются: подтягиваем свежую цену выбранного подарка, а если его
-    больше нельзя выбрать — возвращаемся на обычный приз. */
+
 async function refreshSelectedGift() {
   if (!selectedGift) return;
   let fresh = null;
@@ -433,7 +400,7 @@ function gpTile(key, name, price, image, active, fallback) {
   img.loading = 'lazy';
   img.decoding = 'async';
   img.alt = '';
-  // Картинки моделей не у всех есть — тогда показываем картинку коллекции
+  
   setGiftImg(img, image, fallback);
   const n = document.createElement('span');
   n.className = 'gp-name';
@@ -445,13 +412,13 @@ function gpTile(key, name, price, image, active, fallback) {
   return b;
 }
 
-/** Как называется обычная шляпа (приз по умолчанию). */
+
 function hatPrizeName() {
   return (state && state.config.tiers && state.config.tiers.random
     && trName(state.config.tiers.random.prize_name)) || (state && trName(state.config.prize_name)) || tr('Шляпа волшебника');
 }
 
-/** Название шляпы тира: обычная, на ониксе, на блэке. */
+
 function hatTierName(tier) {
   if (tier === 'random') return hatPrizeName();
   const t = state && state.config.tiers && state.config.tiers[tier];
@@ -460,14 +427,12 @@ function hatTierName(tier) {
 
 const HAT_TIER_LABEL = { random: tr('по умолчанию'), onyx: tr('фон оникс'), black: tr('фон блэк') };
 
-/** Можно ли выбрать шляпу на ониксе и на блэке (тиры включены на сервере). */
+
 function hatBackdropsOn() {
   return !!(state && state.config.tier_enabled);
 }
 
-/** Плитка шляпы. В списке коллекций она одна на все шляпы (key = HAT_KEY):
-    нажал — открылись все шляпы. В том списке плиток три: обычная
-    «по умолчанию» и два фона — оникс и блэк; дальше идут модели Witch Hat. */
+
 function gpHatTile(key, active) {
   const tier = HAT_TIER_KEYS[key];
   const b = document.createElement('button');
@@ -487,10 +452,7 @@ function gpHatTile(key, active) {
   return b;
 }
 
-/* Сортировка списка подарков: 'popular' (по умолчанию) — на что чаще крутят,
-   'expensive' — сначала дорогие, 'cheap' — сначала дешёвые. Выбор
-   запоминается. У моделей внутри коллекции данных о популярности нет,
-   поэтому там «Популярные» = порядок с сервера (от дешёвых). */
+
 const GP_SORTS = ['popular', 'expensive', 'cheap'];
 let gpSort = GP_SORTS.includes(lsGet('gpSort')) ? lsGet('gpSort') : 'popular';
 
@@ -524,26 +486,26 @@ function renderGiftPicker() {
     list.innerHTML = `<p class="muted gp-empty">${tr('Загружаю…')}</p>`;
     return;
   }
-  // Подарок отмечен выбранным, только пока на кону он, а не шляпа.
-  // Список общий для апгрейда и «Трёх шляп» — у каждого свой выбранный приз.
+  
+  
   const forShell = gpFor === 'shell';
   const picked = forShell ? shellGift : (currentTier === 'gift' ? selectedGift : null);
   const frag = document.createDocumentFragment();
   let note = '';
   if (gpModels) {
     const sel = picked && picked.slug === gpModels.slug ? picked.model : null;
-    // В списке шляп первыми идут обычная шляпа и её фоны — оникс и блэк
+    
     if (gpModels.slug === HAT_SLUG) {
       for (const key of Object.keys(HAT_TIER_KEYS)) {
         const tier = HAT_TIER_KEYS[key];
-        // Фоны оникс и блэк — призы апгрейда; в «Трёх шляпах» шляпа одна
+        
         if (tier !== 'random' && (forShell || !hatBackdropsOn())) continue;
         const words = `${hatTierName(tier)} ${HAT_TIER_LABEL[tier]}`.toLowerCase();
         const on = forShell ? !shellGift : currentTier === tier;
         if (!q || words.includes(q)) frag.appendChild(gpHatTile(key, on));
       }
     }
-    // «Любая модель» — только когда у коллекции есть цена (каталог загружен)
+    
     if (gpModels.floor != null && (!q || tr('любая модель').includes(q))) {
       frag.appendChild(gpTile('', tr('Любая модель'), gpModels.floor, gpModels.image, sel === ''));
     }
@@ -554,10 +516,10 @@ function renderGiftPicker() {
     if (gpModels.loading) note = tr('Загружаю модели…');
     else if (!frag.childNodes.length) note = tr('Ничего не нашлось');
   } else {
-    // Шляпа — всегда первой, даже пока подарки грузятся: кнопки «Рандом» нет,
-    // и вернуться на обычную шляпу можно только отсюда.
-    // Она одна на все шляпы: отдельной плитки Witch Hat в списке нет, её
-    // модели открываются по нажатию на эту. Ищется и по «witch hat».
+    
+    
+    
+    
     const hatOn = (forShell ? !shellGift : currentTier !== 'gift') || (!!picked && picked.slug === HAT_SLUG);
     if (!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) {
       frag.appendChild(gpHatTile(HAT_KEY, hatOn));
@@ -582,8 +544,7 @@ function renderGiftPicker() {
   }
 }
 
-/** Список подарков. forWhat: 'upgrade' — приз апгрейда (по умолчанию),
-    'shell' — приз «Трёх шляп». Посреди игры приз не меняется. */
+
 async function openGiftPicker(forWhat) {
   const shell = forWhat === 'shell';
   if (shell ? shellPhase !== 'idle' : spinning) return;
@@ -617,12 +578,10 @@ async function openGiftModels(slug) {
   return true;
 }
 
-/** Список шляп: обычная, фоны оникс и блэк, модели Witch Hat. Открывается
-    всегда — даже если модели сейчас недоступны (каталог не загрузился, шляпа
-    дороже лимита): тогда в нём только шляпа и её фоны. */
+
 async function openHatList() {
-  // Шляпу и фоны показываем сразу, модели подставляем, когда придут
-  // title — заголовок списка, name — название коллекции (идёт в название приза)
+  
+  
   const view = { slug: HAT_SLUG, title: tr('Шляпы'), name: 'Witch Hat', floor: null, image: '', models: [], loading: false };
   gpModels = view;
   $('gpSearch').value = '';
@@ -633,7 +592,7 @@ async function openHatList() {
   try {
     const r = await fetchModels(HAT_SLUG);
     Object.assign(view, { name: r.name, floor: r.floor, image: r.image, models: r.models || [] });
-  } catch (e) { /* моделей нет — остаются шляпа и фоны */ }
+  } catch (e) {  }
   view.loading = false;
   if (gpModels === view) renderGiftPicker();      // не ушёл ли игрок из списка
 }
@@ -645,7 +604,7 @@ function pickHatTier(tier) {
   haptic('impact', 'light');
 }
 
-/** Приз «Трёх шляп»: подарок из списка или null — обычная шляпа. */
+
 function pickShellPrize(gift) {
   shellGift = gift;  renderShellPrize();
   updateShellButton();
@@ -661,8 +620,8 @@ function gpBack() {
 function onGiftTile(key) {
   if (gpModels === 'loading') return;
   if (key in HAT_TIER_KEYS) {
-    // В списке коллекций плитка шляпы открывает список шляп; в самом списке
-    // шляп — это выбор: обычная, на ониксе или на блэке.
+    
+    
     if (!gpModels) openHatList();
     else pickHatTier(HAT_TIER_KEYS[key]);
     return;
@@ -690,7 +649,7 @@ function onGiftTile(key) {
   haptic('impact', 'light');
 }
 
-/** На старте: если в прошлый раз крутили на подарок — вернуть его выбор. */
+
 async function restoreSavedGift() {
   let saved = null;
   try {
@@ -707,13 +666,12 @@ async function restoreSavedGift() {
   if (selectedGift && currentTier !== 'gift') setTier('gift', false);
 }
 
-/* --------------------------------------------------- шанс и ползунок */
+
 function currentMode() {
   return modes[modeIndex] || null;
 }
 
-/** Таблица «шанс -> цена» приходит с сервера: сами цены не считаем,
-    иначе наше округление разошлось бы с тем, что спишет сервер. */
+
 function buildModes(cfg) {
   const grid = cfg.chances || [];
   const changed = JSON.stringify(grid) !== JSON.stringify(modes);
@@ -745,11 +703,7 @@ function selectMode(index) {
 
 const THUMB_W = 24;        // ширина бегунка, как в styles.css (#modeSlider thumb)
 
-/** Шкала процентов снаружи кольца, как циферблат часов: числа только на
-    десятках (0, 10 … 90; 100 — та же точка, что 0, его нет), а между ними,
-    на 5, 15 … 95, — пустые засечки. Снаружи — чтобы стрелка их не закрывала.
-    Дуга шанса идёт от верхней точки по часовой стрелке, поэтому p% стоит
-    на угле p·3.6°. */
+
 function buildWheelScale() {
   const g = $('wheelScale');
   if (!g || g.childNodes.length) return;
@@ -762,7 +716,7 @@ function buildWheelScale() {
     const deg = p * 3.6;
     if (p % 10 === 0) {
       const [x, y] = at(deg, 148);
-      // табличка под числом и ножка к ободу — видны в теме «Поляна» (styles.css)
+      
       const [lx1, ly1] = at(deg, 131);
       const leg = document.createElementNS(NS, 'line');
       leg.setAttribute('class', 'scale-leg');
@@ -793,29 +747,29 @@ function buildWheelScale() {
   }
 }
 
-/** Перерисовывает всё, что зависит от выбранного шанса. */
+
 function applyMode() {
   const m = currentMode();
   if (!m) return;
 
-  // Только число, без «TON». Приз ещё не выбран — цены пока нет.
+  
   $('modeCost').textContent = needsPick ? '—' : fmt(m.cost_ton, 2);
   $('modeChance').textContent = `${Math.round(m.chance * 100)}%`;
 
-  // Подписи едут за бегунком: цена над ним, шанс под ним. Бегунок шириной
-  // THUMB_W ходит от края до края трека, поэтому его центр — не просто доля.
+  
+  
   const ratio = modes.length > 1 ? modeIndex / (modes.length - 1) : 0.5;
   const thumbX = `calc(${THUMB_W / 2}px + (100% - ${THUMB_W}px) * ${ratio})`;
   $('modeTrack').style.setProperty('--thumb-x', thumbX);
   $('modeSlider').style.setProperty('--fill', thumbX);     // зелёная заливка — до середины бегунка
 
-  // Числа и засечки шкалы в пределах выбранного шанса — зелёные
+  
   const pct = Math.round(m.chance * 100);
   document.querySelectorAll('#wheelScale [data-p]').forEach((el) => {
     el.classList.toggle('on', Number(el.dataset.p) <= pct);
   });
 
-  // Зелёная дуга = доля выигрыша на колесе.
+  
   $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
 
@@ -825,19 +779,19 @@ function applyMode() {
 function updateSpinButton() {
   const m = currentMode();
   if (!m || !state) return;
-  // Кнопка квадратная, на ней всегда «UP» — длинный текст туда не влезет.
-  // Поэтому она не гаснет, а ведёт куда нужно (см. doSpin): приз не выбран —
-  // в список подарков, не хватает денег — в пополнение. Цена стоит над ползунком.
+  
+  
+  
   $('spinBtn').disabled = spinning || homing;     // пока стрелка не вернулась на ноль, крутить нельзя
   $('spinBtnText').textContent = 'UP';
   const enough = needsPick || state.balance_ton + 1e-9 >= m.cost_ton;
   $('spinBtn').classList.toggle('low', !enough);
 }
 
-/* --------------------------------------------------------------- рендер */
+
 function renderState(s) {
   state = s;
-  // Апгрейд на подарки выключен админом — кнопку прячем, тир сбрасываем
+  
   if (!s.config.gift_upgrade && currentTier === 'gift' && !spinning) {
     selectedGift = null;
     setTier('random', false);
@@ -870,14 +824,14 @@ function renderState(s) {
   updateSpinButton();
 }
 
-/* -------------------------------------- ШляпоКоины, уровень, статистика */
+
 function setCoins(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return;
   if (state && state.hatcoin) state.hatcoin.balance = value;
   $('coinValue').textContent = fmt(value, 2);
 }
 
-/** Шапка и профиль: коины, уровень с прогрессом до следующего, статистика. */
+
 function renderProgress(s) {
   if (s.hatcoin) {
     $('coinChip').hidden = !(s.hatcoin.percent > 0 || s.hatcoin.balance > 0);
@@ -918,7 +872,7 @@ function renderProgress(s) {
   }
 }
 
-/** Подтверждение: окно Telegram, если оно есть, иначе обычное браузерное. */
+
 function confirmDialog(text) {
   return new Promise((resolve) => {
     try {
@@ -926,13 +880,12 @@ function confirmDialog(text) {
         tg.showConfirm(text, (ok) => resolve(!!ok));
         return;
       }
-    } catch (e) { /* не в Telegram — спросим по-обычному */ }
+    } catch (e) {  }
     resolve(window.confirm(text));
   });
 }
 
-/** Призы, которые продаст «Продать всё»: лежат в профиле (не на выводе) и
-    по которым запрос на продажу ещё не ушёл. */
+
 function sellAllCandidates() {
   if (!state) return [];
   return state.prizes.filter((p) => p.status === 'owned' && p.sell_ton !== undefined && !sellingNow.has(p.id));
@@ -941,8 +894,8 @@ function sellAllCandidates() {
 async function sellAll() {
   const mine = sellAllCandidates();
   if (!mine.length) return;
-  // Без вопроса «точно продать?»: нажал — продано. Призы, по которым подана
-  // заявка на вывод, сервер не трогает.
+  
+  
   const btn = $('sellAllBtn');
   btn.disabled = true;
   try {
@@ -969,7 +922,7 @@ async function sellAll() {
   }
 }
 
-/* ------------------------------------------------------------ промокод */
+
 async function activatePromo(e) {
   e.preventDefault();
   const input = $('promoInput');
@@ -1000,10 +953,10 @@ async function activatePromo(e) {
   }
 }
 
-/* ------------------------------------------------------------ рефералы */
 
-// Состояние блока держим в переменной, а не смотрим на разметку: состояние
-// переживает обновление данных раз в 20 секунд и блок не схлопывается сам.
+
+
+
 let refOpen = false;
 
 function toggleReferral() {
@@ -1016,7 +969,7 @@ function toggleReferral() {
 function renderReferral(ref) {
   $('refPercent').textContent = `${fmt(ref.percent, 2)}%`;
 
-  // До нажатия «Создать» показываем кнопку, после — поле со ссылкой.
+  
   const showLink = ref.created && ref.link;
   $('refCreateBtn').hidden = showLink;
   $('refLinkBox').hidden = !showLink;
@@ -1029,7 +982,7 @@ function renderReferral(ref) {
 
   const canWithdraw = ref.balance_ton + 1e-9 >= ref.min_withdraw_ton;
   $('refWithdrawBtn').disabled = !canWithdraw;
-  // Метка на свёрнутой шапке, когда накопилось на вывод.
+  
   $('refDot').hidden = !canWithdraw;
 
   const hint = $('refHint');
@@ -1070,7 +1023,7 @@ async function copyReferral() {
       btn.classList.remove('done');
     }, 1800);
   } else {
-    // Совсем не вышло — выделяем текст, чтобы скопировать вручную.
+    
     const range = document.createRange();
     range.selectNodeContents($('refLink'));
     const sel = window.getSelection();
@@ -1096,23 +1049,20 @@ async function withdrawReferral() {
   }
 }
 
-/* Карточки призов по id. Список не перерисовывается целиком: карточка,
-   у которой ничего не поменялось, остаётся тем же элементом — иначе
-   после каждой продажи весь профиль мигал, перезагружая картинки. */
+
 const prizeCards = new Map();   // id -> { card, sig }
-// Призы, по которым запрос на продажу уже ушёл. Кнопку можно передёрнуть
-// быстрее, чем придёт ответ, поэтому одной disabled мало — держим ещё и
-// список. Настоящая защита от двойного начисления всё равно на сервере.
+
+
+
 const sellingNow = new Set();
-// Карточки, которые сейчас плавно съезжают на место проданной: карточка -> анимация
+
 const flipping = new Map();
 
 function prizeSig(p) {
   return `${I18N.lang}|${p.status}|${p.sell_ton ?? ''}|${p.withdraw_fee_ton ?? ''}|${p.tier}|${p.name}|${withdrawLocked() ? 'L' : ''}`;
 }
 
-/* Задержка вывода после пополнения подарком: время с сервера, таймер на
-   кнопке «Вывести» тикает раз в полминуты. Продавать призы можно сразу. */
+
 let lockUntilMs = 0;
 let clockSkewMs = 0;
 
@@ -1141,11 +1091,7 @@ setInterval(() => {
   btns.forEach((b) => { b.textContent = lockLeftText(); });
 }, 30000);
 
-/** Убрать карточки плавно. Уходящая сразу выпадает из сетки и гаснет
-    поверх неё, а оставшиеся не прыгают на освободившееся место, а плавно
-    съезжают туда (FLIP: запомнили, где были, → перестроили → довели от
-    старого места до нового). Если предыдущий съезд ещё идёт, новый
-    начинается с того места, где карточка находится сейчас. */
+
 function dropPrizeCards(cards) {
   cards = cards.filter((c) => c.isConnected && !c.classList.contains('leaving'));
   if (!cards.length) return;
@@ -1166,15 +1112,15 @@ function dropPrizeCards(cards) {
     setTimeout(() => c.remove(), 260);
   }
 
-  // Сначала ТОЛЬКО читаем новые места всех карточек, потом ТОЛЬКО пишем.
-  // Если чередовать (прочитал место — запустил анимацию — прочитал
-  // следующее), браузер пересчитывает раскладку всей сетки на каждой
-  // карточке: при сотнях призов продажа замораживала экран на секунды.
-  // И двигаем только то, что видно: карточки далеко за экраном встают на
-  // место без анимации — её всё равно никто не увидит.
-  // Съезды, которые ещё идут с прошлой продажи, останавливаем до чтения:
-  // старое место (first) уже снято вместе с их сдвигом, а новое нужно
-  // чистое, без сдвига. Их единицы — держим в flipping, а не ищем по всем.
+  
+  
+  
+  
+  
+  
+  
+  
+  
   for (const anim of flipping.values()) anim.cancel();
   flipping.clear();
 
@@ -1202,12 +1148,12 @@ function dropPrizeCards(cards) {
 
 function renderPrizes(prizes) {
   const grid = $('prizeGrid');
-  // Призы, которые игрок только что продал, не показываем, даже если ответ
-  // сервера на какой-то другой запрос ещё успел их захватить.
+  
+  
   const visible = prizes.filter((p) => !sellingNow.has(p.id));
   $('prizeEmpty').hidden = visible.length > 0;
-  // «Продать всё» — когда в профиле есть хотя бы два приза на продажу:
-  // один и так продаётся своей кнопкой
+  
+  
   $('sellAllBtn').hidden = visible.filter((p) => p.status === 'owned' && p.sell_ton !== undefined).length < 2;
 
   const keep = new Set();
@@ -1222,9 +1168,9 @@ function renderPrizes(prizes) {
       entry = { card, sig };
       prizeCards.set(p.id, entry);
     }
-    // Порядок как у сервера. Стоящую на месте карточку не трогаем: любое
-    // перемещение элемента в разметке перезапускает его анимации — из-за
-    // этого карточки и моргали. Уходящие (.leaving) в расчёт не берём.
+    
+    
+    
     let ref = prev ? prev.nextElementSibling : grid.firstElementChild;
     while (ref && ref.classList.contains('leaving')) ref = ref.nextElementSibling;
     if (entry.card !== ref) grid.insertBefore(entry.card, ref);
@@ -1242,14 +1188,14 @@ function renderPrizes(prizes) {
 
 function buildPrizeCard(p) {
   const card = document.createElement('div');
-  // .fresh — анимация появления, только один раз для новой карточки
+  
   card.className = 'prize-card fresh';
   card.addEventListener('animationend', () => card.classList.remove('fresh'), { once: true });
 
   const thumb = document.createElement('div');
-  // Фон карточки — под тир самого приза, а не под тему текущей вкладки:
-  // призы-оникс лежат на сером, призы-блэк на чёрном, всегда, вне
-  // зависимости от того, что выбрано сейчас на «Апгрейде».
+  
+  
+  
   const isGift = String(p.tier || '').startsWith('gift:');
   thumb.className = isGift ? 'thumb thumb-gift'
     : p.tier && p.tier !== 'random' ? `thumb thumb-${p.tier}` : 'thumb';
@@ -1269,8 +1215,8 @@ function buildPrizeCard(p) {
     btn.textContent = tr('Вывести');
     btn.addEventListener('click', () => withdraw(p.id, btn, p.withdraw_fee_ton || 0));
   } else {
-    // withdraw_pending — заявка ждёт админа; withdraw_processing — админ
-    // уже отправляет подарок, и продать его больше нельзя
+    
+    
     btn.textContent = p.status === 'withdraw_processing' ? tr('Выдаётся') : tr('В обработке');
     btn.classList.add('pending');
     btn.disabled = true;
@@ -1278,9 +1224,9 @@ function buildPrizeCard(p) {
 
   card.append(thumb, btn);
 
-  // Продажа: приз уходит сразу на баланс, без ручной выплаты. Сервер
-  // присылает цену продажи только когда продать можно — в том числе пока
-  // заявка на вывод ещё ждёт (тогда продажа её отменит).
+  
+  
+  
   if (p.sell_ton !== undefined) {
     const sellBtn = document.createElement('button');
     sellBtn.className = 'sell-btn';
@@ -1292,19 +1238,19 @@ function buildPrizeCard(p) {
   return card;
 }
 
-/* ----------------------------------------------------------- навигация */
+
 const VIEW_SLIDE_MS = 260;
 
-/* ------------------------------------------------------------- дизайн */
-// Два оформления: «Новый» — поляна с пеньком (data-theme="meadow" на <html>),// он стоит по умолчанию; «Старый» — ночной фиолетовый с волшебником (без
-// атрибута), его игрок включает сам в настройках. Выбор лежит в localStorage
-// и ставится ещё до отрисовки (скрипт в <head> index.html).
+
+
+
+
 const isMeadow = () => document.documentElement.dataset.theme === 'meadow';
 
 function setTheme(name) {
   if (name === 'classic') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = 'meadow';
-  try { localStorage.setItem('theme', name === 'classic' ? 'classic' : 'meadow'); } catch (e) { /* не запомнится — не страшно */ }
+  try { localStorage.setItem('theme', name === 'classic' ? 'classic' : 'meadow'); } catch (e) {  }
   syncThemeButtons();
   if (window.alignBg) window.alignBg();     // фон поляны подгоняется под колесо
   shellAlignStump();
@@ -1316,9 +1262,9 @@ function syncThemeButtons() {
   document.querySelectorAll('#themeBtns .lang-btn').forEach((b) => b.classList.toggle('on', b.dataset.themePick === cur));
 }
 
-/* ---------------------------------- топ уровней и карточка игрока */
-// Окно в профиле. Топ — по уровню (обороту за всё время), без админов.
-// Нажатие на игрока открывает его карточку: уровень, оборот, лучший дроп.
+
+
+
 function listNote(box, text) {
   box.textContent = '';
   const p = document.createElement('p');
@@ -1444,7 +1390,7 @@ function renderPlayer(p) {
   card.append(head, tiles);
 }
 
-/* --------------------------------------------------------- история игр */
+
 async function openHistory() {
   $('historyModal').hidden = false;
   const list = $('histList');
@@ -1506,9 +1452,9 @@ function initProfileWindows() {
   }
 }
 
-/* ------------------------------------------------------- режим анонима */
-// В профиле: «Аноним — Вкл/Выкл». Включён — в топах и в карточке игрока
-// другим показывается «Аноним» без аватарки. Хранится на сервере.
+
+
+
 function syncAnon() {
   const on = !!(state && state.user && state.user.anon);
   document.querySelectorAll('#anonBtns .lang-btn').forEach((b) => b.classList.toggle('on', (b.dataset.anon === '1') === on));
@@ -1541,10 +1487,7 @@ function initThemeSwitch() {
   syncThemeButtons();
 }
 
-/** «Три шляпы» на фоне с пеньком: шляпы стоят прямо над ним. Где верх
-    пенька на экране, знает scene.js (bgAnchorY); стол со шляпами опускаем
-    или поднимаем отступом сверху так, чтобы его низ пришёлся чуть выше.
-    Фона с пеньком нет — стол остаётся посередине, как задано в styles.css. */
+
 function shellAlignStump() {
   const table = $('shellTable');
   const y = window.bgAnchorY;
@@ -1557,9 +1500,7 @@ function shellAlignStump() {
   table.style.marginTop = `${Math.max(4, Math.round(want))}px`;
 }
 
-/** Листание вкладок пальцем: провёл влево — следующая вкладка, вправо —
-    предыдущая. Считаем жестом только быстрое и явно горизонтальное
-    движение, чтобы не путать с прокруткой списка и с ползунком шанса. */
+
 function initSwipeTabs() {
   const content = document.querySelector('.content');
   let x0 = 0, y0 = 0, t0 = 0, ok = false;
@@ -1575,9 +1516,9 @@ function initSwipeTabs() {
     const t = e.changedTouches[0];
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if (Date.now() - t0 > 600 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
-    // посреди прокрутки колеса или партии в шляпы вкладку случайно не уводим
+    
     if (spinning || shellPhase !== 'idle') return;
-    // Со страницы меню («Три шляпы», «Лидеры») свайп вправо возвращает в меню
+    
     const main = ['menu', 'upgrade', 'profile'];
     const sub = !main.includes(currentView);
     const i = main.indexOf(VIEW_TAB[currentView]);
@@ -1588,10 +1529,7 @@ function initSwipeTabs() {
   }, { passive: true });
 }
 
-/** Снимок уходящей вкладки для анимации перелистывания. Сама вкладка
-    прячется сразу (вся логика showView остаётся мгновенной), а вместо неё
-    за край уезжает её копия: она лежит поверх области содержимого, на
-    нажатия не реагирует и удаляется, как только уехала. */
+
 function viewGhost(view) {
   const content = document.querySelector('.content');
   const stage = document.querySelector('.stage');
@@ -1607,8 +1545,7 @@ function viewGhost(view) {
   return { box, stage };
 }
 
-/** Перелистывание вкладок, как страницы: новая въезжает с той стороны, где
-    стоит её кнопка в меню, старая уезжает в противоположную. */
+
 function slideViews(ghost, next, dir) {
   const out = dir > 0 ? 'out-left' : 'out-right';
   const inn = dir > 0 ? 'in-right' : 'in-left';
@@ -1622,9 +1559,9 @@ function slideViews(ghost, next, dir) {
   setTimeout(done, VIEW_SLIDE_MS + 120);   // вкладка в фоне: animationend может не прийти
 }
 
-// Разделы: у «Меню», «Апгрейда» и «Профиля» есть кнопка внизу; «Три шляпы» и
-// «Лидеры» открываются из меню и считаются его страницами (кнопка «Меню»
-// остаётся подсвеченной, сверху слева — возврат).
+
+
+
 const VIEWS = ['menu', 'shell', 'leaders', 'upgrade', 'profile'];
 const VIEW_TAB = { menu: 'menu', shell: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
 const VIEW_POS = { menu: 0, shell: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };   // порядок слева направо — для анимации
@@ -1632,7 +1569,7 @@ let currentView = 'upgrade';
 
 function showView(name) {
   if (!VIEWS.includes(name)) return;
-  // Что видно сейчас и в какую сторону листаем — до того, как всё спрячется
+  
   const prevName = currentView;
   const prevEl = $(`view-${prevName}`);
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1644,9 +1581,9 @@ function showView(name) {
   if (name === 'leaders') loadLeaderboard();
   lbSetPlaying(name === 'leaders');   // анимации призов и таймер — только на «Лидерах»
   lbStartTimer(name === 'leaders');
-  // Стол расставляем при показе: пока вкладка скрыта, ширина равна нулю
-  // и шаг между слотами посчитался бы неверно. В разгар партии не трогаем —
-  // иначе шляпы прыгнут на место посреди перемешивания.
+  
+  
+  
   if (name === 'shell') shellAlignStump();
   if (name === 'shell' && shellPhase === 'idle') shellPlace();
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === VIEW_TAB[name]));
@@ -1654,13 +1591,13 @@ function showView(name) {
   applyBodyTierClass();   // тема оникс/блэк живёт только на вкладке «Апгрейд»
   document.body.dataset.view = name;   // фон затемняется на вкладках со списками (styles.css)
   if (ghost) slideViews(ghost, $(`view-${name}`), VIEW_POS[name] > VIEW_POS[prevName] ? 1 : -1);
-  // фон подгоняется под колесо (scene.js); пока вкладка едет, мерить рано
+  
   if (name === 'upgrade' && window.alignBg) setTimeout(window.alignBg, VIEW_SLIDE_MS + 150);
 }
 
-/* ------------------------------------------------------ лидерборд */
-// Топ по объёму игры (сумме ставок) за сезон. Грузится при каждом открытии вкладки,
-// но не чаще раза в 10 секунд — чтобы переключение вкладок не долбило сервер.
+
+
+
 const LB_MIN_INTERVAL = 10000;
 let lbLoadedAt = 0;
 let lbLoading = false;
@@ -1669,8 +1606,7 @@ function fmtTon(v) {
   return `${Number(v).toLocaleString(I18N.locale || 'ru-RU', { maximumFractionDigits: 2 })} TON`;
 }
 
-/** Квадратная аватарка: сначала буква ника на цветном фоне, поверх —
-    фото из Telegram, если оно загрузилось. Не загрузилось — остаётся буква. */
+
 function lbAvatar(name, url, cls = 'lb-ava') {
   const box = document.createElement('div');
   box.className = cls;
@@ -1686,8 +1622,8 @@ function lbAvatar(name, url, cls = 'lb-ava') {
     img.alt = '';
     img.loading = 'lazy';
     img.decoding = 'async';
-    // Показываем фото только когда оно реально загрузилось — иначе на
-    // время загрузки или при ошибке мелькает значок битой картинки.
+    
+    
     img.onload = () => img.classList.add('ok');
     img.onerror = () => img.remove();
     img.src = url;
@@ -1696,12 +1632,7 @@ function lbAvatar(name, url, cls = 'lb-ava') {
   return box;
 }
 
-/* Призы нарисованы так же, как подарок в самом Telegram: фон-градиент,
-   узор из символов (раскладка и прозрачность — как на t.me/nft) и
-   анимированная модель в формате Lottie — это и есть формат стикеров.
-   Плеер (assets/lb/lottie_light.min.js) грузится только при первом
-   открытии вкладки «Топ». Пока он не загрузился или если не смог —
-   показывается статичный кадр. */
+
 const LB_PATTERN = [
   [140.6, 13.8, 0.3, 0.213], [249.5, 13.8, 0.3, 0.213], [291.9, 102.8, 0.3, 0.224],
   [98.2, 102.8, 0.3, 0.224], [276.3, 176.2, 0.277, 0.222], [196.1, 188.6, 0.277, 0.123],
@@ -1728,8 +1659,7 @@ function loadLottie() {
   return lottieLoading;
 }
 
-/** Модель подарка: .tgs — это Lottie, сжатый gzip (в 5 раз меньше).
-    Где браузер не умеет распаковывать сам — берём готовый .json. */
+
 async function loadGiftModel(prize) {
   if (window.DecompressionStream) {
     try {
@@ -1738,7 +1668,7 @@ async function loadGiftModel(prize) {
         const stream = res.body.pipeThrough(new DecompressionStream('gzip'));
         return JSON.parse(await new Response(stream).text());
       }
-    } catch (e) { /* ниже — запасной вариант */ }
+    } catch (e) {  }
   }
   const res = await fetch(prize.model_json);
   if (!res.ok) throw new Error('model');
@@ -1751,8 +1681,7 @@ function svgEl(tag, attrs = {}) {
   return el;
 }
 
-/** Фон подарка: градиент от центра к краю и узор из символов, окрашенных
-    в цвет узора. Карточка у Telegram 420×280, мы берём квадрат из центра. */
+
 function lbBackdrop(prize) {
   const id = `lb${prize.place}`;
   const svg = svgEl('svg', { class: 'lb-bd', viewBox: '70 0 280 280', preserveAspectRatio: 'xMidYMid slice' });
@@ -1779,8 +1708,7 @@ function lbBackdrop(prize) {
   return svg;
 }
 
-/** Блок приза с фоном и моделью. Создаётся один раз на место и потом
-    просто переставляется в новую карточку — анимация не перезапускается. */
+
 function lbPrizeVisual(prize) {
   if (lbVisuals[prize.place]) return lbVisuals[prize.place];
 
@@ -1812,18 +1740,18 @@ function lbPrizeVisual(prize) {
       lbAnims[prize.place] = a;
     })
     .catch(() => {
-      // Не вышло — остаётся статичный кадр; при следующем открытии попробуем снова
+      
       delete lbVisuals[prize.place];
     });
   return pic;
 }
 
-/** Анимации крутятся только пока открыта вкладка «Топ» — батарея не тратится зря. */
+
 function lbSetPlaying(on) {
   for (const a of Object.values(lbAnims)) (on ? a.play() : a.pause());
 }
 
-/* Таймер до итогов. Считаем от времени сервера: часы телефона могут врать. */
+
 let lbEndsAt = 0;
 let lbSkew = 0;
 let lbFinished = false;
@@ -1836,8 +1764,8 @@ function lbTick() {
   const left = Math.max(0, Math.floor((lbEndsAt - (Date.now() + lbSkew)) / 1000));
   if (lbEndless) { el.replaceChildren(); el.hidden = true; return; }
   if (left <= 0) {
-    // Сезон закончился: плашку «Сезон завершён» не показываем — блок таймера
-    // просто прячется до старта следующего сезона.
+    
+    
     el.replaceChildren();
     el.hidden = true;
     if (!lbFinished) { lbFinished = true; loadLeaderboard(true); }
@@ -1917,8 +1845,8 @@ function renderLeaderboard(data) {
   const byRank = {};
   for (const r of data.rows) byRank[r.rank] = r;
 
-  // Пьедестал со шляпами-призами убран: в «Лидерах» только список.
-  // LB_SHOW_PRIZES = true вернёт и карточки призов сверху, и значки в строках.
+  
+  
   const podium = $('lbPodium');
   podium.replaceChildren();
   podium.hidden = !LB_SHOW_PRIZES;
@@ -1930,7 +1858,7 @@ function renderLeaderboard(data) {
     }
   }
 
-  // Своё место
+  
   const me = $('lbMe');
   me.replaceChildren();
   me.className = 'lb-me';
@@ -1951,7 +1879,7 @@ function renderLeaderboard(data) {
     me.classList.add('muted');
   }
 
-  // Список
+  
   const list = $('lbList');
   list.replaceChildren();
   for (const row of data.rows) {
@@ -2000,19 +1928,17 @@ async function loadLeaderboard(force = false) {
   }
 }
 
-/* ------------------------------------------------------ Три шляпы */
-/* Перестановки идут через Web Animations API: собираем одну длинную
-   раскадровку на каждую шляпу и отдаём её браузеру целиком. Так анимация
-   живёт на композиторе и не зависит от requestAnimationFrame. */
 
-// shellOrder[слот] = номер шляпы, которая сейчас на этом слоте
+
+
+
 let shellOrder = [0, 1, 2];
 let shellPhase = 'idle';          // idle | intro | shuffle | pick | reveal
 let shellCfg = null;
 
-// Номер партии. Каждый отложенный шаг запоминает его и молча выходит,
-// если партия уже сменилась. Без этого таймеры прошлой игры доигрывали
-// поверх новой: кот оставался видимым и ездил вместе со шляпами.
+
+
+
 let shellRound = 0;
 
 const SHUFFLE_SWAPS = 16;         // сколько раз шляпы меняются местами
@@ -2024,20 +1950,19 @@ function shellHats() {
   return [...document.querySelectorAll('#shellTable .shell-hat')];
 }
 
-/** Шаг между слотами в пикселях. Считаем на месте: зависит от ширины экрана. */
+
 function shellStep() {
   const table = $('shellTable');
   return (table ? table.clientWidth : 330) / 3;
 }
 
-/** Трансформация шляпы для слота. slot может быть дробным — это середина
-    перелёта, когда две шляпы расходятся по дуге. */
+
 function shellTf(slot, dy = 0, scale = 1) {
   const x = (slot - 1) * shellStep();
   return `translate(${x.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${scale})`;
 }
 
-/** Мгновенно расставить шляпы по слотам без анимации. */
+
 function shellPlace() {
   const hats = shellHats();
   shellOrder.forEach((hatIdx, slot) => {
@@ -2045,7 +1970,7 @@ function shellPlace() {
   });
 }
 
-/** Случайная последовательность перестановок с разгоном. */
+
 function shellPlan() {
   const plan = [];
   let dur = SWAP_FIRST_MS;
@@ -2054,7 +1979,7 @@ function shellPlan() {
     let a = Math.floor(Math.random() * 3);
     let b;
     do { b = Math.floor(Math.random() * 3); } while (b === a);
-    // Не повторяем ту же пару подряд: иначе шляпы просто дёргаются туда-сюда
+    
     const key = Math.min(a, b) * 3 + Math.max(a, b);
     if (key === prev && i) { const t = a; a = b; b = (3 - t - b); }
     prev = Math.min(a, b) * 3 + Math.max(a, b);
@@ -2064,14 +1989,14 @@ function shellPlan() {
   return plan;
 }
 
-/** Проигрывает перестановки и зовёт done в конце. */
+
 function shellShuffle(round, done) {
   const hats = shellHats();
   const plan = shellPlan();
   const total = plan.reduce((s, p) => s + p.dur, 0);
   const frames = hats.map(() => []);
 
-  // Стартовая точка для каждой шляпы
+  
   shellOrder.forEach((hatIdx, slot) => {
     frames[hatIdx].push({ offset: 0, transform: shellTf(slot) });
   });
@@ -2085,13 +2010,13 @@ function shellShuffle(round, done) {
     const t1 = (t + p.dur) / total;
     const mid = (p.a + p.b) / 2;
 
-    // Держим позицию до начала перестановки
+    
     frames[hatA].push({ offset: t0, transform: shellTf(p.a), easing: 'ease-in-out' });
     frames[hatB].push({ offset: t0, transform: shellTf(p.b), easing: 'ease-in-out' });
-    // Середина: одна шляпа обходит сверху и дальше, вторая снизу и ближе
+    
     frames[hatA].push({ offset: tm, transform: shellTf(mid, -26, 0.9), easing: 'ease-in-out' });
     frames[hatB].push({ offset: tm, transform: shellTf(mid, 16, 1.08), easing: 'ease-in-out' });
-    // Прибыли на новые места
+    
     frames[hatA].push({ offset: t1, transform: shellTf(p.b) });
     frames[hatB].push({ offset: t1, transform: shellTf(p.a) });
 
@@ -2104,8 +2029,8 @@ function shellShuffle(round, done) {
     frames[hatIdx].push({ offset: 1, transform: shellTf(slot) });
   });
 
-  // Хвосты прошлой партии снимаем: анимация с fill:forwards перебивает
-  // inline-стиль и, если её не убрать, копится от игры к игре.
+  
+  
   const running = [];
   hats.forEach((hat, i) => {
     hat.getAnimations().forEach((a) => a.cancel());
@@ -2124,7 +2049,7 @@ function shellShuffle(round, done) {
   };
   if (running.length) {
     running[running.length - 1].onfinish = finish;
-    // Страховка: если вкладку свернули, onfinish может не прийти
+    
     setTimeout(finish, total + 300);
   } else {
     finish();
@@ -2142,13 +2067,12 @@ function shellClearMarks() {
   shellHats().forEach((h) => h.classList.remove('chosen', 'miss'));
 }
 
-/** Партия не сменилась? Все отложенные шаги начинаются с этой проверки. */
+
 function shellAlive(round) {
   return round === shellRound;
 }
 
-/** Полный сброс стола: снимаем все анимации, прячем кота, ставим шляпы.
-    Вызывается перед каждой партией, поэтому хвосты прошлой не доживают. */
+
 function shellReset() {
   const intro = $('shellCatIntro');
   if (intro) {
@@ -2173,19 +2097,14 @@ function shellReset() {
 const CAP_UP = 'translateY(-124px) rotate(-13deg)';
 const CAP_DOWN = 'translateY(0px) rotate(0deg)';
 
-/** Проиграть переход и оставить элемент в конечном состоянии.
-    Конечное состояние ставим стилем СРАЗУ, а анимацию пускаем без fill.
-    Если анимация почему-то не отыграет (свёрнутая вкладка, экономия
-    батареи), элемент всё равно окажется там, где должен, — просто без
-    плавности. С fill:forwards он в такой ситуации застревал на первом
-    кадре: так кот и оставался висеть посреди стола. */
+
 function shellAnimate(el, frames, opts, finalStyle) {
   el.getAnimations().forEach((a) => a.cancel());
   Object.assign(el.style, finalStyle);
   el.animate(frames, opts);
 }
 
-/** Шляпа подпрыгивает. withCat — показать под ней кота в полный рост. */
+
 function shellLift(hat, withCat) {
   const cap = hat.querySelector('.shell-cap');
   const cat = hat.querySelector('.shell-cat');
@@ -2198,8 +2117,8 @@ function shellLift(hat, withCat) {
   ], { duration: 460, easing: 'cubic-bezier(.22,.9,.3,1)' }, { transform: CAP_UP });
 
   if (!withCat) return;
-  // Кот выпрыгивает следом: первые кадры держим его спрятанным, чтобы он
-  // не проступал сквозь ещё не улетевшую шляпу.
+  
+  
   shellAnimate(cat, [
     { opacity: 0, transform: 'translateY(30px) scale(.7)' },
     { opacity: 0, transform: 'translateY(30px) scale(.7)', offset: 0.22 },
@@ -2208,7 +2127,7 @@ function shellLift(hat, withCat) {
   ], { duration: 540, easing: 'ease-out' }, { opacity: '1', transform: 'none' });
 }
 
-/** Все шляпы обратно на стол, кот прячется. */
+
 function shellDrop() {
   shellHats().forEach((hat) => {
     const cap = hat.querySelector('.shell-cap');
@@ -2222,23 +2141,18 @@ function shellDrop() {
   shellClearMarks();
 }
 
-/* Приз в «Трёх шляпах»: обычная шляпа (null) или подарок из каталога —
-   { slug, model, name, price_ton, image, cost_ton? }. Шанс от приза не
-   зависит: одна шляпа из трёх. Меняются приз и цена игры. */
+
 let shellGift = null;
 let shellRoundGift = null;       // на что идёт текущая партия
 
-/** Цена игры: за шляпу — из настроек сервера, за подарок — доля от его цены
-    (та же, что считает сервер; он всё равно проверяет и списывает свою). */
+
 function shellCost() {
   if (!shellGift) return shellCfg.cost_ton;
   if (shellGift.cost_ton != null) return shellGift.cost_ton;
   return roundTon(shellGift.price_ton * (shellCfg.price_share || 0));
 }
 
-/** Что прячется под шляпой и выскакивает из-под неё: кот, если играем на
-    шляпу, или сам выбранный подарок. Картинку меняем, только когда приз
-    сменился, — иначе она перезагружалась бы на каждом обновлении данных. */
+
 let shellHiddenKey = null;
 function shellApplyHidden(gift) {
   const key = gift ? gift.image : 'cat';
@@ -2251,7 +2165,7 @@ function shellApplyHidden(gift) {
   });
 }
 
-/** Подписи стола: про кота или про подарок — смотря что под шляпой. */
+
 function shellText(key, gift) {
   const t = gift ? {
     subtitle: tr('под одной спрятан подарок — найди его'),
@@ -2271,8 +2185,7 @@ function shellText(key, gift) {
   return t[key];
 }
 
-/** Подсказка «Жми «Угадать» — …» нужна только до первой партии: кто хоть раз
-    сыграл, уже знает, что делать, и строка под шляпами остаётся пустой. */
+
 function shellIdleHint() {
   return lsGet('shellPlayed') === '1' ? '' : shellText('idle', shellGift);
 }
@@ -2280,8 +2193,8 @@ function shellIdleHint() {
 function renderShellPrize() {
   const box = $('shellPrize');
   if (!shellCfg) return;
-  // Между партиями под шляпами лежит то, что выбрано сейчас; во время
-  // партии — то, на что она идёт (shellStart).
+  
+  
   if (shellPhase === 'idle') {
     shellApplyHidden(shellGift);
     $('shellSubtitle').textContent = shellText('subtitle', shellGift);
@@ -2311,7 +2224,7 @@ function updateShellButton() {
   $('shellBtn').textContent = busy
     ? tr('Идёт игра…')
     : (enough ? tr('Угадать за {sum} TON', { sum: fmt(cost, 2) }) : tr('Не хватает на игру'));
-  // Кнопка пополнения нужна только когда денег не хватает
+  
   $('shellDepositBtn').hidden = enough;
   $('shellPrize').disabled = busy;       // приз нельзя менять посреди партии
 }
@@ -2334,15 +2247,15 @@ function renderShell(cfg) {
   updateShellButton();
 }
 
-/** Одна партия: кот показывается, шляпы мешаются, игрок выбирает. */
+
 async function shellStart() {
   if (shellPhase !== 'idle' || !shellCfg || !state) return;
   if (state.balance_ton + 1e-9 < shellCost()) { openDeposit(); return; }
 
-  // Ставка списывается сразу по «Угадать» — сервер её замораживает. Пока
-  // шляпы мешаются, этих денег на балансе уже нет, потратить их в апгрейде
-  // нельзя. Окончательно спишется при выборе шляпы.
-  // Приз партии фиксируется тут же: сменить его до конца партии нельзя.
+  
+  
+  
+  
   shellPhase = 'starting';
   shellRoundGift = shellGift;
   updateShellButton();
@@ -2356,7 +2269,7 @@ async function shellStart() {
   } catch (e) {
     shellPhase = 'idle';
     if (e.code === 'price_changed' && shellGift) {
-      // Подарок подорожал или подешевел — показываем новую цену, не списывая
+      
       shellGift.price_ton = e.data.price_ton;
       shellGift.cost_ton = e.data.cost_ton;
       renderShellPrize();
@@ -2385,8 +2298,8 @@ async function shellStart() {
   updateShellButton();
   haptic('impact', 'light');
 
-  // Вступление: кот показывается сам по себе, над рядом шляп. Ни под одну
-  // из них он не садится — значит и уследить по анимации не за чем.
+  
+  
   const intro = $('shellCatIntro');
   shellAnimate(intro, [
     { opacity: 0, transform: 'translateY(24px) scale(.6)' },
@@ -2397,7 +2310,7 @@ async function shellStart() {
 
   setTimeout(() => {
     if (!shellAlive(round)) return;
-    // Ныряет вниз и пропадает — под какую шляпу, не показываем
+    
     shellAnimate(intro, [
       { opacity: 1, transform: 'translateY(0) scale(1)' },
       { opacity: 0, transform: 'translateY(56px) scale(.45)' },
@@ -2457,11 +2370,11 @@ async function shellPick(hatEl) {
   if (!shellAlive(round)) return;
   setCoins(res.hatcoin_balance);
 
-  // Где кот, решает сервер в момент нажатия — перемешивание к этому
-  // отношения не имеет, и по записи экрана вычислить ответ нельзя.
+  
+  
   const catHat = hats[shellOrder[res.cat]];
 
-  // Сначала подпрыгивает выбранная шляпа, через паузу — остальные
+  
   shellLift(hatEl, hatEl === catHat);
   if (!res.win) hatEl.classList.add('miss');
 
@@ -2475,13 +2388,13 @@ async function shellPick(hatEl) {
       const st = document.querySelector('.stage').getBoundingClientRect();
       burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
       shellSetHint(shellText('win', shellRoundGift), 'win');
-      // В профиль улетает то, на что играли: подарок или шляпа
+      
       spinTier = shellRoundGift ? `url:${shellRoundGift.image}` : 'random';
       flyPrizeToProfile(() => {});
     } else if (res.consolation) {
       haptic('notification', 'error');
-      // Про мишку рассказываем один раз — на первом в жизни игрока (first
-      // ставит сервер); дальше мишка просто улетает в профиль
+      
+      
       shellSetHint(shellText('lose', shellRoundGift), 'lose');
       if (res.consolation.first) toast(bearText(), false, 4200);
       flyItemToProfile(hatEl, BEAR_ASSET);
@@ -2503,13 +2416,13 @@ async function shellPick(hatEl) {
   }, res.win ? 420 : 620);
 }
 
-/* --------------------------------------------------- посох волшебника */
 
-// Обычная и быстрая прокрутка. Числа должны совпадать с --staff-dur
-// в styles.css: по ним же растёт молния от посоха.
+
+
+
 const SPIN_SLOW_MS = 3700;
 const SPIN_FAST_MS = 650;
-// Полных оборотов стрелки до остановки — в быстром режиме хватает одного.
+
 const TURNS_SLOW = 5;
 const TURNS_FAST = 1;
 
@@ -2517,22 +2430,21 @@ let fastSpin = false;
 
 function spinMs() { return fastSpin ? SPIN_FAST_MS : SPIN_SLOW_MS; }
 
-/** Переключает быструю прокрутку. Класс на <body> меняет все длительности
-    разом через CSS-переменные, JS остаётся с одним флагом. */
+
 function setFast(on, save = true) {
   fastSpin = !!on;
   document.body.classList.toggle('fast', fastSpin);
   const btn = $('fastBtn');
   if (btn) btn.setAttribute('aria-pressed', fastSpin ? 'true' : 'false');
   if (!save) return;
-  // В приватном режиме и при запрете хранилища обращение бросает исключение.
-  // Тогда выбор просто не запомнится — на работу это не влияет.
-  try { localStorage.setItem('fastSpin', fastSpin ? '1' : '0'); } catch (e) { /* не страшно */ }
+  
+  
+  try { localStorage.setItem('fastSpin', fastSpin ? '1' : '0'); } catch (e) {  }
 }
 
 function loadFast() {
   let saved = false;
-  try { saved = localStorage.getItem('fastSpin') === '1'; } catch (e) { /* не страшно */ }
+  try { saved = localStorage.getItem('fastSpin') === '1'; } catch (e) {  }
   setFast(saved, false);
 }
 
@@ -2544,8 +2456,8 @@ function staffSet(...states) {
   if (!staff || !orb) return false;
   staff.classList.remove(...STAFF_STATES);
   orb.classList.remove('charging', 'charging-wild', 'fading', 'spent');
-  // Перезапуск анимации: без этого повторное добавление класса
-  // не сработает, браузер считает анимацию той же самой.
+  
+  
   void staff.offsetWidth;
   if (states.length) {
     staff.classList.add(states[0]);
@@ -2554,17 +2466,17 @@ function staffSet(...states) {
   return true;
 }
 
-/* ----------------------------------------------------------- молния */
+
 
 let boltTimer = 0;
 
-// Паттерны поведения разряда — выбираются случайно на каждую прокрутку,
-// чтобы прокрутки не выглядели одинаково.
+
+
 const BOLT_PATTERNS = ['zigzag', 'coil', 'arc', 'fork'];
 let boltPattern = 'zigzag';
 let coilPhase = 0;
 
-/** Строит молнию: основной путь, ветки и точку на конце. */
+
 function buildBolt(x0, y0, x1, y1, reach, power) {
   const segments = boltPattern === 'coil' ? 16 : 11;
   const dx = (x1 - x0) * reach;
@@ -2580,10 +2492,10 @@ function buildBolt(x0, y0, x1, y1, reach, power) {
 
     if (i < segments) {           // кончик всегда на линии, иначе он виляет
       if (boltPattern === 'coil') {
-        // Спираль: правильная волна, которая к концу закручивается чаще
+        
         off = Math.sin(t * Math.PI * 3.4 + coilPhase) * power * 1.5 * (0.4 + t);
       } else if (boltPattern === 'arc') {
-        // Дуга: один плавный изгиб вбок с лёгкой дрожью
+        
         off = Math.sin(t * Math.PI) * power * 2.4 + (Math.random() * 2 - 1) * power * 0.25;
       } else {
         off = (Math.random() * 2 - 1) * power;
@@ -2594,7 +2506,7 @@ function buildBolt(x0, y0, x1, y1, reach, power) {
 
   const toPath = (pts) =>
     pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  // Ветки: короткие отростки от середины, как у настоящей молнии
+  
   let fork = '';
   if (boltPattern === 'fork') {
     const branches = 2;
@@ -2618,7 +2530,7 @@ function buildBolt(x0, y0, x1, y1, reach, power) {
   return { main: toPath(points), fork, tip: points[points.length - 1], points };
 }
 
-/** Точки начала (конец посоха) и конца (шляпа) в координатах сцены. */
+
 function boltEnds() {
   const orb = $('staffOrb');
   const target = document.querySelector('.wheel-center');
@@ -2636,7 +2548,7 @@ function boltEnds() {
   };
 }
 
-/** Точка на ломаной по доле пути от 0 до 1. */
+
 function pointAlong(points, f) {
   const lens = [];
   let total = 0;
@@ -2677,7 +2589,7 @@ function drawBolt(reach, power) {
     el.setAttribute('cy', tip[1].toFixed(1));
   });
 
-  // Три искры бегут по разряду от посоха к кончику
+  
   ['boltP1', 'boltP2', 'boltP3'].forEach((id, i) => {
     const [x, y] = pointAlong(points, (sparkPhase + i * 0.33) % 1);
     $(id).setAttribute('cx', x.toFixed(1));
@@ -2685,7 +2597,7 @@ function drawBolt(reach, power) {
   });
 }
 
-/** Убирает нарисованную молнию, чтобы не висела в разметке. */
+
 function clearBolt() {
   ['boltCore', 'boltMid', 'boltAura', 'boltHalo', 'boltFork'].forEach(
     (id) => $(id).setAttribute('d', ''),
@@ -2696,7 +2608,7 @@ function clearBolt() {
   });
 }
 
-/** Молния тянется к шляпе, но за время прокрутки так и не достаёт. */
+
 function startBolt() {
   const bolt = $('bolt');
   if (!bolt) return;
@@ -2710,9 +2622,9 @@ function startBolt() {
   const t0 = performance.now();
   const tick = () => {
     const t = Math.min(1, (performance.now() - t0) / spinMs());
-    // 0.28 -> 0.9: к концу почти касается шляпы, но не дотягивается
+    
     drawBolt(0.28 + 0.62 * t, 7 + 13 * t);
-    // Лёгкое мерцание: разряд «дышит», а не горит ровно
+    
     bolt.style.opacity = ((0.35 + 0.6 * t) * (0.88 + Math.random() * 0.12)).toFixed(2);
     if (t >= 1) clearInterval(boltTimer);
   };
@@ -2720,7 +2632,7 @@ function startBolt() {
   boltTimer = setInterval(tick, 70);
 }
 
-/** Сноп искр из точки — при ударе по шляпе. */
+
 function burstSparks(x, y, count = 12) {
   const box = $('sparks');
   if (!box) return;
@@ -2742,14 +2654,13 @@ function burstSparks(x, y, count = 12) {
   setTimeout(() => { box.innerHTML = ''; }, 900);
 }
 
-/* ------------------------------------------------ утешительный мишка */
-// При проигрыше сервер может выдать «Волшебного мишку» (res.consolation).
-// Шанс он не меняет — это отдельный подарок после уже решённого броска.
+
+
+
 const BEAR_ASSET = 'assets/bear.png';
 const bearText = () => tr('Хоть тебе и не повезло, но держи волшебного мишку, пускай он принесёт тебе удачу! 🧸');
 
-/** Мишка выпрыгивает над тем местом, где был проигрыш, и по дуге улетает
-    в профиль. Свой элемент на каждый полёт — не мешает полёту шляпы. */
+
 function flyItemToProfile(fromEl, src) {
   const stage = document.querySelector('.stage');
   const tab = document.querySelector('.tab[data-view="profile"]');
@@ -2771,7 +2682,7 @@ function flyItemToProfile(fromEl, src) {
   img.alt = '';
   stage.appendChild(img);
 
-  // Первая четверть — появление на месте, дальше — дуга в профиль
+  
   const frames = [
     { transform: `translate(${x0}px, ${y0}px) scale(.2)`, opacity: '0', offset: 0 },
     { transform: `translate(${x0}px, ${y0 - 24}px) scale(1.1)`, opacity: '1', offset: 0.14 },
@@ -2798,7 +2709,7 @@ function flyItemToProfile(fromEl, src) {
   }, 1260);
 }
 
-/** Выигранная шляпа улетает в иконку профиля. */
+
 function flyPrizeToProfile(done) {
   const fly = $('prizeFly');
   const stage = document.querySelector('.stage');
@@ -2814,9 +2725,9 @@ function flyPrizeToProfile(done) {
   const x1 = t.left + t.width / 2 - s.left;
   const y1 = t.top + t.height / 2 - s.top;
 
-  // Кривая Безье: шляпа сначала уходит вправо (туда смотрит опорная точка),
-  // потом плавно заворачивает вниз к кнопке. Считаем по точкам — если задать
-  // анимацию тремя кадрами, браузер соединит их прямыми и получится ломаная.
+  
+  
+  
   const ctrlX = x0 + Math.max(150, stage.clientWidth * 0.42);
   const ctrlY = y0 - 20;
   const STEPS = 26;
@@ -2849,7 +2760,7 @@ function flyPrizeToProfile(done) {
   }, 720);
 }
 
-/** Выигрыш: разряд дотягивается и бьёт по шляпе. */
+
 function boltStrike() {
   const bolt = $('bolt');
   if (!bolt) return;
@@ -2857,7 +2768,7 @@ function boltStrike() {
   bolt.classList.add('strike');
   bolt.style.opacity = '1';
   drawBolt(1, 9);
-  // Короткое дрожание разряда в момент удара
+  
   boltTimer = setInterval(() => drawBolt(1, 9), 60);
   setTimeout(() => {
     clearInterval(boltTimer);
@@ -2866,7 +2777,7 @@ function boltStrike() {
   }, 420);
 }
 
-/** Проигрыш: не дотянулась — гаснет. */
+
 function boltFade() {
   const bolt = $('bolt');
   if (!bolt) return;
@@ -2875,21 +2786,20 @@ function boltFade() {
   setTimeout(clearBolt, 300);
 }
 
-/** Маг раскручивает посох всё быстрее и копит заряд на конце.
-    Ритм выбирается случайно — прокрутки не выглядят одинаково. */
+
 function startStaffCharge() {
   const rhythm = Math.random() < 0.5 ? 'charging' : 'charging-wild';
   staffSet(rhythm, 'charging');
   startBolt();
 }
 
-/** Возвращает посох в исходное положение и гасит заряд. */
+
 function restStaff() {
   staffSet('resting', 'fading');
   boltFade();
 }
 
-/** Выстрел заряда от посоха в шляпу. Колбэк — когда долетел. */
+
 function castSpell(done) {
   const orb = $('staffOrb');
   const spell = $('spell');
@@ -2903,7 +2813,7 @@ function castSpell(done) {
 
   boltStrike();   // разряд дотягивается до шляпы
 
-  // Координаты считаем на месте: зависят от размера экрана.
+  
   const stageRect = stage.getBoundingClientRect();
   const from = orb.getBoundingClientRect();
   const to = target.getBoundingClientRect();
@@ -2922,19 +2832,19 @@ function castSpell(done) {
     setTimeout(() => target.classList.remove('hit'), 520);
     haptic('impact', 'heavy');
 
-    // Искры из центра колеса в момент удара
+    
     const s = stage.getBoundingClientRect();
     const t = target.getBoundingClientRect();
     burstSparks(t.left + t.width / 2 - s.left, t.top + t.height / 2 - s.top);
 
     restStaff();
-    // Шляпа улетает в профиль, и только потом показываем модалку —
-    // иначе полёт скроется под ней.
+    
+    
     setTimeout(() => flyPrizeToProfile(done), 220);
   }, 480);
 }
 
-/* -------------------------------------------------------------- прокрутка */
+
 async function doSpin() {
   const mode = currentMode();
   if (spinning || homing || !state || !mode) return;
@@ -2957,8 +2867,8 @@ async function doSpin() {
   $('spinBtn').disabled = true;
   $('modeSlider').disabled = true;
 
-  // Переключать скорость на лету нельзя: анимация уже запущена с этой
-  // длительностью, и смена на середине рассинхронила бы стрелку с модалкой.
+  
+  
   $('fastBtn').disabled = true;
 
   document.querySelector('.wheel-wrap').classList.add('rolling');
@@ -2997,32 +2907,32 @@ async function doSpin() {
     return;
   }
 
-  // ============================================================
-  // ВАЖНО:
-  // Сервер уже решил, win это или loss.
-  // Здесь мы только выбираем случайную точку
-  // внутри соответствующей видимой зоны колеса.
-  // ============================================================
+  
+  
+  
+  
+  
+  
 
   const visibleChance = mode.chance;
 
   let targetAngle;
 
   if (result.win) {
-    // Победа: случайная точка внутри зелёной зоны.
+    
     const winSize = visibleChance * 360;
 
     targetAngle = Math.random() * winSize;
   } else {
-    // Поражение: случайная точка внутри оставшейся зоны.
+    
     const loseStart = visibleChance * 360;
     const loseSize = (1 - visibleChance) * 360;
 
     targetAngle = loseStart + Math.random() * loseSize;
   }
 
-  // Докручиваем вперёд: полные обороты + нужный угол.
-  // Стрелка никогда не отматывается назад.
+  
+  
   const current = ((pointerDeg % 360) + 360) % 360;
   const turns = fastSpin ? TURNS_FAST : TURNS_SLOW;
 
@@ -3034,8 +2944,8 @@ async function doSpin() {
   let spinDur = spinMs();                      // сколько ждать до показа исхода
 
   if (isMeadow() && spinStyle === 'wild') {
-    // Азартная крутка: стрелка мечется по кругу туда-сюда (throwPointer). Куда
-    // она встанет, решено выше — targetAngle; меняется только путь к нему.
+    
+    
     const thrown = throwPointer(pointer, current, targetAngle);
     pointerDeg = thrown.deg;
     spinDur = thrown.ms;                         // с разворотами бросок длится дольше
@@ -3060,12 +2970,12 @@ async function doSpin() {
     );
 
     if (result.win) {
-      // Маг выстреливает зарядом в шляпу,
-      // модалка — после попадания.
+      
+      
       castSpell(() => showResult(result));
     } else {
-      // Не вышло: посох опускается,
-      // свечение медленно гаснет.
+      
+      
       restStaff();
       showResult(result);
     }
@@ -3075,21 +2985,7 @@ async function doSpin() {
   }, spinDur);
 }
 
-/** Азартная крутка: стрелка летит по кругу, притормаживает — и резко
-    разворачивается в другую сторону, не останавливаясь. Таких разворотов
-    от одного до трёх, сколько именно — каждый раз случайно; сторона
-    первого захода и число кругов тоже случайные. Последний заход заканчивается
-    ровно в target: исход уже пришёл с сервера, и doSpin выбрал по нему угол —
-    здесь только путь.
 
-    Места ложных остановок выбираются случайно по всему кругу и НЕ зависят
-    от исхода: анимация не подводит стрелку нарочно к выигрышной зоне перед
-    проигрышем (и наоборот). «Перелёта» в конце тоже нет — стрелка не заходит
-    в чужую зону и не возвращается.
-
-    from — где стрелка стоит сейчас (0–360), target — где должна встать.
-    Вернёт { deg, ms }: итоговый угол с намотанными кругами и длительность —
-    чем больше разворотов, тем дольше; doSpin ждёт именно столько. */
 const WILD_BASE_MS = 3200;      // без учёта разворотов
 const WILD_STOP_MS = 1100;      // добавляется за каждую ложную остановку
 
@@ -3118,9 +3014,9 @@ function throwPointer(pointer, from, target) {
     dir = -dir;
   }
   const sum = weight.reduce((x, y) => x + y, 0);
-  // Промежуточный заход только притормаживает (до четверти скорости) и сразу
-  // разворачивается — стрелка нигде не замирает и «промежуточный результат»
-  // не показывает. До полной остановки тормозит только последний заход.
+  
+  
+  
   const EASE_TURN = 'cubic-bezier(.25, .6, .6, .9)';
   const EASE_STOP = 'cubic-bezier(.16, .62, .18, 1)';
   const frames = [];
@@ -3140,7 +3036,7 @@ function throwPointer(pointer, from, target) {
   const wrap = document.querySelector('.wheel-wrap');
   wrap.classList.add('throwing');
   let anim = null;
-  try { anim = pointer.animate(frames, { duration: total, fill: 'forwards' }); } catch (e) { /* старый браузер — встанет сразу */ }
+  try { anim = pointer.animate(frames, { duration: total, fill: 'forwards' }); } catch (e) {  }
   setTimeout(() => {
     pointer.style.transform = `rotate(${a}deg)`;  // закрепляем итог и снимаем анимацию
     if (anim) anim.cancel();
@@ -3149,48 +3045,48 @@ function throwPointer(pointer, from, target) {
   return { deg: a, ms: total };
 }
 
-/* ------------------------------------------------------ выбор оружия */
-// Чем крутить в новом дизайне: топор или посох. Только вид стрелки — на
-// исход и шанс не влияет. Выбор запоминается на устройстве.
+
+
+
 const WEAPONS = { axe: 'assets/axe-icon.webp?v=2', staff: 'assets/staff-icon.webp?v=2' };   // иконки для кнопки и меню
 
 function setWeapon(name) {
   const w = WEAPONS[name] ? name : 'axe';
   document.documentElement.dataset.weapon = w;
-  try { localStorage.setItem('weapon', w); } catch (e) { /* не запомнится — не страшно */ }
+  try { localStorage.setItem('weapon', w); } catch (e) {  }
   $('weaponIcon').src = WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
-/* --------------------------------------------------------- день / ночь */
-// Кнопка в углу колеса (новый дизайн): меняет фон поляны на ночной и обратно.
-// Саму картинку ставит scene.js (window.setSky), выбор запоминается.
+
+
+
 function initSky() {
   const btn = $('skyBtn');
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     haptic('impact', 'light');
     const next = document.documentElement.dataset.sky === 'night' ? 'day' : 'night';
-    try { localStorage.setItem('sky', next); } catch (err) { /* не запомнится — не страшно */ }
+    try { localStorage.setItem('sky', next); } catch (err) {  }
     if (window.setSky) window.setSky(next);
   });
 }
 
-/* ------------------------------------------------------- тип крутки */
-// Шестерёнка рядом с быстрой прокруткой: «Обычная» — стрелка делает несколько
-// кругов в одну сторону и встаёт; «Азартная» — с разворотами (throwPointer).
-// Это только вид анимации: исход приходит с сервера до её начала.
+
+
+
+
 let spinStyle = 'wild';
 
 function setSpinStyle(name) {
   spinStyle = name === 'plain' ? 'plain' : 'wild';
-  try { localStorage.setItem('spinStyle', spinStyle); } catch (e) { /* не запомнится — не страшно */ }
+  try { localStorage.setItem('spinStyle', spinStyle); } catch (e) {  }
   document.querySelectorAll('#spinMenu [data-spin]').forEach((b) => b.classList.toggle('on', b.dataset.spin === spinStyle));
 }
 
 function initSpinStyle() {
   let saved = 'wild';
-  try { saved = localStorage.getItem('spinStyle') || 'wild'; } catch (e) { /* по умолчанию азартная */ }
+  try { saved = localStorage.getItem('spinStyle') || 'wild'; } catch (e) {  }
   setSpinStyle(saved);
   const menu = $('spinMenu');
   $('gearBtn').addEventListener('click', (e) => {
@@ -3212,7 +3108,7 @@ function initSpinStyle() {
 
 function initWeapon() {
   let saved = 'axe';
-  try { saved = localStorage.getItem('weapon') || 'axe'; } catch (e) { /* по умолчанию топор */ }
+  try { saved = localStorage.getItem('weapon') || 'axe'; } catch (e) {  }
   setWeapon(saved);
   const menu = $('weaponMenu');
   $('weaponBtn').addEventListener('click', (e) => {
@@ -3232,10 +3128,7 @@ function initWeapon() {
   document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('#weaponMenu')) menu.hidden = true; });
 }
 
-/** После броска стрелка показывает, куда попала, а потом сама возвращается
-    в исходное положение — на ноль, кратчайшей дорогой. Пока она не вернулась,
-    кнопка UP выключена (homing): следующий бросок всегда начинается с нуля.
-    В быстрой прокрутке и пауза, и возврат короткие. */
+
 const POINTER_HOLD_MS = 350;       // сколько стрелка стоит на результате
 const POINTER_BACK_MS = 160;       // сколько едет на ноль — почти мгновенно
 const POINTER_HOLD_FAST_MS = 120;
@@ -3264,15 +3157,9 @@ function pointerHomeLater() {  const hold = fastSpin ? POINTER_HOLD_FAST_MS : PO
   }, hold);
 }
 
-/** Окно с исходом отключено — ни на выигрыш, ни на проигрыш.
-    Результат и так виден: стрелка встаёт в свой сектор, при выигрыше
-    шляпа улетает в профиль, баланс обновляется сам.
 
-    Функция оставлена пустой намеренно: doSpin вызывает её в обеих ветках,
-    и так его не приходится трогать. Чтобы вернуть окна — восстановить
-    тело функции, разметка модалки и кнопки закрытия на месте. */
 function showResult(result) {   // eslint-disable-line no-unused-vars
-  // Единственное, что показываем: утешительного мишку при проигрыше
+  
   if (!result.win && result.consolation) {
     setTimeout(() => {
       flyItemToProfile(document.querySelector('.wheel-center'), BEAR_ASSET);
@@ -3281,15 +3168,15 @@ function showResult(result) {   // eslint-disable-line no-unused-vars
   }
 }
 
-/* -------------------------------------------------------------- продажа */
-// Продавать можно подряд без пауз: карточка исчезает сразу по нажатию, не
-// дожидаясь ответа, и следующую можно жать тут же. Если сервер откажет —
-// подтягиваем настоящее состояние, и карточка вернётся.
+
+
+
+
 let sellSeq = 0;         // номер последнего отправленного запроса
 let sellApplied = 0;     // номер запроса, чей баланс уже показан
 const sellTally = { n: 0, sum: 0, timer: 0 };
 
-/** Одна подсказка на серию продаж: «Продано 3 шт. на 18 TON». */
+
 function sellToast(payout) {
   sellTally.n += 1;
   sellTally.sum += payout;
@@ -3314,9 +3201,9 @@ async function sellPrize(prize, btn, card) {
     const res = await api('/api/sell', { prize_id: prize.id });
     sellingNow.delete(prize.id);
     sellToast(res.payout_ton);
-    // Ответы могут прийти не по порядку. Сервер обрабатывает запросы
-    // по очереди, так что свежее всего баланс в ответе на более поздний
-    // запрос — старый ответ поверх нового не кладём.
+    
+    
+    
     if (seq > sellApplied) {
       sellApplied = seq;
       if (state) {
@@ -3342,10 +3229,8 @@ async function sellPrize(prize, btn, card) {
   }
 }
 
-/* ---------------------------------------------------------------- вывод */
-/* Вывод недорогого подарка платный (app/wdfee.py): сумму присылает сервер в
-   призе, игрок подтверждает её до заявки, и она же уходит в запрос — если
-   плата за это время изменилась, сервер ничего не спишет. */
+
+
 async function withdraw(prizeId, btn, feeTon = 0) {
   if (feeTon > 0) {
     if ((state?.balance_ton ?? 0) < feeTon) {
@@ -3378,10 +3263,10 @@ async function withdraw(prizeId, btn, feeTon = 0) {
   }
 }
 
-/* ---------------------------------------------------------- TON Connect */
+
 function commentPayload(text) {
-  // Минимальный BOC с одной ячейкой: 32 нулевых бита (опкод текста) + utf-8.
-  // В одну ячейку влезает не больше 123 байт текста — нашей метки хватает.
+  
+  
   const body = new TextEncoder().encode(text);
   if (body.length > 123) throw new Error('comment too long');
 
@@ -3435,9 +3320,7 @@ function initTonConnect() {
   });
 }
 
-/** Кошелёк в интерфейсе. Пока не подключён — кнопка «Подключить» в шапке.
-    Подключён — кнопка из шапки уходит, а адрес, «Отвязать» и «Сменить»
-    живут в окне пополнения (оно открывается плюсом в балансе). */
+
 function renderWallet(address) {
   $('walletBtn').hidden = !!address;
   $('walletBtnText').textContent = tr('Подключить');
@@ -3451,7 +3334,7 @@ async function disconnectWallet() {
   try { await api('/api/wallet', { address: '' }); } catch {}
 }
 
-/** «Подключить» в шапке и кнопка в окне пополнения: подключить либо отвязать. */
+
 async function onWalletClick() {
   if (!tonUI) { toast(tr('Кошелёк недоступен'), true); return; }
   if (tonUI.connected) {
@@ -3462,7 +3345,7 @@ async function onWalletClick() {
   }
 }
 
-/** «Сменить»: отвязываем текущий и сразу открываем выбор другого. */
+
 async function switchWallet() {
   if (!tonUI) { toast(tr('Кошелёк недоступен'), true); return; }
   try {
@@ -3497,7 +3380,7 @@ async function sendDeposit() {
     });
     $('depositModal').hidden = true;
     toast(tr('Перевод отправлен, ждём подтверждения сети'));
-    // Транзакция подтверждается не мгновенно — несколько раз перечитываем баланс.
+    
     [6, 14, 24, 40].forEach((s) => setTimeout(refresh, s * 1000));
   } catch (e) {
     if (!String(e?.message || '').toLowerCase().includes('reject')) {
@@ -3512,9 +3395,9 @@ function openDeposit() {
   $('depositModal').hidden = false;
 }
 
-/* ------------------------------------------------- пополнение подарком */
-// Окно со своими улучшенными подарками и оценкой: сколько TON придёт, если
-// подарить его на админ-аккаунт. Зачисляет бот, когда подарок реально пришёл.
+
+
+
 let giftCfg = null;
 let giftPicked = null;
 
@@ -3623,10 +3506,10 @@ function openGiftAccount() {
   else window.open(url, '_blank');
 }
 
-/* ------------------------------------------------------------ обновление */
+
 async function refresh() {
-  // Сеть и отрисовку ловим отдельно: раньше любая ошибка в коде показывалась
-  // как «Нет связи с сервером», и настоящую причину было не найти.
+  
+  
   let s;
   try {
     s = await api('/api/state');
@@ -3642,7 +3525,7 @@ async function refresh() {
   }
 }
 
-/* ------------------------------------------------------------- обработчики */
+
 function bind() {
   $('spinBtn').addEventListener('click', doSpin);
   $('fastBtn').addEventListener('click', () => {
@@ -3653,7 +3536,7 @@ function bind() {
   document.querySelectorAll('.tier-btn').forEach((b) => {
     b.addEventListener('click', () => {
       if (spinning) return;
-      // «Подарки» — всегда открывают выбор: и первый раз, и чтобы сменить подарок
+      
       if (b.dataset.tier === 'gift') openGiftPicker();
       else setTier(b.dataset.tier);
       haptic('impact', 'light');
@@ -3667,7 +3550,7 @@ function bind() {
     if (b) { setGpSort(b.dataset.sort); haptic('impact', 'light'); }
   });
   $('sellAllBtn').addEventListener('click', sellAll);
-  // Выбор языка: кнопка на каждый язык из i18n.js, смена перезагружает страницу
+  
   for (const l of I18N.langs) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -3683,7 +3566,7 @@ function bind() {
   initWeapon();
   initSpinStyle();
   initSky();
-  // Нажал на шляпу в центре колеса в любом режиме — выбор подарка (вкладка «Подарки»)
+  
   const pickFromWheel = () => {
     if (spinning || !(state && state.config.gift_upgrade)) return;
     markHintSeen();              // нажал один раз — подсказка больше не нужна
@@ -3702,22 +3585,22 @@ function bind() {
   $('shellPrize').addEventListener('click', () => { openGiftPicker('shell'); haptic('impact', 'light'); });
   $('shellDepositBtn').addEventListener('click', openDeposit);
   $('shellTable').addEventListener('click', (e) => {
-    // Клик принимаем, только когда стол реально ждёт выбор: иначе попадание
-    // по шляпе в момент смены партии ломало анимацию.
+    
+    
     if (!$('shellTable').classList.contains('picking')) return;
     const hat = e.target.closest('.shell-hat');
     if (hat) shellPick(hat);
   });
-  // Стол тянется по ширине экрана — после поворота пересчитываем слоты
+  
   window.addEventListener('resize', () => {
     if (shellPhase === 'idle') shellPlace();
   });
-  // Баланс с плюсом — кнопка пополнения (отдельной кнопки под «Варить» больше нет)
+  
   $('balanceChip').addEventListener('click', openDeposit);
   $('depWalletBtn').addEventListener('click', onWalletClick);
   $('depWalletSwitch').addEventListener('click', switchWallet);
-  // «Топ» пока не показываем: вкладка спрятана, раздел и его код на месте
-  // Меню: «Лидеры» и «Три шляпы», из них — возврат кнопкой «<»
+  
+  
   $('menuLeaders').addEventListener('click', () => { haptic('impact', 'light'); showView('leaders'); });
   $('menuShell').addEventListener('click', () => { haptic('impact', 'light'); showView('shell'); });
   document.querySelectorAll('.view-back').forEach((b) => {
@@ -3778,7 +3661,7 @@ function bind() {
   });
 }
 
-/* --------------------------------------------------------------- запуск */
+
 initTelegram();
 makeStars();
 bind();
@@ -3790,7 +3673,7 @@ refresh().then(restoreSavedGift).catch(() => {});
 setInterval(() => {
   if (spinning) return;
   refresh();
-  // Цена выбранного подарка — свежая, чтобы реже ловить «цена обновилась»
+  
   if (currentTier === 'gift' && Date.now() - giftCatalogAt > 120000) loadGiftCatalog(true).catch(() => {});
 }, 20000);
 
