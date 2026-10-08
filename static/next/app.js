@@ -821,6 +821,24 @@ function renderState(s) {
   renderPrizes(s.prizes);
   renderProgress(s);
   if (s.referral) renderReferral(s.referral);
+  let adminButton = document.getElementById('hatAdminPanel');
+  if (s.user && s.user.is_admin && !adminButton) {
+    adminButton = document.createElement('button');
+    adminButton.id = 'hatAdminPanel';
+    adminButton.type = 'button';
+    adminButton.className = 'pbtn';
+    adminButton.textContent = 'Админ-панель · Portal Market';
+    document.querySelector('.profile-actions')?.appendChild(adminButton);
+    adminButton.addEventListener('click', async () => {
+      try {
+        const d = await api('/api/admin/portal/status');
+        window.alert('Portal Market: ' + (d.available ? 'подключён' : 'не подключён') + '\\n' + (d.message || ''));
+      } catch (e) {
+        toast('Нет доступа или сервер не настроен', true);
+      }
+    });
+  }
+  if (adminButton) adminButton.hidden = !(s.user && s.user.is_admin);
   updateSpinButton();
 }
 
