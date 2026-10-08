@@ -1796,7 +1796,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gift-modal { max-width: 360px; }
 .gift-list {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin: 10px 0;
   text-align: left;
@@ -1814,8 +1814,8 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
   cursor: pointer;
 }
 .gift-item.picked { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 192, 67, .3); }
-.gift-list .gift-item { min-width: 0; padding: 3px; font-size: 7px; overflow-wrap: anywhere; }
-.gift-list .gift-title,.gift-list .gift-sub,.gift-list .gift-val { font-size: 7px; overflow-wrap: anywhere; }
+.gift-list .gift-item { min-width: 0; padding: 7px; font-size: 9px; overflow-wrap: anywhere; }
+.gift-list .gift-title,.gift-list .gift-sub,.gift-list .gift-val { font-size: 9px; overflow-wrap: anywhere; }
 .gift-item img { width: 100%; aspect-ratio: 1; object-fit: cover; background: rgba(0, 0, 0, .25); }
 
 .gp-card { max-height: 86vh; display: flex; flex-direction: column; }
@@ -1858,7 +1858,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gp-sort button.active { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); }
 .gp-list {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   min-height: 120px;
   margin-bottom: 10px;
@@ -2893,6 +2893,11 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .chance-custom input:focus { border-color: var(--gold); }
 .chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .chance-custom input:disabled { opacity: .5; }
+/* Admin section chooser */
+.adm-tabs.adm-home {display:flex;flex-direction:column;gap:10px;margin:18px 0}
+.adm-tabs.adm-home[hidden]{display:none!important}
+.adm-tabs.adm-home button{width:100%;min-height:64px;border-radius:10px;font-size:12px}
+.adm-close{width:100%;margin-top:10px;border-radius:10px;padding:12px;color:var(--muted);background:var(--card);border:1px solid var(--card-line);cursor:pointer}
 </style>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3592,12 +3597,12 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       <button class="gp-back" id="admBack" type="button" hidden="" aria-label="Назад">&lt;</button>
       <h2 id="admTitle">Админ-панель</h2>
     </div>
-    <div class="adm-tabs" id="admTabs">
+    <div class="adm-tabs adm-home" id="admTabs">
       <button type="button" data-tab="users" class="on">Пользователи</button>
-      <button type="button" data-tab="market">Портал маркет</button>
+      <button type="button" data-tab="market">Маркет</button>
       <button type="button" data-tab="promos">Промокоды</button>
     </div>
-    <div id="admUsers">
+    <div id="admUsers" hidden="">
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
       <div class="lv-list" id="admUserList"></div>
     </div>
@@ -3619,7 +3624,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
         <input id="admMrktKey" class="gp-search" type="password" placeholder="Токен MRKT (отдельный от Portals)" autocomplete="off">
         <div class="adm-form"><button type="button" id="admMrktSave">Сохранить MRKT</button><button type="button" id="admMrktClear" class="danger">Удалить ключ</button></div>
       </div>
-      <button class="ghost" id="admRefresh" type="button">Обновить цены с Портала</button>
+      <div class="adm-form"><button class="ghost" id="admRefresh" type="button">Обновить Portals</button><button class="ghost" id="admMrktRefresh" type="button">Обновить MRKT</button></div>
       <p class="muted" id="admMarketNote"></p>
       <div class="adm-market" id="admMarketList"></div>
     </div>
@@ -3633,7 +3638,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
         <button type="button" id="admPromoCreate">Создать промокод</button>
       </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>
     </div>
-    <button class="ghost" id="admClose" type="button">Закрыть</button>
+    <button class="ghost adm-close" id="admClose" type="button">✕ Закрыть панель</button>
   </div>
 </div>
 
@@ -8508,16 +8513,16 @@ function admShow(tab) {
   admin.tab = tab;
   admin.key = null;
   document.querySelectorAll('#admTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
-  $('admTabs').hidden = false;
-  $('admBack').hidden = true;
-  $('admTitle').textContent = 'Админ-панель';
+  $('admTabs').hidden = tab !== 'home';
+  $('admBack').hidden = tab === 'home';
+  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды'})[tab];
   $('admUsers').hidden = tab !== 'users';
   $('admUser').hidden = true;
   $('admMarket').hidden = tab !== 'market';
   $('admPromos').hidden = tab !== 'promos';
   if (tab === 'users') admLoadUsers();
   else if (tab === 'market') admLoadMarket();
-  else admLoadPromos();
+  else if (tab === 'promos') admLoadPromos();
 }
 
 async function admLoadUsers() {
@@ -8660,7 +8665,7 @@ async function admLoadMarket(action, body) {
     const res = await api(action || '/api/admin/market', body || {});
     admRenderMarket(res);
     if (res.refreshing) toast('Загружаю подарки и модели с Portals…');
-    if (res.portals_refreshing && !$('adminModal').hidden) {
+    if ((res.portals_refreshing || res.mrkt_refreshing) && !$('adminModal').hidden) {
       clearTimeout(admin.pollTimer);
       admin.pollTimer = setTimeout(() => admLoadMarket(), 5000);
     }
@@ -8678,7 +8683,7 @@ function admRenderPortals(res) {
   if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
   $('admPortalsStatus').textContent = parts.join(' · ');
   $('admPortalsKey').value = '';
-  $('admMrktStatus').textContent = res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан';
+  $('admMrktStatus').textContent = [res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан',res.mrkt_refreshing ? 'идёт загрузка…' : '',res.mrkt_checked ? `проверено коллекций: ${res.mrkt_checked}` : '',res.mrkt_error ? `ошибка: ${res.mrkt_error}` : ''].filter(Boolean).join(' · ');
 }
 
 async function admSavePortals(clear) {
@@ -8763,8 +8768,7 @@ async function admChoosePromoGift() {
 async function admSaveMrkt(clear) {
   try {
     const res=await api('/api/admin/mrkt/set', clear ? {clear_key:true} : {auth:$('admMrktKey').value.trim()});
-    $('admMrktStatus').textContent=res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан';
-    $('admMrktKey').value='';toast('Настройки MRKT сохранены');
+    $('admMrktKey').value='';toast('Настройки MRKT сохранены');admLoadMarket();
   } catch(e) { admErr(e); }
 }
 
@@ -8772,17 +8776,18 @@ function initAdmin() {
   $('adminBtn').addEventListener('click', () => {
     haptic('impact', 'light');
     $('adminModal').hidden = false;
-    admShow('users');
+    admShow('home');
   });
   $('admClose').addEventListener('click', () => { $('adminModal').hidden = true; });
   $('adminModal').addEventListener('click', (e) => { if (e.target.id === 'adminModal') $('adminModal').hidden = true; });
-  $('admBack').addEventListener('click', () => admShow('users'));
+  $('admBack').addEventListener('click', () => admShow(admin.key ? 'users' : 'home'));
   document.querySelectorAll('#admTabs button').forEach((b) => b.addEventListener('click', () => admShow(b.dataset.tab)));
   $('admSearch').addEventListener('input', () => {
     clearTimeout(admin.timer);
     admin.timer = setTimeout(admLoadUsers, 250);
   });
   $('admRefresh').addEventListener('click', () => admLoadMarket('/api/admin/market/refresh'));
+  $('admMrktRefresh').addEventListener('click', () => admLoadMarket('/api/admin/mrkt/refresh'));
   $('admPortalsSave').addEventListener('click', () => admSavePortals(false));
   $('admPortalsClear').addEventListener('click', () => admSavePortals(true));
   $('admMrktSave').addEventListener('click', () => admSaveMrkt(false));
