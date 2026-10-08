@@ -65,7 +65,7 @@ SHELL_HAT_VALUE = 3.0
 SHELL_PRICE_SHARE = round(1 / SHELL_CUPS / (1 - MARGIN), 4)
 ROUND_TTL = 180
 HISTORY_LIMIT = 50
-MIN_CHANCE_PCT, MAX_CHANCE_PCT = 1, 95
+MIN_CHANCE_PCT, MAX_CHANCE_PCT = 10, 70
 CHANCES = [p / 100 for p in range(MIN_CHANCE_PCT, MAX_CHANCE_PCT + 1)]
 
 TIERS = {
@@ -866,11 +866,22 @@ def gifts_catalog(user, body):
     return {"items": items, "margin": MARGIN, "price_steps": [], "price_base": 1}
 
 
-@route("/api/gifts/models")
-def gifts_models(user, body):
+def _models_payload(user, body):
     slug = body.get("slug", "")
     entry = gift_entry(slug)
     return {"slug": slug, "name": entry["name"], "floor": gift_floor(slug), "image": gift_image(slug), "models": gift_models(slug)}
+
+
+_models_view = api(_models_payload)
+
+
+@app.post("/api/gifts/models")
+def gifts_models():
+    # если моделей коллекции ещё нет - грузим их прямо сейчас, вне общего lock
+    slug = (request.get_json(silent=True) or {}).get("slug", "")
+    if slug in CATALOG:
+        ensure_models(slug)
+    return _models_view()
 
 
 @route("/api/gifts/mine")
@@ -1170,7 +1181,7 @@ def portals_headers(with_auth=True):
 _host_first = {"i": 0}
 
 
-def portals_get(paths, public_ok=False):
+def portals_get(paths, public_ok=False, timeout=20):
     """Перебирает хосты и пути. Если ключ отклонён, коллекции можно взять публично (public_ok)."""
     errors = []
     auth_rejected = False
@@ -1186,11 +1197,13 @@ def portals_get(paths, public_ok=False):
             for path in paths:
                 try:
                     req = urllib.request.Request(host + path, headers=headers)
-                    with urllib.request.urlopen(req, timeout=20) as resp:
+                    with urllib.request.urlopen(req, timeout=timeout) as resp:
                         data = json.load(resp)
                     _host_first["i"] = PORTALS_HOSTS.index(host)
                     return data
                 except urllib.error.HTTPError as e:
+                    if e.code == 429:
+                        raise PortalsError("лимит запросов Portals (HTTP 429)")
                     if e.code in (401, 403):
                         auth_rejected = True
                         errors.append(f"ключ отклонён (HTTP {e.code})")
@@ -1217,9 +1230,14 @@ def _num(v):
     return x if x > 0 else 0.0
 
 
+def _clean(name):
+    """'Classic (1.5%)' -> 'Classic'"""
+    return re.sub(r"\s*\([^)]*\)\s*$", "", str(name)).strip()
+
+
 def _floor_of(v):
     if isinstance(v, dict):
-        for k in ("floor_price", "floor", "price", "min_price"):
+        for k in ("floor_price", "floor", "price", "min_price", "min"):
             if k in v:
                 return _num(v[k])
         return 0.0
@@ -1248,30 +1266,71 @@ def parse_collections(data):
 
 
 def parse_attr_floors(node):
+    """Модели/фоны -> {имя: флор}. Модели без листингов не теряются (флор 0 -> берётся флор коллекции)."""
     out = {}
     if isinstance(node, dict):
         for k, v in node.items():
-            f = _floor_of(v)
-            if f:
-                out[re.sub(r"\s*\([^)]*\)\s*$", "", str(k)).strip()] = f
+            if str(k).lower() in ("count", "total", "floor_price"):
+                continue
+            if isinstance(v, (dict, int, float, str)) or v is None:
+                name = _clean(k)
+                if name:
+                    out[name] = _floor_of(v)
     elif isinstance(node, list):
         for v in node:
-            if not isinstance(v, dict):
-                continue
-            n = v.get("value") or v.get("name") or v.get("model") or v.get("title")
-            f = _floor_of(v)
-            if n and f:
-                out[re.sub(r"\s*\([^)]*\)\s*$", "", str(n)).strip()] = f
+            if isinstance(v, str):
+                if _clean(v):
+                    out[_clean(v)] = 0.0
+            elif isinstance(v, dict):
+                n = v.get("value") or v.get("name") or v.get("model") or v.get("title")
+                if n:
+                    out[_clean(n)] = _floor_of(v)
     return out
 
 
+def _find_key(node, names, depth=0):
+    if depth > 4:
+        return None
+    if isinstance(node, dict):
+        for n in names:
+            if isinstance(node.get(n), (dict, list)) and node[n]:
+                return node[n]
+        for v in node.values():
+            r = _find_key(v, names, depth + 1)
+            if r:
+                return r
+    return None
+
+
 def parse_filters(data):
-    root = data
+    models = parse_attr_floors(_find_key(data, ("models", "model")))
+    backdrops = parse_attr_floors(_find_key(data, ("backdrops", "backdrop")))
+    return models, backdrops
+
+
+def parse_search_models(data, acc):
+    """Листинги Portals -> минимальная цена по каждой модели. Возвращает число обработанных лотов."""
+    items = data
     if isinstance(data, dict):
-        root = data.get("floors") or data.get("filters") or data
-    if not isinstance(root, dict):
-        return {}, {}
-    return parse_attr_floors(root.get("models")), parse_attr_floors(root.get("backdrops"))
+        items = data.get("results") or data.get("nfts") or data.get("items") or data.get("data") or []
+    n = 0
+    for r in items if isinstance(items, list) else []:
+        if not isinstance(r, dict):
+            continue
+        n += 1
+        model = r.get("model")
+        if not model:
+            for a in r.get("attributes") or []:
+                if isinstance(a, dict) and str(a.get("type", "")).lower() == "model":
+                    model = a.get("value")
+                    break
+        if not model:
+            continue
+        m = _clean(model)
+        price = _num(r.get("price"))
+        if m not in acc or (price and (not acc[m] or price < acc[m])):
+            acc[m] = price
+    return n
 
 
 def apply_tier_values():
@@ -1283,28 +1342,32 @@ def apply_tier_values():
     backdrops = {normalize(k): v for k, v in hat.get("backdrops", {}).items()}
     for tier, keys in (("onyx", ("onyxblack", "onyx")), ("black", ("black",))):
         for k in keys:
-            if k in backdrops:
+            if k in backdrops and backdrops[k] > 0:
                 TIERS[tier]["value"] = money(backdrops[k])
                 break
 
 
-def fetch_collection_filters(c):
-    """Модели и фоны коллекции. Сначала с ключом, затем публично; рабочий путь запоминается."""
+def fetch_collection_filters(c, timeout=20):
+    """Модели и фоны коллекции через /collections/filters. Рабочий путь запоминается."""
     paths = [
         f"/collections/filters?short_name={quote(c['short'])}",
-        f"/collections/filters?collection_id={quote(c['id'])}",
-        f"/collections/{quote(c['id'])}/filters",
+        f"/collections/filters?short_name={quote(c['short'].lower())}",
+        f"/collections/filters?collection_id={quote(c['id'])}" if c["id"] else "",
+        f"/collections/{quote(c['id'])}/filters" if c["id"] else "",
         f"/collections/filters?name={quote(c['name'])}",
     ]
+    paths = [p for p in paths if p]
     n = len(paths)
     first = _filters_first["i"] % n
     last_err = None
     for step in range(n):
         idx = (first + step) % n
         try:
-            models, backdrops = parse_filters(portals_get([paths[idx]], public_ok=True))
+            models, backdrops = parse_filters(portals_get([paths[idx]], public_ok=True, timeout=timeout))
         except PortalsError as e:
             last_err = e
+            if "429" in str(e):
+                raise
             continue
         if models:
             _filters_first["i"] = idx
@@ -1312,6 +1375,95 @@ def fetch_collection_filters(c):
     if last_err:
         raise last_err
     return {}, {}
+
+
+def fetch_models_by_search(c, max_pages=15):
+    """Запасной способ: собрать все модели из листингов коллекции (минимальная цена каждой)."""
+    acc = {}
+    last = None
+    for key in [k for k in (c["name"], c["short"], c["id"]) if k]:
+        for page in range(max_pages):
+            path = (f"/nft/search?offset={page * 100}&limit=100&filter_by_collections={quote(key)}"
+                    f"&sort_by=price+asc&status=listed")
+            try:
+                got = parse_search_models(portals_get([path], public_ok=True, timeout=15), acc)
+            except PortalsError as e:
+                last = e
+                if "429" in str(e):
+                    raise
+                break
+            if got < 100:
+                break
+        if acc:
+            return acc
+    if last:
+        raise last
+    return acc
+
+
+def fetch_collection_models(c, search=True, timeout=20):
+    err = None
+    models, backdrops = {}, {}
+    try:
+        models, backdrops = fetch_collection_filters(c, timeout)
+    except PortalsError as e:
+        err = e
+        if "429" in str(e):
+            raise
+    if not models and search:
+        try:
+            models = fetch_models_by_search(c)
+        except PortalsError as e:
+            err = err or e
+    if not models and err:
+        raise err
+    return models, backdrops
+
+
+def build_models(models):
+    return [{"model": m, "floor": money(f)}
+            for m, f in sorted(models.items(), key=lambda kv: (kv[1] <= 0, kv[1], kv[0].lower()))]
+
+
+MODEL_FAIL = {}
+MODEL_LOCKS = {}
+
+
+def ensure_models(slug):
+    """Подгружает модели коллекции прямо сейчас, если их ещё нет. Сеть - вне глобального lock."""
+    with lock:
+        entry = CATALOG.get(slug)
+        if not entry or entry.get("models"):
+            return
+        if time.time() - MODEL_FAIL.get(slug, 0) < 30:
+            return
+        c = {"name": entry["name"], "short": entry.get("short") or normalize(entry["name"]), "id": entry.get("id", "")}
+        slot = MODEL_LOCKS.setdefault(slug, threading.Lock())
+    with slot:
+        with lock:
+            cur = CATALOG.get(slug)
+            if not cur or cur.get("models"):
+                return
+        try:
+            models, backdrops = fetch_collection_models(c, timeout=12)
+        except PortalsError as e:
+            PORTALS_STATE["error"] = f"{c['name']}: {e}"
+            MODEL_FAIL[slug] = time.time()
+            return
+        if not models:
+            MODEL_FAIL[slug] = time.time()
+            return
+        with lock:
+            cur = CATALOG.get(slug)
+            if cur is not None:
+                cur["models"] = build_models(models)
+                if backdrops:
+                    cur["backdrops"] = {b: money(f) for b, f in backdrops.items()}
+                if slug == "WitchHat":
+                    apply_tier_values()
+                save_catalog()
+            for k in [k for k in IMG_CACHE if k and k[0] == slug]:
+                IMG_CACHE.pop(k, None)
 
 
 def portals_refresh_worker():
@@ -1322,28 +1474,27 @@ def portals_refresh_worker():
         collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"], public_ok=True))
         if not collections:
             raise PortalsError("Portals вернул пустой список коллекций")
-        new, models_total, consecutive_fails, no_models = {}, 0, 0, 0
-        last_error = ""
+        collections.sort(key=lambda c: bool(CATALOG.get(re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"]), {}).get("models")))
+        new, models_total, no_models, failed = {}, 0, 0, []
         for c in collections:
             slug = re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"])
             old = CATALOG.get(slug, {})
             entry = {
-                "name": c["name"], "short": c["short"], "floor": money(c["floor"] or old.get("floor") or 1.0),
+                "name": c["name"], "short": c["short"], "id": c["id"],
+                "floor": money(c["floor"] or old.get("floor") or 1.0),
                 "pop": int(c["volume"]), "models": old.get("models", []), "backdrops": old.get("backdrops", {}),
             }
-            # 8 ошибок подряд - Portals, скорее всего, ограничил частоту; остальным оставляем прошлые модели
-            if consecutive_fails < 8:
-                try:
-                    models, backdrops = fetch_collection_filters(c)
-                    consecutive_fails = 0
-                    if models:
-                        entry["models"] = [{"model": m, "floor": money(f)} for m, f in sorted(models.items(), key=lambda kv: kv[1])]
+            try:
+                models, backdrops = fetch_collection_models(c, search=not entry["models"])
+                if models:
+                    entry["models"] = build_models(models)
+                    if backdrops:
                         entry["backdrops"] = {b: money(f) for b, f in backdrops.items()}
-                except PortalsError as e:
-                    consecutive_fails += 1
-                    last_error = f"модели не загрузились: {e}"
-                    time.sleep(1.0)
-                time.sleep(0.15)
+            except PortalsError as e:
+                failed.append(f"{c['name']}: {e}")
+                if "429" in str(e):
+                    time.sleep(8)
+            time.sleep(0.3)
             if not entry["models"]:
                 no_models += 1
             models_total += len(entry["models"])
@@ -1356,9 +1507,9 @@ def portals_refresh_worker():
         IMG_CACHE.clear()
         PORTALS_STATE.update(updated=int(time.time()), gifts=len(new), models=models_total)
         if models_total == 0:
-            PORTALS_STATE["error"] = last_error or "модели не пришли ни для одной коллекции"
+            PORTALS_STATE["error"] = (failed[0] if failed else "модели не пришли ни для одной коллекции")
         elif no_models:
-            PORTALS_STATE["error"] = f"модели получены, но у {no_models} коллекций их пока нет" + (f" ({last_error})" if last_error else "")
+            PORTALS_STATE["error"] = f"у {no_models} коллекций моделей пока нет" + (f" ({failed[0]})" if failed else "")
     except PortalsError as e:
         PORTALS_STATE["error"] = str(e)
     except Exception as e:
@@ -1379,8 +1530,8 @@ def portals_loop():
             portals_refresh_worker()
         except Exception as e:
             print(f"portals loop: {e}", flush=True)
-        have_models = any(g.get("models") for g in CATALOG.values())
-        time.sleep(1800 if have_models else 300)
+        have_models = bool(CATALOG) and all(g.get("models") for g in CATALOG.values())
+        time.sleep(1800 if have_models else 180)
 
 
 @route("/api/admin/market")
