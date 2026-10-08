@@ -1,7 +1,4 @@
-/* ============================================================
-   Magic Upgrade — клиент мини-аппы.
-   Исход прокрутки решает сервер; здесь только анимация и UI.
-   ============================================================ */
+
 (() => {
 'use strict';
 
@@ -19,7 +16,7 @@ let chancePct = 25;         // выбранный шанс, % (позиция п
 let chanceCfg = null;       // {min, max, default, marks} с сервера
 let prizePrice = 7;         // цена шляпы, из неё считается ставка
 
-/* ----------------------------------------------------------- телеграм */
+
 function initTelegram() {
   if (!tg) return;
   tg.ready();
@@ -38,7 +35,7 @@ function haptic(type = 'impact', style = 'medium') {
   } catch {}
 }
 
-/* ---------------------------------------------------------------- API */
+
 async function api(path, body = {}) {
   let res;
   try {
@@ -48,8 +45,8 @@ async function api(path, body = {}) {
       body: JSON.stringify({ initData: tg?.initData || '', ...body }),
     });
   } catch (e) {
-    // fetch сам кинул исключение — сети нет вообще (не путать с тем, что
-    // сервер ответил с ошибкой: то отдельный случай ниже).
+    
+    
     const err = new Error('network');
     err.code = 'network';
     throw err;
@@ -64,13 +61,13 @@ async function api(path, body = {}) {
   return data;
 }
 
-/* -------------------------------------------------------------- утилиты */
+
 const fmt = (n, d = 4) => Number(n).toFixed(d).replace(/\.?0+$/, '') || '0';
-// У SVG-элементов нет свойства .hidden — переключаем атрибут напрямую.
+
 const setHidden = (el, hidden) => el.toggleAttribute('hidden', !!hidden);
 const shortAddr = (a) => (a && a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a || '');
 
-// 1 приз / 2 приза / 5 призов
+
 function plural(n, one, few, many) {
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -79,8 +76,8 @@ function plural(n, one, few, many) {
   return many;
 }
 
-// Копирование с запасным путём: в WebView Telegram Clipboard API бывает
-// недоступен, тогда копируем через скрытое поле и execCommand.
+
+
 async function copyText(text) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -129,9 +126,9 @@ function makeStars(n = 42) {
   box.appendChild(frag);
 }
 
-/* --------------------------------------------------- шанс и ползунок */
-// Ставка = шанс × цена шляпы (10% → 0.7, 25% → 1.75 ...). Округление «половина
-// вверх» — то же самое, что делает сервер (bet_cost в app.py).
+
+
+
 function costFor(pct) {
   return Math.floor(prizePrice * pct + 0.5) / 100;
 }
@@ -177,7 +174,7 @@ function selectChance(pct) {
   applyMode();
 }
 
-/** Перерисовывает всё, что зависит от выбранного шанса. */
+
 function applyMode() {
   const m = currentMode();
   if (!m) return;
@@ -189,9 +186,9 @@ function applyMode() {
     el.classList.toggle('active', Number(el.dataset.pct) === chancePct);
   });
 
-  // Зелёная дуга = доля выигрыша на колесе. CSS-transition на
-  // stroke-dasharray (см. .ring-arc) отвечает за плавное "дотягивание"
-  // при смене ставки/процента — тут только выставляем целевое значение.
+  
+  
+  
   const arcWin = $('arcWin');
   arcWin.setAttribute('stroke-dasharray', `${RING_C * m.chance / 100} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
@@ -210,11 +207,11 @@ function updateSpinButton() {
   $('spinBtnText').textContent = enough ? `Крутить за ${fmt(m.cost_ton, 2)} TON` : 'Пополни баланс';
 }
 
-/* -------------------------------------------------------- анимация баланса */
-// Плавно "прокручивает" отображаемое число от старого значения к новому
-// и одновременно показывает всплывающую подпись ±X TON над чипом баланса.
-// Раньше баланс менялся мгновенным textContent = ..., поэтому списание при
-// ставке было незаметно — цифра просто скачком становилась меньше.
+
+
+
+
+
 let balanceAnimFrame = null;
 function animateBalance(from, to) {
   const el = $('balanceValue');
@@ -243,7 +240,7 @@ function animateBalance(from, to) {
   balanceAnimFrame = requestAnimationFrame(tick);
 
   chip.classList.remove('flash-out', 'flash-in');
-  // reflow, чтобы анимацию можно было перезапустить при повторном срабатывании подряд
+  
   void chip.offsetWidth;
   chip.classList.add(delta < 0 ? 'flash-out' : 'flash-in');
 
@@ -254,7 +251,7 @@ function animateBalance(from, to) {
   setTimeout(() => fly.remove(), 1150);
 }
 
-/* --------------------------------------------------------------- рендер */
+
 function renderState(s) {
   const prevBalance = state ? state.balance_ton : s.balance_ton;
   state = s;
@@ -290,19 +287,19 @@ function renderState(s) {
   updateSpinButton();
 }
 
-/* ------------------------------------------------------------ рефералы */
+
 function renderReferral(ref) {
   $('refPercent').textContent = `${fmt(ref.percent, 2)}%`;
 
-  // До нажатия «Создать» показываем кнопку, после — поле со ссылкой.
+  
   const showLink = ref.created && ref.link;
   $('refCreateBtn').hidden = showLink;
   $('refLinkBox').hidden = !showLink;
   if (showLink) {
     $('refLink').textContent = ref.link;
   } else if (ref.created && !ref.bot_username_known) {
-    // Ссылка создана, но имя бота ещё не определено сервером (getMe не
-    // отработал) — не показываем битую ссылку, а объясняем, что происходит.
+    
+    
     $('refLinkBox').hidden = false;
     $('refLink').textContent = 'Ссылка появится через несколько секунд…';
     $('refCopyBtn').disabled = true;
@@ -327,7 +324,7 @@ function renderReferral(ref) {
   }
 }
 
-/* ------------------------------------------------------------- лидеры */
+
 function svgIcon(symbolId) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('class', 'ic');
@@ -429,8 +426,8 @@ function renderLeaders(leaders) {
     turnoverEl.textContent = `${fmt(entry.turnover_ton, 2)} TON`;
     info.append(nameEl, turnoverEl);
 
-    // Карточка-плитка: ранг → аватар → имя/оборот, размещаются в сетке по
-    // несколько штук в ряд (см. .lb-list в styles.css).
+    
+    
     row.append(rank, avatar, info);
     list.appendChild(row);
   });
@@ -464,7 +461,7 @@ async function copyReferral() {
       btn.classList.remove('done');
     }, 1800);
   } else {
-    // Совсем не вышло — выделяем текст, чтобы скопировать вручную.
+    
     const range = document.createRange();
     range.selectNodeContents($('refLink'));
     const sel = window.getSelection();
@@ -505,16 +502,16 @@ function renderPrizes(prizes) {
     const thumb = document.createElement('div');
     thumb.className = 'thumb';
     const img = document.createElement('img');
-    // Раньше путь был 'assets/hat.png' — такого файла не существует
-    // (картинки лежат в /static/img/), поэтому иконка приза не грузилась.
+    
+    
     img.src = '/static/img/hat.png';
     img.alt = p.item_name;
     thumb.appendChild(img);
 
     const pv = document.createElement('div');
     pv.className = 'pv';
-    // Бэкенд отдаёт поле item_price (см. /api/state), а не value_ton —
-    // из-за несовпадения имён тут всегда показывалось "NaN TON".
+    
+    
     pv.textContent = `${fmt(p.item_price, 2)} TON`;
 
     const actions = document.createElement('div');
@@ -543,7 +540,7 @@ function renderPrizes(prizes) {
   }
 }
 
-/* ----------------------------------------------------------- навигация */
+
 function showView(name) {
   $('view-upgrade').hidden = name !== 'upgrade';
   $('view-profile').hidden = name !== 'profile';
@@ -552,7 +549,7 @@ function showView(name) {
   document.querySelector('.content').scrollTop = 0;
 }
 
-/* -------------------------------------------------------------- прокрутка */
+
 async function doSpin() {
   const mode = currentMode();
   if (spinning || !state || !mode) return;
@@ -585,14 +582,14 @@ async function doSpin() {
     return;
   }
 
-  // Итог (выигрыш/угол) уже решён сервером ДО начала анимации — тут мы
-  // только подбираем, как именно колесо к нему подкатится. Раньше это было
-  // всегда ровно 5 оборотов с одной и той же длительностью и кривой —
-  // после пары прокруток становилось видно, что колесо крутится "по
-  // одному и тому же счёту", и финал угадывался на глаз. Теперь число
-  // оборотов, длительность и кривая движения каждый раз немного разные,
-  // а в середине кручения добавлен случайный рывок ("заминка—ускорение"),
-  // чтобы сам процесс вращения было сложнее прочитать по шаблону.
+  
+  
+  
+  
+  
+  
+  
+  
   const current = ((pointerDeg % 360) + 360) % 360;
   const targetDelta = (result.angle - current + 360) % 360;
 
@@ -610,8 +607,8 @@ async function doSpin() {
   pointer.classList.remove('spinning');
   void pointer.offsetWidth; // reflow — сбрасываем предыдущую transition перед новой
 
-  // Небольшой случайный "перелёт" и откат назад в середине пути делает
-  // скорость вращения не строго монотонной, а не только меняет числа.
+  
+  
   const overshoot = 12 + Math.random() * 26; // градусов
   const midDeg = pointerDeg + 360 * extraTurns + targetDelta + overshoot;
   const finalDeg = pointerDeg + 360 * extraTurns + targetDelta;
@@ -651,7 +648,7 @@ function showResult(result) {
   $('resultModal').hidden = false;
 }
 
-/* ---------------------------------------------------------------- вывод */
+
 async function withdraw(prizeId, btn) {
   btn.disabled = true;
   btn.textContent = '…';
@@ -667,7 +664,7 @@ async function withdraw(prizeId, btn) {
   }
 }
 
-/* --------------------------------------------------------------- продажа */
+
 async function sellPrize(prize, btn) {
   btn.disabled = true;
   btn.textContent = '…';
@@ -683,8 +680,8 @@ async function sellPrize(prize, btn) {
   }
 }
 
-/* -------------------------------------------------------------- пополнение */
-// Каждое нажатие «Пополнить баланс» сразу добавляет +10 TON.
+
+
 async function topUp() {
   try {
     const res = await api('/api/topup');
@@ -696,10 +693,10 @@ async function topUp() {
   }
 }
 
-/* ---------------------------------------------------------- TON Connect */
+
 function commentPayload(text) {
-  // Минимальный BOC с одной ячейкой: 32 нулевых бита (опкод текста) + utf-8.
-  // В одну ячейку влезает не больше 123 байт текста — нашей метки хватает.
+  
+  
   const body = new TextEncoder().encode(text);
   if (body.length > 123) throw new Error('comment too long');
 
@@ -806,7 +803,7 @@ async function sendDeposit() {
     });
     $('depositModal').hidden = true;
     toast('Перевод отправлен, ждём подтверждения сети');
-    // Транзакция подтверждается не мгновенно — несколько раз перечитываем баланс.
+    
     [6, 14, 24, 40].forEach((s) => setTimeout(refresh, s * 1000));
   } catch (e) {
     if (!String(e?.message || '').toLowerCase().includes('reject')) {
@@ -821,7 +818,7 @@ function openDeposit() {
   $('depositModal').hidden = false;
 }
 
-/* -------------------------------------------------------- админ-пополнение */
+
 function openAdminTopup() {
   $('adminTopupModal').hidden = false;
 }
@@ -847,10 +844,10 @@ async function confirmAdminTopup() {
   }
 }
 
-/* ------------------------------------------------------------ обновление */
+
 async function refresh() {
-  // Сеть и отрисовку ловим отдельно: раньше любая ошибка в коде показывалась
-  // как «Нет связи с сервером», и настоящую причину было не найти.
+  
+  
   let s;
   try {
     s = await api('/api/state');
@@ -870,13 +867,13 @@ async function refresh() {
   }
 }
 
-/* ------------------------------------------------------------- обработчики */
+
 function bind() {
   $('spinBtn').addEventListener('click', doSpin);
-  // «Пополнить баланс» открывает форму реального пополнения через TON
-  // Connect (openDeposit) — раньше эта кнопка была привязана к topUp() и
-  // мгновенно зачисляла тестовые +10 TON, а сама форма пополнения нигде
-  // не открывалась, поэтому переводы через кошелёк никуда не доходили.
+  
+  
+  
+  
   $('depositBtn').addEventListener('click', openDeposit);
   $('testTopupBtn')?.addEventListener('click', topUp);
   $('depositCloseBtn').addEventListener('click', () => { $('depositModal').hidden = true; });
@@ -937,7 +934,7 @@ function bind() {
   });
 }
 
-/* --------------------------------------------------------------- запуск */
+
 initTelegram();
 makeStars();
 bind();
