@@ -2962,3 +2962,5 @@ img[src*="/gimg/"] { object-fit: contain; }
 .lb-timer[hidden] { display: none; }
 
 .subtitle[hidden] { display: none; }
+html[data-theme="meadow"][data-sky="night"] .bg-wide { filter: brightness(.43) saturate(.72) hue-rotate(13deg); }
+html[data-theme="meadow"][data-sky="day"] .bg-wide { filter: none; }
