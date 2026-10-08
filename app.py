@@ -21,7 +21,10 @@ ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.
 # Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
-PORTALS_API = os.environ.get("PORTALS_API", "https://portals-market.com/api").rstrip("/")
+# Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
+PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
+    "PORTALS_API", "https://portal-market.com/api,https://portals-market.com/api"
+).split(",") if h.strip()]
 PORTALS_AUTH = os.environ.get("PORTALS_AUTH", "")
 GIFT_IMG_TEMPLATE = os.environ.get(
     "GIFT_IMG_TEMPLATE", "https://cdn.changes.tg/gifts/models/{name}/png/{model}.png"
@@ -1017,36 +1020,61 @@ def portals_status():
     }
 
 
-def portals_headers():
-    auth = portals_auth()
+def portals_headers(with_auth=True):
+    auth = portals_auth() if with_auth else ""
     if auth and not auth.lower().startswith("tma "):
         auth = "tma " + auth
-    return {
+    headers = {
         "Accept": "application/json",
         "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Mobile Safari/537.36",
-        "Authorization": auth,
-        "Origin": "https://portals-market.com",
-        "Referer": "https://portals-market.com/",
+        "Origin": "https://portal-market.com",
+        "Referer": "https://portal-market.com/",
     }
+    if auth:
+        headers["Authorization"] = auth
+    return headers
 
 
-def portals_get(paths):
-    headers = portals_headers()
-    if not headers["Authorization"]:
-        raise PortalsError("ключ не задан")
+_host_first = {"i": 0}
+
+
+def portals_get(paths, public_ok=False):
+    """Перебирает хосты и пути. Если ключ отклонён, коллекции можно взять публично (public_ok)."""
     errors = []
-    for path in paths:
-        try:
-            req = urllib.request.Request(PORTALS_API + path, headers=headers)
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                return json.load(resp)
-        except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
-                raise PortalsError(f"ключ отклонён (HTTP {e.code}) - вставь свежий Authorization")
-            errors.append(f"{path.split('?')[0]} -> HTTP {e.code}")
-        except Exception as e:
-            errors.append(f"{path.split('?')[0]} -> {type(e).__name__}")
-    raise PortalsError("; ".join(errors[:3]))
+    auth_rejected = False
+    order = PORTALS_HOSTS[_host_first["i"]:] + PORTALS_HOSTS[:_host_first["i"]]
+    for attempt_auth in ((True, False) if public_ok else (True,)):
+        if not attempt_auth and not auth_rejected and portals_auth():
+            break
+        headers = portals_headers(attempt_auth)
+        if attempt_auth and "Authorization" not in headers and not public_ok:
+            raise PortalsError("ключ не задан")
+        for host in order:
+            host_dead = False
+            for path in paths:
+                try:
+                    req = urllib.request.Request(host + path, headers=headers)
+                    with urllib.request.urlopen(req, timeout=20) as resp:
+                        data = json.load(resp)
+                    _host_first["i"] = PORTALS_HOSTS.index(host)
+                    return data
+                except urllib.error.HTTPError as e:
+                    if e.code in (401, 403):
+                        auth_rejected = True
+                        errors.append(f"ключ отклонён (HTTP {e.code})")
+                        break
+                    errors.append(f"{host.split('//')[1]}{path.split('?')[0]} -> HTTP {e.code}")
+                except urllib.error.URLError as e:
+                    errors.append(f"{host.split('//')[1]} недоступен: {e.reason}")
+                    host_dead = True
+                    break
+                except Exception as e:
+                    errors.append(f"{host.split('//')[1]}{path.split('?')[0]} -> {type(e).__name__}")
+            if host_dead:
+                continue
+    if auth_rejected:
+        raise PortalsError("ключ отклонён - вставь свежий Authorization. " + "; ".join(errors[-2:]))
+    raise PortalsError("; ".join(dict.fromkeys(errors)) if errors else "нет ответа")
 
 
 def _num(v):
@@ -1133,7 +1161,7 @@ def portals_refresh_worker():
         return
     PORTALS_STATE.update(running=True, error="")
     try:
-        collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"]))
+        collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"], public_ok=True))
         if not collections:
             raise PortalsError("Portals вернул пустой список коллекций")
         new, filter_fails, models_total = {}, 0, 0
