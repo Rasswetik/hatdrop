@@ -1,15 +1,4 @@
-/* Перевод интерфейса: русский, английский, китайский.
 
-   Ключ словаря — русский текст (как он написан в index.html и app.js),
-   значение — { en, zh }. Если перевода нет, остаётся русский текст, так что
-   забытая строка ничего не ломает.
-
-   Язык берётся так: что игрок выбрал в профиле (localStorage) → язык его
-   Telegram → язык браузера. Смена языка — I18N.setLang('en'): страница не
-   перезагружается, тексты в разметке меняются на месте, а приложению
-   уходит событие langchange, по которому оно перерисовывает своё.
-
-   Файл подключается в index.html ПЕРЕД app.js. */
 (function () {
   'use strict';
 
@@ -32,16 +21,16 @@
     try {
       const saved = localStorage.getItem(STORE_KEY);
       if (saved && LANGS.some((l) => l.code === saved)) return saved;
-    } catch (e) { /* хранилище недоступно — определим по Telegram */ }
+    } catch (e) {  }
     let tgLang = '';
-    try { tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || ''; } catch (e) { /* не в Telegram */ }
+    try { tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || ''; } catch (e) {  }
     return normalize(tgLang) || normalize(navigator.language) || 'ru';
   }
 
   let lang = detect();
 
   const DICT = {
-    // ---------- шапка, вкладки
+    
     'ШляпоКоины — кешбэк за игры': { en: 'HatCoins — cashback for playing', zh: '帽子币——游戏返现' },
     'ШляпоКоины': { en: 'HatCoins', zh: '帽子币' },
     'Баланс, пополнить': { en: 'Balance, top up', zh: '余额，充值' },
@@ -51,7 +40,7 @@
     'Топ': { en: 'Top', zh: '排行' },
     'Профиль': { en: 'Profile', zh: '个人' },
 
-    // ---------- три шляпы
+    
     'ТРИ ШЛЯПЫ': { en: 'THREE HATS', zh: '三顶帽子' },
     'Играть': { en: 'Play', zh: '开始' },
     'Угадать': { en: 'Guess', zh: '猜一猜' },
@@ -78,7 +67,7 @@
     'Партия устарела, ставка вернулась — жми «Угадать»': { en: 'The round expired, your stake is back — tap “Guess”', zh: '本局已过期，押注已退回——请点击“猜一猜”' },
     'Странный выбор, попробуй ещё раз': { en: 'Odd choice, try again', zh: '选择无效，请再试一次' },
 
-    // ---------- апгрейд
+    
     'Приз:': { en: 'Prize:', zh: '奖品：' },
     'Приз': { en: 'Prize', zh: '奖品' },
     'Выбор приза': { en: 'Prize selection', zh: '选择奖品' },
@@ -104,7 +93,7 @@
     'Цена подарка обновилась — проверь и крути снова': { en: 'The gift price has changed — check it and try again', zh: '礼物价格已更新——请确认后重试' },
     'Этот подарок сейчас недоступен': { en: 'This gift is unavailable right now', zh: '该礼物暂时不可用' },
 
-    // ---------- выбор подарка
+    
     'Загружаю…': { en: 'Loading…', zh: '加载中…' },
     'Выбери подарок': { en: 'Choose a gift', zh: '选择礼物' },
     'Поиск модели': { en: 'Search model', zh: '搜索款式' },
@@ -124,7 +113,7 @@
     'Дорогие': { en: 'Expensive', zh: '高价' },
     'Дешёвые': { en: 'Cheap', zh: '低价' },
 
-    // ---------- профиль
+    
     'ПРОФИЛЬ': { en: 'PROFILE', zh: '个人资料' },
     'Игрок': { en: 'Player', zh: '玩家' },
     'Кошелёк не подключён': { en: 'Wallet not connected', zh: '未连接钱包' },
@@ -227,7 +216,7 @@
     'Заявка на вывод создана': { en: 'Withdrawal request created', zh: '提取申请已创建' },
     'Заявка уже создана': { en: 'The request already exists', zh: '申请已存在' },
 
-    // ---------- топ
+    
     'ТОП ИГРОКОВ': { en: 'TOP PLAYERS', zh: '玩家排行' },
     'по объёму игры · сезон с': { en: 'by play volume · season since', zh: '按游戏流水 · 赛季开始于' },
     'Рейтинг': { en: 'Ranking', zh: '排名' },
@@ -242,13 +231,13 @@
       { en: 'You’re not in the top yet — play Upgrade or “Three Hats” to get ranked', zh: '你还未上榜——玩“升级”或“三顶帽子”即可进入排名' },
     '{name} (ты)': { en: '{name} (you)', zh: '{name}（你）' },
 
-    // ---------- окно выигрыша
+    
     'Поздравляем!': { en: 'Congratulations!', zh: '恭喜！' },
     'Приз уже в профиле': { en: 'The prize is in your profile', zh: '奖品已放入个人页' },
     'Перейти в апгрейд': { en: 'Go to Upgrade', zh: '前往升级' },
     'Перейти в профиль': { en: 'Go to Profile', zh: '前往个人页' },
 
-    // ---------- пополнение
+    
     'Пополнение': { en: 'Top up', zh: '充值' },
     'Перевод в TON зачислится автоматически в течение минуты.':
       { en: 'A TON transfer is credited automatically within a minute.', zh: 'TON 转账将在一分钟内自动到账。' },
@@ -309,13 +298,13 @@
     'Не удалось отправить перевод': { en: 'Couldn’t send the transfer', zh: '转账发送失败' },
     'Закрой и открой приложение заново': { en: 'Close the app and open it again', zh: '请关闭并重新打开应用' },
 
-    // ---------- общее
+    
     'Ошибка запроса': { en: 'Request error', zh: '请求出错' },
     'Откройте приложение через бота': { en: 'Open the app through the bot', zh: '请通过机器人打开应用' },
     'Нет связи с сервером': { en: 'No connection to the server', zh: '无法连接服务器' },
   };
 
-  /* Слова при числах. ru: 1 / 2–4 / 5+; en: 1 / много; zh: счётное слово. */
+  
   const NOUNS = {
     prize: { ru: ['приз', 'приза', 'призов'], en: ['prize', 'prizes'], zh: ['个奖品', '奖品'] },
     game: { ru: ['игра', 'игры', 'игр'], en: ['game', 'games'], zh: ['局', '局'] },
@@ -333,7 +322,7 @@
     return fill((row && row[lang]) || k, vars);
   }
 
-  /** «5 призов» / «5 prizes» / «5 个奖品». wordOnly — только слово, без числа. */
+  
   function tn(n, noun, wordOnly) {
     const forms = (NOUNS[noun] || {})[lang] || (NOUNS[noun] || {}).ru;
     if (!forms) return String(n);
@@ -352,8 +341,7 @@
 
   const ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
 
-  /* Чтобы менять язык на месте, надо по тексту на экране узнать его ключ
-     (русский исходник): сам ключ, либо его перевод на любой из языков. */
+  
   let REV = null;
   function keyOf(text) {
     if (DICT[text]) return text;
@@ -369,9 +357,7 @@
     return REV[text] || null;
   }
 
-  /** Этот текст — сам ключ или один из его переводов? У двух ключей перевод
-      может совпасть («ТРИ ШЛЯПЫ» и «Три шляпы» по-китайски одинаковы), поэтому
-      запомненный ключ узла важнее поиска по тексту. */
+  
   function matches(key, text) {
     if (key === text) return true;
     const row = DICT[key];
@@ -381,9 +367,7 @@
   const nodeKey = new WeakMap();      // текстовый узел -> ключ
   const attrKey = new WeakMap();      // элемент -> { атрибут: ключ }
 
-  /** Перевести готовую разметку: тексты и подсказки внутри root. Ключ узла
-      запоминается, поэтому повторный вызов после смены языка переводит
-      заново, в том числе обратно на русский. */
+  
   function applyDom(root) {
     if (!root) return;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -395,7 +379,7 @@
       const raw = node.nodeValue;
       const text = raw.replace(/\s+/g, ' ').trim();
       if (!text) continue;
-      // узел мог переписать код — тогда старый ключ уже не про этот текст
+      
       let key = nodeKey.get(node);
       if (key && !matches(key, text)) key = null;
       if (!key) key = keyOf(text);
@@ -433,12 +417,11 @@
     tr, tn, setLang, applyDom,
   };
 
-  /** Сменить язык без перезагрузки: вкладка, прокрутка и открытые окна
-      остаются как были. */
+  
   function setLang(code) {
     if (!LANGS.some((l) => l.code === code) || code === lang) return;
     lang = code;
-    try { localStorage.setItem(STORE_KEY, code); } catch (e) { /* не сохранится — язык всё равно сменим */ }
+    try { localStorage.setItem(STORE_KEY, code); } catch (e) {  }
     markLang();
     applyDom(document.body);
     window.dispatchEvent(new Event('langchange'));   // app.js перерисует то, что собрано кодом
@@ -448,8 +431,8 @@
   markLang();
   window.I18N = api;
 
-  // Скрипт стоит в конце <body>, разметка уже есть — переводим её сразу,
-  // до app.js, чтобы русский текст не мелькал.
+  
+  
   if (document.body) applyDom(document.body);
   else document.addEventListener('DOMContentLoaded', () => applyDom(document.body));
 })();
