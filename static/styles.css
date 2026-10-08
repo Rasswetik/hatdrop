@@ -1,9 +1,4 @@
-/* ============================================================
-   Magic Upgrade — вертикальная мини-аппа 9:16
-   Пиксельная стилистика: шрифт Press Start 2P, блочные рамки,
-   никаких скруглений. У шрифта одно начертание, поэтому
-   font-weight везде 400 — синтетический жир мылит пиксели.
-   ============================================================ */
+
 :root {
   --sky-0: #0b0a2a;
   --violet: #8b4cf0;
@@ -42,7 +37,7 @@ body { overflow: hidden; }
 
 button, input { font-family: inherit; font-weight: 400; }
 
-/* Пиксельные иконки из спрайта */
+
 .ic {
   width: 1em;
   height: 1em;
@@ -52,17 +47,16 @@ button, input { font-family: inherit; font-weight: 400; }
   flex: 0 0 auto;
 }
 
-/* ---------------------------------------------------------- сцена и фон */
+
 .stage {
   position: relative;
   width: 100%;
   height: 100dvh;
-  max-width: 480px;           /* 9:16 на широких экранах */
+  max-width: 480px;           
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  /* clip вместо hidden: фон шире кадра, и с hidden браузер прокручивал
-     контейнер вбок, когда кнопка получала фокус. clip запрещает прокрутку. */
+  
   overflow: hidden;
   overflow: clip;
   isolation: isolate;
@@ -82,9 +76,7 @@ button, input { font-family: inherit; font-weight: 400; }
     linear-gradient(180deg, #0a0926 0%, #140f44 38%, #1b1355 62%, #241a6b 100%);
 }
 
-/* Арт квадратный, а кадр вертикальный: прижимаем его к низу собственным
-   блоком и растворяем верх в небе — маска считается от размеров картинки,
-   поэтому шва не видно на любой высоте экрана. */
+
 .bg-art {
   inset: auto auto 0 50%;
   width: 132%;
@@ -118,7 +110,7 @@ button, input { font-family: inherit; font-weight: 400; }
     linear-gradient(180deg, rgba(6,4,24,.55) 0%, transparent 22%, transparent 70%, rgba(6,4,24,.72) 100%);
 }
 
-/* ---------------------------------------------------------------- шапка */
+
 .topbar {
   position: relative;
   display: flex;
@@ -142,8 +134,7 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 .balance .cur { color: var(--muted); font-size: 10px; }
 
-/* Анимация списания/начисления баланса: короткая вспышка цвета цифр
-   + число, которое всплывает над чипом и растворяется. */
+
 .balance.flash-out #balanceValue { animation: balancePulseOut .5s ease; }
 .balance.flash-in  #balanceValue { animation: balancePulseIn .5s ease; }
 
@@ -206,7 +197,7 @@ button, input { font-family: inherit; font-weight: 400; }
   font-size: 10px;
 }
 
-/* -------------------------------------------------------------- контент */
+
 .content {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -230,7 +221,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .subtitle { margin: 4px 0 10px; font-size: 10px; color: var(--muted); text-align: center; }
 .subtitle span { color: var(--violet-soft); }
 
-/* --------------------------------------------------------------- колесо */
+
 .wheel-wrap {
   position: relative;
   width: min(66vw, 250px);
@@ -261,16 +252,11 @@ button, input { font-family: inherit; font-weight: 400; }
   fill: none;
   stroke-width: 18;
   stroke-linecap: butt;
-  /* При смене ставки/процента зелёный сектор должен заметно "дотягиваться"
-     до нового значения, а не скакать мгновенно. Общий пиксельный стиль
-     сохраняем через steps(), но увеличиваем длительность и число шагов,
-     чтобы движение читалось как анимация, а не как одно резкое дёрганье. */
+  
   transition: stroke-dasharray .45s steps(12, end);
 }
 #arcWin { transition: stroke-dasharray .45s steps(12, end), filter .45s ease; }
-/* arcWin уже несёт SVG-атрибут filter="url(#softGlow)" — не трогаем его
-   через CSS filter (перезаписало бы softGlow), вместо этого анимируем
-   прозрачность/насыщенность через opacity, оставляя саму дугу на месте. */
+
 #arcWin.arc-pulse { animation: arcPulse .45s ease; }
 @keyframes arcPulse {
   0%   { opacity: 1; }
@@ -284,7 +270,7 @@ button, input { font-family: inherit; font-weight: 400; }
   filter: drop-shadow(0 0 5px rgba(255, 192, 67, .55));
 }
 .pointer.spinning { transition: transform 3.6s cubic-bezier(.12, .72, .12, 1); }
-/* Пиксельная стрелка: контур, заливка и блик — три слоя квадратов */
+
 .ptr-outline { fill: #2a1500; }
 .ptr-fill    { fill: var(--gold); }
 .ptr-shine   { fill: var(--gold-soft); }
@@ -315,7 +301,7 @@ button, input { font-family: inherit; font-weight: 400; }
   50%     { transform: translate(-2px, 2px); }
 }
 
-/* ------------------------------------------------- ползунок режимов */
+
 .mode-picker {
   width: 100%;
   padding: 10px 12px 6px;
@@ -334,7 +320,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .mode-cost   { font-size: 17px; color: var(--gold); }
 .mode-chance { font-size: 17px; color: var(--green); }
 
-/* Пиксельный range: квадратный трек и квадратный ползунок */
+
 #modeSlider {
   -webkit-appearance: none;
   appearance: none;
@@ -372,8 +358,7 @@ button, input { font-family: inherit; font-weight: 400; }
 #modeSlider:active::-webkit-slider-thumb { background: var(--gold-soft); }
 #modeSlider:disabled { opacity: .5; cursor: default; }
 
-/* Метки стоят по своим значениям на треке: --p = доля пути ползунка (0..1).
-   12px = половина ширины ползунка, чтобы метка была строго под бегунком. */
+
 .mode-marks { position: relative; height: 34px; }
 .mode-mark {
   position: absolute;
@@ -394,7 +379,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .mode-mark.active   { color: var(--text); }
 .mode-mark.active b { color: var(--gold); }
 
-/* --------------------------------------------------------------- кнопки */
+
 .cta {
   width: 100%;
   padding: 15px 8px;
@@ -430,7 +415,7 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 .ghost:active { transform: translate(1px, 1px); }
 
-/* -------------------------------------------------------------- профиль */
+
 .profile-head {
   display: flex; align-items: center; gap: 12px;
   width: 100%;
@@ -492,8 +477,7 @@ button, input { font-family: inherit; font-weight: 400; }
   background: var(--card);
   border: 2px solid var(--card-line);
   display: flex; flex-direction: column; align-items: center; gap: 6px;
-  /* Без fill-mode: карточка видна сама по себе, анимация — только украшение.
-     С `both` карточки, отрисованные на скрытой вкладке, залипали на opacity 0. */
+  
   animation: popIn .2s steps(4, end);
 }
 @keyframes popIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
@@ -549,7 +533,7 @@ button, input { font-family: inherit; font-weight: 400; }
   cursor: default;
 }
 
-/* ------------------------------------------------ реферальная программа */
+
 .ref-card {
   width: 100%;
   padding: 12px;
@@ -561,8 +545,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .ref-desc  { margin: 6px 0 12px; font-size: 9px; color: var(--muted); line-height: 1.8; }
 .ref-desc b { color: var(--green); font-weight: 400; }
 
-/* Админ-панель: тот же стиль карточки, что и .ref-card, с золотой рамкой,
-   чтобы визуально выделяться, оставаясь в общей пиксельной эстетике сайта. */
+
 .admin-card { border-color: var(--gold-dark); }
 .admin-card .ref-title { color: var(--gold); }
 
@@ -630,7 +613,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
-/* ---------------------------------------------------------------- лидеры */
+
 .lb-countdown {
   margin: 0 0 14px;
   font-size: 9px;
@@ -701,9 +684,7 @@ button, input { font-family: inherit; font-weight: 400; }
 .podium-slot.empty-slot .podium-name,
 .podium-slot.empty-slot .podium-turnover { color: var(--muted); }
 
-/* Места 4+ раньше шли одной колонкой на всю ширину (flex-column). Теперь
-   это сетка: несколько карточек в ряд, компактно, как и просили — места
-   располагаются в строку, а не длинным списком друг под другом. */
+
 .lb-list {
   width: 100%;
   display: grid;
@@ -764,7 +745,7 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 
 
-/* --------------------------------------------------------------- таббар */
+
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -791,7 +772,7 @@ button, input { font-family: inherit; font-weight: 400; }
   border-color: var(--card-line);
 }
 
-/* -------------------------------------------------------------- модалки */
+
 .modal {
   position: fixed; inset: 0;
   z-index: 50;
@@ -916,7 +897,7 @@ button, input { font-family: inherit; font-weight: 400; }
 }
 .warn { margin-top: 10px !important; font-size: 9px !important; color: var(--gold-soft) !important; }
 
-/* ----------------------------------------------------------------- тост */
+
 .toast {
   position: fixed;
   left: 50%; bottom: calc(90px + var(--safe-bottom));
@@ -941,5 +922,5 @@ button, input { font-family: inherit; font-weight: 400; }
   .mode-cost, .mode-chance { font-size: 14px; }
 }
 
-/* У SVG-иконок нет свойства .hidden, поэтому прячем через атрибут hidden. */
+
 [hidden] { display: none !important; }
