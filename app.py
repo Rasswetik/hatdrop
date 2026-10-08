@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import html
 import json
 import os
 import secrets
@@ -205,6 +206,8 @@ def load_db():
     db.setdefault("prices", {})
     db.setdefault("settings", {})
     db.setdefault("promocodes", {})
+    db.setdefault("withdrawals", {})
+    db["settings"].setdefault("active_market", "portals")
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
     if not DATABASE_URL and not (os.environ.get("DB_PATH") or os.environ.get("SQLITE_PATH")):
@@ -229,6 +232,13 @@ def load_catalog():
         CATALOG.clear()
         CATALOG.update(json.loads(text))
         _last_saved["catalog"] = text
+    # Once-only migration: legacy mixed-source data had duplicate slugs and estimated prices.
+    if int(db["settings"].get("catalog_version") or 0) < 3:
+        CATALOG.clear()
+        db["prices"].clear()
+        db["settings"]["catalog_version"] = 3
+        save_catalog()
+        save_db()
 
 
 def save_catalog():
@@ -269,9 +279,11 @@ def ton(x):
 
 
 def gifts_map():
-    """Каталог подарков: из Portals (если ключ задан и обновление прошло), иначе встроенный набор."""
+    """Only show the single verified active marketplace catalog."""
     if CATALOG:
         return CATALOG
+    if db.get("settings", {}).get("active_market") in ("portals", "mrkt"):
+        return {}
     out = {}
     for slug, (name, floor, pop, models) in GIFTS.items():
         out[slug] = {
@@ -292,7 +304,7 @@ def gift_entry(slug):
 
 def gift_floor(slug):
     entry = gift_entry(slug)
-    return db["prices"].get(slug, entry["floor"])
+    return db["prices"].get(slug, entry.get("floor", 0))
 
 
 def gift_models(slug):
@@ -300,7 +312,9 @@ def gift_models(slug):
     floor = gift_floor(slug)
     out = []
     for m in entry.get("models", []):
-        price = ton(m.get("floor") or floor)
+        price = ton(m.get("floor") or 0)
+        if price <= 0 or m.get("source") in ("fragment-estimate", "fragment-no-model-floor"):
+            continue  # An unpriced model must not inherit a made-up collection floor.
         out.append({"model": m["model"], "price_ton": price,
                     "image": gift_image(slug, m["model"]),
                     "rarity_per_mille": m.get("rarity_per_mille"),
@@ -317,7 +331,10 @@ def gift_price(slug, model):
     if slug not in gifts_map():
         raise ApiError("gift_unavailable")
     if not model:
-        return gift_floor(slug)
+        result = gift_floor(slug)
+        if result <= 0:
+            raise ApiError("gift_price_unavailable")
+        return result
     for m in gift_models(slug):
         if m["model"] == model:
             return m["price_ton"]
@@ -1207,14 +1224,10 @@ def normalize(text):
 
 def market_rows():
     return [
-        {
-            "slug": s,
-            "name": g["name"],
-            "price_ton": gift_floor(s),
-            "default_ton": g["floor"],
-            "custom": s in db["prices"],
-            "models": len(g.get("models", [])),
-        }
+        {"slug": s, "name": g["name"], "price_ton": gift_floor(s),
+         "default_ton": g["floor"], "custom": s in db["prices"],
+         "models": len([m for m in g.get("models", []) if m.get("floor", 0) > 0]),
+         "source": g.get("source", "")}
         for s, g in sorted(gifts_map().items(), key=lambda kv: kv[1]["name"].lower())
     ]
 
@@ -1225,12 +1238,13 @@ class PortalsError(Exception):
 
 PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0, "source": ""}
 MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0, "total": 0, "failed": 0}
-MRKT_MODELS_PAYLOAD = {"key": "collection_id"}  # auto-detected successful MRKT request format
+MRKT_MODELS_PAYLOAD = {"key": "collectionName"}  # auto-detected successful MRKT request format
 _filters_first = {"i": 0}
 
 
 def portals_status():
     return {
+        "active_market": db.get("settings", {}).get("active_market", "portals"),
         "portals_configured": bool(portals_auth()),
         "portals_key_set": bool(portals_auth()),
         "portals_key_mask": mask_key(portals_auth()),
@@ -1248,6 +1262,8 @@ def portals_status():
         "mrkt_total": MRKT_STATE["total"],
         "mrkt_failed": MRKT_STATE["failed"],
         "mrkt_updated": MRKT_STATE["updated"],
+        "market_total": len(CATALOG),
+        "market_models": sum(len(g.get("models", [])) for g in CATALOG.values()),
     }
 
 
@@ -1512,7 +1528,7 @@ def mrkt_search_models(c, timeout=12):
     error = None
     for field in fields:
         try:
-            data = _mrkt_post_models(name, field, token, timeout)
+            data = _mrkt_post_models(normalize(name) if field == "collectionName" else name, field, token, timeout)
         except urllib.error.HTTPError as exc:
             if exc.code in (401, 403, 429):
                 raise PortalsError(f"MRKT /gifts/models -> HTTP {exc.code} (доступ/лимит)")
@@ -1564,37 +1580,14 @@ def mrkt_search_models(c, timeout=12):
         error = f"MRKT /gifts/models ({field}) вернул 0 моделей для {name}"
     raise PortalsError(error or f"MRKT не вернул модели коллекции {name}")
 
-def fetch_collection_models(c, search=True, timeout=20):
-    """Prefer verified MRKT model directory; use Portals as fallback."""
-    mrkt_err = None
-    if db.get("settings", {}).get("mrkt_auth"):
-        try:
-            result = mrkt_search_models(c, timeout=min(timeout, 12))
-            if result:
-                return result, {}
-        except PortalsError as e:
-            mrkt_err = e
-    err = None
-    models, backdrops = {}, {}
-    try:
-        models, backdrops = fetch_collection_filters(c, timeout)
-    except PortalsError as e:
-        err = e
-        if "429" in str(e):
-            raise
-    if not models and search:
-        try:
-            models = fetch_models_by_search(c)
-        except PortalsError as e:
-            err = err or e
-    if not models:
-        try:
-            models = fetch_fragment_models(c.get("short"))
-        except Exception:
-            pass
-    if not models and (mrkt_err or err):
-        raise PortalsError(str(mrkt_err or err))
-    return models, backdrops
+def fetch_collection_models(c, search=False, timeout=10):
+    source = db.get("settings", {}).get("active_market", "portals")
+    if source == "mrkt":
+        return mrkt_search_models(c, timeout=min(timeout, 10)), {}
+    if source == "portals":
+        floors, backs = fetch_collection_filters(c, timeout=min(timeout, 10))
+        return {k: {"floor": v, "source": "portals"} for k, v in floors.items() if v > 0}, backs
+    return {}, {}
 
 def build_models(models):
     """Keep price, rarity and thumbnail metadata across refreshes."""
@@ -1843,34 +1836,104 @@ def _merge_source_catalog(source):
     IMG_CACHE.clear()
 
 
+def _canonical_catalog_key(name):
+    cleaned = normalize(name)
+    canonical = next((slug for slug, (n, *rest) in GIFTS.items()
+                      if normalize(n) == cleaned), None)
+    return canonical or re.sub(r"[^A-Za-z0-9]", "", name)
+
+
+def _publish_source_catalog(items, source, generation):
+    """Replace, never merge: no duplicate collections or cross-market prices."""
+    if db["settings"].get("active_market") != source or db["settings"].get("market_generation", 0) != generation:
+        return False
+    clean = {}
+    for item in items:
+        name = str(item.get("name") or "").strip()
+        base_floor = ton(item.get("floor") or 0)
+        if not name or base_floor <= 0:
+            continue
+        slug = _canonical_catalog_key(name)
+        if not slug:
+            continue
+        models = [m for m in item.get("models", []) if (m.get("floor") or 0) > 0]
+        row = {"name": name, "short": item.get("short") or normalize(name),
+               "id": item.get("id") or "", "floor": base_floor,
+               "pop": item.get("pop") or 0, "source": source,
+               "image": item.get("image") or "",
+               "models": models, "backdrops": item.get("backdrops") or {}}
+        # Normalize duplicate spelling/slug variants to one stable collection.
+        old = clean.get(slug)
+        if not old or len(row["models"]) > len(old["models"]):
+            clean[slug] = row
+    if not clean:
+        return False
+    with lock:
+        if db["settings"].get("active_market") != source or db["settings"].get("market_generation", 0) != generation:
+            return False
+        CATALOG.clear()
+        CATALOG.update(clean)
+        db["prices"].clear()
+        apply_tier_values()
+        save_catalog()
+        save_db()
+    IMG_CACHE.clear()
+    return True
+
+
 def portals_refresh_worker():
-    """Prefer the proven RasswetGifts catalog, then try Fragment directly."""
-    if PORTALS_STATE["running"]:
+    if PORTALS_STATE["running"] or db["settings"].get("active_market") != "portals":
         return
-    PORTALS_STATE.update(running=True, error="", source="")
+    PORTALS_STATE.update(running=True, error="", source="Portals")
+    generation = db["settings"].get("market_generation", 0)
     try:
-        try:
-            catalog = fetch_rasswet_snapshot()
-            source_name = "RasswetGifts / Fragment + GetGems"
-        except Exception as cache_exc:
-            try:
-                catalog = fetch_fragment_catalog()
-                source_name = "Fragment (live)"
-            except Exception as frag_exc:
-                raise PortalsError(
-                    f"RasswetGifts: {cache_exc}; Fragment: {frag_exc}")
-        _merge_source_catalog(catalog)
+        # Unlike the old implementation, this reads Portals itself, not a
+        # Fragment/GetGems snapshot with stale/inferred prices.
+        response = portals_get(["/collections?limit=5000", "/collections?limit=500"],
+                               public_ok=False, timeout=12)
+        collections = parse_collections(response)
+        if not collections:
+            raise PortalsError("Portals вернул 0 коллекций — данные не заменены")
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        rows = [{"name": c["name"], "short": c["short"], "id": c["id"],
+                 "floor": c["floor"], "pop": c["volume"], "models": [],
+                 "image": f"https://portal-market.com/collection_previews/{c['short']}.webp"}
+                for c in collections if c["floor"] > 0]
+        by_short = {normalize(row["name"]): row for row in rows}
+        errors = []
+        def task(c):
+            return c, fetch_collection_filters(c, timeout=9)
+        if rows:
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = [executor.submit(task, c) for c in collections if c["floor"] > 0]
+                for future in as_completed(futures):
+                    try:
+                        c, (models, backs) = future.result()
+                        target = by_short.get(normalize(c["name"]))
+                        if target:
+                            target["models"] = build_models({
+                                n: {"floor": price, "source": "portals"}
+                                for n, price in models.items() if price > 0})
+                            target["backdrops"] = backs
+                    except Exception as exc:
+                        if len(errors) < 3:
+                            errors.append(str(exc))
+        with_prices = sum(len(r["models"]) for r in rows)
+        if with_prices == 0:
+            raise PortalsError("Portals: 0 моделей с ценами; " +
+                               (errors[0] if errors else "API фильтров пуст"))
+        if not _publish_source_catalog(rows, "portals", generation):
+            raise PortalsError("Не удалось сохранить новый каталог Portals")
         PORTALS_STATE.update(updated=int(time.time()), gifts=len(CATALOG),
-            models=sum(len(g.get("models", [])) for g in CATALOG.values()),
-            source=source_name)
+                             models=with_prices, source="Portals",
+                             error=("Часть коллекций без моделей: " + errors[0]) if errors else "")
     except Exception as exc:
         PORTALS_STATE["error"] = str(exc)
     finally:
         PORTALS_STATE["running"] = False
 
-
 def start_portals_refresh():
-    if not PORTALS_STATE["running"]:
+    if db["settings"].get("active_market") == "portals" and not PORTALS_STATE["running"]:
         threading.Thread(target=portals_refresh_worker, daemon=True).start()
 
 
@@ -1881,8 +1944,7 @@ def portals_loop():
             portals_refresh_worker()
         except Exception as e:
             print(f"portals loop: {e}", flush=True)
-        have_models = bool(CATALOG) and all(g.get("models") for g in CATALOG.values())
-        time.sleep(1800 if have_models else 180)
+        time.sleep(1800)
 
 
 @route("/api/admin/market")
@@ -1916,58 +1978,55 @@ def admin_mrkt_set(user, body):
 
 
 def mrkt_refresh_worker():
-    """Refresh all known collection models without clearing last successful data."""
+    if MRKT_STATE["running"] or db["settings"].get("active_market") != "mrkt":
+        return
     MRKT_STATE.update(running=True, error="", checked=0, models=0, total=0, failed=0)
+    generation = db["settings"].get("market_generation", 0)
     try:
         if not db["settings"].get("mrkt_auth"):
             raise PortalsError("Токен MRKT не задан")
-        with lock:
-            snapshot = [(s, dict(g)) for s, g in gifts_map().items()]
-        MRKT_STATE["total"] = len(snapshot)
-        failures = []
-        # Bounded workers: faster progress without flooding the marketplace.
+        # RasswetGifts supplies collection NAMES only; its prices and artwork
+        # never enter the MRKT catalog.
+        snapshot = fetch_rasswet_snapshot()
+        names = [{"name": name, "short": item.get("short", "")}
+                 for name, item in snapshot.items()]
+        MRKT_STATE["total"] = len(names)
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        def load(pair):
-            slug, item = pair
-            return slug, item, mrkt_search_models(item, timeout=12)
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            jobs = [executor.submit(load, p) for p in snapshot]
-            for job in as_completed(jobs):
+        rows, errors = [], []
+        def task(c):
+            return c, mrkt_search_models(c, timeout=10)
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            for future in as_completed([executor.submit(task, n) for n in names]):
                 try:
-                    slug, item, found = job.result()
+                    c, found = future.result()
                     if found:
-                        with lock:
-                            target = CATALOG.setdefault(slug, dict(item))
-                            previous = {m["model"]: dict(m) for m in target.get("models", [])}
-                            previous.update(found)
-                            target["models"] = build_models(previous)
-                            if not target.get("floor"):
-                                target["floor"] = min(v["floor"] for v in found.values())
-                            save_catalog()
-                            for key in [k for k in IMG_CACHE if k and k[0] == slug]:
-                                IMG_CACHE.pop(key, None)
-                        MRKT_STATE["models"] += len(found)
+                        entries = build_models(found)
+                        floor = min(m["floor"] for m in entries if m["floor"] > 0)
+                        rows.append({"name": c["name"], "short": c["short"],
+                                     "floor": floor, "models": entries,
+                                     "image": next((m.get("image") for m in entries if m.get("image")), "")})
+                        MRKT_STATE["models"] += len(entries)
                 except Exception as exc:
                     MRKT_STATE["failed"] += 1
-                    if len(failures) < 3:
-                        failures.append(str(exc))
+                    if len(errors) < 2:
+                        errors.append(str(exc))
                 finally:
                     MRKT_STATE["checked"] += 1
-        if not MRKT_STATE["models"]:
-            MRKT_STATE["error"] = failures[0] if failures else "MRKT вернул пустой каталог моделей"
-        elif MRKT_STATE["failed"]:
-            MRKT_STATE["error"] = f"Не удалось загрузить {MRKT_STATE['failed']} коллекций: " + (failures[0] if failures else "")
+        if MRKT_STATE["models"] == 0:
+            raise PortalsError("MRKT: 0 моделей с ценами; " + (errors[0] if errors else "пустой ответ"))
+        if not _publish_source_catalog(rows, "mrkt", generation):
+            raise PortalsError("Не удалось сохранить новый каталог MRKT")
         MRKT_STATE["updated"] = int(time.time())
+        if errors:
+            MRKT_STATE["error"] = f"Недоступно коллекций: {MRKT_STATE['failed']} · {errors[0]}"
     except Exception as exc:
         MRKT_STATE["error"] = str(exc)
     finally:
         MRKT_STATE["running"] = False
 
 def start_mrkt_refresh():
-    if MRKT_STATE["running"]:
-        return
-    MRKT_STATE["running"] = True
-    threading.Thread(target=mrkt_refresh_worker, daemon=True).start()
+    if db["settings"].get("active_market") == "mrkt" and not MRKT_STATE["running"]:
+        threading.Thread(target=mrkt_refresh_worker, daemon=True).start()
 
 
 @route("/api/admin/mrkt/refresh")
@@ -1975,7 +2034,32 @@ def admin_mrkt_refresh(user, body):
     require_admin(user)
     if not db["settings"].get("mrkt_auth"):
         raise ApiError("mrkt_token_missing")
+    if db["settings"].get("active_market") != "mrkt":
+        raise ApiError("market_not_selected")
     start_mrkt_refresh()
+    return {"rows": market_rows(), **portals_status()}
+
+
+@route("/api/admin/market/source")
+def admin_market_source(user, body):
+    require_admin(user)
+    source = str(body.get("source") or "").lower()
+    if source not in ("portals", "mrkt"):
+        raise ApiError("invalid_market")
+    if source == "mrkt" and not db["settings"].get("mrkt_auth"):
+        raise ApiError("mrkt_token_missing")
+    cfg = db["settings"]
+    if cfg.get("active_market") != source or body.get("clear_cache"):
+        cfg["active_market"] = source
+        cfg["market_generation"] = int(cfg.get("market_generation", 0)) + 1
+        CATALOG.clear()
+        db["prices"].clear()
+        save_catalog()
+        IMG_CACHE.clear()
+    if source == "portals":
+        start_portals_refresh()
+    else:
+        start_mrkt_refresh()
     return {"rows": market_rows(), **portals_status()}
 
 
@@ -1999,6 +2083,8 @@ def admin_market_set(user, body):
 @route("/api/admin/market/refresh")
 def admin_market_refresh(user, body):
     require_admin(user)
+    if db["settings"].get("active_market") != "portals":
+        raise ApiError("market_not_selected")
     start_portals_refresh()
     return {"rows": market_rows(), "refreshing": True, **portals_status()}
 
