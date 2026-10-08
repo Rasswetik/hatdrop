@@ -2692,6 +2692,8 @@ html[data-theme="meadow"] .sky-btn {
 html[data-theme="meadow"] .sky-btn:active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #9a6233, inset -2px -2px 0 #5e3417, 0 1px 0 #2e1a0c; }
 .sky-btn svg { width: 24px; height: 24px; }
 .sky-btn .sky-moon { display: none; }
+@keyframes skyFlip { 0% { transform: rotate(-120deg) scale(.3); opacity: 0; } 60% { transform: rotate(12deg) scale(1.18); opacity: 1; } 100% { transform: none; opacity: 1; } }
+.sky-btn.flip svg { animation: skyFlip .6s cubic-bezier(.2, .9, .3, 1.1); }
 html[data-sky="night"] .sky-btn .sky-sun { display: none; }
 html[data-sky="night"] .sky-btn .sky-moon { display: block; }
 html[data-theme="meadow"][data-sky="night"] .sky-btn { background: linear-gradient(180deg, #3a3f8f 0%, #262a6b 100%); border-color: #12143a; box-shadow: inset 2px 2px 0 #5d63c4, inset -2px -2px 0 #1b1e52, 0 4px 0 #12143a, 0 6px 6px rgba(0, 0, 0, .3); }
@@ -3605,7 +3607,6 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   const ctx = cv.getContext('2d');
   const W = 120;
   let H = 213;
-  let overlayOnly = false;
   let stopped = false;
 
   function rnd(seed) {
@@ -3613,9 +3614,13 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
   }
 
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+  const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+
   const r0 = rnd(7);
-  const clouds = Array.from({ length: 5 }, (_, i) => ({
-    x: r0() * (W + 40), y: 6 + i * 9 + r0() * 6, w: 16 + r0() * 16, sp: 0.6 + r0() * 1.1,
+  const clouds = Array.from({ length: 7 }, (_, i) => ({
+    x: r0() * (W + 70), y: 4 + (i % 4) * 8 + r0() * 5, w: 14 + r0() * 18, sp: 0.5 + r0() * 1.0, far: i % 2 === 1,
   }));
   const flowers = Array.from({ length: 34 }, () => ({
     x: r0(), y: r0(), c: ['#ffd23f', '#ff6b8a', '#ffffff', '#b98bff', '#ff9a3c'][(r0() * 5) | 0], ph: r0() * 6,
@@ -3625,15 +3630,73 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     ax: 0.2 + r0() * 0.6, ay: 0.55 + r0() * 0.3, rx: 10 + r0() * 14, ry: 5 + r0() * 8,
     sp: 0.25 + r0() * 0.3, ph: r0() * 6, c: ['#ffe08a', '#ff9ac1', '#c9f0ff', '#ffffff'][i],
   }));
-
   const pollen = Array.from({ length: 22 }, (_, i) => ({
     x: r0(), y: r0(), sp: 0.05 + r0() * 0.07, ph: r0(), c: i % 4 === 0 ? '#ffc6dc' : i % 4 === 1 ? '#ffffff' : '#fff3b0',
   }));
+  const stars = Array.from({ length: 95 }, () => ({
+    x: r0() * W, y: r0(), ph: r0() * 6.28, sp: 0.8 + r0() * 2.2, big: r0() > 0.88,
+    c: ['#ffffff', '#cfe0ff', '#ffe9a8'][(r0() * 3) | 0],
+  }));
+  const fireflies = Array.from({ length: 18 }, () => ({
+    ax: r0(), ay: 0.52 + r0() * 0.42, rx: 6 + r0() * 14, ry: 3 + r0() * 7, sp: 0.2 + r0() * 0.4, ph: r0() * 6.28,
+  }));
+  const birds = Array.from({ length: 3 }, (_, i) => ({ y: 0.1 + r0() * 0.16, sp: 5 + r0() * 4, off: r0() * 200 + i * 60, ph: r0() * 6 }));
+  const bats = Array.from({ length: 4 }, () => ({ y: 0.14 + r0() * 0.22, sp: 7 + r0() * 5, off: r0() * 200, ph: r0() * 6 }));
 
   const FINE = 2;
-  let fine = 1;
+  const NIGHT_TINT = '#141c52';
 
-  const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  const hexCache = new Map();
+  function rgb(c) {
+    let v = hexCache.get(c);
+    if (!v) { const n = parseInt(c.slice(1), 16); v = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; hexCache.set(c, v); }
+    return v;
+  }
+  const mixCache = new Map();
+  function mix(a, b, k) {
+    if (k <= 0.001) return a;
+    if (k >= 0.999) return b;
+    const q = Math.round(k * 48);
+    const key = a + b + q;
+    let v = mixCache.get(key);
+    if (!v) {
+      const A = rgb(a), B = rgb(b), kk = q / 48;
+      const ch = (i) => Math.round(A[i] + (B[i] - A[i]) * kk);
+      v = '#' + ((1 << 24) + (ch(0) << 16) + (ch(1) << 8) + ch(2)).toString(16).slice(1);
+      if (mixCache.size > 8000) mixCache.clear();
+      mixCache.set(key, v);
+    }
+    return v;
+  }
+
+  let nk = 0;
+  let tint = false;
+  let trans = null;
+  const shade = (c) => (nk > 0.004 ? mix(c, NIGHT_TINT, 0.64 * nk) : c);
+
+  const px = (x, y, w, h, c) => { ctx.fillStyle = tint ? shade(c) : c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+  const pa = (x, y, w, h, c, a) => {
+    if (a <= 0.01) return;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.fillStyle = c;
+    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    ctx.globalAlpha = 1;
+  };
+
+  function discA(cx, cy, r, c, a) {
+    if (a <= 0.01) return;
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.fillStyle = c;
+    for (let y = -r; y <= r; y++) {
+      const half = Math.floor(Math.sqrt(r * r - y * y));
+      ctx.fillRect(Math.round(cx - half), Math.round(cy + y), half * 2 + 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function glow(cx, cy, r, c, a) {
+    for (let i = 3; i >= 0; i--) discA(cx, cy, r + i * 2, c, a / (i + 1.6) * 0.5);
+  }
 
   function disc(cx, cy, r, c) {
     for (let y = -r; y <= r; y++) {
@@ -3647,21 +3710,159 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, t || 1, t || 1, c);
   }
 
-  function cloud(c) {
-    const x = c.x - 20, y = c.y, w = c.w;
-    px(x + 2, y + 3, w - 4, 4, '#ffffff');
-    px(x, y + 5, w, 3, '#ffffff');
-    px(x + 5, y + 1, w * 0.35, 3, '#ffffff');
-    px(x + w * 0.5, y, w * 0.3, 4, '#ffffff');
-    px(x + 1, y + 8, w - 2, 1, '#cfe9ff');
+  const SKY_DAY = ['#2f8fe8', '#3d9bee', '#4ea8f2', '#63b6f5', '#7cc5f8', '#98d4fa', '#b6e2fc', '#d3effd'];
+  const SKY_NIGHT = ['#04071a', '#070d29', '#0b1437', '#101d49', '#172a5b', '#21396f', '#2e4a85', '#41609a'];
+  const SKY_DUSK = ['#2e2a72', '#4f3687', '#80448c', '#b4538a', '#e0657a', '#f58868', '#ffab5e', '#ffd27a'];
+
+  function skyColor(pos, dusk) {
+    const f = pos * 7, i = Math.min(6, Math.floor(f)), k = f - i;
+    const d = mix(SKY_DAY[i], SKY_DAY[i + 1], k);
+    const n = mix(SKY_NIGHT[i], SKY_NIGHT[i + 1], k);
+    const u = mix(SKY_DUSK[i], SKY_DUSK[i + 1], k);
+    return mix(mix(d, n, nk), u, dusk * 0.8);
   }
 
   function drawSky() {
     const hz = Math.round(H * 0.44);
-    const bands = ['#2f8fe8', '#3d9bee', '#4ea8f2', '#63b6f5', '#7cc5f8', '#98d4fa', '#b6e2fc', '#d3effd'];
-    const bh = Math.ceil(hz / bands.length);
-    bands.forEach((c, i) => px(0, i * bh, W, bh + 1, c));
+    const dusk = Math.sin(Math.PI * nk);
+    const N = 30, bh = hz / N;
+    for (let i = 0; i < N; i++) {
+      ctx.fillStyle = skyColor(i / (N - 1), dusk);
+      ctx.fillRect(0, Math.round(i * bh), W, Math.ceil(bh) + 1);
+    }
     return hz;
+  }
+
+  function drawAurora(t, hz) {
+    const a = clamp((nk - 0.6) / 0.4);
+    if (a < 0.03) return;
+    for (let x = 0; x < W; x++) {
+      const base = hz * 0.36 + Math.sin(x * 0.06 + t * 0.35) * 6 + Math.sin(x * 0.13 - t * 0.5) * 2.5;
+      const hgt = 14 + Math.sin(x * 0.045 + t * 0.2) * 5;
+      const col = mix('#3dffb0', '#9a6bff', 0.5 + 0.5 * Math.sin(x * 0.05 + t * 0.2));
+      for (let j = 0; j < 6; j++) pa(x, base - hgt + j * hgt / 6, 1, hgt / 6 + 1, col, a * 0.1 * (j + 1) / 6);
+    }
+  }
+
+  function drawStars(t, hz) {
+    const a = clamp((nk - 0.22) / 0.5);
+    if (a < 0.03) return;
+    for (const s of stars) {
+      const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph));
+      const y = s.y * hz * 0.92;
+      pa(s.x, y, 1, 1, s.c, a * tw);
+      if (s.big) {
+        pa(s.x - 1, y, 3, 1, s.c, a * tw * 0.45);
+        pa(s.x, y - 1, 1, 3, s.c, a * tw * 0.45);
+      }
+    }
+  }
+
+  function drawShooting(t, hz) {
+    if (nk < 0.8) return;
+    const slot = Math.floor(t / 5), f = t / 5 - slot;
+    if (f > 0.22) return;
+    const rr = rnd(slot * 7919 + 13);
+    const x0 = rr() * W * 0.8 + 30, y0 = rr() * hz * 0.35 + 3, p = f / 0.22;
+    const x = x0 - p * 38, y = y0 + p * 20;
+    const a = (nk - 0.8) / 0.2 * (1 - p * 0.5);
+    for (let i = 0; i < 11; i++) pa(x + i * 1.9, y - i, 1, 1, '#ffffff', (1 - i / 11) * a);
+    glow(x, y, 1, '#cfe0ff', a * 0.5);
+  }
+
+  function drawSun(t, hz) {
+    const vis = 1 - clamp((nk - 0.55) / 0.35);
+    if (vis <= 0.01) return;
+    const e = ease(clamp(nk / 0.85));
+    const sx = W * (0.26 + 0.4 * e), sy = hz * (0.2 + 1.0 * e);
+    if (sy > hz + 14) return;
+    const warm = clamp(nk * 2.4);
+    const core = mix('#ffe45c', '#ff6a2a', warm);
+    const halo = mix('#fff6b0', '#ff9a50', warm);
+    glow(sx, sy, 9, halo, 0.55 * vis);
+    for (let i = 0; i < 12; i++) {
+      const ang = t * 0.22 + i * Math.PI / 6;
+      const len = 13 + Math.sin(t * 2.2 + i * 1.7) * 2.2 + (i % 2) * 3;
+      for (let r = 9; r < len; r++) {
+        pa(sx + Math.cos(ang) * r, sy + Math.sin(ang) * r, 1, 1, halo, vis * (1 - (r - 9) / (len - 8)) * 0.8);
+      }
+    }
+    discA(sx, sy, 6, core, vis);
+    discA(sx - 1, sy - 1, 4, mix('#fff7c2', '#ffb070', warm), vis);
+  }
+
+  function drawMoon(t, hz) {
+    const k = clamp((nk - 0.12) / 0.88);
+    if (k <= 0.01) return;
+    const mx = W * (0.12 + 0.24 * nk), my = hz * (1.1 - 0.84 * ease(k));
+    if (my > hz + 14) return;
+    const pulse = 0.85 + Math.sin(t * 1.3) * 0.1;
+    glow(mx, my, 8, '#cfd8ff', 0.3 * pulse * k);
+    discA(mx, my, 6, '#fff3c4', k);
+    discA(mx + 1, my - 1, 5, '#fffbe6', k * 0.8);
+    pa(mx - 3, my - 1, 2, 2, '#e3d8a2', k);
+    pa(mx + 1, my + 2, 2, 2, '#e3d8a2', k);
+    pa(mx - 1, my - 4, 1, 1, '#e3d8a2', k);
+    pa(mx + 2, my - 2, 1, 1, '#e3d8a2', k);
+  }
+
+  function drawClouds(t, dusk) {
+    const cw = mix(mix('#ffffff', '#5b6aa8', nk * 0.9), '#ffb89a', dusk * 0.6);
+    const cs = mix(mix('#cfe9ff', '#36427c', nk * 0.9), '#d98a8a', dusk * 0.5);
+    for (const c of clouds) {
+      const cx = ((c.x + t * c.sp * (c.far ? 0.7 : 1.3)) % (W + 70)) - 35;
+      const x = cx - 20, y = c.y, w = c.w;
+      const al = c.far ? 0.75 : 1;
+      pa(x + 2, y + 3, w - 4, 4, cw, al); pa(x, y + 5, w, 3, cw, al);
+      pa(x + 5, y + 1, w * 0.35, 3, cw, al); pa(x + w * 0.5, y, w * 0.3, 4, cw, al);
+      pa(x + 1, y + 8, w - 2, 1, cs, al);
+      if (nk > 0.3) pa(x + w * 0.5, y, w * 0.3, 1, '#dfe6ff', 0.5 * nk * al);
+    }
+  }
+
+  function drawBirds(t, hz) {
+    const a = 1 - clamp(nk * 2.5);
+    if (a < 0.05) return;
+    for (const b of birds) {
+      const x = ((t * b.sp + b.off) % (W + 40)) - 20;
+      const y = hz * b.y * 2.2 + Math.sin(t * 0.9 + b.ph) * 3;
+      const up = Math.sin(t * 11 + b.ph) > 0;
+      pa(x, y, 1, 1, '#2c3a58', a);
+      if (up) { pa(x - 2, y - 1, 2, 1, '#2c3a58', a); pa(x + 1, y - 1, 2, 1, '#2c3a58', a); }
+      else { pa(x - 2, y, 2, 1, '#2c3a58', a); pa(x + 1, y, 2, 1, '#2c3a58', a); }
+    }
+  }
+
+  function drawBats(t, hz) {
+    const a = clamp((nk - 0.5) * 2);
+    if (a < 0.05) return;
+    for (const b of bats) {
+      const x = W + 20 - (((t * b.sp + b.off) % (W + 40)));
+      const y = hz * (0.34 + b.y) + Math.sin(t * 3 + b.ph) * 4;
+      const up = Math.sin(t * 14 + b.ph) > 0;
+      pa(x, y, 1, 1, '#05081c', a);
+      if (up) { pa(x - 2, y - 1, 2, 1, '#05081c', a); pa(x + 1, y - 1, 2, 1, '#05081c', a); }
+      else { pa(x - 2, y, 2, 1, '#05081c', a); pa(x + 1, y, 2, 1, '#05081c', a); }
+    }
+  }
+
+  function drawHaze(hz, dusk) {
+    if (dusk < 0.03) return;
+    const g = ctx.createLinearGradient(0, hz - 22, 0, hz + 12);
+    g.addColorStop(0, 'rgba(255,150,80,0)');
+    g.addColorStop(0.55, `rgba(255,150,80,${(0.26 * dusk).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(255,150,80,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, hz - 22, W, 34);
+  }
+
+  function drawVignette() {
+    if (nk < 0.03) return;
+    const g = ctx.createRadialGradient(W / 2, H * 0.52, W * 0.3, W / 2, H * 0.52, Math.max(W, H) * 0.78);
+    g.addColorStop(0, 'rgba(5,8,30,0)');
+    g.addColorStop(1, `rgba(5,8,30,${(0.5 * nk).toFixed(3)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
   }
 
   function drawFar(hz) {
@@ -3780,56 +3981,105 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     }
   }
 
+  function drawNightLights(t, hz) {
+    const a = clamp((nk - 0.3) / 0.5);
+    if (a < 0.03) return;
+    const fl = 0.88 + Math.sin(t * 7) * 0.05 + Math.sin(t * 3.1) * 0.05;
+    const hx = Math.round(W * 0.76), hy = hz + Math.round((H - hz) * 0.2);
+    glow(hx + 8, hy + 8, 5, '#ffcf6b', a * 0.35 * fl);
+    pa(hx + 5, hy + 5, 6, 6, '#ffd66b', a * fl);
+    pa(hx + 7, hy + 5, 1, 6, '#8a5a24', a);
+    pa(hx + 5, hy + 7, 6, 1, '#8a5a24', a);
+    pa(hx + 18, hy + 15, 8, 2, '#ffd66b', a * 0.2);
+
+    const lx = 16, ly = hz + Math.round((H - hz) * 0.12);
+    glow(lx + 9, ly + 5, 4, '#ffe08a', a * 0.6 * fl);
+    pa(lx + 8, ly + 3, 3, 4, '#fff3b0', a);
+    pa(lx - 3, ly + 30, 24, 3, '#ffe08a', a * 0.1);
+
+    const mx = Math.round(W * 0.77), mb = hz + 3;
+    if (Math.sin(t * 2.4) > 0) { glow(mx, mb - 23, 1, '#ff4040', a * 0.6); pa(mx, mb - 23, 1, 1, '#ff7070', a); }
+
+    const ry = hz + Math.round((H - hz) * 0.1);
+    for (let x = 26; x < 58; x++) {
+      const s = Math.sin(x * 0.9 + t * 2.6);
+      if (s > 0.5) pa(x, ry + (x % 2), 1, 1, '#fff2b8', a * 0.65 * (s - 0.35));
+    }
+  }
+
+  function drawFireflies(t) {
+    const a = clamp((nk - 0.45) / 0.45);
+    if (a < 0.03) return;
+    for (const f of fireflies) {
+      const x = f.ax * W + Math.sin(t * f.sp + f.ph) * f.rx;
+      const y = H * f.ay * 0.97 + Math.sin(t * f.sp * 1.7 + f.ph) * f.ry;
+      const blink = Math.max(0, Math.sin(t * 1.6 + f.ph * 3));
+      const al = a * (0.25 + 0.75 * blink);
+      discA(x, y, 2, '#e8ff7a', al * 0.22);
+      pa(x, y, 1, 1, '#f6ffb0', al);
+    }
+  }
+
   function drawFlies(t) {
+    const a = 1 - clamp(nk * 2);
+    if (a < 0.05) return;
     for (const b of flies) {
-      const x = (b.ax * W + Math.sin(t * b.sp + b.ph) * b.rx) * fine;
-      const y = (b.ay * H + Math.sin(t * b.sp * 1.7 + b.ph) * b.ry) * fine;
+      const x = b.ax * W + Math.sin(t * b.sp + b.ph) * b.rx;
+      const y = b.ay * H + Math.sin(t * b.sp * 1.7 + b.ph) * b.ry;
       const open = Math.sin(t * 9 + b.ph) > 0;
-      px(x, y, 1, 1, '#3a2a1a');
-      if (open) { px(x - 1, y - 1, 1, 2, b.c); px(x + 1, y - 1, 1, 2, b.c); } else px(x, y - 1, 1, 1, b.c);
+      pa(x, y, 1, 1, '#3a2a1a', a);
+      if (open) { pa(x - 1, y - 1, 1, 2, b.c, a); pa(x + 1, y - 1, 1, 2, b.c, a); } else pa(x, y - 1, 1, 1, b.c, a);
     }
   }
 
   function drawPollen(t) {
     for (const p of pollen) {
       const k = (t * p.sp + p.ph) % 1;
-      const x = ((p.x * W + k * 26 + Math.sin(t * 1.3 + p.ph * 9) * 3) % W) * fine;
-      const y = (H * (0.34 + p.y * 0.6) - k * 14 + Math.sin(t * 0.9 + p.ph * 5) * 2) * fine;
-      ctx.globalAlpha = Math.sin(k * Math.PI) * 0.9;
-      px(x, y, 1, 1, p.c);
-      ctx.globalAlpha = 1;
+      const x = (p.x * W + k * 26 + Math.sin(t * 1.3 + p.ph * 9) * 3) % W;
+      const y = H * (0.34 + p.y * 0.6) - k * 14 + Math.sin(t * 0.9 + p.ph * 5) * 2;
+      pa(x, y, 1, 1, nk > 0.5 ? '#9fd8ff' : p.c, Math.sin(k * Math.PI) * (nk > 0.5 ? 0.6 : 0.9));
     }
+  }
+
+  function advance(ms) {
+    if (!trans) return;
+    const p = clamp((ms - trans.t0) / trans.dur);
+    nk = trans.from + (trans.to - trans.from) * ease(p);
+    if (p >= 1) { nk = trans.to; trans = null; }
   }
 
   function draw(ms) {
     const t = ms / 1000;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    fine = overlayOnly ? FINE : 1;
-    if (overlayOnly && document.documentElement.dataset.sky === 'night') return;
-    if (!overlayOnly) ctx.setTransform(FINE, 0, 0, FINE, 0, 0);
-    let hz = Math.round(H * 0.44);
-    if (!overlayOnly) {
-      hz = drawSky();
-    }
-    if (overlayOnly) {
-      drawPollen(t);
-    } else {
-      for (const c of clouds) {
-        c.x = (c.x + c.sp * 0.06) % (W + 60);
-        cloud(c);
-      }
-    }
-    if (!overlayOnly) {
-      drawFar(hz);
-      drawMeadow(hz, t);
-      drawMill(hz, t);
-      drawHouse(hz, t);
-      drawFence(hz);
-      drawTree(hz, t);
-      drawFlowers(hz, t);
-    }
+    advance(ms);
+    ctx.setTransform(FINE, 0, 0, FINE, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.clearRect(0, 0, W, H);
+    tint = false;
+    const hz = drawSky();
+    const dusk = Math.sin(Math.PI * nk);
+    drawAurora(t, hz);
+    drawStars(t, hz);
+    drawShooting(t, hz);
+    drawSun(t, hz);
+    drawMoon(t, hz);
+    drawClouds(t, dusk);
+    drawBirds(t, hz);
+    drawBats(t, hz);
+    tint = true;
+    drawFar(hz);
+    drawMeadow(hz, t);
+    drawMill(hz, t);
+    drawHouse(hz, t);
+    drawFence(hz);
+    drawTree(hz, t);
+    drawFlowers(hz, t);
+    tint = false;
+    drawHaze(hz, dusk);
+    drawNightLights(t, hz);
+    drawFireflies(t);
     drawFlies(t);
+    drawPollen(t);
+    drawVignette();
   }
 
   function resize() {
@@ -3845,7 +4095,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   let last = 0;
   function loop(ms) {
     if (stopped) return;
-    if (!document.hidden && ms - last > 80 && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
+    if (!document.hidden && ms - last > 40 && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
     requestAnimationFrame(loop);
   }
 
@@ -3887,13 +4137,22 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   window.addEventListener('resize', alignBg);
   window.addEventListener('load', () => { alignBg(); setTimeout(alignBg, 400); setTimeout(alignBg, 1500); });
 
-  function setSky(mode) {
-    document.documentElement.dataset.sky = mode === 'night' ? 'night' : 'day';
+  function setSky(mode, instant) {
+    const night = mode === 'night';
+    document.documentElement.dataset.sky = night ? 'night' : 'day';
+    const to = night ? 1 : 0;
+    if (instant || reduce) {
+      trans = null;
+      nk = to;
+      draw(performance.now());
+    } else if (to !== (trans ? trans.to : nk)) {
+      trans = { from: nk, to, t0: performance.now(), dur: 3000 };
+    }
   }
-  window.setSky = setSky;
+  window.setSky = (mode) => setSky(mode, false);
   let sky = 'day';
   try { sky = localStorage.getItem('sky') || 'day'; } catch (e) {}
-  setSky(sky);
+  setSky(sky, true);
 })();
 </script>
 <script>
@@ -7309,6 +7568,7 @@ function initSky() {
     e.stopPropagation();
     haptic('impact', 'light');
     const next = document.documentElement.dataset.sky === 'night' ? 'day' : 'night';
+    btn.classList.remove('flip'); void btn.offsetWidth; btn.classList.add('flip');
     try { localStorage.setItem('sky', next); } catch (err) {}
     if (window.setSky) window.setSky(next);
   });
