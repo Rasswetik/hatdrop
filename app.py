@@ -611,7 +611,7 @@ def state_payload(row):
 
         },
         'deposit': {'address': DEPOSIT_ADDRESS, 'memo': DEPOSIT_MEMO or f'MU-{row["tg_id"]}'},
-        'prizes': [dict(dict(p), name=p['item_name'], tier='random', image='/static/img/hat.png', sell_ton=round(p['item_price'] * 0.8, 2)) for p in prizes],
+        'prizes': [dict(dict(p), name=p['item_name'], tier='random', image='/static/img/hat.png', sell_ton=round(p['item_price'], 2)) for p in prizes],
         'referral': referral_payload(row),
         'leaders': leaders_payload(),
     }
