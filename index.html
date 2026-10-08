@@ -2872,6 +2872,25 @@ img[src*="/gimg/"] { object-fit: contain; }
 .adm-tabs[hidden] { display: none; }
 .adm-box { text-align: left; }
 .adm-prize button { font: inherit; font-size: 10px; color: var(--text); background: #7a1f2b; border: 2px solid var(--card-line); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+
+/* аватарка профиля (фото из Telegram) */
+.avatar { position: relative; overflow: hidden; }
+.avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s; }
+.avatar > img.ok { opacity: 1; }
+
+/* PNG подарков чуть пикселизированы (см. скрипт pixelGifts) */
+img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
+
+/* свой шанс */
+.chance-custom { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 0; font-size: 10px; line-height: 1; color: var(--muted); }
+.chance-custom input {
+  width: 66px; padding: 7px 4px; text-align: center; font-size: 13px; color: var(--text);
+  background: var(--track-bg, #2e1a0c); border: 2px solid var(--card-line); border-radius: 6px; outline: none;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.chance-custom input:focus { border-color: var(--gold); }
+.chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.chance-custom input:disabled { opacity: .5; }
 </style>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3260,6 +3279,11 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
           <span class="mode-tag mode-chance" id="modeChance">—</span>
         </div>
         <span class="mode-edge" id="chanceMax">—</span>
+      </div>
+      <div class="chance-custom">
+        <label for="chanceInput">Свой шанс</label>
+        <input type="number" id="chanceInput" min="1" max="95" step="1" inputmode="numeric" aria-label="Свой шанс, %">
+        <span>%</span>
       </div>
 
       <div class="spin-row">
@@ -4156,6 +4180,61 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 })();
 </script>
 <script>
+(function pixelGifts() {
+  'use strict';
+  const SIZE = 64;
+  const memo = new Map();
+
+  function crush(img) {
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    if (!iw || !ih) return null;
+    const k = Math.min(1, SIZE / Math.max(iw, ih));
+    const w = Math.max(8, Math.round(iw * k)), h = Math.max(8, Math.round(ih * k));
+    let cur = img, cw = iw, ch = ih;
+    while (cw / 2 > w) {
+      const c = document.createElement('canvas');
+      cw = Math.round(cw / 2); ch = Math.round(ch / 2);
+      c.width = cw; c.height = ch;
+      c.getContext('2d').drawImage(cur, 0, 0, cw, ch);
+      cur = c;
+    }
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(cur, 0, 0, w, h);
+    const d = ctx.getImageData(0, 0, w, h);
+    for (let i = 0; i < d.data.length; i += 4) {
+      d.data[i + 3] = d.data[i + 3] < 110 ? 0 : 255;
+      for (let c = 0; c < 3; c++) d.data[i + c] = Math.round(d.data[i + c] / 6) * 6;
+    }
+    ctx.putImageData(d, 0, 0);
+    return cv.toDataURL('image/png');
+  }
+
+  document.addEventListener('load', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img._pxOut && img.src === img._pxOut) return;
+    if (!/\/gimg\//.test(img.src)) { img.removeAttribute('data-px'); return; }
+    if (document.documentElement.dataset.theme !== 'meadow') { img.removeAttribute('data-px'); return; }
+    const src = img.src;
+    try {
+      let out = memo.get(src);
+      if (!out) {
+        out = crush(img);
+        if (!out) return;
+        if (memo.size > 400) memo.clear();
+        memo.set(src, out);
+      }
+      img._pxOut = out;
+      img.setAttribute('data-px', '1');
+      img.src = out;
+    } catch (err) { /* кросс-доменная картинка: оставляем как есть */ }
+  }, true);
+})();
+</script>
+<script>
 (function () {
   'use strict';
 
@@ -4192,6 +4271,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     'Баланс, пополнить': { en: 'Balance, top up', zh: '余额，充值' },
     'Пополнить баланс': { en: 'Top up balance', zh: '充值余额' },
     'Три шляпы': { en: 'Three Hats', zh: '三顶帽子' },
+    'Свой шанс': { en: 'Custom chance', zh: '自定义概率' },
     'Апгрейд': { en: 'Upgrade', zh: '升级' },
     'Топ': { en: 'Top', zh: '排行' },
     'Профиль': { en: 'Profile', zh: '个人' },
@@ -5303,6 +5383,8 @@ function applyMode() {
 
   $('modeCost').textContent = needsPick ? '—' : fmt(m.cost_ton, 2);
   $('modeChance').textContent = `${Math.round(m.chance * 100)}%`;
+  const ci = $('chanceInput');
+  if (ci && document.activeElement !== ci) ci.value = String(Math.round(m.chance * 100));
 
   const ratio = modes.length > 1 ? modeIndex / (modes.length - 1) : 0.5;
   const thumbX = `calc(${THUMB_W / 2}px + (100% - ${THUMB_W}px) * ${ratio})`;
@@ -5351,6 +5433,7 @@ function renderState(s) {
   $('prizeNameInline').textContent = needsPick ? tr('не выбран') : trName(_tm.prize_name);
   $('depositAmount').min = s.config.min_deposit_ton;
 
+  setProfileAvatar(s.user.avatar);
   $('profileName').textContent = s.user.username ? `@${s.user.username}` : (s.user.first_name || tr('Игрок'));
   $('profileWallet').textContent = s.user.wallet ? shortAddr(s.user.wallet) : tr('Кошелёк не подключён');
 
@@ -6074,6 +6157,29 @@ let lbLoading = false;
 
 function fmtTon(v) {
   return `${Number(v).toLocaleString(I18N.locale || 'ru-RU', { maximumFractionDigits: 2 })} TON`;
+}
+
+function setProfileAvatar(url) {
+  const box = document.querySelector('#view-profile .avatar');
+  if (!box) return;
+  let tgPhoto = '';
+  try { tgPhoto = window.Telegram.WebApp.initDataUnsafe.user.photo_url || ''; } catch (e) {}
+  const want = url || tgPhoto;
+  if (!want || box.dataset.src === want) return;
+  box.dataset.src = want;
+  const old = box.querySelector('img');
+  if (old) old.remove();
+  const img = document.createElement('img');
+  img.alt = '';
+  img.decoding = 'async';
+  img.onload = () => img.classList.add('ok');
+  img.onerror = () => {
+    if (tgPhoto && img.src.indexOf(tgPhoto) < 0 && url) { img.src = tgPhoto; return; }
+    img.remove();
+    box.dataset.src = '';
+  };
+  img.src = want;
+  box.appendChild(img);
 }
 
 function lbAvatar(name, url, cls = 'lb-ava') {
@@ -7395,7 +7501,7 @@ async function doSpin() {
   const balanceBefore = state.balance_ton;
   setBalance(balanceBefore - mode.cost_ton);
   $('spinBtn').disabled = true;
-  $('modeSlider').disabled = true;
+  $('modeSlider').disabled = true; $('chanceInput').disabled = true;
 
   $('fastBtn').disabled = true;
 
@@ -7414,7 +7520,7 @@ async function doSpin() {
   } catch (e) {
     setBalance(balanceBefore);
     spinning = false;
-    $('modeSlider').disabled = false;
+    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
     $('fastBtn').disabled = false;
     document.querySelector('.wheel-wrap').classList.remove('rolling');
     restStaff();
@@ -7476,7 +7582,7 @@ async function doSpin() {
     document.querySelector('.wheel-wrap').classList.remove('rolling');
 
     spinning = false;
-    $('modeSlider').disabled = false;
+    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
     $('fastBtn').disabled = false;
 
     haptic(
@@ -8083,6 +8189,20 @@ function bind() {
   $('walletBtn').addEventListener('click', onWalletClick);
 
   $('modeSlider').addEventListener('input', (e) => selectMode(Number(e.target.value)));
+  const chanceInput = $('chanceInput');
+  const applyChanceInput = () => {
+    if (spinning || !modes.length) { applyMode(); return; }
+    const raw = Number(chanceInput.value);
+    if (!Number.isFinite(raw) || chanceInput.value === '') { applyMode(); return; }
+    const want = Math.round(raw) / 100;
+    let best = 0;
+    modes.forEach((m, i) => { if (Math.abs(m.chance - want) < Math.abs(modes[best].chance - want)) best = i; });
+    selectMode(best);
+    chanceInput.value = String(Math.round(modes[best].chance * 100));
+  };
+  chanceInput.addEventListener('change', applyChanceInput);
+  chanceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chanceInput.blur(); } });
+  chanceInput.addEventListener('blur', applyChanceInput);
 
   $('promoForm').addEventListener('submit', activatePromo);
   $('refToggle').addEventListener('click', toggleReferral);
