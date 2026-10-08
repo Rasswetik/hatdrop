@@ -1886,6 +1886,8 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .gp-price { font-size: 8px; color: var(--gold); }
 
 .hat.is-gift { image-rendering: auto; width: 70%; }
+body.tier-onyx #centerHat:not(.is-gift) { background: radial-gradient(circle at 50% 42%, #707789 0%, #2b2f3a 58%, #14161c 100%); border-radius: 50%; padding: 6%; box-shadow: 0 0 22px rgba(120, 128, 150, .45); }
+body.tier-black #centerHat:not(.is-gift) { background: radial-gradient(circle at 50% 42%, #34343c 0%, #0c0c10 60%, #000 100%); border-radius: 50%; padding: 6%; box-shadow: 0 0 22px rgba(0, 0, 0, .7); }
 .thumb-gift img { image-rendering: auto; object-fit: contain; }
 
 #centerHat { cursor: pointer; }
@@ -3038,7 +3040,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       <span id="walletBtnText">Подключить</span>
     </button>
     <div class="coin-chip" id="coinChip" title="ШляпоКоины — кешбэк за игры" aria-label="ШляпоКоины">
-      <img class="coin-ico coin-new" src="images/hatcoin.webp" alt="">
+      <img class="coin-ico coin-new" src="images/gram.webp" alt="">
       <svg class="coin-ico coin-old" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
         <path class="coin-rim" d="M5 0h6v1h2v1h1v1h1v2h1v6h-1v2h-1v1h-1v1h-2v1H5v-1H3v-1H2v-1H1v-2H0V5h1V3h1V2h1V1h2z"></path>
         <path class="coin-face" d="M5 1h6v1h2v1h1v2h1v6h-1v2h-1v1h-2v1H5v-1H3v-1H2v-2H1V5h1V3h1V2h2z"></path>
@@ -3048,7 +3050,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       <span id="coinValue">0</span>
     </div>
     <button class="balance" id="balanceChip" type="button" aria-label="Баланс, пополнить">
-      <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E" alt="" class="ton-ico">
+      <img src="images/gram.webp" alt="" class="ton-ico">
       <span id="balanceValue">0</span><span class="bal-plus" aria-hidden="true">+</span>
     </button>
   </header>
@@ -3250,7 +3252,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
         <span class="mode-edge" id="chanceMin">—</span>
         <div class="mode-track" id="modeTrack">
           <span class="mode-tag mode-cost">
-            <img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E" alt="TON" class="ton-ico"><span id="modeCost">—</span>
+            <img src="images/gram.webp" alt="TON" class="ton-ico"><span id="modeCost">—</span>
           </span>
           <input type="range" id="modeSlider" min="0" max="60" step="1" value="30" aria-label="Шанс выигрыша">
           <span class="mode-tag mode-chance" id="modeChance">—</span>
@@ -3553,10 +3555,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
         <h3>Ключ Portals</h3>
         <p class="adm-status" id="admPortalsStatus">—</p>
         <div class="adm-form">
-          <input id="admPortalsUrl" type="url" placeholder="URL флоров (https://…)" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="adm-form">
-          <input id="admPortalsKey" type="password" placeholder="Ключ / Authorization" autocomplete="off" spellcheck="false">
+          <input id="admPortalsKey" type="password" placeholder="Authorization (tma …) — только ключ, адрес не нужен" autocomplete="off" spellcheck="false">
         </div>
         <div class="adm-form">
           <button type="button" id="admPortalsSave">Сохранить</button>
@@ -3575,7 +3574,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 
 <script>
 (function () {
-  const TON = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 56 56%22%3E%3Ccircle cx=%2228%22 cy=%2228%22 r=%2228%22 fill=%22%230098EA%22/%3E%3Cpath d=%22M37.56 15.63H18.44c-3.52 0-5.75 3.79-3.98 6.86l11.8 20.45c.77 1.34 2.7 1.34 3.47 0l11.8-20.45c1.77-3.06-.46-6.86-3.97-6.86zM26.25 36.81l-2.57-4.98-6.2-11.09c-.41-.71.1-1.62.95-1.62h7.82v17.69zm12.26-16.07l-6.2 11.1-2.57 4.97V19.12h7.82c.86 0 1.36.91.95 1.62z%22 fill=%22%23fff%22/%3E%3C/svg%3E';
+  const TON = 'images/gram.webp';
   const HAT = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="6" y="44" width="52" height="8" fill="#2a1450"/><rect x="8" y="42" width="48" height="6" fill="#5b2bb0"/><rect x="20" y="20" width="24" height="24" fill="#4a1fa0"/><rect x="26" y="10" width="14" height="12" fill="#4a1fa0"/><rect x="32" y="4" width="8" height="8" fill="#5b2bb0"/><rect x="20" y="36" width="24" height="6" fill="#ffc043"/><rect x="29" y="36" width="6" height="6" fill="#fff0b0"/></svg>');
   const CAT = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="14" y="14" width="8" height="12" fill="#2b2b3a"/><rect x="42" y="14" width="8" height="12" fill="#2b2b3a"/><rect x="14" y="22" width="36" height="28" fill="#3a3a4e"/><rect x="22" y="30" width="6" height="6" fill="#ffe08a"/><rect x="36" y="30" width="6" height="6" fill="#ffe08a"/><rect x="30" y="40" width="4" height="4" fill="#ff8aa8"/></svg>');
   const AXE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges"><rect x="30" y="14" width="6" height="44" fill="#7a4a26"/><rect x="30" y="14" width="2" height="44" fill="#a8713c"/><rect x="14" y="10" width="18" height="22" fill="#9aa3b5"/><rect x="10" y="14" width="6" height="14" fill="#cfd6e4"/><rect x="14" y="10" width="18" height="3" fill="#e8edf7"/></svg>');
@@ -6647,7 +6646,12 @@ function cxFinish(res) {
   if (res.prizes) { state.prizes = res.prizes; renderPrizes(res.prizes); }
   if (res.win) {
     haptic('notification', 'success');
-    cxSetHint(tr('+{sum} TON · x{mult}', { sum: fmt(res.payout_ton, 2), mult: fmt(res.mult, 2) }), 'win');
+    if (res.gift) {
+      cxSetHint(`${trName(res.gift.name)} + ${fmt(res.ton_part, 2)} TON · x${fmt(res.mult, 2)}`, 'win');
+      toast(`${trName(res.gift.name)} + ${fmt(res.ton_part, 2)} TON`);
+    } else {
+      cxSetHint(tr('+{sum} TON · x{mult}', { sum: fmt(res.payout_ton, 2), mult: fmt(res.mult, 2) }), 'win');
+    }
     const r = $('cxGrid').getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
     burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
@@ -8026,7 +8030,11 @@ async function admLoadMarket(action, body) {
   try {
     const res = await api(action || '/api/admin/market', body || {});
     admRenderMarket(res);
-    if (res.updated !== undefined) toast(`Обновлено цен: ${res.updated}`);
+    if (res.refreshing) toast('Загружаю подарки и модели с Portals…');
+    if (res.portals_refreshing && !$('adminModal').hidden) {
+      clearTimeout(admin.pollTimer);
+      admin.pollTimer = setTimeout(() => admLoadMarket(), 5000);
+    }
   } catch (e) { admErr(e); }
 }
 
@@ -8034,16 +8042,17 @@ function admRenderPortals(res) {
   if (res.portals_configured === undefined) return;
   admin.portals = res.portals_configured;
   const parts = [
-    res.portals_url ? 'URL задан' : 'URL не задан',
     res.portals_key_set ? `ключ: ${res.portals_key_mask}` : 'ключ не задан',
+    `подарков: ${res.portals_gifts || 0}, моделей: ${res.portals_models || 0}`,
   ];
+  if (res.portals_refreshing) parts.push('идёт загрузка…');
+  if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
   $('admPortalsStatus').textContent = parts.join(' · ');
-  if (document.activeElement !== $('admPortalsUrl')) $('admPortalsUrl').value = res.portals_url || '';
   $('admPortalsKey').value = '';
 }
 
 async function admSavePortals(clear) {
-  const body = { url: $('admPortalsUrl').value.trim() };
+  const body = {};
   if (clear) body.clear_key = true;
   else if ($('admPortalsKey').value.trim()) body.auth = $('admPortalsKey').value.trim();
   try {
@@ -8056,8 +8065,8 @@ async function admSavePortals(clear) {
 function admRenderMarket(res) {
   admRenderPortals(res);
   $('admMarketNote').textContent = admin.portals === false
-    ? 'Автообновление выключено: вставь URL флоров и ключ Portals выше. Цены можно менять вручную.'
-    : 'Цена — самая низкая цена коллекции (флор). Модели считаются от неё.';
+    ? 'Автообновление выключено: вставь ключ Portals (Authorization) выше. Цены можно менять вручную.'
+    : 'Цена — флор коллекции с Portals. Модели и их цены подгружаются автоматически (обновление раз в 30 минут).';
   const list = $('admMarketList');
   list.textContent = '';
   for (const r of res.rows) {
