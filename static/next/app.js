@@ -150,10 +150,10 @@ function makeStars(n = 42) {
 
 
 const TIER_HAT_ASSET = {
-  random: 'assets/hat.png',
-  onyx: 'assets/hat-onyx.png',
-  black: 'assets/hat-black.png',
-  bear: 'assets/bear.png',      // утешительный мишка — тоже лежит в профиле
+  random: '/static/img/hat.png',
+  onyx: '/static/img/hat.png',
+  black: '/static/img/hat.png',
+  bear: '/static/img/hat.png',      // утешительный мишка — тоже лежит в профиле
 };
 const TIER_ORDER = ['random', 'onyx', 'black', 'gift'];
 
@@ -1411,7 +1411,7 @@ async function openHistory() {
     img.alt = '';
     img.className = 'hist-img';
     const tier = r.image.startsWith('tier:') ? r.image.slice(5) : '';
-    if (r.kind === 'shell' && !r.win) img.src = 'assets/hat.png';
+    if (r.kind === 'shell' && !r.win) img.src = '/static/img/hat.png';
     else if (tier || !r.image) img.src = hatAsset(tier || 'random');
     else setGiftImg(img, r.image, r.image);
 
@@ -2657,7 +2657,7 @@ function burstSparks(x, y, count = 12) {
 
 
 
-const BEAR_ASSET = 'assets/bear.png';
+const BEAR_ASSET = '/static/img/hat.png';
 const bearText = () => tr('Хоть тебе и не повезло, но держи волшебного мишку, пускай он принесёт тебе удачу! 🧸');
 
 
