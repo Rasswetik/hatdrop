@@ -1223,6 +1223,7 @@ class PortalsError(Exception):
 
 
 PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0}
+MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0}
 _filters_first = {"i": 0}
 
 
@@ -1237,6 +1238,10 @@ def portals_status():
         "portals_gifts": len(CATALOG),
         "portals_models": sum(len(g.get("models", [])) for g in CATALOG.values()),
         "mrkt_key_mask": mask_key(db.get("settings", {}).get("mrkt_auth", "")),
+        "mrkt_refreshing": MRKT_STATE["running"],
+        "mrkt_error": MRKT_STATE["error"],
+        "mrkt_checked": MRKT_STATE["checked"],
+        "mrkt_models": MRKT_STATE["models"],
     }
 
 
@@ -1497,7 +1502,8 @@ def mrkt_search_models(c, timeout=12):
         raise PortalsError(f"MRKT: {e}")
     result = {}
     for nft in (data.get("gifts") or []):
-        model = nft.get("model") or nft.get("modelName") or ""
+        attrs = nft.get("attributes") if isinstance(nft.get("attributes"), dict) else {}
+        model = nft.get("model") or nft.get("modelName") or attrs.get("model") or ""
         if isinstance(model, dict):
             model = model.get("name") or ""
         price = nft.get("price") or nft.get("sellingPrice") or 0
@@ -1673,7 +1679,58 @@ def admin_mrkt_set(user, body):
         db["settings"]["mrkt_auth"] = ""
     elif str(body.get("auth") or "").strip():
         db["settings"]["mrkt_auth"] = str(body["auth"]).strip()[:4000]
+        start_mrkt_refresh()
     return {"ok": True, "mrkt_key_mask": mask_key(db["settings"].get("mrkt_auth", ""))}
+
+
+
+def mrkt_refresh_worker():
+    MRKT_STATE.update(running=True, error="", checked=0, models=0)
+    try:
+        if not db["settings"].get("mrkt_auth"):
+            raise PortalsError("Токен MRKT не задан")
+        with lock:
+            snapshot = [(s, dict(g)) for s, g in gifts_map().items()]
+        errors = []
+        for slug, item in snapshot:
+            try:
+                found = mrkt_search_models(item)
+                if found:
+                    with lock:
+                        target = CATALOG.setdefault(slug, dict(item))
+                        prices = {m["model"]: m["floor"] for m in target.get("models", [])}
+                        prices.update(found)
+                        target["models"] = build_models(prices)
+                        save_catalog()
+                    MRKT_STATE["models"] += len(found)
+            except Exception as exc:
+                if len(errors) < 2:
+                    errors.append(f"{item.get('name', slug)}: {exc}")
+            MRKT_STATE["checked"] += 1
+            time.sleep(0.15)
+        if not MRKT_STATE["models"]:
+            MRKT_STATE["error"] = errors[0] if errors else "MRKT не вернул модели"
+        MRKT_STATE["updated"] = int(time.time())
+    except Exception as exc:
+        MRKT_STATE["error"] = str(exc)
+    finally:
+        MRKT_STATE["running"] = False
+
+
+def start_mrkt_refresh():
+    if MRKT_STATE["running"]:
+        return
+    MRKT_STATE["running"] = True
+    threading.Thread(target=mrkt_refresh_worker, daemon=True).start()
+
+
+@route("/api/admin/mrkt/refresh")
+def admin_mrkt_refresh(user, body):
+    require_admin(user)
+    if not db["settings"].get("mrkt_auth"):
+        raise ApiError("mrkt_token_missing")
+    start_mrkt_refresh()
+    return {"rows": market_rows(), **portals_status()}
 
 
 @route("/api/admin/market/set")
