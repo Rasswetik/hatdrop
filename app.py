@@ -298,10 +298,9 @@ def gift_floor(slug):
 def gift_models(slug):
     entry = gift_entry(slug)
     floor = gift_floor(slug)
-    ratio = floor / entry["floor"] if entry["floor"] else 1.0
     out = []
     for m in entry.get("models", []):
-        price = ton((m.get("floor") or entry["floor"]) * ratio)
+        price = ton(m.get("floor") or floor)
         out.append({"model": m["model"], "price_ton": price,
                     "image": gift_image(slug, m["model"]),
                     "rarity_per_mille": m.get("rarity_per_mille"),
@@ -956,10 +955,9 @@ _models_view = api(_models_payload)
 
 @app.post("/api/gifts/models")
 def gifts_models():
-    # если моделей коллекции ещё нет - грузим их прямо сейчас, вне общего lock
     slug = (request.get_json(silent=True) or {}).get("slug", "")
-    if slug in CATALOG:
-        ensure_models(slug)
+    if slug in CATALOG and not CATALOG[slug].get("models"):
+        start_models_fetch(slug)
     return _models_view()
 
 
@@ -1327,7 +1325,7 @@ def _clean(name):
 
 def _floor_of(v):
     if isinstance(v, dict):
-        for k in ("floor_price", "floor", "price", "min_price", "min"):
+        for k in ("floor_price", "floorPrice", "floor", "price", "min_price", "min"):
             if k in v:
                 return _num(v[k])
         return 0.0
@@ -1437,34 +1435,25 @@ def apply_tier_values():
                 break
 
 
-def fetch_collection_filters(c, timeout=20):
-    """Модели и фоны коллекции через /collections/filters. Рабочий путь запоминается."""
-    paths = [
-        f"/collections/filters?short_name={quote(c['short'])}",
-        f"/collections/filters?short_name={quote(c['short'].lower())}",
-        f"/collections/filters?collection_id={quote(c['id'])}" if c["id"] else "",
-        f"/collections/{quote(c['id'])}/filters" if c["id"] else "",
-        f"/collections/filters?name={quote(c['name'])}",
-    ]
-    paths = [p for p in paths if p]
-    n = len(paths)
-    first = _filters_first["i"] % n
-    last_err = None
-    for step in range(n):
-        idx = (first + step) % n
-        try:
-            models, backdrops = parse_filters(portals_get([paths[idx]], public_ok=True, timeout=timeout))
-        except PortalsError as e:
-            last_err = e
-            if "429" in str(e):
-                raise
-            continue
-        if models:
-            _filters_first["i"] = idx
-            return models, backdrops
-    if last_err:
-        raise last_err
-    return {}, {}
+def fetch_collection_filters(c, timeout=8):
+    """Portals model floor route from RasswetGifts: short_names (plural)."""
+    short = str(c.get("short") or "").strip().lower()
+    if not short:
+        return {}, {}
+    raw = portals_get(["/collections/filters?short_names=" + quote(short)],
+                      public_ok=True, timeout=timeout)
+    if isinstance(raw, dict):
+        groups = raw.get("collections")
+        if isinstance(groups, dict):
+            entry = next((v for k, v in groups.items() if normalize(k) == normalize(short)), None)
+            if isinstance(entry, dict):
+                raw = entry
+        prices = raw.get("floor_prices") if isinstance(raw, dict) else None
+        if isinstance(prices, dict):
+            entry = next((v for k, v in prices.items() if normalize(k) == normalize(short)), None)
+            if isinstance(entry, dict):
+                raw = entry
+    return parse_filters(raw)
 
 
 def fetch_models_by_search(c, max_pages=15):
@@ -1625,6 +1614,21 @@ def build_models(models):
 
 MODEL_FAIL = {}
 MODEL_LOCKS = {}
+MODEL_LOADING = set()
+
+
+def start_models_fetch(slug):
+    if slug not in CATALOG or CATALOG[slug].get("models") or slug in MODEL_LOADING:
+        return
+    if time.time() - MODEL_FAIL.get(slug, 0) < 45:
+        return
+    MODEL_LOADING.add(slug)
+    def run():
+        try:
+            ensure_models(slug)
+        finally:
+            MODEL_LOADING.discard(slug)
+    threading.Thread(target=run, daemon=True).start()
 
 
 def ensure_models(slug):
@@ -1643,7 +1647,7 @@ def ensure_models(slug):
             if not cur or cur.get("models"):
                 return
         try:
-            models, backdrops = fetch_collection_models(c, timeout=12)
+            models, backdrops = fetch_collection_models(c, search=False, timeout=8)
         except PortalsError as e:
             PORTALS_STATE["error"] = f"{c['name']}: {e}"
             MODEL_FAIL[slug] = time.time()
