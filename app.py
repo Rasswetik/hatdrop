@@ -1109,7 +1109,7 @@ def admin_portal_status():
                     'message': 'Portal Market requires a verified provider integration. No external prices are invented.'})
 
 from mines_routes import register_mines
-register_mines(app, db, get_user, upsert_user)
+register_mines(app, db, get_user, upsert_user, validate_init_data)
 
 start_bot()
 
