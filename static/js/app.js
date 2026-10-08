@@ -5,7 +5,7 @@
         tg.ready();
         tg.expand();
 
-        // Синхронизация цветов с Telegram, если тема их предоставляет.
+        
         document.documentElement.style.setProperty(
             "--tg-bg",
             tg.backgroundColor || "#090727"
@@ -15,8 +15,8 @@
     const connectBtn = document.getElementById("connectBtn");
     if (connectBtn) {
         connectBtn.addEventListener("click", () => {
-            // Пока только визуальное состояние. Реальное подключение TON
-            // можно добавить следующим этапом через выбранный wallet provider.
+            
+            
             connectBtn.classList.toggle("connected");
             connectBtn.innerHTML = connectBtn.classList.contains("connected")
                 ? '<span class="wallet-icon">✓</span> Подключён'
