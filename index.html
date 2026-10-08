@@ -3046,8 +3046,68 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 @keyframes cxPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: #fff; } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .cx-cell, .cx-cell::after, .cx-grid { animation: none !important; } }
 </style>
+<style>
+/* Opening screen — entirely inline, so it appears before external scripts load. */
+#magicBoot {position:fixed;inset:0;z-index:2147483000;background:radial-gradient(circle at 50% 40%,#342069 0,#170e39 48%,#0b0a22 100%);display:flex;justify-content:center;align-items:center;color:#ffe6ae;transition:opacity .38s ease,visibility .38s ease;overflow:hidden}
+#magicBoot.done {opacity:0;visibility:hidden;pointer-events:none}
+.magic-boot-inner {display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px;max-width:320px;text-align:center}
+.magic-boot-wheel {width:min(48vw,200px);height:min(48vw,200px);filter:drop-shadow(0 0 22px rgba(169,99,255,.35));animation:bootRoll 4s linear infinite}
+.magic-boot-spark {animation:bootSpark 1.5s ease-in-out infinite alternate;transform-origin:center}
+.magic-boot-name {font-size:15px;line-height:1.6;letter-spacing:1.7px;color:#ffe4a0;text-shadow:0 3px #604295}
+.magic-boot-sub {font-size:9px;color:#bca8ec;letter-spacing:1px}
+.magic-boot-track {height:5px;width:164px;background:#2d205c;border-radius:6px;overflow:hidden;border:1px solid #654b9e}
+.magic-boot-track::after {content:"";display:block;height:100%;width:40%;background:linear-gradient(90deg,#8651ee,#ffe2a3);border-radius:6px;animation:bootBar 1.6s ease-in-out infinite alternate}
+@keyframes bootRoll {to{transform:rotate(360deg)}}
+@keyframes bootSpark {from{opacity:.35;transform:scale(.86)}to{opacity:1;transform:scale(1.08)}}
+@keyframes bootBar {from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+@media(prefers-reduced-motion:reduce){.magic-boot-wheel,.magic-boot-spark,.magic-boot-track::after{animation:none}}
+#admTonConnect .tc-label{display:block;color:var(--gold);margin:12px 0 5px;font-size:10px}
+#admTonConnect .tc-input{display:block;width:100%;min-width:0;box-sizing:border-box;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);border-radius:9px;padding:12px;font:inherit;font-size:10px;outline:none}
+#admTonConnect .tc-input:focus{border-color:var(--gold)}
+#admTonConnect .tc-info{font-size:9px;color:var(--muted);line-height:1.8;overflow-wrap:anywhere}
+#admTonConnect .tc-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
+#admTonConnect .tc-actions button{min-width:0;white-space:normal;padding:13px 7px;min-height:45px;border-radius:10px;border:2px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:10px;cursor:pointer}
+#admTonConnect #tcSave{background:var(--gold);border-color:var(--gold-dark);color:#2a1900}
+#admTonConnect #tcIconPreview{width:66px;height:66px;object-fit:contain;border:2px solid var(--card-line);border-radius:12px;margin:10px 0;background:var(--track-bg)}
+</style>
 </head>
 <body>
+<div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
+  <div class="magic-boot-inner">
+    <svg class="magic-boot-wheel" viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="92" fill="#2d1758" stroke="#a478ef" stroke-width="6"/>
+      <circle cx="100" cy="100" r="84" fill="#191039" stroke="#ffe1a6" stroke-width="3"/>
+      <g stroke="#e5c3ff" stroke-width="2.5">
+        <path d="M100 18V182M18 100H182M42 42L158 158M158 42L42 158"/>
+      </g>
+      <g fill="#6b3db1" stroke="#bf88f8" stroke-width="2">
+        <path d="M100 25L124 77L100 100L76 77Z"/>
+        <path d="M175 100L123 124L100 100L123 76Z"/>
+        <path d="M100 175L76 123L100 100L124 123Z"/>
+        <path d="M25 100L77 76L100 100L77 124Z"/>
+      </g>
+      <circle cx="100" cy="100" r="28" fill="#e4a845" stroke="#ffe5a6" stroke-width="5"/>
+      <g class="magic-boot-spark"><path d="M100 76L107 94L124 100L107 106L100 124L93 106L76 100L93 94Z" fill="#fff3c6"/></g>
+      <circle cx="100" cy="100" r="7" fill="#fff9e3"/>
+    </svg>
+    <div class="magic-boot-name">MAGIC UPGRADE</div>
+    <div class="magic-boot-sub" id="magicBootText">Загружаем волшебство…</div>
+    <div class="magic-boot-track"></div>
+  </div>
+</div>
+<script>
+(function(){
+  window.finishMagicBoot=function(failed){
+    var layer=document.getElementById('magicBoot');
+    if(!layer||layer.classList.contains('done'))return;
+    if(failed){var t=document.getElementById('magicBootText');if(t)t.textContent='Открываем приложение…';}
+    layer.classList.add('done');
+    setTimeout(function(){if(layer&&layer.parentNode)layer.parentNode.removeChild(layer)},500);
+  };
+  window.addEventListener('load',function(){setTimeout(function(){window.finishMagicBoot()},700)}, {once:true});
+  setTimeout(function(){window.finishMagicBoot(true)},9000);
+})();
+</script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ic-upgrade" viewBox="0 0 16 16">
@@ -3645,6 +3705,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       <button type="button" data-tab="market">Маркет</button>
       <button type="button" data-tab="promos">Промокоды</button>
       <button type="button" data-tab="withdrawals">Выводы</button>
+      <button type="button" data-tab="tonconnect">TON Connect</button>
     </div>
     <div id="admUsers" hidden="">
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
@@ -3699,6 +3760,32 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       </div>
       <p class="muted" id="admWdBotStatus">Уведомления Telegram: проверка…</p>
       <div id="admWdList"></div>
+    </div>
+    <div id="admTonConnect" hidden="">
+      <div class="adm-box">
+        <h3>TON Connect · настройки приложения и пополнений</h3>
+        <p class="tc-info" id="tcStatus">Загружаем текущие настройки…</p>
+        <label class="tc-label" for="tcRecipient">Кошелёк получателя TON</label>
+        <input class="tc-input" id="tcRecipient" placeholder="UQ… / EQ… / 0:…" autocomplete="off" spellcheck="false"/>
+        <label class="tc-label" for="tcAppName">Название приложения</label>
+        <input class="tc-input" id="tcAppName" maxlength="64" placeholder="Magic Upgrade"/>
+        <label class="tc-label" for="tcAppUrl">Адрес сайта (HTTPS)</label>
+        <input class="tc-input" id="tcAppUrl" placeholder="https://example.com" inputmode="url"/>
+        <label class="tc-label" for="tcIconUrl">Адрес логотипа (PNG или ICO, HTTPS)</label>
+        <input class="tc-input" id="tcIconUrl" placeholder="https://example.com/images/hat.png" inputmode="url"/>
+        <img id="tcIconPreview" alt="Логотип TON Connect" src="images/hat.png"/>
+        <label class="tc-label" for="tcTerms">Ссылка на условия использования (необязательно)</label>
+        <input class="tc-input" id="tcTerms" placeholder="https://example.com/terms" inputmode="url"/>
+        <label class="tc-label" for="tcPrivacy">Ссылка на политику конфиденциальности (необязательно)</label>
+        <input class="tc-input" id="tcPrivacy" placeholder="https://example.com/privacy" inputmode="url"/>
+        <p class="tc-info">Настройки сохраняются в базе. Пароль, seed-фразы и приватные ключи здесь не нужны. Новый логотип и название кошелёк может показать при следующем подключении.</p>
+        <div class="tc-actions">
+          <button id="tcSave" type="button">Сохранить</button>
+          <button id="tcReset" type="button">Сбросить к исходным</button>
+          <button id="tcManifest" type="button">Открыть manifest</button>
+          <button id="tcReload" type="button">Обновить настройки</button>
+        </div>
+      </div>
     </div>
     <button class="ghost adm-close" id="admClose" type="button">✕ Закрыть панель</button>
   </div>
@@ -8594,16 +8681,18 @@ function admShow(tab) {
   document.querySelectorAll('#admTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
   $('admTabs').hidden = tab !== 'home';
   $('admBack').hidden = tab === 'home';
-  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы'})[tab];
+  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect'})[tab];
   $('admUsers').hidden = tab !== 'users';
   $('admUser').hidden = true;
   $('admMarket').hidden = tab !== 'market';
   $('admPromos').hidden = tab !== 'promos';
   $('admWithdrawals').hidden = tab !== 'withdrawals';
+  $('admTonConnect').hidden = tab !== 'tonconnect';
   if (tab === 'users') admLoadUsers();
   else if (tab === 'market') admLoadMarket();
   else if (tab === 'promos') admLoadPromos();
   else if (tab === 'withdrawals') admLoadWithdrawals();
+  else if (tab === 'tonconnect') admLoadTonConnect();
 }
 
 async function admLoadUsers() {
@@ -8917,6 +9006,44 @@ async function admSetupBot(){
   }catch(e){toast('Не удалось настроить бот: '+(e.code||'ошибка'),true);}
 }
 
+let tcManifestUrl='/tonconnect-manifest.json';
+
+async function admLoadTonConnect(){
+  const status=$('tcStatus');
+  status.textContent='Загружаем настройки TON Connect…';
+  try{
+    const data=await api('/api/admin/tonconnect');
+    const cfg=data.config || {};
+    const map={recipient_address:'tcRecipient',app_name:'tcAppName',app_url:'tcAppUrl',
+      icon_url:'tcIconUrl',terms_url:'tcTerms',privacy_url:'tcPrivacy'};
+    for(const [field,id] of Object.entries(map))$(id).value=cfg[field]||'';
+    $('tcIconPreview').src=cfg.icon_url||'images/hat.png';
+    tcManifestUrl=data.manifest_url||'/tonconnect-manifest.json';
+    status.textContent=(data.using_saved?'Настройки загружены из базы. ':'Используются значения по умолчанию. ')+
+      (data.deposit_ready?'Получатель TON указан.':'Укажите кошелёк для пополнений.');
+  }catch(e){status.textContent='Ошибка загрузки настроек';admErr(e);}
+}
+
+async function admSaveTonConnect(reset){
+  if(reset && !window.confirm('Вернуть значения TON Connect из настроек сервера?'))return;
+  const body=reset?{reset:true}:{
+    recipient_address:$('tcRecipient').value.trim(),
+    app_name:$('tcAppName').value.trim(),
+    app_url:$('tcAppUrl').value.trim(),
+    icon_url:$('tcIconUrl').value.trim(),
+    terms_url:$('tcTerms').value.trim(),
+    privacy_url:$('tcPrivacy').value.trim()
+  };
+  const btn=$('tcSave');btn.disabled=true;
+  try{
+    await api('/api/admin/tonconnect/save',body);
+    toast(reset?'Значения по умолчанию восстановлены':'TON Connect сохранён в базе');
+    await admLoadTonConnect();
+    refresh().catch(()=>{});
+  }catch(e){toast('Настройки не сохранены: '+(e.code||'ошибка'),true);}
+  finally{btn.disabled=false;}
+}
+
 function initAdmin() {
   $('adminBtn').addEventListener('click', () => {
     haptic('impact', 'light');
@@ -8937,6 +9064,11 @@ function initAdmin() {
     try { await api('/api/admin/market/source', {source, clear_cache:true}); toast('Источник переключён. Обновление запущено'); admLoadMarket(); }
     catch(e) { admErr(e); }
   });
+  $('tcSave').addEventListener('click',()=>admSaveTonConnect(false));
+  $('tcReset').addEventListener('click',()=>admSaveTonConnect(true));
+  $('tcReload').addEventListener('click',admLoadTonConnect);
+  $('tcManifest').addEventListener('click',()=>window.open(tcManifestUrl,'_blank'));
+  $('tcIconUrl').addEventListener('input',()=>{$('tcIconPreview').src=$('tcIconUrl').value.trim()||'images/hat.png';});
   $('admWdReload').addEventListener('click', admLoadWithdrawals);
   document.querySelectorAll('#admWdTabs button').forEach(b=>b.addEventListener('click',()=>{adminWdTab=b.dataset.wd;admLoadWithdrawals();}));
   $('admWdBotOpen').addEventListener('click',()=>{if(adminWdBotUsername)window.open('https://t.me/'+encodeURIComponent(adminWdBotUsername),'_blank');else toast('Сначала настройте бота',true);});
@@ -8971,7 +9103,7 @@ loadFast();
 buildWheelScale();
 setTier(loadSavedTier(), false);
 initTonConnect();
-refresh().then(restoreSavedGift).catch(() => {});
+refresh().then(async ()=>{window.finishMagicBoot?.();await restoreSavedGift();}).catch(()=>{window.finishMagicBoot?.(true);});
 setInterval(() => {
   if (spinning) return;
   refresh();
