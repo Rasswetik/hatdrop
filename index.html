@@ -2972,6 +2972,29 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .adm-key { width: 100%; margin: 4px 0 10px; text-align: left; }
 .adm-key .adm-form { margin-top: 6px; }
 .adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
+
+/* ===== сундуки: анимации ===== */
+.cx-cell { position: relative; transform-origin: 50% 60%; transition: filter .15s; }
+.cx-cell::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%); transform: translateX(-120%); }
+.cx-grid.live .cx-cell:not(:disabled):not(.gold) { animation: cxBob 2.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.13s); }
+.cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); }
+@keyframes cxBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+.cx-cell.gold { animation: cxFlip .6s cubic-bezier(.2,.9,.3,1.15), cxGlow 1.8s ease-in-out .6s infinite; }
+.cx-cell.gold::after { animation: cxShine .9s ease-out .15s 1; }
+@keyframes cxFlip { 0% { transform: perspective(260px) rotateY(0) scale(1); } 40% { transform: perspective(260px) rotateY(90deg) scale(1.2); } 100% { transform: perspective(260px) rotateY(0) scale(1); } }
+@keyframes cxGlow { 0%, 100% { box-shadow: inset 2px 2px 0 #ffe39a, 0 0 8px rgba(255,198,74,.45), 0 3px 0 #2e1a0c; } 50% { box-shadow: inset 2px 2px 0 #ffe39a, 0 0 20px rgba(255,198,74,.95), 0 3px 0 #2e1a0c; } }
+@keyframes cxShine { 0% { opacity: 1; transform: translateX(-120%); } 100% { opacity: 1; transform: translateX(120%); } }
+.cx-cell.empty { animation: cxBoom .65s ease-out; }
+@keyframes cxBoom { 0% { transform: scale(.6); filter: brightness(2.2); } 20% { transform: scale(1.3) rotate(-8deg); } 40% { transform: scale(1.1) rotate(8deg); filter: none; } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } 100% { transform: none; } }
+.cx-cell.ghost { opacity: .72; animation: cxReveal .4s ease-out both; animation-delay: var(--d, 0s); }
+.cx-cell.ghost::after { display: none; }
+@keyframes cxReveal { from { opacity: 0; transform: scale(.55) rotate(-12deg); } to { opacity: .72; transform: none; } }
+.cx-grid.shake { animation: cxShake .5s; }
+@keyframes cxShake { 0%, 100% { transform: none; } 15% { transform: translate(-6px, 2px); } 30% { transform: translate(5px, -3px); } 45% { transform: translate(-4px, 3px); } 60% { transform: translate(3px, -2px); } 80% { transform: translate(-2px, 1px); } }
+.cx-info b.pop { animation: cxPop .4s ease-out; }
+@keyframes cxPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: #fff; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .cx-cell, .cx-cell::after, .cx-grid { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -3282,7 +3305,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       </div>
       <div class="chance-custom">
         <label for="chanceInput">Свой шанс</label>
-        <input type="number" id="chanceInput" min="1" max="95" step="1" inputmode="numeric" aria-label="Свой шанс, %">
+        <input type="number" id="chanceInput" min="10" max="70" step="1" inputmode="numeric" aria-label="Свой шанс, %">
         <span>%</span>
       </div>
 
@@ -3629,7 +3652,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   const cv = document.getElementById('bgScene');
   if (!cv || !cv.getContext) return;
   const ctx = cv.getContext('2d');
-  const W = 120;
+  const W = 180;
   let H = 213;
   let stopped = false;
 
@@ -3644,7 +3667,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 
   const r0 = rnd(7);
   const clouds = Array.from({ length: 7 }, (_, i) => ({
-    x: r0() * (W + 70), y: 4 + (i % 4) * 8 + r0() * 5, w: 14 + r0() * 18, sp: 0.5 + r0() * 1.0, far: i % 2 === 1,
+    x: r0() * (W + 70), y: 4 + (i % 4) * 8 + r0() * 5, w: 22 + r0() * 28, sp: 0.5 + r0() * 1.0, far: i % 2 === 1,
   }));
   const flowers = Array.from({ length: 34 }, () => ({
     x: r0(), y: r0(), c: ['#ffd23f', '#ff6b8a', '#ffffff', '#b98bff', '#ff9a3c'][(r0() * 5) | 0], ph: r0() * 6,
@@ -3889,119 +3912,296 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     ctx.fillRect(0, 0, W, H);
   }
 
+  // ===== детальная сцена: горы, лес, озеро, ручей, деревня, мельница, поляна =====
+  const rs = rnd(20260);
+  const PINES = Array.from({ length: 64 }, (_, i) => ({ x: i * (W / 64) + rs() * 3, h: 9 + rs() * 8, c: rs() > 0.5 ? 0 : 1 }));
+  const TUFTS2 = Array.from({ length: 150 }, () => ({ x: rs(), y: rs(), l: rs() > 0.5, ph: rs() * 6 }));
+  const FLOW2 = Array.from({ length: 110 }, () => ({
+    x: rs(), y: rs(), c: ['#ffd23f', '#ff6b8a', '#ffffff', '#b98bff', '#ff9a3c', '#6fd0ff'][(rs() * 6) | 0], ph: rs() * 6,
+  }));
+  const ROCKS = Array.from({ length: 9 }, () => ({ x: rs(), y: 0.3 + rs() * 0.65, s: 2 + ((rs() * 3) | 0) }));
+  const MUSH = Array.from({ length: 7 }, () => ({ x: rs(), y: 0.5 + rs() * 0.45 }));
+  let WINS = [];
+  let LAMPS = [];
+
+  const mtnA = (x) => 28 + Math.abs(Math.sin(x * 0.034 + 1.2)) * 34 + Math.sin(x * 0.17) * 2.6 + Math.sin(x * 0.46) * 1.2;
+  const mtnB = (x) => 12 + Math.abs(Math.sin(x * 0.055 + 4)) * 22 + Math.sin(x * 0.21) * 2.2;
+  const hillH = (x) => 8 + Math.sin(x * 0.04 + 2) * 3.2 + Math.sin(x * 0.13) * 1.3;
+
+  const lakeOf = (hz) => ({ cx: Math.round(W * 0.27), cy: Math.round(hz + (H - hz) * 0.16), rx: Math.round(W * 0.2), ry: 9 });
+  const pathCx = (hz, y) => {
+    const k = clamp((y - hz) / (H - hz));
+    return W * 0.5 + W * 0.17 * Math.pow(1 - k, 1.6) + Math.sin(k * 5) * 5;
+  };
+  const pathHalf = (hz, y) => (4 + clamp((y - hz) / (H - hz)) * 22) / 2;
+  const streamAt = (hz, y) => {
+    const L = lakeOf(hz);
+    const k = clamp((y - L.cy) / (H - L.cy));
+    return [L.cx + 12 + Math.sin(k * 5) * 8 + k * 34, 4 + k * 12];
+  };
+
   function drawFar(hz) {
+    WINS = [];
+    LAMPS = [];
+    // дальние снежные горы
     for (let x = 0; x < W; x++) {
-      const h = 16 + Math.abs(Math.sin(x * 0.075 + 1.2)) * 20 + Math.sin(x * 0.31) * 2;
-      px(x, hz - h, 1, h, '#7fa8d6');
-      if (h > 26) px(x, hz - h, 1, Math.min(5, h - 26) + 1, '#f4fbff');
+      const h = Math.round(mtnA(x));
+      const slope = mtnA(x + 2) - mtnA(x - 2);
+      const base = slope > 0.5 ? '#7a9fcc' : slope < -0.5 ? '#a3c3e8' : '#8db1db';
+      px(x, hz - h, 1, h, base);
+      for (let y = 8; y < h - 6; y += 7) px(x, hz - h + y + ((x * 7) % 4), 1, 1, '#7fa4d0');
+      const snow = h - 36;
+      if (snow > 0) {
+        const ragged = x % 3 === 0 ? 2 : x % 5 === 0 ? -1 : 0;
+        const sh = Math.min(h, snow + 4 + ragged);
+        px(x, hz - h, 1, sh, slope > 0.5 ? '#cfe3f7' : '#f6fbff');
+      }
     }
+    // средние горы
     for (let x = 0; x < W; x++) {
-      const h = 9 + Math.abs(Math.sin(x * 0.11 + 4)) * 12;
-      px(x, hz - h, 1, h, '#5f95c4');
+      const h = Math.round(mtnB(x));
+      const slope = mtnB(x + 2) - mtnB(x - 2);
+      px(x, hz - h, 1, h, slope > 0.4 ? '#4d7fb0' : slope < -0.4 ? '#6a9ccb' : '#5b8fc0');
+      if (h > 26) px(x, hz - h, 1, 2, '#dcecfa');
     }
+    pa(0, hz - 16, W, 16, '#ffffff', 0.09);
+    // холмы и сосновый лес
     for (let x = 0; x < W; x++) {
-      const h = 5 + Math.sin(x * 0.09 + 2) * 3 + (x % 3 === 0 ? 2 : 0);
+      const h = Math.round(hillH(x));
       px(x, hz - h, 1, h + 1, '#3f8f4a');
+    }
+    for (const p of PINES) {
+      const x = Math.round(p.x);
+      const by = hz - Math.round(hillH(x)) + 3;
+      const dark = p.c ? '#1f6b3a' : '#2a7a44';
+      const lite = '#3f9a55';
+      for (let i = 0; i < 4; i++) {
+        const w = 1 + i;
+        const y = by - p.h + i * Math.round(p.h / 4);
+        px(x - w, y, w * 2 + 1, Math.round(p.h / 4) + 1, dark);
+        px(x - w, y, 1, Math.round(p.h / 4) + 1, lite);
+      }
+      px(x, by - 1, 1, 2, '#4a2e16');
     }
   }
 
   function drawMeadow(hz, t) {
-    const greens = ['#7fd14f', '#73c846', '#67be3e', '#5cb437', '#52aa31', '#49a02c'];
+    const greens = ['#86d654', '#7cd04c', '#72c846', '#68bf40', '#5fb63a', '#56ac34', '#4ea22f', '#469929'];
     const gh = Math.ceil((H - hz) / greens.length);
     greens.forEach((c, i) => px(0, hz + i * gh, W, gh + 1, c));
+    // лёгкие полосы скошенной травы
+    for (let y = hz + 6; y < H; y += 9) pa(0, y, W, 4, '#ffffff', 0.035);
     for (let x = 0; x < W; x++) {
-      const h = 4 + Math.sin(x * 0.05 + 0.5) * 3;
-      px(x, hz - h, 1, h + 1, '#6cc24a');
+      const h = 3 + Math.sin(x * 0.07 + 0.5) * 2.4;
+      px(x, hz - h + 1, 1, h + 1, '#74cc4c');
     }
-    const ry = hz + Math.round((H - hz) * 0.1);
-    for (let x = 22; x < 62; x++) {
-      const y = ry + Math.round(Math.sin(x * 0.2) * 1.5);
-      px(x, y, 1, 3, '#4fb7ee');
-      if ((x + ((t * 6) | 0)) % 5 === 0) px(x, y + 1, 1, 1, '#d8f4ff');
+    for (const g of TUFTS2) {
+      const x = g.x * W, y = hz + 8 + g.y * (H - hz - 10);
+      const sw = Math.round(Math.sin(t * 1.5 + g.ph) * 0.6);
+      const c = g.l ? '#8fe05c' : '#3d8f2a';
+      px(x + sw, y, 1, 3, c); px(x + 1, y + 1, 1, 2, c); px(x - 1, y + 1, 1, 2, c);
     }
-    px(36, ry - 2, 14, 2, '#8a8f9c'); px(38, ry - 3, 10, 1, '#a7acb8');
-    px(37, ry, 2, 3, '#6d7280'); px(47, ry, 2, 3, '#6d7280');
-    for (let y = hz + 14; y < H; y++) {
-      const k = (y - hz) / (H - hz);
-      const cx = W * 0.5 + Math.sin(k * 3.1) * 16 - k * 8;
-      const w = 5 + k * 22;
-      px(cx - w / 2, y, w, 1, '#d9b877');
+
+    // озеро с песчаным берегом
+    const L = lakeOf(hz);
+    for (let yy = -L.ry - 2; yy <= L.ry + 2; yy++) {
+      const half = Math.floor((L.rx + 3) * Math.sqrt(Math.max(0, 1 - Math.pow(yy / (L.ry + 2.2), 2))));
+      px(L.cx - half, L.cy + yy, half * 2 + 1, 1, '#e6d49a');
+    }
+    for (let yy = -L.ry; yy <= L.ry; yy++) {
+      const half = Math.floor(L.rx * Math.sqrt(Math.max(0, 1 - Math.pow(yy / L.ry, 2))));
+      const k = (yy + L.ry) / (2 * L.ry);
+      px(L.cx - half, L.cy + yy, half * 2 + 1, 1, mix('#59c2f6', '#2678c4', k));
+      if (yy < -L.ry + 3) {
+        for (let x = L.cx - half; x < L.cx + half; x += 3) if ((x + yy) % 2 === 0) px(x, L.cy + yy, 2, 1, '#6a9ccb');
+      }
+      for (let x = L.cx - half; x < L.cx + half; x += 7) {
+        if ((x + yy * 3 + Math.floor(t * 3)) % 9 === 0) px(x, L.cy + yy, 3, 1, '#a8e4ff');
+      }
+    }
+    for (let i = 0; i < 16; i++) {
+      const x = L.cx + Math.sin(i * 2.3) * L.rx * 0.75;
+      const y = L.cy + Math.cos(i * 3.1) * L.ry * 0.6;
+      if (Math.sin(t * 2.2 + i * 1.7) > 0.55) px(x, y, 2, 1, '#ffffff');
+    }
+    // кувшинки и камыш
+    for (const [dx, dy] of [[-14, 3], [8, 4], [18, -2], [-4, -3]]) {
+      px(L.cx + dx, L.cy + dy, 4, 2, '#3fa84a'); px(L.cx + dx + 1, L.cy + dy - 1, 2, 1, '#ff9ac1');
+    }
+    for (let i = 0; i < 9; i++) {
+      const a = i * 0.7 + 3.3;
+      const x = L.cx + Math.cos(a) * (L.rx + 1), y = L.cy + Math.sin(a) * (L.ry + 1);
+      const sw = Math.round(Math.sin(t * 1.4 + i) * 0.6);
+      px(x, y - 6, 1, 7, '#3c8d2f'); px(x + sw, y - 8, 1, 3, '#7a4a26');
+    }
+
+    // ручей из озера
+    for (let y = L.cy + L.ry; y < H; y++) {
+      const [sx, w] = streamAt(hz, y);
+      px(sx - w / 2 - 1, y, w + 2, 1, '#e6d49a');
+      px(sx - w / 2, y, w, 1, '#3b95dc');
+      if ((y + Math.floor(t * 4)) % 6 === 0) px(sx - w / 4, y, w / 2, 1, '#9be0ff');
+    }
+
+    // тропинка к деревне
+    for (let y = hz + 12; y < H; y++) {
+      const cx = pathCx(hz, y), w = pathHalf(hz, y) * 2;
+      px(cx - w / 2 - 1, y, w + 2, 1, '#a8854f');
+      px(cx - w / 2, y, w, 1, '#dcbc7a');
       px(cx - w / 2, y, 1, 1, '#b8955a'); px(cx + w / 2 - 1, y, 1, 1, '#b8955a');
-      if (y % 7 === 0) px(cx - w / 4, y, 2, 1, '#c4a368');
+      if (y % 6 === 0) px(cx - w / 4, y, 2, 1, '#c4a368');
+      if (y % 9 === 0) px(cx + w / 5, y, 1, 1, '#9a7a48');
     }
-    for (const g of tufts) {
-      const x = g.x * W, y = hz + 10 + g.y * (H - hz - 12);
-      px(x, y, 1, 2, '#3d8f2a'); px(x + 1, y + 1, 1, 1, '#3d8f2a');
+    // мостик
+    const by = Math.round(hz + (H - hz) * 0.6);
+    const [bsx, bw] = streamAt(hz, by);
+    const bx0 = Math.round(bsx - bw / 2 - 6), bw2 = Math.round(bw + 12);
+    for (let y = by - 4; y <= by + 4; y++) {
+      px(bx0, y, bw2, 1, y % 2 ? '#a8713c' : '#8a5429');
+    }
+    px(bx0, by - 5, bw2, 1, '#5c3519'); px(bx0, by + 5, bw2, 1, '#5c3519');
+    for (let i = 0; i <= 4; i++) { px(bx0 + Math.round(i * (bw2 - 1) / 4), by - 8, 1, 4, '#6b4424'); px(bx0 + Math.round(i * (bw2 - 1) / 4), by + 5, 1, 4, '#6b4424'); }
+
+    // камни
+    for (const r of ROCKS) {
+      const x = r.x * W, y = hz + 10 + r.y * (H - hz - 14);
+      px(x, y, r.s + 2, r.s, '#8a8f9c'); px(x, y, r.s + 2, 1, '#b4b9c6'); px(x + r.s, y + 1, 2, r.s - 1, '#6d7280');
     }
   }
 
   function drawMill(hz, t) {
-    const x = Math.round(W * 0.77), base = hz + 3;
-    for (let i = 0; i < 16; i++) px(x - 2 - i * 0.15, base - 16 + i, 5 + i * 0.3, 1, i % 4 === 3 ? '#b98a55' : '#d6a66a');
-    px(x - 3, base - 19, 7, 3, '#b0432f'); px(x - 2, base - 21, 5, 2, '#c9553d');
-    px(x - 1, base - 6, 2, 4, '#5a3a1e');
-    const cx = x, cy = base - 16, a = t * 0.9;
+    const x = Math.round(W * 0.86), base = hz + 20;
+    for (let i = 0; i < 26; i++) {
+      const w = 12 - Math.floor(i * 0.22);
+      px(x - w / 2, base - 26 + i, w, 1, i % 4 === 3 ? '#b98a55' : '#d9aa6d');
+      px(x + w / 2 - 2, base - 26 + i, 2, 1, '#b8854f');
+    }
+    for (let i = 0; i < 26; i += 4) for (let j = 0; j < 12; j += 4) px(x - 5 + j + (i % 8 ? 2 : 0), base - 26 + i, 1, 1, '#c79858');
+    px(x - 6, base - 3, 13, 3, '#8a8f9c'); px(x - 6, base - 3, 13, 1, '#b4b9c6');
+    for (let r = 0; r < 7; r++) px(x - 7 + r, base - 27 - r, 15 - r * 2, 1, r % 2 ? '#c9553d' : '#e0674a');
+    px(x - 1, base - 8, 3, 5, '#5a3a1e');
+    px(x - 1, base - 18, 3, 3, '#7ec8ff'); WINS.push([x - 1, base - 18, 3, 3]);
+    const cx = x, cy = base - 21, a = t * 0.9;
     for (let k = 0; k < 4; k++) {
       const ang = a + k * Math.PI / 2;
-      const ex = cx + Math.cos(ang) * 10, ey = cy + Math.sin(ang) * 10;
-      line(cx, cy, ex, ey, '#f3e3c0', 1);
-      line(cx + Math.cos(ang + 0.25) * 4, cy + Math.sin(ang + 0.25) * 4,
-        cx + Math.cos(ang + 0.14) * 10, cy + Math.sin(ang + 0.14) * 10, '#e2cf9f', 1);
+      const ex = cx + Math.cos(ang) * 18, ey = cy + Math.sin(ang) * 18;
+      line(cx, cy, ex, ey, '#7a5330', 2);
+      for (let q = 5; q < 18; q += 2) {
+        const bx = cx + Math.cos(ang) * q, by = cy + Math.sin(ang) * q;
+        const nx = -Math.sin(ang), ny = Math.cos(ang);
+        px(bx + nx * 2, by + ny * 2, 2, 2, '#f3e3c0'); px(bx + nx * 4, by + ny * 4, 2, 2, '#e2cf9f');
+      }
     }
-    px(cx - 1, cy - 1, 2, 2, '#5a3a1e');
+    px(cx - 1, cy - 1, 3, 3, '#5a3a1e');
+    // стога сена
+    for (const [dx, dy] of [[-16, 6], [-10, 8]]) {
+      disc(x + dx, base + dy - 2, 3, '#e6c54f'); px(x + dx - 3, base + dy - 1, 7, 2, '#c9a53a');
+    }
+  }
+
+  function cottage(x, y, w, h, wall, roof, roofLite, t, smoke) {
+    px(x, y - h, w, h, wall);
+    px(x + w - 3, y - h, 3, h, mix(wall, '#000000', 0.12));
+    px(x, y - 3, w, 3, '#8a8f9c'); px(x, y - 3, w, 1, '#b4b9c6');
+    px(x, y - h, 1, h, '#6b4424'); px(x + w - 1, y - h, 1, h, '#6b4424');
+    px(x, y - h + 1, w, 1, '#6b4424'); px(x, y - Math.round(h / 2), w, 1, '#6b4424');
+    for (let r = 0; ; r++) {
+      const rw = w + 6 - 2 * r;
+      if (rw < 2) break;
+      px(x - 3 + r, y - h - 1 - r, rw, 1, r % 2 ? roof : roofLite);
+      if (r % 2) for (let q = 0; q < rw; q += 3) px(x - 3 + r + q, y - h - 1 - r, 1, 1, mix(roof, '#000000', 0.18));
+    }
+    const dx = x + Math.round(w / 2) - 2;
+    px(dx, y - 8, 4, 8, '#6b3f1e'); px(dx, y - 8, 4, 1, '#4a2a10'); px(dx + 3, y - 4, 1, 1, '#ffd23f');
+    px(dx - 1, y - 1, 6, 1, '#b4b9c6');
+    const wx = x + 2, wy = y - h + 3;
+    px(wx, wy, 5, 5, '#7ec8ff'); px(wx + 2, wy, 1, 5, '#5a3a1e'); px(wx, wy + 2, 5, 1, '#5a3a1e');
+    px(wx - 1, wy + 5, 7, 1, '#7a4a26');
+    px(wx, wy + 6, 1, 1, '#ff6b8a'); px(wx + 2, wy + 6, 1, 1, '#ffd23f'); px(wx + 4, wy + 6, 1, 1, '#ffffff');
+    WINS.push([wx, wy, 5, 5]);
+    if (w > 18) { const w2 = x + w - 8; px(w2, wy, 4, 4, '#7ec8ff'); px(w2 + 1, wy, 1, 4, '#5a3a1e'); WINS.push([w2, wy, 4, 4]); }
+    px(x + w - 7, y - h - 7, 3, 6, '#a8674a'); px(x + w - 8, y - h - 8, 5, 1, '#7d4a33');
+    if (smoke) {
+      for (let i = 0; i < 5; i++) {
+        const k = (t * 0.3 + i / 5) % 1;
+        const sx = x + w - 6 + Math.sin(k * 5 + i) * 3, sy = y - h - 9 - k * 22;
+        const s = 2 + Math.round(k * 3);
+        if (k < 0.93) pa(sx, sy, s, s, '#eef3f8', 0.85 - k * 0.5);
+      }
+    }
   }
 
   function drawHouse(hz, t) {
-    const x = Math.round(W * 0.76), y = hz + Math.round((H - hz) * 0.2);
-    px(x, y, 30, 15, '#ead9b0'); px(x, y + 13, 30, 2, '#cdb98a');
-    for (let i = 0; i < 9; i++) px(x - 3 + i, y - 1 - i, 36 - i * 2, 1, i % 2 ? '#c9452f' : '#e0573d');
-    px(x + 20, y - 12, 4, 7, '#a8674a'); px(x + 19, y - 13, 6, 1, '#7d4a33');
-    px(x + 5, y + 5, 6, 6, '#7ec8ff'); px(x + 7, y + 5, 1, 6, '#5a3a1e'); px(x + 5, y + 7, 6, 1, '#5a3a1e');
-    px(x + 17, y + 5, 6, 10, '#7a4a26'); px(x + 21, y + 10, 1, 1, '#ffd23f');
-    for (let i = 0; i < 4; i++) {
-      const k = (t * 0.35 + i / 4) % 1;
-      const sx = x + 21 + Math.sin(k * 5 + i) * 3, sy = y - 14 - k * 22;
-      const s = 2 + Math.round(k * 3);
-      if (k < 0.92) px(sx, sy, s, s, k > 0.6 ? '#e9f3fb' : '#ffffff');
-    }
-    for (let i = 0; i < 3; i++) {
-      const fx = x - 6 + i * 4, sw = Math.round(Math.sin(t * 1.4 + i) * 0.6);
-      px(fx, y + 6, 1, 9, '#3d8f2a'); px(fx - 1 + sw, y + 3, 3, 3, '#ffd23f'); px(fx + sw, y + 4, 1, 1, '#7a4a26');
-    }
+    cottage(Math.round(W * 0.43), hz + 15, 15, 9, '#f0e0b8', '#9a4a3a', '#b25a46', t, false);
+    cottage(Math.round(W * 0.56), hz + 24, 22, 13, '#ead9b0', '#c9452f', '#e0573d', t, true);
+    cottage(Math.round(W * 0.7), hz + 36, 26, 15, '#e8d2a0', '#3f6fb8', '#5a8be0', t, true);
   }
 
   function drawFence(hz) {
-    const y = hz + Math.round((H - hz) * 0.36);
-    for (let x = 0; x < W; x += 9) {
-      if (x > W * 0.4 && x < W * 0.62) continue;
-      px(x, y, 9, 1, '#a8713c'); px(x, y + 4, 9, 1, '#a8713c');
+    const y = hz + Math.round((H - hz) * 0.45);
+    for (let x = 0; x < W; x += 8) {
+      if (Math.abs(x + 4 - pathCx(hz, y)) < pathHalf(hz, y) + 6) continue;
+      const [sx, sw] = streamAt(hz, y);
+      if (Math.abs(x + 4 - sx) < sw / 2 + 8) continue;
+      px(x, y, 8, 1, '#a8713c'); px(x, y + 4, 8, 1, '#a8713c');
       px(x + 3, y - 3, 2, 11, '#c08a4d'); px(x + 3, y - 3, 2, 1, '#e0ab68');
     }
   }
 
+  function tree(gx, base, s, sway, leaf) {
+    const th = Math.round(34 * s);
+    px(gx + 2, base - th, Math.round(8 * s), th, '#7a4a26');
+    px(gx + 2, base - th, 2, th, '#5c3519'); px(gx + Math.round(8 * s) - 1, base - th, 2, th, '#93603a');
+    px(gx - 1, base - 3, Math.round(12 * s), 3, '#5c3519');
+    const blobs = [[10, -44, 18], [26, -52, 14], [-2, -54, 14], [14, -64, 16], [30, -38, 11], [-4, -36, 11], [12, -46, 12]];
+    const [d, m, l, hl] = leaf;
+    for (const [bx, by, r] of blobs) disc(gx + bx * s + sway, base + by * s, Math.round(r * s), d);
+    for (const [bx, by, r] of blobs) disc(gx + (bx - 2) * s + sway, base + (by - 3) * s, Math.round((r - 4) * s), m);
+    for (const [bx, by, r] of blobs) disc(gx + (bx - 5) * s + sway, base + (by - 6) * s, Math.max(2, Math.round((r - 10) * s)), l);
+    for (let i = 0; i < 14; i++) px(gx + sway + ((i * 37) % 40) * s - 4, base + (-70 + ((i * 53) % 40)) * s, 1, 1, hl);
+  }
+
   function drawTree(hz, t) {
     const sway = Math.round(Math.sin(t * 0.8) * 1);
-    const gx = 4, base = hz + Math.round((H - hz) * 0.46);
-    px(gx + 2, hz - 30, 9, base - hz + 30, '#7a4a26'); px(gx + 2, hz - 30, 2, base - hz + 30, '#5c3519');
-    px(gx + 9, hz - 30, 2, base - hz + 30, '#93603a');
-    px(gx - 1, base - 3, 15, 3, '#5c3519');
-    const blobs = [[10, -44, 20], [26, -52, 16], [-2, -56, 16], [14, -66, 18], [32, -36, 12], [-4, -34, 12]];
-    for (const [bx, by, r] of blobs) disc(gx + bx + sway, hz + by, r, '#2f8a2f');
-    for (const [bx, by, r] of blobs) disc(gx + bx - 2 + sway, hz + by - 3, r - 4, '#46a83a');
-    for (const [bx, by, r] of blobs) disc(gx + bx - 5 + sway, hz + by - 6, Math.max(2, r - 10), '#6cc84a');
-    const lx = 16, ly = hz + Math.round((H - hz) * 0.12);
-    px(lx, ly - 4, 2, 34, '#6b4424'); px(lx, ly - 4, 12, 2, '#6b4424');
-    px(lx + 9, ly - 2, 1, 4, '#3a2a1a');
-    const glow = (Math.sin(t * 5) > 0.2) ? '#ffe9a0' : '#ffd66b';
-    px(lx + 7, ly + 2, 5, 6, '#3a2a1a'); px(lx + 8, ly + 3, 3, 4, glow);
+    const base = hz + Math.round((H - hz) * 0.52);
+    tree(2, base, 1.15, sway, ['#2b7f2f', '#46a83a', '#6cc84a', '#a8e873']);
+    const lx = Math.round(W * 0.43), ly = hz + Math.round((H - hz) * 0.34);
+    px(lx, ly - 18, 2, 24, '#5a3a20'); px(lx - 1, ly + 5, 4, 2, '#3a2a1a'); px(lx - 3, ly - 20, 8, 3, '#3a2a1a');
+    px(lx - 2, ly - 17, 6, 6, '#3a2a1a');
+    px(lx - 1, ly - 16, 4, 4, (Math.sin(t * 5) > 0.2) ? '#ffe9a0' : '#ffd66b');
+    LAMPS.push([lx + 1, ly - 14]);
+    // яблоня справа
+    tree(Math.round(W * 0.8), hz + Math.round((H - hz) * 0.7), 0.85, -sway, ['#3a8f2c', '#58b440', '#7fd356', '#b9f08a']);
+    for (let i = 0; i < 7; i++) px(W * 0.8 + 4 + ((i * 29) % 30) * 0.85 - sway, hz + (H - hz) * 0.7 - 40 - ((i * 17) % 24), 2, 2, '#ff4d4d');
+    // берёзки
+    for (const [bx, bs] of [[W * 0.9, 0.7], [W * 0.95, 0.55]]) {
+      const bb = hz + Math.round((H - hz) * 0.3), h = Math.round(36 * bs);
+      px(bx, bb - h, 3, h, '#f1f1ea');
+      for (let i = 2; i < h - 6; i += 4) px(bx, bb - h + i, 2, 1, '#2b2b2b');
+      disc(bx + 1, bb - h - 4, Math.round(10 * bs), '#6cc84a'); disc(bx - 1, bb - h - 6, Math.round(6 * bs), '#9be56a');
+    }
+  }
+
+  function bush(x, y, r, c1, c2, berry) {
+    disc(x, y, r, c1); disc(x - 1, y - 1, Math.max(1, r - 2), c2);
+    if (berry) for (let i = 0; i < 4; i++) px(x - r + 1 + i * 2, y - 1 + (i % 2) * 2, 1, 1, berry);
   }
 
   function drawFlowers(hz, t) {
-    for (const f of flowers) {
-      const y = hz + (H - hz) * (0.42 + f.y * 0.56);
-      const x = f.x * W + Math.round(Math.sin(t * 1.6 + f.ph) * 0.7);
-      px(f.x * W, y + 1, 1, 3, '#2f7d22');
+    bush(Math.round(W * 0.32), hz + 70, 5, '#2f7d22', '#4aa83a', '#ff4d6b');
+    bush(Math.round(W * 0.62), hz + 62, 4, '#2f7d22', '#4aa83a', '#ffd23f');
+    bush(Math.round(W * 0.75), hz + 84, 6, '#2f7d22', '#4aa83a', null);
+    for (const f of FLOW2) {
+      const y = hz + (H - hz) * (0.3 + f.y * 0.68);
+      const gx = f.x * W;
+      if (Math.abs(gx - pathCx(hz, y)) < pathHalf(hz, y) + 2) continue;
+      const x = gx + Math.round(Math.sin(t * 1.6 + f.ph) * 0.7);
+      px(gx, y + 1, 1, 3, '#2f7d22');
       px(x - 1, y, 3, 1, f.c); px(x, y - 1, 1, 3, f.c); px(x, y, 1, 1, '#ffb300');
+    }
+    for (const m of MUSH) {
+      const x = m.x * W, y = hz + (H - hz) * m.y;
+      px(x, y, 2, 2, '#f3e3c0'); px(x - 1, y - 2, 4, 2, '#d9453a'); px(x, y - 2, 1, 1, '#ffffff');
     }
   }
 
@@ -4009,25 +4209,23 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     const a = clamp((nk - 0.3) / 0.5);
     if (a < 0.03) return;
     const fl = 0.88 + Math.sin(t * 7) * 0.05 + Math.sin(t * 3.1) * 0.05;
-    const hx = Math.round(W * 0.76), hy = hz + Math.round((H - hz) * 0.2);
-    glow(hx + 8, hy + 8, 5, '#ffcf6b', a * 0.35 * fl);
-    pa(hx + 5, hy + 5, 6, 6, '#ffd66b', a * fl);
-    pa(hx + 7, hy + 5, 1, 6, '#8a5a24', a);
-    pa(hx + 5, hy + 7, 6, 1, '#8a5a24', a);
-    pa(hx + 18, hy + 15, 8, 2, '#ffd66b', a * 0.2);
-
-    const lx = 16, ly = hz + Math.round((H - hz) * 0.12);
-    glow(lx + 9, ly + 5, 4, '#ffe08a', a * 0.6 * fl);
-    pa(lx + 8, ly + 3, 3, 4, '#fff3b0', a);
-    pa(lx - 3, ly + 30, 24, 3, '#ffe08a', a * 0.1);
-
-    const mx = Math.round(W * 0.77), mb = hz + 3;
-    if (Math.sin(t * 2.4) > 0) { glow(mx, mb - 23, 1, '#ff4040', a * 0.6); pa(mx, mb - 23, 1, 1, '#ff7070', a); }
-
-    const ry = hz + Math.round((H - hz) * 0.1);
-    for (let x = 26; x < 58; x++) {
-      const s = Math.sin(x * 0.9 + t * 2.6);
-      if (s > 0.5) pa(x, ry + (x % 2), 1, 1, '#fff2b8', a * 0.65 * (s - 0.35));
+    for (const [x, y, w, h] of WINS) {
+      glow(x + w / 2, y + h / 2, 3, '#ffcf6b', a * 0.3 * fl);
+      pa(x, y, w, h, '#ffd66b', a * fl);
+      pa(x + Math.floor(w / 2), y, 1, h, '#8a5a24', a);
+      pa(x, y + Math.floor(h / 2), w, 1, '#8a5a24', a);
+    }
+    for (const [x, y] of LAMPS) {
+      glow(x, y, 5, '#ffe08a', a * 0.6 * fl);
+      pa(x - 1, y - 1, 3, 3, '#fff3b0', a);
+      pa(x - 14, y + 18, 30, 4, '#ffe08a', a * 0.1);
+    }
+    const mx = Math.round(W * 0.86), mb = hz + 20;
+    if (Math.sin(t * 2.4) > 0) { glow(mx, mb - 34, 1, '#ff4040', a * 0.6); pa(mx, mb - 34, 1, 1, '#ff7070', a); }
+    const L = lakeOf(hz);
+    for (let i = 0; i < 10; i++) {
+      const s = Math.sin(i * 2.1 + t * 2.4);
+      if (s > 0.2) pa(L.cx + Math.sin(i * 1.7) * L.rx * 0.7, L.cy + Math.cos(i * 2.9) * L.ry * 0.6, 3, 1, '#e8f4ff', a * (0.3 + s * 0.5));
     }
   }
 
@@ -4109,7 +4307,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   function resize() {
     const box = cv.parentElement.getBoundingClientRect();
     const ratio = box.width > 0 ? box.height / box.width : 16 / 9;
-    H = Math.max(160, Math.min(320, Math.round(W * ratio)));
+    H = Math.max(160, Math.min(480, Math.round(W * ratio)));
     cv.width = W * FINE;
     cv.height = H * FINE;
     ctx.imageSmoothingEnabled = false;
@@ -6833,6 +7031,7 @@ function cxBuild() {
     b.type = 'button';
     b.className = 'cx-cell';
     b.dataset.i = i;
+    b.style.setProperty('--i', i);
     const img = document.createElement('img');
     img.alt = '';
     img.src = CX_IMG.closed;
@@ -6919,20 +7118,29 @@ function cxDraw() {
   const end = cxEnd;
   const opened = new Set(r ? r.opened : end ? end.opened : []);
   const bad = new Set(end ? end.bad : []);
+  let revealN = 0;
   [...$('cxGrid').children].forEach((b, i) => {
     let cls = 'cx-cell';
     let src = CX_IMG.closed;
     if (opened.has(i)) { cls += ' gold'; src = CX_IMG.gold; }
     else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; src = CX_IMG.empty; }
     else if (end) { cls += ' ghost'; src = CX_IMG.gold; }
-    if (b.className !== cls) b.className = cls;
+    if (b.className !== cls) {
+      if (cls.includes('ghost')) b.style.setProperty('--d', `${(revealN++) * 0.05}s`);
+      b.className = cls;
+    }
     b.firstChild.src = src;
     b.disabled = !r || cxBusy || opened.has(i);
   });
   $('cxGrid').classList.toggle('live', !!r && !cxBusy);
 
   const nxt = r ? r.next_mult : cxMultAt(cxEmpties, 1);
-  $('cxMult').textContent = r ? `x${fmt(r.mult, 2)}` : end && end.win ? `x${fmt(end.mult, 2)}` : '—';
+  const multTxt = r ? `x${fmt(r.mult, 2)}` : end && end.win ? `x${fmt(end.mult, 2)}` : '—';
+  const multEl = $('cxMult');
+  if (multEl.textContent !== multTxt) {
+    multEl.textContent = multTxt;
+    multEl.classList.remove('pop'); void multEl.offsetWidth; multEl.classList.add('pop');
+  }
   $('cxNext').textContent = nxt ? `x${fmt(nxt, 2)}` : '—';
   $('cxWin').textContent = r ? fmt(r.bet * r.mult, 2) : end && end.win ? fmt(end.payout, 2) : '—';
 
@@ -7001,6 +7209,21 @@ async function cxStart() {
   cxDraw();
 }
 
+function cxSparkAt(i, count = 10) {
+  const el = $('cxGrid').children[i];
+  const st = document.querySelector('.stage');
+  if (!el || !st) return;
+  const r = el.getBoundingClientRect();
+  const s = st.getBoundingClientRect();
+  burstSparks(r.left + r.width / 2 - s.left, r.top + r.height / 2 - s.top, count);
+}
+
+function cxShake() {
+  const g = $('cxGrid');
+  g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
+  setTimeout(() => g.classList.remove('shake'), 560);
+}
+
 function cxFinish(res) {
   const prev = cxRound;
   const opened = prev ? prev.opened.slice() : [];
@@ -7022,6 +7245,8 @@ function cxFinish(res) {
     burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
   } else {
     haptic('notification', 'error');
+    cxShake();
+    if (res.cell != null) cxSparkAt(res.cell, 8);
     cxSetHint(tr('Пустой сундук! Ставка сгорела'), 'lose');
     if (res.consolation && res.consolation.first) toast(bearText(), false, 4200);
   }
@@ -7041,6 +7266,7 @@ async function cxOpen(i) {
     } else {
       cxRound = res.round;
       haptic('impact', 'light');
+      cxSparkAt(i, 10);
       cxSetHint(tr('Золото! Забирай или рискуй дальше'), 'win');
     }
   } catch (e) {
