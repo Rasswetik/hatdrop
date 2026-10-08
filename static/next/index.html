@@ -8,9 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<!-- Дизайн: «Новый» (поляна, data-theme="meadow") стоит по умолчанию у всех;
-     «Старый» (ночной, без атрибута) — только у тех, кто сам выбрал его в
-     настройках. Снимаем атрибут до отрисовки, чтобы не мигало. -->
+
 <script>
   try { if (localStorage.getItem('theme') === 'classic') document.documentElement.removeAttribute('data-theme'); } catch (e) {}
 </script>
@@ -20,7 +18,7 @@
 </head>
 <body>
 
-<!-- Пиксельные иконки лежат в одном symbol-спрайте, красятся через currentColor -->
+
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ic-upgrade" viewBox="0 0 16 16">
     <path d="M7 2h2v2h2v2h2v2h-2v6H5V8H3V6h2V4h2z"/>
@@ -36,11 +34,11 @@
     <path d="M6 2h4v4H6z"/>
     <path d="M4 8h8v1h1v1h1v4H2v-4h1V9h1z"/>
   </symbol>
-  <!-- Кошелёк: рамка (вычитаем внутренний прямоугольник) плюс застёжка -->
+  
   <symbol id="ic-wallet" viewBox="0 0 16 16">
     <path fill-rule="evenodd" d="M1 4h14v10H1zM3 6h10v6H3zm7 2h4v2h-4z"/>
   </symbol>
-  <!-- Стрелка вниз, ступеньками по 3px -->
+  
   <symbol id="ic-chevron" viewBox="0 0 16 16">
     <rect x="1"  y="4"  width="3" height="3"/>
     <rect x="12" y="4"  width="3" height="3"/>
@@ -48,11 +46,11 @@
     <rect x="9"  y="7"  width="3" height="3"/>
     <rect x="6"  y="10" width="4" height="3"/>
   </symbol>
-  <!-- Кот для вкладки: силуэт мордочки с ушами, наследует цвет вкладки -->
+  
   <symbol id="ic-cat" viewBox="0 0 16 16">
     <path d="M2 2h2v2h2V3h4v1h2V2h2v10h-2v2H4v-2H2z"/>
   </symbol>
-  <!-- Молния: два косых штриха и перекладина, ступеньками по 2px -->
+  
   <symbol id="ic-bolt" viewBox="0 0 10 14">
     <rect x="4" y="0"  width="6"  height="2"/>
     <rect x="2" y="2"  width="6"  height="2"/>
@@ -64,9 +62,7 @@
   </symbol>
 </svg>
 
-<!-- Фон темы «Поляна» (включается в профиле): занимает всё окно, а не только
-     колонку приложения — на широком экране видна вся сцена. Картинка —
-     assets/bg-day.webp или bg-night.webp (кнопка день/ночь); подгоняет scene.js. -->
+
 <div class="bg-wide" aria-hidden="true">
   <canvas class="bg-scene" id="bgScene"></canvas>
   <img class="bg-photo" id="bgPhoto" alt="" hidden>
@@ -75,16 +71,14 @@
 
 <div class="stage">
   <div class="bg-sky"></div>
-  <!-- Посох вырезан из фона в отдельный слой, чтобы им можно было вращать.
-       Координаты — в процентах от картинки, поэтому держатся при любом размере. -->
+  
   <div class="bg-art">
     <div class="staff" id="staff">
       <img src="assets/staff.png" alt="">
       <div class="staff-orb" id="staffOrb"></div>
     </div>
   </div>
-  <!-- Ломаная молния от посоха к шляпе. Координаты в пикселях сцены,
-       путь пересчитывается на ходу — отсюда пустой d. -->
+  
   <svg class="bolt" id="bolt" aria-hidden="true">
     <defs>
       <filter id="boltGlow" x="-60%" y="-60%" width="220%" height="220%">
@@ -100,7 +94,7 @@
     <path class="bolt-mid"  id="boltMid"  d=""/>
     <path class="bolt-fork" id="boltFork" d=""/>
     <path class="bolt-core" id="boltCore" d=""/>
-    <!-- Искры, бегущие вдоль разряда -->
+    
     <circle class="bolt-spark" id="boltP1" r="3" cx="-50" cy="-50"/>
     <circle class="bolt-spark" id="boltP2" r="2.4" cx="-50" cy="-50"/>
     <circle class="bolt-spark" id="boltP3" r="2" cx="-50" cy="-50"/>
@@ -113,14 +107,13 @@
   <div class="bg-stars" id="stars"></div>
   <div class="bg-vignette"></div>
 
-  <!-- Слева — «Подключить» (пока кошелёк не подключён), справа — баланс.
-       Плюс в балансе открывает пополнение; там же отвязка и смена кошелька. -->
+  
   <header class="topbar">
     <button class="wallet-btn" id="walletBtn">
       <svg class="ic"><use href="#ic-wallet"/></svg>
       <span id="walletBtnText">Подключить</span>
     </button>
-    <!-- ШляпоКоины: кешбэк за каждую игру. Монета — assets/hatcoin.webp. -->
+    
     <div class="coin-chip" id="coinChip" title="ШляпоКоины — кешбэк за игры" aria-label="ШляпоКоины">
       <img class="coin-ico coin-new" src="assets/hatcoin.webp" alt="">
       <svg class="coin-ico coin-old" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
@@ -139,8 +132,8 @@
 
   <main class="content">
 
-    <!-- ================= МЕНЮ ================= -->
-    <!-- Отсюда открываются разделы, у которых нет своей кнопки внизу. -->
+    
+    
     <section class="view" id="view-menu" hidden>
       <h1 class="title">МЕНЮ</h1>
       <div class="menu-grid">
@@ -155,17 +148,15 @@
       </div>
     </section>
 
-    <!-- ================= ТРИ ШЛЯПЫ ================= -->
+    
     <section class="view view-center" id="view-shell" hidden>
-      <!-- Сверху — название и подпись, шляпы в середине экрана, внизу —
-           «Угадать» и под ней плашка с призом. -->
+      
       <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
       <h1 class="title">ТРИ ШЛЯПЫ</h1>
       <p class="subtitle shell-subtitle" id="shellSubtitle">под одной сидит кот — найди его</p>
 
       <div class="shell-table" id="shellTable">
-        <!-- Кот вступления: показывается сам по себе, вне шляп. Так по
-             анимации нельзя вычислить, где он окажется — там его и нет. -->
+        
         <img class="shell-cat-intro" id="shellCatIntro" src="assets/cat.png" alt="">
         <div class="shell-hat" data-i="0">          <img class="shell-cat" src="assets/cat.png" alt="">
           <img class="shell-cap" src="assets/hat.png" alt="">
@@ -184,8 +175,7 @@
 
       <button class="cta" id="shellBtn">Угадать</button>
 
-      <!-- На что играем: шляпа или любой подарок из списка. Шанс от приза
-           не зависит (одна шляпа из трёх), меняются приз и цена игры. -->
+      
       <button class="shell-prize" id="shellPrize" type="button" hidden>
         <img id="shellPrizeImg" src="assets/hat.png" alt="">
         <span class="shell-prize-text">
@@ -197,13 +187,11 @@
       <button class="ghost" id="shellDepositBtn" hidden>Пополнить баланс</button>
     </section>
 
-    <!-- ================= АПГРЕЙД ================= -->
+    
     <section class="view" id="view-upgrade">
       <p class="subtitle upgrade-prize">Приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
 
-      <!-- Кнопки выбора приза спрятаны: приз (шляпа, её фон оникс/блэк, любой
-           подарок) выбирается в списке по нажатию на шляпу. Показываются,
-           только если апгрейд на подарки выключен и списка нет. -->
+      
       <div class="tier-picker" id="tierPicker" role="group" aria-label="Выбор приза" hidden>
         <button class="tier-btn" data-tier="random" type="button" hidden>Рандом</button>
         <button class="tier-btn active" data-tier="gift" type="button">Подарки</button>
@@ -214,7 +202,7 @@
       <div class="wheel-row">
       <div class="wheel-wrap">
         <div class="wheel-glow"></div>
-        <!-- «Стекло» под колесом: полупрозрачный диск с бликом, отделяет колесо от фона -->
+        
         <div class="wheel-glass"></div>
         <svg class="wheel" viewBox="0 0 300 300" id="wheel">
           <defs>
@@ -238,20 +226,17 @@
           <circle cx="150" cy="150" r="120" class="ring-arc" id="arcWin"
                   stroke="url(#gradWin)" transform="rotate(-90 150 150)" filter="url(#softGlow)"/>
 
-          <!-- Неоновые кромки кольца: видны только в теме «Поляна» (styles.css) -->
+          
           <circle cx="150" cy="150" r="130.5" class="ring-edge"/>
           <circle cx="150" cy="150" r="109.5" class="ring-edge"/>
-          <!-- бороздки на деревянном ободе (тема «Поляна») -->
+          
           <circle cx="150" cy="150" r="126" class="ring-rim"/>
           <circle cx="150" cy="150" r="114" class="ring-rim"/>
 
-          <!-- Шкала процентов по кругу: 0…100 с шагом 5, рисует app.js (buildWheelScale) -->
+          
           <g id="wheelScale" class="wheel-scale"></g>
 
-          <!-- Стрелка — посох мага: деревянное древко, золотая оправа и
-               кристалл остриём вверх, чтобы читался как стрелка. Пиксельная
-               сетка 6px, тёмный контур на 3px шире заливки. Вращается вокруг
-               центра втулки — точки 150,150. Остриё кристалла показывает на дугу. -->
+          
           <g id="pointer" class="pointer" shape-rendering="crispEdges">
             <g class="ptr-outline">
               <rect x="144" y="18"  width="12" height="12"/>
@@ -262,10 +247,10 @@
               <rect x="144" y="60"  width="12" height="87"/>
               <rect x="138" y="138" width="24" height="24"/>
             </g>
-            <!-- древко -->
+            
             <rect class="staff-wood" x="147" y="63" width="6" height="81"/>
             <rect class="staff-wood-shine" x="147" y="63" width="3" height="81"/>
-            <!-- золотая оправа: две лапки, чаша и кольцо под ней; втулка внизу -->
+            
             <g class="ptr-fill">
               <rect x="132" y="42"  width="6"  height="15"/>
               <rect x="162" y="42"  width="6"  height="15"/>
@@ -278,7 +263,7 @@
               <rect x="141" y="57"  width="6" height="3"/>
               <rect x="141" y="141" width="6" height="6"/>
             </g>
-            <!-- кристалл остриём вверх -->
+            
             <g class="staff-gem">
               <rect x="147" y="21" width="6"  height="6"/>
               <rect x="141" y="27" width="18" height="6"/>
@@ -290,13 +275,12 @@
               <rect x="138" y="33" width="6" height="9"/>
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"/>
-            <!-- Стрелка новой темы — топор (картинка): рукоять от центра
-                 колеса, обух смотрит на дугу. Посох выше при этом скрыт. -->
+            
             <image class="ptr-axe" href="assets/axe.webp?v=3" x="128.1" y="14" width="65.6" height="150"/>
           </g>
         </svg>
 
-        <!-- День / ночь: меняет картинку фона. Только в новом дизайне. -->
+        
         <button class="sky-btn" id="skyBtn" type="button" title="День / ночь" aria-label="День / ночь">
           <svg class="sky-sun" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
             <path fill="#ffb300" d="M7 0h2v2H7zM7 14h2v2H7zM0 7h2v2H0zM14 7h2v2h-2zM2 2h2v2H2zM12 2h2v2h-2zM2 12h2v2H2zM12 12h2v2h-2z"/>
@@ -304,7 +288,7 @@
             <path fill="#fff3b0" d="M6 5h2v1H6zM5 6h1v2H5z"/>
           </svg>
           <svg class="sky-moon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
-            <!-- полумесяц: круг с вырезанным кругом, по клеткам -->
+            
             <path fill="#fff2a8" d="M4 1h3v1h-3zM3 2h3v1h-3zM2 3h4v1h-4zM1 4h4v1h-4zM1 5h4v1h-4zM0 6h5v1h-5zM0 7h5v1h-5zM0 8h5v1h-5zM0 9h6v1h-6zM1 10h6v1h-6zM1 11h7v1h-7zM2 12h11v1h-11zM3 13h9v1h-9zM4 14h7v1h-7z"/>
             <path fill="#e6c95a" d="M4 1h1v1h-1zM3 2h1v1h-1zM2 3h1v1h-1zM1 4h1v1h-1zM1 5h1v1h-1zM0 6h1v1h-1zM0 7h1v1h-1zM0 8h1v1h-1zM0 9h1v1h-1zM1 10h1v1h-1zM1 11h1v1h-1zM2 12h1v1h-1zM3 13h1v1h-1zM4 14h1v1h-1z"/>
             <path fill="#ffffff" d="M12 3h1v1h-1zM14 6h1v1h-1zM11 7h1v1h-1z"/>
@@ -313,19 +297,18 @@
 
         <div class="wheel-center">
           <img src="assets/hat.png" alt="Приз" class="hat" id="centerHat">
-          <!-- Новичок ещё не выбирал приз: вместо шляпы — вопросик-кнопка -->
+          
           <button class="hat-q" id="hatQuestion" type="button" aria-label="Выбрать подарок" hidden>?</button>
         </div>
 
       </div>
       </div>
 
-      <!-- Подсказка: шляпа в центре — кнопка выбора подарка -->
+      
       <button class="hat-hint" id="hatHint" type="button" hidden>Нажми, чтобы выбрать любой подарок</button>
 
-      <!-- Ползунок шанса: игрок сам выбирает, цена считается от шанса -->
-      <!-- Цена (со значком TON) стоит над бегунком, выбранный шанс — под ним,
-           обе подписи едут вместе с бегунком. Края диапазона — по бокам. -->
+      
+      
       <div class="mode-picker">
         <span class="mode-edge" id="chanceMin">—</span>
         <div class="mode-track" id="modeTrack">
@@ -338,11 +321,9 @@
         </div>
         <span class="mode-edge" id="chanceMax">—</span>      </div>
 
-      <!-- Нижний ряд, прижат к низу экрана: UP по центру (как затвор камеры),
-           справа от неё — быстрая прокрутка (режим запоминается). -->
+      
       <div class="spin-row">
-        <!-- Слева — выбор оружия (вид стрелки): топор или посох. Только в
-             новом дизайне; на шанс и исход не влияет. -->
+        
         <span class="spin-side spin-side-left">
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
             <img id="weaponIcon" src="assets/axe-icon.webp?v=2" alt="">
@@ -360,8 +341,7 @@
                   title="Быстрая прокрутка" aria-label="Быстрая прокрутка">
             <svg class="ic-bolt" aria-hidden="true"><use href="#ic-bolt"/></svg>
           </button>
-          <!-- Шестерёнка: как летит стрелка — обычная прокрутка или азартная
-               (с разворотами). Только вид анимации, на исход не влияет. -->
+          
           <button class="fast-btn gear-btn" id="gearBtn" type="button" title="Тип крутки" aria-label="Тип крутки">
             <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
               <path fill-rule="evenodd" d="M6 0h4v2h2V1h2v2h1v2h-1v1h2v4h-2v1h1v2h-1v2h-2v-1h-2v2H6v-2H4v1H2v-2H1v-2h1v-1H0V6h2V5H1V3h1V1h2v1h2zM6 6v4h4V6z"/>
@@ -375,9 +355,9 @@
       </div>
     </section>
 
-    <!-- ================= ПРОФИЛЬ ================= -->
+    
     <section class="view" id="view-profile" hidden>
-      <!-- Настройки (язык, дизайн, аноним) — в окне, чтобы не загромождать профиль -->
+      
       <button class="view-back view-gear" id="settingsBtn" type="button" title="Настройки" aria-label="Настройки">
         <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
           <path fill-rule="evenodd" d="M6 0h4v2h2V1h2v2h1v2h-1v1h2v4h-2v1h1v2h-1v2h-2v-1h-2v2H6v-2H4v1H2v-2H1v-2h1v-1H0V6h2V5H1V3h1V1h2v1h2zM6 6v4h4V6z"/>
@@ -390,7 +370,7 @@
           <div class="pname" id="profileName">—</div>
           <div class="pwallet" id="profileWallet">Кошелёк не подключён</div>
         </div>
-        <!-- Уровень растёт от оборота (суммы ставок) -->
+        
         <div class="lvl-badge" id="lvlBadge">LVL 1</div>
       </div>
       <div class="lvl-row">
@@ -398,7 +378,7 @@
         <p class="lvl-note" id="lvlNote">—</p>
       </div>
 
-      <!-- Статистика игрока -->
+      
       <div class="pstats">
         <div class="pstat">
           <small>Выведено</small>
@@ -418,13 +398,13 @@
         </div>
       </div>
 
-      <!-- Топ уровней и история игр — открываются окнами -->
+      
       <div class="profile-actions">
         <button class="pbtn" id="levelsBtn" type="button">Топ уровней</button>
         <button class="pbtn" id="historyBtn" type="button">История</button>
       </div>
 
-      <!-- Реферальная программа: по умолчанию свёрнута -->
+      
       <div class="ref-card">
         <button class="ref-head" id="refToggle" aria-expanded="false">
           <span class="ref-title">Рефералы<i class="ref-dot" id="refDot" hidden></i></span>
@@ -457,7 +437,7 @@
         </div>
       </div>
 
-      <!-- Промокод: сумма сразу падает на баланс -->
+      
       <form class="promo-card" id="promoForm" autocomplete="off">
         <input class="promo-input" id="promoInput" type="text" placeholder="Промокод" maxlength="32"
                autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Промокод">
@@ -466,21 +446,19 @@
 
       <div class="section-row">
         <h2 class="section-title">Мои призы</h2>
-        <!-- Продаёт разом всё, что лежит в профиле; призы на выводе не трогает -->
+        
         <button class="sell-all" id="sellAllBtn" type="button" hidden>Продать всё</button>
       </div>
       <div class="prize-grid" id="prizeGrid"></div>
       <p class="empty" id="prizeEmpty">Пока пусто. Крути апгрейд — выбитые призы появятся здесь.</p>
     </section>
 
-    <!-- ================= ЛИДЕРБОРД ================= -->
-    <!-- Всё содержимое строит app.js (loadLeaderboard): ники игроков
-         вставляются только как текст, никогда как HTML. -->
+    
+    
     <section class="view" id="view-leaders" hidden>
       <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
       <h1 class="title">ТОП ИГРОКОВ</h1>
-      <!-- «Лидеры» — оборот за всё время: без сезона и таймера. Сезонный
-           рейтинг вернётся отдельной вкладкой (scope: "season" в /api/leaderboard). -->
+      
       <p class="subtitle" id="lbSubAll">по обороту за всё время</p>
       <p class="subtitle" id="lbSubSeason" hidden>по объёму игры · сезон с <span id="lbSince">—</span></p>
       <div class="lb-timer" id="lbTimer"></div>
@@ -493,9 +471,8 @@
   </main>
 
   <nav class="tabbar">
-    <!-- В меню только иконки, без подписей. Названия остались для экранных
-         читалок (aria-label, .tab-name) — глазами их не видно. -->
-    <!-- Первая вкладка — «Меню»: из него открываются «Лидеры» и «Три шляпы» -->
+    
+    
     <button class="tab" data-view="menu" id="tabMenu" aria-label="Меню">
       <svg class="ic"><use href="#ic-menu"/></svg><span class="tab-name">Меню</span>
     </button>
@@ -507,7 +484,7 @@
     </button>
   </nav></div>
 
-<!-- ================= МОДАЛКА ВЫИГРЫША ================= -->
+
 <div class="modal" id="resultModal" hidden>
   <div class="modal-card" id="resultCard">
     <div class="burst" id="burst"></div>
@@ -519,13 +496,13 @@
   </div>
 </div>
 
-<!-- ================= МОДАЛКА ПОПОЛНЕНИЯ ================= -->
+
 <div class="modal" id="depositModal" hidden>
   <div class="modal-card">
     <h2>Пополнение</h2>
     <p class="muted">Перевод в TON зачислится автоматически в течение минуты.</p>
 
-    <!-- Кошелёк: подключить, отвязать или сменить на другой -->
+    
     <div class="dep-wallet">
       <span class="dep-wallet-addr" id="depWalletAddr">Кошелёк не подключён</span>
       <button class="dep-wallet-btn" id="depWalletBtn" type="button">Подключить</button>
@@ -556,9 +533,8 @@
   </div>
 </div>
 
-<!-- ================= ПОПОЛНЕНИЕ ПОДАРКОМ ================= -->
-<!-- Карточки подарков строит app.js (openGiftDeposit). Названия подарков
-     вставляются только как текст. -->
+
+
 <div class="modal" id="giftModal" hidden>
   <div class="modal-card gift-modal">
     <h2>Пополнить подарком</h2>
@@ -574,19 +550,18 @@
   </div>
 </div>
 
-<!-- Выбор подарка для апгрейда: любая коллекция, цена — флор -->
-<!-- Настройки: язык, дизайн, режим анонима -->
+
+
 <div class="modal" id="settingsModal" hidden>
   <div class="modal-card list-modal settings-modal">
     <h2>Настройки</h2>
-      <!-- Язык интерфейса: кнопки строит app.js из списка в i18n.js -->
+      
       <div class="lang-row">
         <span class="lang-label">Язык</span>
         <div class="lang-btns" id="langBtns"></div>
       </div>
 
-      <!-- Дизайн: новый (поляна) или старый (ночной фиолетовый). Кнопки и
-           переключение — app.js (initThemeSwitch). -->
+      
       <div class="lang-row">
         <span class="lang-label">Дизайн</span>
         <div class="lang-btns" id="themeBtns">
@@ -595,7 +570,7 @@
         </div>
       </div>
 
-      <!-- Режим анонима: в топах и карточке игрока вместо @ника — «Аноним» -->
+      
       <div class="lang-row">
         <span class="lang-label">Аноним</span>
         <div class="lang-btns" id="anonBtns">
@@ -607,7 +582,7 @@
   </div>
 </div>
 
-<!-- Топ уровней: список игроков, по нажатию — карточка игрока -->
+
 <div class="modal" id="levelsModal" hidden>
   <div class="modal-card list-modal">
     <div class="gp-head">
@@ -622,7 +597,7 @@
   </div>
 </div>
 
-<!-- История игр игрока -->
+
 <div class="modal" id="historyModal" hidden>
   <div class="modal-card list-modal">
     <h2>История игр</h2>
@@ -639,7 +614,7 @@
     </div>
     <p class="muted">Шляпа — приз по умолчанию. Или выбери коллекцию, потом модель — или «Любая модель».</p>
     <input class="gp-search" id="gpSearch" type="search" placeholder="Поиск" autocomplete="off">
-    <!-- Сортировка списка: по умолчанию — самые популярные -->
+    
     <div class="gp-sort" id="gpSort" role="group" aria-label="Сортировка">
       <button type="button" data-sort="popular" class="active">Популярные</button>
       <button type="button" data-sort="expensive">Дорогие</button>
