@@ -2894,6 +2894,26 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .chance-custom input:disabled { opacity: .5; }
 /* Admin section chooser */
+#admWithdrawals {min-width:0}
+.adm-wd-switch {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:6px 0 13px}
+.adm-wd-switch button {padding:11px 6px;border:2px solid var(--card-line);border-radius:11px;background:var(--card);color:var(--muted);font:inherit;font-size:10px;cursor:pointer}
+.adm-wd-switch button.on {color:var(--gold);border-color:var(--gold)}
+.adm-wd-card {display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--card-line);border-radius:12px;padding:11px;margin:0 0 9px;min-width:0}
+.adm-wd-art {width:65px;height:65px;flex:0 0 65px;object-fit:contain;border:1px solid var(--card-line);border-radius:10px;background:var(--track-bg)}
+.adm-wd-info {flex:1;min-width:0;overflow-wrap:anywhere;font-size:10px;line-height:1.7}
+.adm-wd-name {display:block;font-size:11px;color:var(--text);margin-bottom:2px}
+.adm-wd-meta {display:block;font-size:9px;color:var(--muted)}
+.adm-wd-actions {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.adm-wd-actions button {padding:9px 11px;border-radius:9px;border:1px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:9px;cursor:pointer}
+.adm-wd-actions button.approve {background:var(--gold);color:#2a1a00;border-color:var(--gold-dark)}
+.adm-wd-actions button.reject {background:#733039}
+.adm-wd-chip {display:inline-block;padding:2px 7px;border-radius:8px;border:1px solid var(--card-line);font-size:9px;color:var(--gold)}
+.adm-wd-toolbar {display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
+.adm-wd-toolbar button {min-height:37px;border-radius:9px;padding:8px 11px;font-size:10px;font:inherit;color:var(--text);background:var(--violet-dark);border:2px solid var(--card-line);cursor:pointer}
+#admMarketSource {width:100%;border-radius:10px;padding:12px;margin-bottom:9px;min-width:0;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);font:inherit;font-size:10px}
+#admMarketSourceHelp {font-size:9px;color:var(--muted);line-height:1.7}
+#admMarketChoose {width:100%;min-height:42px;border:2px solid var(--gold-dark);border-radius:10px;background:var(--gold);color:#2a1a00;font:inherit;font-size:10px;cursor:pointer;margin:4px 0 12px}
+
 #adminModal { overflow:hidden; overscroll-behavior:contain; touch-action:pan-y; }
 #adminModal .modal-card { width:min(100% - 20px, 460px); max-width:460px; min-width:0; max-height:calc(100dvh - 28px); overflow-x:hidden; overflow-y:auto; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; box-sizing:border-box; }
 #adminModal .modal-card > * {min-width:0; max-width:100%;}
@@ -3616,6 +3636,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
       <button type="button" data-tab="users" class="on">Пользователи</button>
       <button type="button" data-tab="market">Маркет</button>
       <button type="button" data-tab="promos">Промокоды</button>
+      <button type="button" data-tab="withdrawals">Выводы</button>
     </div>
     <div id="admUsers" hidden="">
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
@@ -3623,6 +3644,11 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     </div>
     <div id="admUser" hidden=""></div>
     <div id="admMarket" hidden="">
+      <div class="adm-box"><h3>Основной маркет · один источник цен</h3>
+        <select id="admMarketSource"><option value="portals">Portals — модели и цены</option><option value="mrkt">MRKT — модели и цены</option></select>
+        <p id="admMarketSourceHelp">Остальные маркеты не участвуют в расчёте. Старый смешанный каталог будет удалён при переключении.</p>
+        <button type="button" id="admMarketChoose">Применить маркет и очистить старые цены</button>
+      </div>
       <div class="adm-box adm-key">
         <h3>Ключ Portals</h3>
         <p class="adm-status" id="admPortalsStatus">—</p>
@@ -3652,6 +3678,19 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
         <div id="admPromoGiftField" hidden=""><button type="button" id="admPromoChoose">Выбрать подарок из каталога</button><p id="admPromoSelected" class="muted">Подарок не выбран</p></div>
         <button type="button" id="admPromoCreate">Создать промокод</button>
       </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>
+    </div>
+    <div id="admWithdrawals" hidden="">
+      <div class="adm-wd-switch" id="admWdTabs">
+        <button type="button" data-wd="active" class="on">Активные</button>
+        <button type="button" data-wd="completed">Завершённые</button>
+      </div>
+      <div class="adm-wd-toolbar">
+        <button type="button" id="admWdReload">↻ Обновить</button>
+        <button type="button" id="admWdBotOpen">↗ Открыть бота</button>
+        <button type="button" id="admWdBotSetup">Настроить webhook</button>
+      </div>
+      <p class="muted" id="admWdBotStatus">Уведомления Telegram: проверка…</p>
+      <div id="admWdList"></div>
     </div>
     <button class="ghost adm-close" id="admClose" type="button">✕ Закрыть панель</button>
   </div>
@@ -8546,14 +8585,16 @@ function admShow(tab) {
   document.querySelectorAll('#admTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
   $('admTabs').hidden = tab !== 'home';
   $('admBack').hidden = tab === 'home';
-  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды'})[tab];
+  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы'})[tab];
   $('admUsers').hidden = tab !== 'users';
   $('admUser').hidden = true;
   $('admMarket').hidden = tab !== 'market';
   $('admPromos').hidden = tab !== 'promos';
+  $('admWithdrawals').hidden = tab !== 'withdrawals';
   if (tab === 'users') admLoadUsers();
   else if (tab === 'market') admLoadMarket();
   else if (tab === 'promos') admLoadPromos();
+  else if (tab === 'withdrawals') admLoadWithdrawals();
 }
 
 async function admLoadUsers() {
@@ -8714,6 +8755,7 @@ function admRenderPortals(res) {
   if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
   $('admPortalsStatus').textContent = parts.join(' · ');
   $('admPortalsKey').value = '';
+  $('admMarketSource').value = res.active_market || "portals";
   $('admMrktStatus').textContent = [res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан',res.mrkt_refreshing ? 'идёт загрузка…' : '',`проверено: ${res.mrkt_checked || 0}/${res.mrkt_total || 0}`,`моделей: ${res.mrkt_models || 0}`,res.mrkt_error ? `ошибка: ${res.mrkt_error}` : ''].filter(Boolean).join(' · ');
 }
 
@@ -8801,6 +8843,71 @@ async function admSaveMrkt(clear) {
   } catch(e) { admErr(e); }
 }
 
+let adminWdTab = 'active';
+let adminWdBotUsername = '';
+
+async function admLoadWithdrawals() {
+  const root = $('admWdList');
+  if (admin.tab !== 'withdrawals') return;
+  root.textContent = 'Загружаю заявки…';
+  try {
+    const res = await api('/api/admin/withdrawals');
+    adminWdBotUsername = res.bot_username || '';
+    $('admWdBotStatus').textContent = res.bot_enabled
+      ? (adminWdBotUsername ? 'Бот: @' + adminWdBotUsername : 'Бот подключён · username не определён')
+      : 'BOT_TOKEN не задан на сервере. Уведомления отключены.';
+    document.querySelectorAll('#admWdTabs button').forEach(b => b.classList.toggle('on', b.dataset.wd === adminWdTab));
+    root.replaceChildren();
+    const active = (x) => x.status === 'pending' || x.status === 'approved';
+    const rows = (res.rows || []).filter(x => adminWdTab === 'active' ? active(x) : !active(x));
+    if (!rows.length) return listNote(root, adminWdTab === 'active' ? 'Нет активных заявок' : 'Нет завершённых заявок');
+    for (const wd of rows) {
+      const card = admField('div', {className:'adm-wd-card'});
+      const img = admField('img', {className:'adm-wd-art', alt:''});
+      img.src = wd.image || '/images/hat.webp';
+      img.loading = 'lazy';
+      const info = admField('div', {className:'adm-wd-info'});
+      const title = admField('strong', {className:'adm-wd-name', textContent: wd.name || 'Подарок'});
+      const owner = admField('span', {className:'adm-wd-meta',
+        textContent:(wd.username ? '@'+wd.username : (wd.first_name || 'Игрок')) + ' · ID ' + (wd.telegram_id || wd.user_id)});
+      const price = admField('span', {className:'adm-wd-meta',textContent: Number(wd.value_ton || 0).toFixed(2)+' TON'});
+      const state = admField('span',{className:'adm-wd-chip',textContent: ({pending:'На проверке',approved:'Одобрено, ожидает отправки',completed:'Выполнено',rejected:'Отклонено'})[wd.status] || wd.status});
+      info.append(title,owner,price,state);
+      const buttons=admField('div',{className:'adm-wd-actions'});
+      function btn(label,cls,fn){const b=admField('button',{type:'button',className:cls,textContent:label});b.onclick=fn;buttons.append(b);}
+      if(wd.status==='pending'){
+        btn('✓ Одобрить','approve',()=>admResolveWd(wd,'approve'));
+        btn('✕ Отклонить','reject',()=>admResolveWd(wd,'reject'));
+      } else if(wd.status==='approved'){
+        btn('✓ Отправлено','approve',()=>admResolveWd(wd,'complete'));
+      }
+      if (wd.telegram_id) btn('Профиль ↗','',()=>{window.open(wd.username ? 'https://t.me/'+encodeURIComponent(wd.username) : 'tg://user?id='+encodeURIComponent(wd.telegram_id),'_blank');});
+      if(buttons.childNodes.length) info.append(buttons);
+      card.append(img,info);root.append(card);
+    }
+  } catch(e){root.textContent='Не удалось загрузить заявки';admErr(e);}
+}
+
+async function admResolveWd(wd,action){
+  const confirmText=({approve:'Одобрить заявку? Это не отправляет NFT автоматически.',reject:'Отклонить заявку и вернуть подарок в инвентарь?',complete:'Подтверждаете, что NFT реально отправлен игроку?'})[action];
+  if(!window.confirm(confirmText))return;
+  try {
+    await api('/api/admin/withdrawals/resolve',{id:wd.id,action});
+    toast('Статус заявки обновлён');
+    await admLoadWithdrawals();
+  }catch(e){admErr(e);}
+}
+
+async function admSetupBot(){
+  if(!window.confirm('Установить webhook Telegram на адрес текущего HTTPS-сервера? Секрет должен быть задан в TELEGRAM_WEBHOOK_SECRET.'))return;
+  try{
+    const result=await api('/api/admin/bot/setup');
+    adminWdBotUsername=result.bot_username||'';
+    toast(result.ok ? 'Telegram webhook установлен' : 'Не удалось подключить webhook',!result.ok);
+    admLoadWithdrawals();
+  }catch(e){toast('Не удалось настроить бот: '+(e.code||'ошибка'),true);}
+}
+
 function initAdmin() {
   $('adminBtn').addEventListener('click', () => {
     haptic('impact', 'light');
@@ -8815,6 +8922,16 @@ function initAdmin() {
     clearTimeout(admin.timer);
     admin.timer = setTimeout(admLoadUsers, 250);
   });
+  $('admMarketChoose').addEventListener('click', async () => {
+    const source = $('admMarketSource').value;
+    if (!window.confirm('Сменить основной маркет на ' + source.toUpperCase() + '? Старые цены и дубли будут удалены.')) return;
+    try { await api('/api/admin/market/source', {source, clear_cache:true}); toast('Источник переключён. Обновление запущено'); admLoadMarket(); }
+    catch(e) { admErr(e); }
+  });
+  $('admWdReload').addEventListener('click', admLoadWithdrawals);
+  document.querySelectorAll('#admWdTabs button').forEach(b=>b.addEventListener('click',()=>{adminWdTab=b.dataset.wd;admLoadWithdrawals();}));
+  $('admWdBotOpen').addEventListener('click',()=>{if(adminWdBotUsername)window.open('https://t.me/'+encodeURIComponent(adminWdBotUsername),'_blank');else toast('Сначала настройте бота',true);});
+  $('admWdBotSetup').addEventListener('click', admSetupBot);
   $('admRefresh').addEventListener('click', () => admLoadMarket('/api/admin/market/refresh'));
   $('admMrktRefresh').addEventListener('click', () => admLoadMarket('/api/admin/mrkt/refresh'));
   $('admPortalsSave').addEventListener('click', () => admSavePortals(false));
