@@ -323,8 +323,20 @@ def gift_models(slug):
 
 
 def gift_image(slug, model=""):
-    suffix = f"&m={quote(model)}" if model else ""
-    return f"/gimg/{slug}.webp?v=5{suffix}"
+    entry = gifts_map().get(slug) or {}
+    if not model:
+        short = str(entry.get("short") or slug).lower()
+        # The official collection preview, not a random model.
+        return (entry.get("image") or
+                f"https://portal-market.com/collection_previews/{quote(short)}.webp")
+    for m in entry.get("models", []):
+        if m.get("model") == model:
+            direct = str(m.get("image") or "")
+            if direct.startswith(("https://cdn.tgmrkt.io/", "https://fragment.com/file/", "https://cdn.changes.tg/")):
+                return direct
+            break
+    return ("https://cdn.changes.tg/gifts/models/" +
+            quote(entry.get("name", slug), safe="") + "/png/" + quote(model, safe="") + ".png")
 
 
 def gift_price(slug, model):
@@ -2051,12 +2063,15 @@ def portals_refresh_worker():
                  "floor": c["floor"], "pop": c["volume"], "models": [],
                  "image": f"https://portal-market.com/collection_previews/{c['short']}.webp"}
                 for c in collections if c["floor"] > 0]
+        # Publish the priced collections immediately, so the picker does not
+        # wait for every per-model request to complete.
+        _publish_source_catalog(rows, "portals", generation)
         by_short = {normalize(row["name"]): row for row in rows}
         errors = []
         def task(c):
             return c, fetch_collection_filters(c, timeout=9)
         if rows:
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = [executor.submit(task, c) for c in collections if c["floor"] > 0]
                 for future in as_completed(futures):
                     try:
@@ -2357,8 +2372,6 @@ def gimg(slug):
         return ("", 404)
     asked = request.args.get("m", "")[:64]
     model = asked
-    if not model and entry.get("models"):
-        model = entry["models"][0]["model"]
     hit = None
     if model:
         hit = _cached_image((slug, model), lambda: fetch_gift_image(entry["name"], model, slug))
