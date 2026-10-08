@@ -3051,16 +3051,14 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 #magicBoot {position:fixed;inset:0;z-index:2147483000;background:radial-gradient(circle at 50% 40%,#342069 0,#170e39 48%,#0b0a22 100%);display:flex;justify-content:center;align-items:center;color:#ffe6ae;transition:opacity .38s ease,visibility .38s ease;overflow:hidden}
 #magicBoot.done {opacity:0;visibility:hidden;pointer-events:none}
 .magic-boot-inner {display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px;max-width:320px;text-align:center}
-.magic-boot-wheel {width:min(48vw,200px);height:min(48vw,200px);filter:drop-shadow(0 0 22px rgba(169,99,255,.35));animation:bootRoll 4s linear infinite}
-.magic-boot-spark {animation:bootSpark 1.5s ease-in-out infinite alternate;transform-origin:center}
-.magic-boot-name {font-size:15px;line-height:1.6;letter-spacing:1.7px;color:#ffe4a0;text-shadow:0 3px #604295}
-.magic-boot-sub {font-size:9px;color:#bca8ec;letter-spacing:1px}
-.magic-boot-track {height:5px;width:164px;background:#2d205c;border-radius:6px;overflow:hidden;border:1px solid #654b9e}
-.magic-boot-track::after {content:"";display:block;height:100%;width:40%;background:linear-gradient(90deg,#8651ee,#ffe2a3);border-radius:6px;animation:bootBar 1.6s ease-in-out infinite alternate}
-@keyframes bootRoll {to{transform:rotate(360deg)}}
-@keyframes bootSpark {from{opacity:.35;transform:scale(.86)}to{opacity:1;transform:scale(1.08)}}
-@keyframes bootBar {from{transform:translateX(-100%)}to{transform:translateX(250%)}}
-@media(prefers-reduced-motion:reduce){.magic-boot-wheel,.magic-boot-spark,.magic-boot-track::after{animation:none}}
+.magic-boot-staff {width:150px;height:184px;filter:drop-shadow(0 7px 15px rgba(128,83,255,.45));overflow:visible}
+.magic-boot-staff .wand {transform-origin:92px 169px;animation:wandSway 2.5s ease-in-out infinite}
+.magic-boot-staff .halo {transform-origin:94px 33px;animation:haloPulse 1.4s ease-in-out infinite alternate}
+.magic-boot-name {font-size:17px;line-height:1.6;letter-spacing:1px;color:#ffe4a0;text-shadow:0 3px #604295}
+.magic-boot-sub {font-size:10px;color:#bca8ec;letter-spacing:1px}
+@keyframes wandSway {0%,100%{transform:rotate(-12deg)}50%{transform:rotate(10deg)}}
+@keyframes haloPulse {from{opacity:.45;transform:scale(.83)}to{opacity:1;transform:scale(1.15)}}
+@media(prefers-reduced-motion:reduce){.magic-boot-staff .wand,.magic-boot-staff .halo{animation:none}}
 #admTonConnect .tc-label{display:block;color:var(--gold);margin:12px 0 5px;font-size:10px}
 #admTonConnect .tc-input{display:block;width:100%;min-width:0;box-sizing:border-box;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);border-radius:9px;padding:12px;font:inherit;font-size:10px;outline:none}
 #admTonConnect .tc-input:focus{border-color:var(--gold)}
@@ -3074,25 +3072,22 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 <body>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
   <div class="magic-boot-inner">
-    <svg class="magic-boot-wheel" viewBox="0 0 200 200" aria-hidden="true">
-      <circle cx="100" cy="100" r="92" fill="#2d1758" stroke="#a478ef" stroke-width="6"/>
-      <circle cx="100" cy="100" r="84" fill="#191039" stroke="#ffe1a6" stroke-width="3"/>
-      <g stroke="#e5c3ff" stroke-width="2.5">
-        <path d="M100 18V182M18 100H182M42 42L158 158M158 42L42 158"/>
+    <svg class="magic-boot-staff" viewBox="0 0 150 184" aria-hidden="true">
+      <g class="halo"><circle cx="94" cy="33" r="30" fill="#b36aff" opacity=".14"/><circle cx="94" cy="33" r="20" fill="#ffd66e" opacity=".22"/></g>
+      <g class="wand">
+        <path d="M88 171L93 51L101 51L97 171Z" fill="#593018" stroke="#281128" stroke-width="3"/>
+        <path d="M91 165L96 54L98 54L95 165Z" fill="#b9804a"/>
+        <path d="M75 48L94 8L114 48L96 69Z" fill="#8a4de4" stroke="#25133f" stroke-width="4"/>
+        <path d="M94 11L94 64L78 48Z" fill="#d9b7ff"/>
+        <path d="M97 11L111 47L97 64Z" fill="#6732b5"/>
+        <path d="M94 11L110 48L78 48Z" fill="#79daff" opacity=".88"/>
+        <path d="M92 10L96 17L93 28L89 18Z" fill="#ffffff" opacity=".9"/>
+        <path d="M86 75L103 75L101 83L85 83Z" fill="#e6b74c" stroke="#302047" stroke-width="2"/>
       </g>
-      <g fill="#6b3db1" stroke="#bf88f8" stroke-width="2">
-        <path d="M100 25L124 77L100 100L76 77Z"/>
-        <path d="M175 100L123 124L100 100L123 76Z"/>
-        <path d="M100 175L76 123L100 100L124 123Z"/>
-        <path d="M25 100L77 76L100 100L77 124Z"/>
-      </g>
-      <circle cx="100" cy="100" r="28" fill="#e4a845" stroke="#ffe5a6" stroke-width="5"/>
-      <g class="magic-boot-spark"><path d="M100 76L107 94L124 100L107 106L100 124L93 106L76 100L93 94Z" fill="#fff3c6"/></g>
-      <circle cx="100" cy="100" r="7" fill="#fff9e3"/>
+      <g fill="#ffde8a"><path d="M37 38h4v-9h4v9h9v4h-9v9h-4v-9h-4Z"/><path d="M120 91h3v-7h3v7h7v3h-7v7h-3v-7h-3Z"/></g>
     </svg>
-    <div class="magic-boot-name">MAGIC UPGRADE</div>
+    <div class="magic-boot-name">ШЛЯПА ДРОП</div>
     <div class="magic-boot-sub" id="magicBootText">Загружаем волшебство…</div>
-    <div class="magic-boot-track"></div>
   </div>
 </div>
 <script>
