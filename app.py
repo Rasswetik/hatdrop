@@ -591,7 +591,9 @@ def state_payload(row):
     # прокси к Bot API (см. avatar_url_for). Пустая строка = у пользователя
     # нет ни одной фотографии профиля, фронт в этом случае показывает иконку.
     photo = row['photo_url'] or avatar_url_for(row['tg_id'])
+    extra = _player_statistics(row['id'])
     return {
+        **extra,
         'balance_ton': round(row['balance'], 4),
         'user': {'id': row['id'], 'tg_id': row['tg_id'], 'username': row['username'], 'first_name': row['first_name'],
                  'last_name': row['last_name'], 'photo_url': photo, 'wallet': row['wallet_address'] or '',
@@ -631,6 +633,86 @@ def angle_for(chance, won):
     frac = secrets.randbelow(1000000) / 1000000
     return 360 * (chance + frac * (1 - chance))
 
+
+
+
+
+def _player_statistics(user_id):
+    with db() as conn:
+        wager = conn.execute('SELECT COALESCE(SUM(price),0) AS turnover, COUNT(*) AS games FROM upgrades WHERE user_id=?', (user_id,)).fetchone()
+        prizes = conn.execute("SELECT COALESCE(SUM(item_price),0) AS value, COUNT(*) AS count FROM inventory WHERE user_id=? AND status IN ('pending','withdraw_processing','withdrawn')", (user_id,)).fetchone()
+        best = conn.execute('SELECT item_name, item_price FROM inventory WHERE user_id=? ORDER BY item_price DESC LIMIT 1', (user_id,)).fetchone()
+    turnover = float(wager['turnover'] or 0)
+    level = min(20, 1 + int(turnover // 50))
+    progress = min(1, (turnover % 50) / 50)
+    return {'level': {'level': level, 'progress': progress, 'turnover_ton': round(turnover, 4), 'next_ton': level * 50},
+            'stats': {'withdrawn_ton': round(float(prizes['value'] or 0), 4), 'withdrawn_count': int(prizes['count'] or 0),
+                      'turnover_ton': round(turnover, 4), 'games': int(wager['games'] or 0),
+                      'best': {'name': best['item_name'], 'value_ton': float(best['item_price']), 'tier':'random', 'image':'/static/img/hat.png'} if best else None}}
+
+
+@app.post('/api/history')
+def user_history():
+    row = upsert_user(get_user())
+    with db() as conn:
+        games = conn.execute('SELECT price, won, created_at FROM upgrades WHERE user_id=? ORDER BY id DESC LIMIT 100', (row['id'],)).fetchall()
+    from datetime import datetime as _dt
+    out = []
+    for game in games:
+        try:
+            ts = int(_dt.fromisoformat(str(game['created_at']).replace('Z', '+00:00')).timestamp())
+        except (ValueError, TypeError):
+            ts = int(time.time())
+        out.append({'kind':'upgrade', 'win':bool(game['won']), 'cost_ton':float(game['price']),
+                    'ts':ts, 'target':PRIZE_NAME, 'image':'tier:random', 'bear':False})
+    return jsonify({'rows':out})
+
+
+@app.post('/api/levels')
+def user_levels():
+    me = upsert_user(get_user())
+    with db() as conn:
+        rows = conn.execute('SELECT u.id, u.tg_id, u.username, u.first_name, u.photo_url, COALESCE(SUM(g.price),0) AS turnover FROM users u LEFT JOIN upgrades g ON u.id=g.user_id GROUP BY u.id, u.tg_id, u.username, u.first_name, u.photo_url ORDER BY turnover DESC LIMIT 100').fetchall()
+    out = []
+    my_rank = None
+    for pos,r in enumerate(rows,1):
+        v=float(r['turnover'] or 0)
+        if r['id']==me['id']: my_rank=pos
+        out.append({'rank':pos, 'key':str(r['tg_id']), 'name':r['username'] or r['first_name'] or 'Игрок',
+                    'avatar':r['photo_url'] or '', 'level': min(20,1+int(v//50)), 'me':r['id']==me['id']})
+    stats = _player_statistics(me['id'])
+    return jsonify({'rows':out,'me':{'rank':my_rank,'level':stats['level']['level'],'excluded':False}})
+
+
+@app.post('/api/player')
+def user_player():
+    me = upsert_user(get_user())
+    try:
+        tg_id = int((request.get_json(silent=True) or {}).get('key'))
+    except (TypeError, ValueError):
+        return jsonify({'error':'invalid_player'}), 400
+    with db() as conn:
+        row = conn.execute('SELECT * FROM users WHERE tg_id=?', (tg_id,)).fetchone()
+    if not row: return jsonify({'error':'player_not_found'}), 404
+    info = _player_statistics(row['id'])
+    return jsonify({'player':{'name':row['username'] or row['first_name'] or 'Игрок',
+                              'avatar':row['photo_url'] or '', **info}})
+
+
+@app.post('/api/settings')
+def user_settings():
+    row = upsert_user(get_user())
+    return jsonify({'anon':False})
+
+
+@app.post('/api/gifts/catalog')
+def gifts_catalog_unavailable():
+    return jsonify({'items':[], 'margin':0, 'price_steps':[], 'price_base':1, 'available':False})
+
+
+@app.post('/api/gifts/models')
+def gifts_models_unavailable():
+    return jsonify({'error':'gift_unavailable'}), 503
 
 @app.errorhandler(Exception)
 def handle_error(e):
@@ -684,9 +766,14 @@ def wallet():
 def spin():
     payload = request.get_json(silent=True) or {}
     try:
-        pct = int(payload.get('chance'))
-    except (TypeError, ValueError):
+        chance_input = float(payload.get('chance'))
+        pct = round(chance_input * 100) if 0 < chance_input < 1 else round(chance_input)
+        if abs(chance_input * (100 if 0 < chance_input < 1 else 1) - pct) > 0.001:
+            raise ValueError('Invalid chance precision')
+    except (TypeError, ValueError, OverflowError):
         return jsonify({'error': 'invalid_chance'}), 400
+    if payload.get('tier', 'random') not in ('random', None):
+        return jsonify({'error': 'gift_unavailable'}), 400
     if not CHANCE_MIN <= pct <= CHANCE_MAX:
         return jsonify({'error': 'invalid_chance'}), 400
     price = bet_cost(pct)
