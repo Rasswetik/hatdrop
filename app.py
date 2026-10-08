@@ -325,10 +325,8 @@ def gift_models(slug):
 def gift_image(slug, model=""):
     entry = gifts_map().get(slug) or {}
     if not model:
-        short = str(entry.get("short") or slug).lower()
-        # The official collection preview, not a random model.
-        return (entry.get("image") or
-                f"https://portal-market.com/collection_previews/{quote(short)}.webp")
+        # Originals have a separate image; never display an arbitrary model.
+        return f"/gimg/{quote(slug, safe='')}.webp?v=9"
     for m in entry.get("models", []):
         if m.get("model") == model:
             direct = str(m.get("image") or "")
@@ -2365,15 +2363,67 @@ def _cached_image(key, loader):
     return data
 
 
+ORIGINAL_GIFT_IDS = {}
+ORIGINAL_GIFT_IDS_UPDATED = 0
+
+
+def _original_id_map():
+    """Read public gift IDs outside the game-state lock, caching results."""
+    global ORIGINAL_GIFT_IDS, ORIGINAL_GIFT_IDS_UPDATED
+    if ORIGINAL_GIFT_IDS and time.time() - ORIGINAL_GIFT_IDS_UPDATED < 86400:
+        return ORIGINAL_GIFT_IDS
+    try:
+        req = urllib.request.Request(
+            "https://cdn.changes.tg/gifts/id-to-name.json",
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.load(response)
+        result = {}
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if str(key).isdigit() and isinstance(value, str):
+                    result[normalize(value)] = str(key)
+                elif str(value).isdigit():
+                    result[normalize(key)] = str(value)
+        if result:
+            ORIGINAL_GIFT_IDS = result
+            ORIGINAL_GIFT_IDS_UPDATED = time.time()
+    except Exception:
+        ORIGINAL_GIFT_IDS_UPDATED = time.time()
+    return ORIGINAL_GIFT_IDS
+
+
+def _load_original_art(slug, entry):
+    ids = _original_id_map()
+    uid = (str(entry.get("id") or "") if str(entry.get("id") or "").isdigit() else
+           ids.get(normalize(entry.get("name", "")), ""))
+    candidates = []
+    if uid:
+        candidates.append(f"https://cdn.changes.tg/gifts/originals/{uid}/Original.png")
+    original = str(entry.get("image") or "")
+    if original.startswith(("https://fragment.com/file/", "https://cdn.changes.tg/gifts/originals/")):
+        candidates.append(original)
+    name = quote(entry.get("name", ""), safe="")
+    candidates.append(f"https://cdn.changes.tg/gifts/originals/{name}/Original.png")
+    return _first_image(candidates)
+
+
 @app.get("/gimg/<slug>.webp")
 def gimg(slug):
-    """Legacy image URL: redirect immediately instead of proxying slow CDN downloads."""
-    from flask import redirect
-    if slug not in gifts_map():
+    entry = gifts_map().get(slug)
+    if not entry:
         return ("", 404)
-    url = gift_image(slug, request.args.get("m", "")[:128])
-    response = redirect(url, code=302)
-    response.headers["Cache-Control"] = "public, max-age=3600"
+    model = request.args.get("m", "")[:128]
+    if model:
+        from flask import redirect
+        return redirect(gift_image(slug, model), code=302)
+    hit = _cached_image((slug, "original-v9"), lambda: _load_original_art(slug, entry))
+    if hit:
+        response = app.response_class(hit[0], mimetype=hit[1])
+        response.headers["Cache-Control"] = "public, max-age=604800"
+        return response
+    response = app.response_class(gift_svg(slug), mimetype="image/svg+xml")
+    response.headers["Cache-Control"] = "public, max-age=300"
     return response
 
 
