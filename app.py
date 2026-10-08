@@ -301,8 +301,11 @@ def gift_models(slug):
     ratio = floor / entry["floor"] if entry["floor"] else 1.0
     out = []
     for m in entry.get("models", []):
-        price = money((m.get("floor") or entry["floor"]) * ratio)
-        out.append({"model": m["model"], "price_ton": price, "image": gift_image(slug, m["model"])})
+        price = ton((m.get("floor") or entry["floor"]) * ratio)
+        out.append({"model": m["model"], "price_ton": price,
+                    "image": gift_image(slug, m["model"]),
+                    "rarity_per_mille": m.get("rarity_per_mille"),
+                    "source": m.get("source", "")})
     return out
 
 
@@ -1223,7 +1226,8 @@ class PortalsError(Exception):
 
 
 PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0}
-MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0}
+MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0, "total": 0, "failed": 0}
+MRKT_MODELS_PAYLOAD = {"key": "collection_id"}  # auto-detected successful MRKT request format
 _filters_first = {"i": 0}
 
 
@@ -1242,6 +1246,9 @@ def portals_status():
         "mrkt_error": MRKT_STATE["error"],
         "mrkt_checked": MRKT_STATE["checked"],
         "mrkt_models": MRKT_STATE["models"],
+        "mrkt_total": MRKT_STATE["total"],
+        "mrkt_failed": MRKT_STATE["failed"],
+        "mrkt_updated": MRKT_STATE["updated"],
     }
 
 
@@ -1483,40 +1490,100 @@ def fetch_models_by_search(c, max_pages=15):
     return acc
 
 
+def mrkt_model_image(key):
+    """Build an image URL only for a recognized MRKT thumbnail path."""
+    path = str(key or "").lstrip("/")
+    if path.startswith("gifts/stickers/thumbnails/") and path.lower().endswith(".webp"):
+        return "https://cdn.tgmrkt.io/" + quote(path, safe="/")
+    return ""
+
+
+def _mrkt_post_models(name, field, token, timeout):
+    payload = json.dumps({field: name}, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.tgmrkt.io/api/v1/gifts/models", data=payload, method="POST",
+        headers={"Authorization": token, "Content-Type": "application/json",
+                 "Accept": "application/json", "Origin": "https://cdn.tgmrkt.io",
+                 "Referer": "https://cdn.tgmrkt.io/", "User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return json.load(response)
+
+
 def mrkt_search_models(c, timeout=12):
-    """Optional MRKT listings fallback (not Portals API). Auth token entered by administrator."""
+    """Fetch complete MRKT model catalog, not the first page of sale listings."""
     token = str(db.get("settings", {}).get("mrkt_auth") or "").strip()
     if not token:
         return {}
-    payload = {"collectionNames": [c["name"]], "modelNames": [], "backdropNames": [],
-               "symbolNames": [], "ordering": "Price", "lowToHigh": True,
-               "count": 20, "cursor": "", "query": None, "promotedFirst": False}
-    req = urllib.request.Request("https://api.tgmrkt.io/api/v1/gifts/saling",
-        data=json.dumps(payload).encode(), method="POST",
-        headers={"Authorization": token, "Content-Type": "application/json",
-                 "Accept": "application/json", "Referer": "https://cdn.tgmrkt.io/"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            data = json.load(response)
-    except (urllib.error.HTTPError, urllib.error.URLError, ValueError) as e:
-        raise PortalsError(f"MRKT: {e}")
-    result = {}
-    for nft in (data.get("gifts") or []):
-        attrs = nft.get("attributes") if isinstance(nft.get("attributes"), dict) else {}
-        model = nft.get("model") or nft.get("modelName") or attrs.get("model") or ""
-        if isinstance(model, dict):
-            model = model.get("name") or ""
-        price = nft.get("price") or nft.get("sellingPrice") or 0
+    name = str(c.get("name") or "").strip()
+    if not name:
+        return {}
+    fields = list(dict.fromkeys([MRKT_MODELS_PAYLOAD["key"], "collectionName",
+                                 "collection_id", "collection", "collectionId"]))
+    error = None
+    for field in fields:
         try:
-            price = float(price)
-        except (ValueError, TypeError):
+            data = _mrkt_post_models(name, field, token, timeout)
+        except urllib.error.HTTPError as exc:
+            if exc.code in (401, 403, 429):
+                raise PortalsError(f"MRKT /gifts/models -> HTTP {exc.code} (доступ/лимит)")
+            error = f"MRKT /gifts/models ({field}) -> HTTP {exc.code}"
             continue
-        if model and price > 0:
-            result[str(model)] = min(result.get(str(model), price), price)
-    return result
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise PortalsError(f"MRKT /gifts/models недоступен: {exc}")
+        except (ValueError, json.JSONDecodeError) as exc:
+            error = f"MRKT вернул не JSON: {exc}"
+            continue
 
+        rows = data if isinstance(data, list) else (
+            data.get("models") or data.get("items") or data.get("data") or []
+            if isinstance(data, dict) else [])
+        if isinstance(rows, dict):
+            rows = rows.get("items") or rows.get("models") or []
+        if not isinstance(rows, list):
+            error = f"MRKT /gifts/models ({field}): неизвестный формат ответа"
+            continue
+        result = {}
+        for item in rows:
+            if not isinstance(item, dict):
+                continue
+            collection_name = str(item.get("collectionName") or item.get("collectionTitle") or "")
+            if collection_name and normalize(collection_name) != normalize(name):
+                continue
+            model = _clean(item.get("modelName") or item.get("modelTitle") or "")
+            raw = item.get("floorPriceNanoTons")
+            if not model or raw is None:
+                continue
+            try:
+                price = ton(Decimal(str(raw)) / Decimal(1_000_000_000))
+            except (ValueError, ArithmeticError, TypeError):
+                continue
+            if price <= 0:
+                continue
+            old = result.get(model)
+            if old and old["floor"] <= price:
+                continue
+            rarity = item.get("rarityPerMille")
+            result[model] = {
+                "floor": price, "source": "mrkt",
+                "image": mrkt_model_image(item.get("modelStickerThumbnailKey")),
+                "rarity_per_mille": rarity if isinstance(rarity, int) else None
+            }
+        if result:
+            MRKT_MODELS_PAYLOAD["key"] = field
+            return result
+        error = f"MRKT /gifts/models ({field}) вернул 0 моделей для {name}"
+    raise PortalsError(error or f"MRKT не вернул модели коллекции {name}")
 
 def fetch_collection_models(c, search=True, timeout=20):
+    """Prefer verified MRKT model directory; use Portals as fallback."""
+    mrkt_err = None
+    if db.get("settings", {}).get("mrkt_auth"):
+        try:
+            result = mrkt_search_models(c, timeout=min(timeout, 12))
+            if result:
+                return result, {}
+        except PortalsError as e:
+            mrkt_err = e
     err = None
     models, backdrops = {}, {}
     try:
@@ -1530,20 +1597,24 @@ def fetch_collection_models(c, search=True, timeout=20):
             models = fetch_models_by_search(c)
         except PortalsError as e:
             err = err or e
-    if not models and db.get("settings", {}).get("mrkt_auth"):
-        try:
-            models = mrkt_search_models(c)
-        except PortalsError as e:
-            err = err or e
-    if not models and err:
-        raise err
+    if not models and (mrkt_err or err):
+        raise PortalsError(str(mrkt_err or err))
     return models, backdrops
 
-
 def build_models(models):
-    return [{"model": m, "floor": money(f)}
-            for m, f in sorted(models.items(), key=lambda kv: (kv[1] <= 0, kv[1], kv[0].lower()))]
-
+    """Keep price, rarity and thumbnail metadata across refreshes."""
+    result = []
+    for name, item in models.items():
+        metadata = item if isinstance(item, dict) else {"floor": item}
+        try:
+            floor = ton(metadata.get("floor", 0))
+        except (ValueError, TypeError, OverflowError):
+            floor = 0.0
+        result.append({"model": name, "floor": floor,
+                       "image": metadata.get("image", ""),
+                       "rarity_per_mille": metadata.get("rarity_per_mille"),
+                       "source": metadata.get("source", "")})
+    return sorted(result, key=lambda x: (x["floor"] <= 0, x["floor"], x["model"].lower()))
 
 MODEL_FAIL = {}
 MODEL_LOCKS = {}
@@ -1685,37 +1756,52 @@ def admin_mrkt_set(user, body):
 
 
 def mrkt_refresh_worker():
-    MRKT_STATE.update(running=True, error="", checked=0, models=0)
+    """Refresh all known collection models without clearing last successful data."""
+    MRKT_STATE.update(running=True, error="", checked=0, models=0, total=0, failed=0)
     try:
         if not db["settings"].get("mrkt_auth"):
             raise PortalsError("Токен MRKT не задан")
         with lock:
             snapshot = [(s, dict(g)) for s, g in gifts_map().items()]
-        errors = []
-        for slug, item in snapshot:
-            try:
-                found = mrkt_search_models(item)
-                if found:
-                    with lock:
-                        target = CATALOG.setdefault(slug, dict(item))
-                        prices = {m["model"]: m["floor"] for m in target.get("models", [])}
-                        prices.update(found)
-                        target["models"] = build_models(prices)
-                        save_catalog()
-                    MRKT_STATE["models"] += len(found)
-            except Exception as exc:
-                if len(errors) < 2:
-                    errors.append(f"{item.get('name', slug)}: {exc}")
-            MRKT_STATE["checked"] += 1
-            time.sleep(0.15)
+        MRKT_STATE["total"] = len(snapshot)
+        failures = []
+        # Bounded workers: faster progress without flooding the marketplace.
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        def load(pair):
+            slug, item = pair
+            return slug, item, mrkt_search_models(item, timeout=12)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            jobs = [executor.submit(load, p) for p in snapshot]
+            for job in as_completed(jobs):
+                try:
+                    slug, item, found = job.result()
+                    if found:
+                        with lock:
+                            target = CATALOG.setdefault(slug, dict(item))
+                            previous = {m["model"]: dict(m) for m in target.get("models", [])}
+                            previous.update(found)
+                            target["models"] = build_models(previous)
+                            if not target.get("floor"):
+                                target["floor"] = min(v["floor"] for v in found.values())
+                            save_catalog()
+                            for key in [k for k in IMG_CACHE if k and k[0] == slug]:
+                                IMG_CACHE.pop(key, None)
+                        MRKT_STATE["models"] += len(found)
+                except Exception as exc:
+                    MRKT_STATE["failed"] += 1
+                    if len(failures) < 3:
+                        failures.append(str(exc))
+                finally:
+                    MRKT_STATE["checked"] += 1
         if not MRKT_STATE["models"]:
-            MRKT_STATE["error"] = errors[0] if errors else "MRKT не вернул модели"
+            MRKT_STATE["error"] = failures[0] if failures else "MRKT вернул пустой каталог моделей"
+        elif MRKT_STATE["failed"]:
+            MRKT_STATE["error"] = f"Не удалось загрузить {MRKT_STATE['failed']} коллекций: " + (failures[0] if failures else "")
         MRKT_STATE["updated"] = int(time.time())
     except Exception as exc:
         MRKT_STATE["error"] = str(exc)
     finally:
         MRKT_STATE["running"] = False
-
 
 def start_mrkt_refresh():
     if MRKT_STATE["running"]:
@@ -1814,6 +1900,13 @@ def fetch_gift_image(name, model, slug=""):
     q_name, q_model = quote(name), quote(model)
     ctx = {"name": q_name, "model": q_model, "name_nospace": quote(name.replace(" ", ""))}
     urls = []
+    slug_entry = gifts_map().get(slug, {})
+    for m in slug_entry.get("models", []):
+        if m.get("model") == model:
+            img = str(m.get("image", ""))
+            if img.startswith("https://cdn.tgmrkt.io/gifts/stickers/thumbnails/"):
+                urls.append(img)
+            break
     for tpl in [GIFT_IMG_TEMPLATE] + GIFT_IMG_FALLBACKS:
         try:
             urls.append(tpl.format(**ctx))
