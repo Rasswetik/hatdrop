@@ -1,15 +1,4 @@
-/* Анимированный пиксельный фон «Поляна».
 
-   Сцена рисуется кодом на маленьком холсте (120 точек в ширину) и
-   растягивается на экран без сглаживания — отсюда пиксели. Двигаются:
-   облака, мельница, дым из трубы, крона дерева, цветы, бабочки, фонарь.
-
-   Поверх нарисованной сцены лежит картинка поляны — дневная или ночная
-   (assets/bg-day.webp, bg-night.webp), а поверх неё летают бабочки и пыльца
-   (ночью — светлячки). Если картинки нет, видна нарисованная сцена.
-   Фон лежит в .bg-wide и занимает всё окно, а не только колонку приложения.
-
-   Рисуем ~12 кадров в секунду и только пока вкладка видна. */
 (function () {
   'use strict';
 
@@ -21,7 +10,7 @@
   let overlayOnly = false;      // есть своя картинка — рисуем только облака и бабочек
   let stopped = false;          // есть видео — холст не нужен
 
-  // Повторяемый «случайный» ряд: сцена одинаковая при каждом открытии
+  
   function rnd(seed) {
     let s = seed >>> 0;
     return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -44,8 +33,8 @@
     x: r0(), y: r0(), sp: 0.05 + r0() * 0.07, ph: r0(), c: i % 4 === 0 ? '#ffc6dc' : i % 4 === 1 ? '#ffffff' : '#fff3b0',
   }));
 
-  // Холст вдвое подробнее сцены: сцена рисуется с увеличением в FINE раз (вид
-  // прежний), а пыльца и бабочки поверх картинки — точками в полразмера.
+  
+  
   const FINE = 2;
   let fine = 1;
 
@@ -81,7 +70,7 @@
   }
 
   function drawFar(hz) {
-    // Горы со снегом
+    
     for (let x = 0; x < W; x++) {
       const h = 16 + Math.abs(Math.sin(x * 0.075 + 1.2)) * 20 + Math.sin(x * 0.31) * 2;
       px(x, hz - h, 1, h, '#7fa8d6');
@@ -91,7 +80,7 @@
       const h = 9 + Math.abs(Math.sin(x * 0.11 + 4)) * 12;
       px(x, hz - h, 1, h, '#5f95c4');
     }
-    // Дальний лес и холмы
+    
     for (let x = 0; x < W; x++) {
       const h = 5 + Math.sin(x * 0.09 + 2) * 3 + (x % 3 === 0 ? 2 : 0);
       px(x, hz - h, 1, h + 1, '#3f8f4a');
@@ -102,12 +91,12 @@
     const greens = ['#7fd14f', '#73c846', '#67be3e', '#5cb437', '#52aa31', '#49a02c'];
     const gh = Math.ceil((H - hz) / greens.length);
     greens.forEach((c, i) => px(0, hz + i * gh, W, gh + 1, c));
-    // Холм за поляной
+    
     for (let x = 0; x < W; x++) {
       const h = 4 + Math.sin(x * 0.05 + 0.5) * 3;
       px(x, hz - h, 1, h + 1, '#6cc24a');
     }
-    // Речка с мостиком
+    
     const ry = hz + Math.round((H - hz) * 0.1);
     for (let x = 22; x < 62; x++) {
       const y = ry + Math.round(Math.sin(x * 0.2) * 1.5);
@@ -116,7 +105,7 @@
     }
     px(36, ry - 2, 14, 2, '#8a8f9c'); px(38, ry - 3, 10, 1, '#a7acb8');
     px(37, ry, 2, 3, '#6d7280'); px(47, ry, 2, 3, '#6d7280');
-    // Тропинка: от низа экрана уходит к дому
+    
     for (let y = hz + 14; y < H; y++) {
       const k = (y - hz) / (H - hz);
       const cx = W * 0.5 + Math.sin(k * 3.1) * 16 - k * 8;
@@ -154,14 +143,14 @@
     px(x + 20, y - 12, 4, 7, '#a8674a'); px(x + 19, y - 13, 6, 1, '#7d4a33');
     px(x + 5, y + 5, 6, 6, '#7ec8ff'); px(x + 7, y + 5, 1, 6, '#5a3a1e'); px(x + 5, y + 7, 6, 1, '#5a3a1e');
     px(x + 17, y + 5, 6, 10, '#7a4a26'); px(x + 21, y + 10, 1, 1, '#ffd23f');
-    // Дым
+    
     for (let i = 0; i < 4; i++) {
       const k = (t * 0.35 + i / 4) % 1;
       const sx = x + 21 + Math.sin(k * 5 + i) * 3, sy = y - 14 - k * 22;
       const s = 2 + Math.round(k * 3);
       if (k < 0.92) px(sx, sy, s, s, k > 0.6 ? '#e9f3fb' : '#ffffff');
     }
-    // Подсолнухи у стены
+    
     for (let i = 0; i < 3; i++) {
       const fx = x - 6 + i * 4, sw = Math.round(Math.sin(t * 1.4 + i) * 0.6);
       px(fx, y + 6, 1, 9, '#3d8f2a'); px(fx - 1 + sw, y + 3, 3, 3, '#ffd23f'); px(fx + sw, y + 4, 1, 1, '#7a4a26');
@@ -187,7 +176,7 @@
     for (const [bx, by, r] of blobs) disc(gx + bx + sway, hz + by, r, '#2f8a2f');
     for (const [bx, by, r] of blobs) disc(gx + bx - 2 + sway, hz + by - 3, r - 4, '#46a83a');
     for (const [bx, by, r] of blobs) disc(gx + bx - 5 + sway, hz + by - 6, Math.max(2, r - 10), '#6cc84a');
-    // Столб с фонарём
+    
     const lx = 16, ly = hz + Math.round((H - hz) * 0.12);
     px(lx, ly - 4, 2, 34, '#6b4424'); px(lx, ly - 4, 12, 2, '#6b4424');
     px(lx + 9, ly - 2, 1, 4, '#3a2a1a');
@@ -219,7 +208,7 @@
       const k = (t * p.sp + p.ph) % 1;
       const x = ((p.x * W + k * 26 + Math.sin(t * 1.3 + p.ph * 9) * 3) % W) * fine;
       const y = (H * (0.34 + p.y * 0.6) - k * 14 + Math.sin(t * 0.9 + p.ph * 5) * 2) * fine;
-      // появляется и гаснет плавно: в середине пути ярче
+      
       ctx.globalAlpha = Math.sin(k * Math.PI) * 0.9;
       px(x, y, 1, 1, p.c);
       ctx.globalAlpha = 1;
@@ -230,8 +219,8 @@
     const t = ms / 1000;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
-    // Поверх картинки: ночью ничего не летает, днём — пыльца и бабочки
-    // вдвое мельче (точка холста = полточки сцены, см. FINE).
+    
+    
     fine = overlayOnly ? FINE : 1;
     if (overlayOnly && document.documentElement.dataset.sky === 'night') return;
     if (!overlayOnly) ctx.setTransform(FINE, 0, 0, FINE, 0, 0);     // сама сцена — в прежнем масштабе
@@ -240,8 +229,8 @@
       hz = drawSky();
     }
     if (overlayOnly) {
-      // Поверх своей картинки плоские облака смотрятся чужими — вместо них
-      // по поляне летит пыльца и лепестки
+      
+      
       drawPollen(t);
     } else {
       for (const c of clouds) {
@@ -274,7 +263,7 @@
   let last = 0;
   function loop(ms) {
     if (stopped) return;
-    // в старом дизайне холст скрыт — не рисуем зря
+    
     if (!document.hidden && ms - last > 80 && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
     requestAnimationFrame(loop);
   }
@@ -283,15 +272,10 @@
   window.addEventListener('resize', resize);
   requestAnimationFrame(loop);
 
-  /* Подгонка своей картинки под колесо апгрейда. На ней нарисован пенёк, и
-     приз в центре колеса должен парить над ним — на любом телефоне. Поэтому
-     картинку ставим не «по центру экрана», а так, чтобы верх пенька
-     (BG_ANCHOR, в долях картинки) оказался чуть ниже центра колеса. Если
-     для этого картинки не хватает по высоте — немного увеличиваем её.
-     Другая картинка с пеньком в другом месте — поменять BG_ANCHOR. */
-  // Где на картинке верх пенька (в долях ширины и высоты). У широкой сцены
-  // (bg-wide.webp — первый кадр bg.mp4, 1920x1080) и у старой вертикальной
-  // картинки пенёк в разных местах.
+  
+  
+  
+  
   const ANCHOR_WIDE = { x: 0.492, y: 0.561 };
   const ANCHOR_TALL = { x: 0.493, y: 0.515 };
   let photoAnchor = ANCHOR_TALL;
@@ -303,7 +287,7 @@
     const wheel = document.querySelector('#view-upgrade .wheel-wrap');
     if (wheel) {
       const r = wheel.getBoundingClientRect();
-      // колесо на скрытой вкладке или на уезжающей — размеры не те, берём прошлые
+      
       if (r.width > 0 && Math.abs(r.left + r.width / 2 - (stage.left + stage.width / 2)) < 4) {
         anchorY = r.top + r.height / 2 - stage.top + r.height * BG_BELOW_CENTER;
       }
@@ -315,8 +299,8 @@
       const iw = el.naturalWidth || el.videoWidth, ih = el.naturalHeight || el.videoHeight;
       if (!iw || !ih) continue;
       const A = photoAnchor;
-      // Фон закрывает всё окно, а не только колонку приложения: на телефоне
-      // видна середина сцены вокруг пенька, на широком экране — вся сцена.
+      
+      
       let h = Math.max(stage.width / iw * ih, anchorY / A.y, (stage.height - anchorY) / (1 - A.y));
       let w = h / ih * iw;
       const left = Math.min(0, Math.max(stage.width - w, stage.width / 2 - w * A.x));
@@ -329,11 +313,7 @@
   window.addEventListener('resize', alignBg);
   window.addEventListener('load', () => { alignBg(); setTimeout(alignBg, 400); setTimeout(alignBg, 1500); });
 
-  /* Фон — неподвижная картинка той же поляны в двух видах: день и ночь
-     (assets/bg-day.webp, bg-night.webp, 2000x1125). Переключает кнопка на
-     экране апгрейда (app.js → window.setSky). Обе картинки подгружаются
-     заранее, чтобы смена была мгновенной. Видео-фон убран: на стыке петли
-     он заметно дёргался. */
+  
   const photo = document.getElementById('bgPhoto');
   const SKY = { day: 'assets/bg-day.webp', night: 'assets/bg-night.webp' };
   function setSky(mode) {
@@ -347,7 +327,7 @@
   }
   window.setSky = setSky;
   let sky = 'day';
-  try { sky = localStorage.getItem('sky') || 'day'; } catch (e) { /* по умолчанию день */ }
+  try { sky = localStorage.getItem('sky') || 'day'; } catch (e) {  }
   setSky(sky);
   for (const src of Object.values(SKY)) { const pre = new Image(); pre.src = src; }
 })();
