@@ -2894,20 +2894,28 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .chance-custom input:disabled { opacity: .5; }
 /* Admin section chooser */
+@media (max-width:420px) {
+  .adm-wd-card {grid-template-columns:46px minmax(0,1fr);gap:8px;padding:8px}
+  .adm-wd-art {width:46px;height:46px}
+  .adm-wd-actions {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .adm-wd-actions button {font-size:8px;line-height:1.4;padding:9px 4px}
+  .adm-wd-meta {overflow-wrap:anywhere;white-space:normal}
+}
+
 #admWithdrawals {min-width:0}
 .adm-wd-switch {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:6px 0 13px}
 .adm-wd-switch button {padding:11px 6px;border:2px solid var(--card-line);border-radius:11px;background:var(--card);color:var(--muted);font:inherit;font-size:10px;cursor:pointer}
 .adm-wd-switch button.on {color:var(--gold);border-color:var(--gold)}
-.adm-wd-card {display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--card-line);border-radius:12px;padding:11px;margin:0 0 9px;min-width:0}
-.adm-wd-art {width:65px;height:65px;flex:0 0 65px;object-fit:contain;border:1px solid var(--card-line);border-radius:10px;background:var(--track-bg)}
-.adm-wd-info {flex:1;min-width:0;overflow-wrap:anywhere;font-size:10px;line-height:1.7}
+.adm-wd-card {display:grid;grid-template-columns:56px minmax(0,1fr);gap:10px;align-items:start;background:var(--card);border:1px solid var(--card-line);border-radius:12px;padding:10px;margin:0 0 9px;min-width:0;width:100%;box-sizing:border-box}
+.adm-wd-art {width:56px;height:56px;min-width:0;object-fit:contain;border:1px solid var(--card-line);border-radius:10px;background:var(--track-bg)}
+.adm-wd-info {min-width:0;max-width:100%;overflow-wrap:anywhere;font-size:10px;line-height:1.7}
 .adm-wd-name {display:block;font-size:11px;color:var(--text);margin-bottom:2px}
 .adm-wd-meta {display:block;font-size:9px;color:var(--muted)}
-.adm-wd-actions {display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.adm-wd-actions button {padding:9px 11px;border-radius:9px;border:1px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:9px;cursor:pointer}
+.adm-wd-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px;min-width:0}
+.adm-wd-actions button {min-width:0;white-space:normal;overflow-wrap:anywhere;padding:9px 5px;border-radius:9px;border:1px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:9px;cursor:pointer}
 .adm-wd-actions button.approve {background:var(--gold);color:#2a1a00;border-color:var(--gold-dark)}
 .adm-wd-actions button.reject {background:#733039}
-.adm-wd-chip {display:inline-block;padding:2px 7px;border-radius:8px;border:1px solid var(--card-line);font-size:9px;color:var(--gold)}
+.adm-wd-chip {display:inline-block;max-width:100%;white-space:normal;padding:2px 7px;border-radius:8px;border:1px solid var(--card-line);font-size:9px;color:var(--gold)}
 .adm-wd-toolbar {display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
 .adm-wd-toolbar button {min-height:37px;border-radius:9px;padding:8px 11px;font-size:10px;font:inherit;color:var(--text);background:var(--violet-dark);border:2px solid var(--card-line);cursor:pointer}
 #admMarketSource {width:100%;border-radius:10px;padding:12px;margin-bottom:9px;min-width:0;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);font:inherit;font-size:10px}
@@ -5132,8 +5140,8 @@ function setGiftImg(img, src, fallback) {
   let tries = 0;
   img.onerror = () => {
     tries += 1;
-    if (tries === 1 && src && !String(src).startsWith('data:')) {
-      setTimeout(() => { img.src = `${src}${src.includes('?') ? '&' : '?'}r=1`; }, 400);
+    if (tries === 1 && fallback && fallback !== src) {
+      img.src = fallback;
     } else {
       img.onerror = null;
       img.src = localGiftArt(src || fallback);
@@ -5295,7 +5303,7 @@ async function loadGiftCatalog(force = false) {
   const r = await api('/api/gifts/catalog');
   giftCatalog = { items: r.items || [], margin: r.margin || 0, steps: r.price_steps || [], base: r.price_base || 1 };
   giftCatalogAt = Date.now();
-  await refreshSelectedGift();
+  refreshSelectedGift().catch(() => {});
   return giftCatalog;
 }
 
@@ -5334,6 +5342,7 @@ function gpTile(key, name, price, image, active, fallback) {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.decoding = 'async';
+  img.fetchPriority = 'low';
   img.alt = '';
   setGiftImg(img, image, fallback);
   const n = document.createElement('span');
