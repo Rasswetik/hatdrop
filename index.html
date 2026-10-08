@@ -2878,6 +2878,39 @@ img[src*="/gimg/"] { object-fit: contain; }
 </script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
+<style id="cx-css">
+#view-chests [hidden] { display: none !important; }
+#view-chests .title { margin-top: 6px; }
+#view-chests .shell-subtitle { font-size: 11px; line-height: 1.5; }
+.cx-info { display: flex; gap: 6px; width: 100%; margin: 6px 0; }
+.cx-info > div { flex: 1; min-width: 0; padding: 6px 2px; text-align: center; font-size: 8px; line-height: 1.7; color: var(--muted); background: var(--card); border: 2px solid var(--card-line); }
+.cx-info b { display: block; font-weight: 400; font-size: 12px; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; max-width: 310px; margin: 4px auto; }
+.cx-cell { aspect-ratio: 1; display: grid; place-items: center; padding: 4px; background: linear-gradient(180deg, #6e401c 0%, #4a2a10 100%); border: 3px solid #2e1a0c; border-radius: 8px; box-shadow: inset 2px 2px 0 #a8713c, 0 3px 0 #2e1a0c; cursor: default; }
+.cx-cell img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+.cx-grid.live .cx-cell:not(:disabled) { cursor: pointer; }
+.cx-grid.live .cx-cell:not(:disabled):active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #a8713c, 0 0 0 #2e1a0c; }
+.cx-cell.gold { background: linear-gradient(180deg, #7a5a10 0%, #4d3608 100%); box-shadow: inset 2px 2px 0 #ffe39a, 0 0 10px rgba(255, 198, 74, .55), 0 3px 0 #2e1a0c; animation: cxpop .32s steps(5); }
+.cx-cell.empty { background: linear-gradient(180deg, #4a2a2a 0%, #2c1818 100%); box-shadow: inset 2px 2px 0 #7a4a4a, 0 0 10px rgba(255, 93, 108, .6), 0 3px 0 #2e1a0c; animation: cxpop .32s steps(5); }
+.cx-cell.ghost { opacity: .72; animation: none; box-shadow: 0 3px 0 #2e1a0c; }
+@keyframes cxpop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.cx-setup { width: 100%; }
+.cx-row { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin: 0 0 6px; }
+.cx-bet { display: flex; gap: 6px; width: 100%; margin: 0 0 6px; }
+.cx-bet input { flex: 1; min-width: 0; padding: 7px 8px; font-size: 12px; color: var(--text); background: var(--track-bg); border: 2px solid var(--card-line); border-radius: 7px; outline: none; }
+.cx-chip { flex: 0 0 auto; padding: 7px 9px; font: inherit; font-size: 9px; line-height: 1; color: #2a1a00; background: var(--gold); border: 2px solid var(--gold-dark); border-radius: 7px; box-shadow: inset 1px 1px 0 var(--gold-soft), 0 2px 0 #5a340a; cursor: pointer; }
+.cx-chip:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 var(--gold-soft); }
+.cx-chip.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9, 0 2px 0 #0a3a1f; }
+.cx-label { margin: 4px 0 6px; font-size: 9px; color: #fff1d0; text-align: left; width: 100%; text-shadow: 2px 2px 0 #24122e; }
+#cxHint { text-shadow: 2px 2px 0 #24122e; }
+.cx-gifts { display: flex; gap: 6px; width: 100%; margin: 0 0 6px; padding: 2px 0 6px; overflow-x: auto; }
+.cx-gift { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; font: inherit; font-size: 8px; color: var(--gold); background: var(--card); border: 2px solid var(--card-line); cursor: pointer; }
+.cx-gift img { width: 36px; height: 36px; object-fit: contain; image-rendering: auto; }
+.cx-gift.on { border-color: var(--gold); box-shadow: 0 0 8px rgba(255, 198, 74, .5); }
+.cx-note { font-size: 9px; line-height: 1.6; color: var(--muted); padding: 6px 0; }
+#cxBtn { margin-top: 4px; }
+#cxDeposit { width: auto; min-width: 190px; align-self: center; }
+</style>
 </head>
 <body>
 
@@ -2994,6 +3027,10 @@ img[src*="/gimg/"] { object-fit: contain; }
           <img src="images/hat.png" alt="">
           <span id="shellTabName">Три шляпы</span>
         </button>
+        <button class="menu-card" id="menuChests" type="button" hidden="">
+          <img id="cxMenuImg" alt="">
+          <span>Сундуки</span>
+        </button>
       </div>
     </section>
 
@@ -3031,6 +3068,40 @@ img[src*="/gimg/"] { object-fit: contain; }
         <span class="shell-prize-edit">сменить</span>
       </button>
       <button class="ghost" id="shellDepositBtn" hidden="">Пополнить баланс</button>
+    </section>
+
+    <section class="view view-center" id="view-chests" hidden="">
+      <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
+      <h1 class="title">СУНДУКИ</h1>
+      <p class="subtitle shell-subtitle">в одних сундуках золото, другие пустые</p>
+
+      <div class="cx-info">
+        <div>Сейчас<b id="cxMult">—</b></div>
+        <div>Дальше<b id="cxNext">—</b></div>
+        <div>Сумма<b id="cxWin">—</b></div>
+      </div>
+
+      <div class="cx-grid" id="cxGrid"></div>
+      <p class="shell-hint" id="cxHint">—</p>
+
+      <div class="cx-setup" id="cxSetup">
+        <div class="cx-row" data-noswipe>
+          <button class="cx-chip on" id="cxSrcTon" type="button">TON</button>
+          <button class="cx-chip" id="cxSrcGift" type="button">Подарок</button>
+        </div>
+        <div class="cx-bet" id="cxBetBox">
+          <input id="cxBetInput" type="text" inputmode="decimal" value="1" autocomplete="off" aria-label="Ставка">
+          <button class="cx-chip" data-mul="0.5" type="button">½</button>
+          <button class="cx-chip" data-mul="2" type="button">×2</button>
+          <button class="cx-chip" data-max="1" type="button">MAX</button>
+        </div>
+        <div class="cx-gifts" id="cxGifts" data-noswipe hidden=""></div>
+        <p class="cx-label">Пустых сундуков</p>
+        <div class="cx-row" id="cxEmpties" data-noswipe></div>
+      </div>
+
+      <button class="cta" id="cxBtn">Играть</button>
+      <button class="ghost" id="cxDeposit" hidden="">Пополнить баланс</button>
     </section>
 
     <section class="view" id="view-upgrade">
@@ -4041,6 +4112,26 @@ img[src*="/gimg/"] { object-fit: contain; }
     'Не удалось отправить перевод': { en: 'Couldn’t send the transfer', zh: '转账发送失败' },
     'Закрой и открой приложение заново': { en: 'Close the app and open it again', zh: '请关闭并重新打开应用' },
 
+    'Сундуки': { en: 'Chests', zh: '宝箱' },
+    'СУНДУКИ': { en: 'CHESTS', zh: '宝箱' },
+    'в одних сундуках золото, другие пустые': { en: 'some chests hold gold, others are empty', zh: '有的宝箱有金子，有的是空的' },
+    'Сейчас': { en: 'Now', zh: '当前' },
+    'Дальше': { en: 'Next', zh: '下一个' },
+    'Сумма': { en: 'Payout', zh: '奖金' },
+    'Пустых сундуков': { en: 'Empty chests', zh: '空宝箱数量' },
+    'Играть подарком': { en: 'Play with gift', zh: '用礼物游玩' },
+    'Играть за {sum} TON': { en: 'Play for {sum} TON', zh: '花 {sum} TON 游玩' },
+    'Забрать {sum} TON': { en: 'Cash out {sum} TON', zh: '提现 {sum} TON' },
+    'Открой сундук': { en: 'Open a chest', zh: '打开一个宝箱' },
+    'Ставка {min}–{max} TON': { en: 'Bet {min}–{max} TON', zh: '下注 {min}–{max} TON' },
+    'У тебя нет подарков для ставки': { en: 'You have no gifts to bet', zh: '你没有可下注的礼物' },
+    'Раунд идёт — открывай сундуки': { en: 'Round in progress — open chests', zh: '回合进行中——打开宝箱' },
+    'Раунд уже закончился': { en: 'The round is already over', zh: '回合已结束' },
+    'Подарок недоступен': { en: 'Gift unavailable', zh: '礼物不可用' },
+    'Пустых сундуков: {n}. Открывай и забирай вовремя': { en: 'Empty chests: {n}. Open and cash out in time', zh: '空宝箱：{n}。适时提现' },
+    'Золото! Забирай или рискуй дальше': { en: 'Gold! Cash out or risk more', zh: '金子！提现或继续冒险' },
+    'Пустой сундук! Ставка сгорела': { en: 'Empty chest! Bet lost', zh: '空宝箱！投注已输' },
+    'Подарок': { en: 'Gift', zh: '礼物' },
     'Ошибка запроса': { en: 'Request error', zh: '请求出错' },
     'Откройте приложение через бота': { en: 'Open the app through the bot', zh: '请通过机器人打开应用' },
     'Нет связи с сервером': { en: 'No connection to the server', zh: '无法连接服务器' },
@@ -4903,6 +4994,7 @@ function renderState(s) {
   const _tm = tierMeta(s.config);
   buildModes(_tm);
   renderShell(s.config);
+  renderChests();
   giftCfg = s.config.gift_deposit || null;
   $('giftDepositBtn').hidden = !(giftCfg && giftCfg.enabled && giftCfg.account);
   setWithdrawLock(s);
@@ -5457,7 +5549,8 @@ async function openHistory() {
     img.alt = '';
     img.className = 'hist-img';
     const tier = r.image.startsWith('tier:') ? r.image.slice(5) : '';
-    if (r.kind === 'shell' && !r.win) img.src = 'images/hat.png';
+    if (r.kind === 'chests') img.src = r.win ? CX_IMG.gold : CX_IMG.empty;
+    else if (r.kind === 'shell' && !r.win) img.src = 'images/hat.png';
     else if (tier || !r.image) img.src = hatAsset(tier || 'random');
     else setGiftImg(img, r.image, r.image);
 
@@ -5469,7 +5562,7 @@ async function openHistory() {
     const sub = document.createElement('small');
     const when = new Date(r.ts * 1000).toLocaleString(I18N.locale || 'ru-RU',
       { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    sub.textContent = `${r.kind === 'shell' ? tr('Три шляпы') : tr('Апгрейд')} · ${when}`;
+    sub.textContent = `${r.kind === 'shell' ? tr('Три шляпы') : r.kind === 'chests' ? tr('Сундуки') : tr('Апгрейд')} · ${when}`;
     mid.append(title, sub);
 
     const right = document.createElement('div');
@@ -5557,7 +5650,7 @@ function initSwipeTabs() {
     const t = e.changedTouches[0];
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if (Date.now() - t0 > 600 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
-    if (spinning || shellPhase !== 'idle') return;
+    if (spinning || shellPhase !== 'idle' || cxBusy) return;
     const main = ['menu', 'upgrade', 'profile'];
     const sub = !main.includes(currentView);
     const i = main.indexOf(VIEW_TAB[currentView]);
@@ -5596,9 +5689,9 @@ function slideViews(ghost, next, dir) {
   setTimeout(done, VIEW_SLIDE_MS + 120);
 }
 
-const VIEWS = ['menu', 'shell', 'leaders', 'upgrade', 'profile'];
-const VIEW_TAB = { menu: 'menu', shell: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
-const VIEW_POS = { menu: 0, shell: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };
+const VIEWS = ['menu', 'shell', 'chests', 'leaders', 'upgrade', 'profile'];
+const VIEW_TAB = { menu: 'menu', shell: 'menu', chests: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
+const VIEW_POS = { menu: 0, shell: 0.5, chests: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };
 let currentView = 'upgrade';
 
 function showView(name) {
@@ -5615,6 +5708,7 @@ function showView(name) {
   lbStartTimer(name === 'leaders');
   if (name === 'shell') shellAlignStump();
   if (name === 'shell' && shellPhase === 'idle') shellPlace();
+  if (name === 'chests') cxOnShow();
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === VIEW_TAB[name]));
   document.querySelector('.content').scrollTop = 0;
   applyBodyTierClass();
@@ -6205,6 +6299,340 @@ async function shellPick(hatEl) {
 
     refresh();
   }, res.win ? 420 : 620);
+}
+
+/* ===== Сундуки (режим «мины»): золото или пустой сундук ===== */
+const CX_CELLS = 25;
+const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
+const CX_PAL = { o: '#2e1a0c', b: '#8a5429', l: '#b9814a', g: '#ffc64a', d: '#a86d00', y: '#ffe39a', k: '#1a0f08' };
+const CX_ART = {
+  closed: ['..oooooooooo..', '.obbbbbbbbbbo.', 'obllllllllllbo', 'obbbbbbbbbbbbo', 'oooooooooooooo', 'obbbbggggbbbbo',
+    'obbbbgddgbbbbo', 'obbbbbggbbbbbo', 'obllbbbbbbllbo', 'obbbbbbbbbbbbo', 'obbbbbbbbbbbbo', 'oooooooooooooo'],
+  gold: ['..oooooooooo..', '.obbbbbbbbbbo.', '.obllllllllbo.', '.oooooooooooo.', 'oygygyggygygyo', 'ogggyggggyggdo',
+    'odgggggggggddo', 'obbbbbbbbbbbbo', 'obllbbbbbbllbo', 'obbbbbbbbbbbbo', 'obbbbbbbbbbbbo', 'oooooooooooooo'],
+  empty: ['..oooooooooo..', '.obbbbbbbbbbo.', '.obllllllllbo.', '.oooooooooooo.', 'okkkkkkkkkkkko', 'okkkkkkkkkkkko',
+    'okkkkkkkkkkkko', 'obbbbbbbbbbbbo', 'obllbbbbbbllbo', 'obbbbbbbbbbbbo', 'obbbbbbbbbbbbo', 'oooooooooooooo'],
+};
+
+function cxPixel(rows) {
+  const w = rows[0].length, h = rows.length;
+  let r = '';
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < w) {
+      const c = row[x];
+      if (c === '.') { x += 1; continue; }
+      let n = 1;
+      while (x + n < w && row[x + n] === c) n += 1;
+      r += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${CX_PAL[c]}"/>`;
+      x += n;
+    }
+  });
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges">${r}</svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+const CX_IMG = { closed: cxPixel(CX_ART.closed), gold: cxPixel(CX_ART.gold), empty: cxPixel(CX_ART.empty) };
+
+let cxRound = null;
+let cxEnd = null;
+let cxBusy = false;
+let cxStamp = 0;
+let cxSource = 'ton';
+let cxPrize = null;
+let cxEmpties = 3;
+
+const cxCfg = () => (state && state.config && state.config.chests) || null;
+
+function cxSetHint(text, cls = '') {
+  const el = $('cxHint');
+  el.textContent = text;
+  el.className = 'shell-hint' + (cls ? ' ' + cls : '');
+}
+
+function cxBet() {
+  if (cxSource === 'gift') return cxPrize ? cxPrize.value_ton : 0;
+  const v = parseFloat(String($('cxBetInput').value).replace(',', '.'));
+  return Number.isFinite(v) ? Math.round(v * 100) / 100 : 0;
+}
+
+function cxSetBet(v) {
+  const cfg = cxCfg();
+  const x = Math.min(cfg.max_bet, Math.max(cfg.min_bet, Math.floor(v * 100 + 1e-9) / 100));
+  $('cxBetInput').value = String(x);
+}
+
+function cxMultAt(empties, k) {
+  const cfg = cxCfg();
+  const ladder = cfg && cfg.ladder[String(empties)];
+  return ladder && ladder[k - 1] || null;
+}
+
+function cxBuild() {
+  const grid = $('cxGrid');
+  if (grid.children.length) return;
+  for (let i = 0; i < CX_CELLS; i += 1) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cx-cell';
+    b.dataset.i = i;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = CX_IMG.closed;
+    b.appendChild(img);
+    grid.appendChild(b);
+  }
+  for (const n of CX_EMPTY_CHOICES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cx-chip';
+    b.dataset.n = n;
+    b.textContent = n;
+    $('cxEmpties').appendChild(b);
+  }
+}
+
+function cxRenderGifts() {
+  const cfg = cxCfg();
+  const box = $('cxGifts');
+  box.textContent = '';
+  const items = ((state && state.prizes) || [])
+    .filter((p) => p.status === 'owned' && p.tier !== 'bear' && p.value_ton >= cfg.min_bet && p.value_ton <= cfg.max_bet)
+    .sort((a, b) => b.value_ton - a.value_ton);
+  if (!items.length) {
+    const note = document.createElement('p');
+    note.className = 'cx-note';
+    note.textContent = tr('У тебя нет подарков для ставки');
+    box.appendChild(note);
+    return;
+  }
+  for (const p of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cx-gift' + (cxPrize && cxPrize.id === p.id ? ' on' : '');
+    b.dataset.gift = p.id;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = p.image || hatAsset(p.tier);
+    const t = document.createElement('span');
+    t.textContent = fmt(p.value_ton, 2);
+    b.append(img, t);
+    box.appendChild(b);
+  }
+}
+
+function cxUpdateButton() {
+  const cfg = cxCfg();
+  if (!cfg || !state) return;
+  const btn = $('cxBtn');
+  const dep = $('cxDeposit');
+  if (cxRound) {
+    const k = cxRound.opened.length;
+    btn.disabled = cxBusy || !k;
+    btn.textContent = k ? tr('Забрать {sum} TON', { sum: fmt(cxRound.bet * cxRound.mult, 2) }) : tr('Открой сундук');
+    dep.hidden = true;
+    return;
+  }
+  const bet = cxBet();
+  let enough = true;
+  let label;
+  dep.hidden = true;
+  if (cxSource === 'gift') {
+    enough = !!cxPrize;
+    label = enough ? tr('Играть подарком') : tr('Выбери подарок');
+  } else if (bet < cfg.min_bet || bet > cfg.max_bet) {
+    enough = false;
+    label = tr('Ставка {min}–{max} TON', { min: fmt(cfg.min_bet, 2), max: fmt(cfg.max_bet, 0) });
+  } else if (state.balance_ton + 1e-9 < bet) {
+    enough = false;
+    label = tr('Не хватает на игру');
+    dep.hidden = false;
+  } else {
+    label = tr('Играть за {sum} TON', { sum: fmt(bet, 2) });
+  }
+  btn.disabled = cxBusy || !enough;
+  btn.textContent = cxBusy ? tr('Идёт игра…') : label;
+}
+
+function cxDraw() {
+  const cfg = cxCfg();
+  if (!cfg || !state) return;
+  cxBuild();
+  const r = cxRound;
+  const end = cxEnd;
+  const opened = new Set(r ? r.opened : end ? end.opened : []);
+  const bad = new Set(end ? end.bad : []);
+  [...$('cxGrid').children].forEach((b, i) => {
+    let cls = 'cx-cell';
+    let src = CX_IMG.closed;
+    if (opened.has(i)) { cls += ' gold'; src = CX_IMG.gold; }
+    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; src = CX_IMG.empty; }
+    else if (end) { cls += ' ghost'; src = CX_IMG.gold; }
+    if (b.className !== cls) b.className = cls;
+    b.firstChild.src = src;
+    b.disabled = !r || cxBusy || opened.has(i);
+  });
+  $('cxGrid').classList.toggle('live', !!r && !cxBusy);
+
+  const nxt = r ? r.next_mult : cxMultAt(cxEmpties, 1);
+  $('cxMult').textContent = r ? `x${fmt(r.mult, 2)}` : end && end.win ? `x${fmt(end.mult, 2)}` : '—';
+  $('cxNext').textContent = nxt ? `x${fmt(nxt, 2)}` : '—';
+  $('cxWin').textContent = r ? fmt(r.bet * r.mult, 2) : end && end.win ? fmt(end.payout, 2) : '—';
+
+  $('cxSetup').hidden = !!r;
+  $('cxSrcTon').classList.toggle('on', cxSource === 'ton');
+  $('cxSrcGift').classList.toggle('on', cxSource === 'gift');
+  $('cxBetBox').hidden = cxSource !== 'ton';
+  $('cxGifts').hidden = cxSource !== 'gift';
+  if (cxSource === 'gift' && !r) cxRenderGifts();
+  [...$('cxEmpties').children].forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === cxEmpties));
+  cxUpdateButton();
+}
+
+function renderChests() {
+  const cfg = cxCfg();
+  const tab = $('menuChests');
+  if (!cfg || !cfg.enabled) { if (tab) tab.hidden = true; return; }
+  tab.hidden = false;
+  if (!cxBusy && Date.now() - cxStamp > 1500) {
+    if (state.chest_round) { cxRound = state.chest_round; cxEnd = null; }
+    else cxRound = null;
+  }
+  if (cxPrize && !(state.prizes || []).some((p) => p.id === cxPrize.id && p.status === 'owned')) cxPrize = null;
+  cxDraw();
+}
+
+function cxOnShow() {
+  cxDraw();
+  if (cxRound && !cxBusy) cxSetHint(tr('Раунд идёт — открывай сундуки'));
+  else if (!cxRound && !cxEnd) cxSetHint('');
+}
+
+function cxFail(e) {
+  const c = e.code;
+  if (c === 'round_active' && e.data && e.data.round) { cxRound = e.data.round; cxEnd = null; cxSetHint(tr('Раунд идёт — открывай сундуки')); return; }
+  if (c === 'no_round') { cxRound = null; refresh(); cxSetHint(tr('Раунд уже закончился'), 'lose'); return; }
+  if (c === 'insufficient_funds') { refresh(); openDeposit(); return; }
+  if (c === 'bad_bet') { toast(tr('Ставка {min}–{max} TON', { min: fmt(e.data.min_ton, 2), max: fmt(e.data.max_ton, 0) }), true); return; }
+  if (c === 'not_found') { cxPrize = null; refresh(); toast(tr('Подарок недоступен'), true); return; }
+  toast(tr('Ошибка запроса'), true);
+}
+
+async function cxStart() {
+  const cfg = cxCfg();
+  if (cxBusy || cxRound || !cfg || !state) return;
+  const bet = cxBet();
+  if (cxSource === 'ton' && state.balance_ton + 1e-9 < bet) { openDeposit(); return; }
+  cxBusy = true;
+  cxUpdateButton();
+  try {
+    const body = { empties: cxEmpties };
+    if (cxSource === 'gift') body.prize_id = cxPrize.id; else body.bet = bet;
+    const res = await api('/api/chests/start', body);
+    cxStamp = Date.now();
+    setBalance(res.balance_ton);
+    if (res.prizes) { state.prizes = res.prizes; renderPrizes(res.prizes); }
+    cxRound = res.round;
+    cxEnd = null;
+    if (cxSource === 'gift') cxPrize = null;
+    cxSetHint(tr('Пустых сундуков: {n}. Открывай и забирай вовремя', { n: res.round.empties }));
+    haptic('impact', 'light');
+  } catch (e) {
+    cxFail(e);
+  }
+  cxBusy = false;
+  cxDraw();
+}
+
+function cxFinish(res) {
+  const prev = cxRound;
+  const opened = prev ? prev.opened.slice() : [];
+  if (res.safe && res.cell != null && !opened.includes(res.cell)) opened.push(res.cell);
+  cxEnd = { opened, bad: res.bad || [], hit: res.safe ? -1 : res.cell, win: !!res.win, payout: res.payout_ton || 0, mult: res.mult || 0 };
+  cxRound = null;
+  setBalance(res.balance_ton);
+  if (res.prizes) { state.prizes = res.prizes; renderPrizes(res.prizes); }
+  if (res.win) {
+    haptic('notification', 'success');
+    cxSetHint(tr('+{sum} TON · x{mult}', { sum: fmt(res.payout_ton, 2), mult: fmt(res.mult, 2) }), 'win');
+    const r = $('cxGrid').getBoundingClientRect();
+    const st = document.querySelector('.stage').getBoundingClientRect();
+    burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
+  } else {
+    haptic('notification', 'error');
+    cxSetHint(tr('Пустой сундук! Ставка сгорела'), 'lose');
+    if (res.consolation && res.consolation.first) toast(bearText(), false, 4200);
+  }
+  refresh();
+}
+
+async function cxOpen(i) {
+  if (!cxRound || cxBusy) return;
+  cxBusy = true;
+  cxDraw();
+  try {
+    const res = await api('/api/chests/open', { cell: i });
+    cxStamp = Date.now();
+    if (res.finished) {
+      cxBusy = false;
+      cxFinish(res);
+    } else {
+      cxRound = res.round;
+      haptic('impact', 'light');
+      cxSetHint(tr('Золото! Забирай или рискуй дальше'), 'win');
+    }
+  } catch (e) {
+    cxFail(e);
+  }
+  cxBusy = false;
+  cxDraw();
+}
+
+async function cxCashout() {
+  if (!cxRound || cxBusy || !cxRound.opened.length) return;
+  cxBusy = true;
+  cxDraw();
+  try {
+    const res = await api('/api/chests/cashout');
+    cxStamp = Date.now();
+    cxBusy = false;
+    cxFinish(res);
+  } catch (e) {
+    cxFail(e);
+  }
+  cxBusy = false;
+  cxDraw();
+}
+
+function initChests() {
+  $('cxMenuImg').src = CX_IMG.closed;
+  $('menuChests').addEventListener('click', () => { haptic('impact', 'light'); showView('chests'); });
+  $('cxGrid').addEventListener('click', (e) => {
+    const b = e.target.closest('.cx-cell');
+    if (b && !b.disabled) cxOpen(Number(b.dataset.i));
+  });
+  $('cxBtn').addEventListener('click', () => { if (cxRound) cxCashout(); else cxStart(); });
+  $('cxDeposit').addEventListener('click', openDeposit);
+  $('cxSetup').addEventListener('click', (e) => {
+    const cfg = cxCfg();
+    const t = e.target.closest('button');
+    if (!t || cxBusy || cxRound || !cfg) return;
+    if (t.id === 'cxSrcTon') cxSource = 'ton';
+    else if (t.id === 'cxSrcGift') cxSource = 'gift';
+    else if (t.dataset.n) cxEmpties = Number(t.dataset.n);
+    else if (t.dataset.mul) cxSetBet(cxBet() * Number(t.dataset.mul));
+    else if (t.dataset.max) cxSetBet(Math.min(state.balance_ton, cfg.max_bet));
+    else if (t.dataset.gift) cxPrize = (state.prizes || []).find((p) => p.id === Number(t.dataset.gift)) || null;
+    else return;
+    haptic('impact', 'light');
+    cxDraw();
+  });
+  const input = $('cxBetInput');
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/[^0-9.,]/g, '');
+    cxUpdateButton();
+  });
+  input.addEventListener('blur', () => { if (cxCfg() && cxBet() > 0) cxSetBet(cxBet()); cxDraw(); });
 }
 
 const SPIN_SLOW_MS = 3700;
@@ -7281,9 +7709,10 @@ function bind() {
   $('depWalletSwitch').addEventListener('click', switchWallet);
   $('menuLeaders').addEventListener('click', () => { haptic('impact', 'light'); showView('leaders'); });
   $('menuShell').addEventListener('click', () => { haptic('impact', 'light'); showView('shell'); });
+  initChests();
   document.querySelectorAll('.view-back').forEach((b) => {
     b.addEventListener('click', () => {
-      if (shellPhase !== 'idle') return;
+      if (shellPhase !== 'idle' || cxBusy) return;
       haptic('impact', 'light');
       showView(b.dataset.back);
     });
