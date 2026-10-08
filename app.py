@@ -600,9 +600,18 @@ def state_payload(row):
             'prize_name': PRIZE_NAME, 'prize_price': HAT_PRICE, 'min_deposit_ton': MIN_DEPOSIT,
             'topup_ton': TOPUP_AMOUNT, 'referral_percent': REFERRAL_PERCENT,
             'chance': {'min': CHANCE_MIN, 'max': CHANCE_MAX, 'default': CHANCE_DEFAULT, 'marks': list(CHANCE_MARKS)},
+            'chances': [{'chance': pct / 100, 'cost_ton': bet_cost(pct)} for pct in range(CHANCE_MIN, CHANCE_MAX + 1)],
+            'default_chance': CHANCE_DEFAULT / 100,
+            'gift_upgrade': False,
+            'tiers': {'random': {
+                'prize_name': PRIZE_NAME,
+                'chances': [{'chance': pct / 100, 'cost_ton': bet_cost(pct)} for pct in range(CHANCE_MIN, CHANCE_MAX + 1)],
+                'default_chance': CHANCE_DEFAULT / 100,
+            }},
+
         },
         'deposit': {'address': DEPOSIT_ADDRESS, 'memo': DEPOSIT_MEMO or f'MU-{row["tg_id"]}'},
-        'prizes': [dict(p) for p in prizes],
+        'prizes': [dict(dict(p), name=p['item_name'], tier='random', image='/static/img/hat.png', sell_ton=round(p['item_price'] * 0.8, 2)) for p in prizes],
         'referral': referral_payload(row),
         'leaders': leaders_payload(),
     }
