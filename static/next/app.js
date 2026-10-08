@@ -15,7 +15,7 @@ function onLangChange() {
   document.querySelectorAll('#langBtns .lang-btn').forEach((b) => b.classList.toggle('on', b.dataset.lang === I18N.lang));
   const content = document.querySelector('.content');
   const top = content ? content.scrollTop : 0;
-  if (state) renderState(state);
+  if (state) { try { renderState(state); } catch (e) { console.error('Language redraw', e); } }
   if (content) content.scrollTop = top;
 }
 
@@ -837,14 +837,14 @@ function renderProgress(s) {
     $('coinChip').hidden = !(s.hatcoin.percent > 0 || s.hatcoin.balance > 0);
     $('coinValue').textContent = fmt(s.hatcoin.balance, 2);
   }
-  const lv = s.level;
+  const lv = s.level || null;
   if (lv) {
     $('lvlBadge').textContent = `LVL ${lv.level}`;
     $('lvlFill').style.width = `${Math.round(lv.progress * 100)}%`;
     const left = Math.max(0, lv.next_ton - lv.turnover_ton);
     $('lvlNote').textContent = tr('До уровня {level}: ещё {left} TON оборота', { level: lv.level + 1, left: fmt(left, 2) });
   }
-  const st = s.stats;
+  const st = s.stats || null;
   if (st) {
     $('statWithdrawn').textContent = `${fmt(st.withdrawn_ton, 2)} TON`;
     $('statWithdrawnCount').textContent =
@@ -1150,7 +1150,7 @@ function renderPrizes(prizes) {
   const grid = $('prizeGrid');
   
   
-  const visible = prizes.filter((p) => !sellingNow.has(p.id));
+  const visible = (Array.isArray(prizes) ? prizes : []).filter((p) => !sellingNow.has(p.id));
   $('prizeEmpty').hidden = visible.length > 0;
   
   
