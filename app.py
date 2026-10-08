@@ -1225,7 +1225,7 @@ class PortalsError(Exception):
     pass
 
 
-PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0}
+PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0, "source": ""}
 MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0, "total": 0, "failed": 0}
 MRKT_MODELS_PAYLOAD = {"key": "collection_id"}  # auto-detected successful MRKT request format
 _filters_first = {"i": 0}
@@ -1241,6 +1241,7 @@ def portals_status():
         "portals_updated": PORTALS_STATE["updated"],
         "portals_gifts": len(CATALOG),
         "portals_models": sum(len(g.get("models", [])) for g in CATALOG.values()),
+        "catalog_source": PORTALS_STATE.get("source") or "Сохранённый каталог",
         "mrkt_key_mask": mask_key(db.get("settings", {}).get("mrkt_auth", "")),
         "mrkt_refreshing": MRKT_STATE["running"],
         "mrkt_error": MRKT_STATE["error"],
@@ -1597,6 +1598,12 @@ def fetch_collection_models(c, search=True, timeout=20):
             models = fetch_models_by_search(c)
         except PortalsError as e:
             err = err or e
+    if not models:
+        try:
+            from catalog_sources import fetch_fragment_models
+            models = fetch_fragment_models(c.get("short"))
+        except Exception:
+            pass
     if not models and (mrkt_err or err):
         raise PortalsError(str(mrkt_err or err))
     return models, backdrops
@@ -1657,54 +1664,60 @@ def ensure_models(slug):
                 IMG_CACHE.pop(k, None)
 
 
+def _merge_source_catalog(source):
+    """Merge RasswetGifts records and retain existing MRKT/Portals models."""
+    with lock:
+        for name, fresh in source.items():
+            slug = re.sub(r"[^A-Za-z0-9]", "", name) or normalize(name)
+            old = CATALOG.get(slug, {})
+            merged = dict(old or fresh)
+            merged["name"] = name
+            merged["short"] = fresh.get("short") or old.get("short") or normalize(name)
+            if fresh.get("image"):
+                merged["image"] = fresh["image"]
+            if fresh.get("floor", 0) > 0 and (not old.get("floor") or old.get("floor") == 1):
+                merged["floor"] = fresh["floor"]
+            merged.setdefault("floor", 1.0)
+            merged.setdefault("pop", 0)
+            merged.setdefault("backdrops", {})
+            models = {m["model"]: dict(m) for m in fresh.get("models", [])}
+            for m in old.get("models", []):
+                prior = models.get(m["model"])
+                if not prior or m.get("source") == "mrkt" or (
+                        m.get("floor", 0) > 0 and not prior.get("floor")):
+                    models[m["model"]] = dict(m)
+                elif not prior.get("image") and m.get("image"):
+                    prior["image"] = m["image"]
+            merged["models"] = build_models(models)
+            CATALOG[slug] = merged
+        apply_tier_values()
+        save_catalog()
+    IMG_CACHE.clear()
+
+
 def portals_refresh_worker():
+    """Prefer the proven RasswetGifts catalog, then try Fragment directly."""
     if PORTALS_STATE["running"]:
         return
-    PORTALS_STATE.update(running=True, error="")
+    PORTALS_STATE.update(running=True, error="", source="")
     try:
-        collections = parse_collections(portals_get(["/collections?limit=500", "/collections?limit=100", "/collections"], public_ok=True))
-        if not collections:
-            raise PortalsError("Portals вернул пустой список коллекций")
-        collections.sort(key=lambda c: bool(CATALOG.get(re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"]), {}).get("models")))
-        new, models_total, no_models, failed = {}, 0, 0, []
-        for c in collections:
-            slug = re.sub(r"[^A-Za-z0-9]", "", c["name"]) or normalize(c["name"])
-            old = CATALOG.get(slug, {})
-            entry = {
-                "name": c["name"], "short": c["short"], "id": c["id"],
-                "floor": money(c["floor"] or old.get("floor") or 1.0),
-                "pop": int(c["volume"]), "models": old.get("models", []), "backdrops": old.get("backdrops", {}),
-            }
+        from catalog_sources import fetch_rasswet_snapshot, fetch_fragment_catalog
+        try:
+            catalog = fetch_rasswet_snapshot()
+            source_name = "RasswetGifts / Fragment + GetGems"
+        except Exception as cache_exc:
             try:
-                models, backdrops = fetch_collection_models(c, search=not entry["models"])
-                if models:
-                    entry["models"] = build_models(models)
-                    if backdrops:
-                        entry["backdrops"] = {b: money(f) for b, f in backdrops.items()}
-            except PortalsError as e:
-                failed.append(f"{c['name']}: {e}")
-                if "429" in str(e):
-                    time.sleep(8)
-            time.sleep(0.3)
-            if not entry["models"]:
-                no_models += 1
-            models_total += len(entry["models"])
-            new[slug] = entry
-        with lock:
-            CATALOG.clear()
-            CATALOG.update(new)
-            apply_tier_values()
-            save_catalog()
-        IMG_CACHE.clear()
-        PORTALS_STATE.update(updated=int(time.time()), gifts=len(new), models=models_total)
-        if models_total == 0:
-            PORTALS_STATE["error"] = (failed[0] if failed else "модели не пришли ни для одной коллекции")
-        elif no_models:
-            PORTALS_STATE["error"] = f"у {no_models} коллекций моделей пока нет" + (f" ({failed[0]})" if failed else "")
-    except PortalsError as e:
-        PORTALS_STATE["error"] = str(e)
-    except Exception as e:
-        PORTALS_STATE["error"] = f"{type(e).__name__}: {e}"
+                catalog = fetch_fragment_catalog()
+                source_name = "Fragment (live)"
+            except Exception as frag_exc:
+                raise PortalsError(
+                    f"RasswetGifts: {cache_exc}; Fragment: {frag_exc}")
+        _merge_source_catalog(catalog)
+        PORTALS_STATE.update(updated=int(time.time()), gifts=len(CATALOG),
+            models=sum(len(g.get("models", [])) for g in CATALOG.values()),
+            source=source_name)
+    except Exception as exc:
+        PORTALS_STATE["error"] = str(exc)
     finally:
         PORTALS_STATE["running"] = False
 
@@ -1904,7 +1917,7 @@ def fetch_gift_image(name, model, slug=""):
     for m in slug_entry.get("models", []):
         if m.get("model") == model:
             img = str(m.get("image", ""))
-            if img.startswith("https://cdn.tgmrkt.io/gifts/stickers/thumbnails/"):
+            if img.startswith(("https://cdn.tgmrkt.io/gifts/stickers/thumbnails/", "https://fragment.com/file/")):
                 urls.append(img)
             break
     for tpl in [GIFT_IMG_TEMPLATE] + GIFT_IMG_FALLBACKS:
@@ -1918,6 +1931,9 @@ def fetch_gift_image(name, model, slug=""):
 def fetch_collection_image(name, slug):
     ctx = {"name": quote(name), "slug_lower": slug.lower(), "name_nospace": quote(name.replace(" ", ""))}
     urls = []
+    pinned = str(gifts_map().get(slug, {}).get("image") or "")
+    if pinned.startswith(("https://fragment.com/file/", "https://cdn.changes.tg/")):
+        urls.append(pinned)
     for tpl in GIFT_THUMB_TEMPLATES:
         try:
             urls.append(tpl.format(**ctx))
