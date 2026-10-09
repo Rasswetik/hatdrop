@@ -606,68 +606,7 @@ button.balance:active { transform: translate(1px, 1px); }
   justify-content: flex-start;
   gap: 2px;
 }
-
-#view-shell .title { margin-top: 6px; }
 .shell-subtitle { font-size: 13px; line-height: 1.5; margin-bottom: 0; }
-#view-shell .shell-table { margin-top: auto; }
-#view-shell .shell-hint { margin-bottom: auto; }
-#view-shell .shell-prize { margin: 8px auto 0; }
-
-.shell-table {
-  position: relative;
-  width: 100%;
-  height: 190px;
-  margin: 10px 0 4px;
-}
-
-.shell-hat {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 92px;
-  height: 190px;
-  margin-left: -46px;
-  will-change: transform;
-}
-
-.shell-table.picking .shell-hat { cursor: pointer; }
-.shell-table.picking .shell-hat:active .shell-cap { transform: translateY(-8px); }
-
-.shell-cap {
-  position: absolute;
-  left: 0; bottom: 0;
-  width: 92px;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .35));
-}
-
-.shell-cat {
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 78px;
-  height: auto;
-  margin-left: -39px;
-  opacity: 0;
-}
-
-.shell-cat-intro {
-  position: absolute;
-  left: 50%;
-  bottom: 74px;
-  width: 92px;
-  height: auto;
-  margin-left: -46px;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.shell-cat.is-gift { width: 64px; height: 64px; margin-left: -32px; object-fit: contain; image-rendering: auto; }
-.shell-cat-intro.is-gift { width: 84px; height: 84px; margin-left: -42px; object-fit: contain; image-rendering: auto; }
-
-.shell-hat.chosen .shell-cap { filter: drop-shadow(0 0 8px var(--gold)) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
-.shell-hat.miss  .shell-cap { filter: grayscale(.6) brightness(.65) drop-shadow(0 4px 0 rgba(0,0,0,.35)); }
 
 .shell-hint {
   min-height: 26px;
@@ -679,41 +618,6 @@ button.balance:active { transform: translate(1px, 1px); }
 }
 .shell-hint.win  { color: var(--green); }
 .shell-hint.lose { color: var(--red); }
-
-.shell-prize {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  margin: 0 auto 6px;
-  padding: 6px 8px;
-  font: inherit;
-  color: var(--text);
-  text-align: left;
-  background: var(--card);
-  border: 2px solid var(--card-line);
-  cursor: pointer;
-}
-.shell-prize[hidden] { display: none; }
-.shell-prize:active { transform: translate(1px, 1px); }
-.shell-prize:disabled { opacity: .6; cursor: default; }
-.shell-prize img { width: 38px; height: 38px; object-fit: contain; image-rendering: pixelated; flex: 0 0 auto; }
-.shell-prize img.is-gift { image-rendering: auto; }
-.shell-prize-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.shell-prize-text b { font-weight: 400; font-size: 10px; line-height: 1.3; color: var(--gold);
-                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shell-prize-text small { font-size: 8px; line-height: 1.2; color: var(--muted);
-                          overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.shell-prize-edit {
-  flex: 0 0 auto;
-  padding: 5px 7px;
-  font-size: 9px; line-height: 1;
-  color: #2a1a00;
-  background: var(--gold);
-  border: 2px solid var(--gold-dark);
-  box-shadow: inset 1px 1px 0 var(--gold-soft);
-}
 
 .wheel-row {
   position: relative;
@@ -2046,15 +1950,7 @@ html[data-theme="meadow"] .wheel-center .hat {
   0%, 100% { transform: translateY(-5px); filter: drop-shadow(0 14px 6px rgba(0, 0, 0, .35)); }
   50%      { transform: translateY(5px);  filter: drop-shadow(0 6px 4px rgba(0, 0, 0, .5)); }
 }
-
-html[data-theme="meadow"] .balance,
-html[data-theme="meadow"] .coin-chip,
-html[data-theme="meadow"] .profile-head,
-html[data-theme="meadow"] .lvl-row,
-html[data-theme="meadow"] .ref-card,
-html[data-theme="meadow"] .prize-card,
-html[data-theme="meadow"] .lb-row,
-html[data-theme="meadow"] .shell-prize {
+html[data-theme="meadow"] .balance, html[data-theme="meadow"] .coin-chip, html[data-theme="meadow"] .profile-head, html[data-theme="meadow"] .lvl-row, html[data-theme="meadow"] .ref-card, html[data-theme="meadow"] .prize-card, html[data-theme="meadow"] .lb-row {
   border-color: #3a2010;
   box-shadow: inset 2px 2px 0 #b9814a, inset -2px -2px 0 #4f2d14;
 }
@@ -2337,7 +2233,7 @@ html[data-theme="meadow"] .tab:not(.active) {
 html[data-theme="meadow"] .tab:not(.active) .ic { filter: drop-shadow(0 3px 0 rgba(46, 26, 12, .85)); transition: transform .07s ease-out; }
 html[data-theme="meadow"] .tab:not(.active):active .ic { transform: translateY(3px) scale(.92); }
 
-html[data-theme="meadow"] :is(.profile-head, .lvl-row, .ref-card, .prize-card, .lb-row, .lb-me, .shell-prize) {
+html[data-theme="meadow"] :is(.profile-head, .lvl-row, .ref-card, .prize-card, .lb-row, .lb-me) {
   background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%);
   border: 3px solid #2e1a0c;
   border-radius: 10px;
@@ -2367,8 +2263,7 @@ html[data-theme="meadow"] .avatar {
   box-shadow: inset 2px 2px 0 #a57bff, inset -2px -2px 0 #33157a;
 }
 html[data-theme="meadow"] .thumb { border-radius: 6px; overflow: hidden; }
-
-html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .ref-chevron, .shell-prize-edit, .lang-btn.on, .lvl-badge) {
+html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .ref-chevron, .lang-btn.on, .lvl-badge) {
   color: #3a1f00;
   text-shadow: none;
   background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%);
@@ -2379,7 +2274,7 @@ html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy,
   transition: transform .07s ease-out, box-shadow .07s ease-out, filter .07s;
   -webkit-tap-highlight-color: transparent;
 }
-html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy, .shell-prize-edit):active:not(:disabled),
+html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn, .ref-copy):active:not(:disabled),
 html[data-theme="meadow"] .ref-head:active .ref-chevron {
   transform: translateY(3px);
   filter: brightness(.94);
@@ -2393,21 +2288,9 @@ html[data-theme="meadow"] :is(.cta, .promo-btn, .sell-all, .sell-btn):disabled {
   cursor: default;
 }
 
-html[data-theme="meadow"] #shellBtn {
-  padding: 16px 8px;
-  font-size: 15px;
-  border-radius: 12px;
-  box-shadow: inset 0 0 0 3px #f2a52a, inset 3px 3px 0 3px #ffe39a, inset -3px -3px 0 3px #dc8f1c, 0 5px 0 #5a340a, 0 8px 8px rgba(0, 0, 0, .35);
-}
-html[data-theme="meadow"] #shellBtn:active:not(:disabled) {
-  transform: translateY(4px);
-  box-shadow: inset 0 0 0 3px #f2a52a, inset 3px 3px 0 3px #ffd77a, inset -3px -3px 0 3px #dc8f1c, 0 1px 0 #5a340a, 0 2px 3px rgba(0, 0, 0, .35);
-}
-
 html[data-theme="meadow"] .prize-card :is(.sell-btn, .wd-btn) { border-width: 2px; border-radius: 7px; padding: 7px 1px; }
 html[data-theme="meadow"] .prize-card .sell-btn { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
 html[data-theme="meadow"] .lvl-badge { box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
-html[data-theme="meadow"] .shell-prize-edit { border-width: 2px; border-radius: 7px; padding: 7px 8px; box-shadow: inset 2px 2px 0 #ffe39a, inset -2px -2px 0 #dc8f1c, 0 3px 0 #5a340a; }
 html[data-theme="meadow"] .ref-chevron { border-radius: 8px; }
 
 html[data-theme="meadow"] .wd-btn {
@@ -2445,28 +2328,6 @@ html[data-theme="meadow"] .lang-row { margin-bottom: 18px; }
 html[data-theme="meadow"] .promo-card { margin-bottom: 18px; gap: 8px; }
 html[data-theme="meadow"] .prize-grid { row-gap: 12px; }html[data-theme="meadow"] .pstat { padding: 8px 2px; }
 html[data-theme="meadow"] .pstat b { font-size: 10px; white-space: nowrap; }
-
-html[data-theme="meadow"] #shellBtn {
-  width: auto;
-  min-width: 190px;
-  max-width: 78%;
-  align-self: center;
-  padding: 13px 20px;
-  font-size: 13px;
-}
-html[data-theme="meadow"] #view-shell .shell-prize {
-  width: auto;
-  min-width: 190px;
-  max-width: 78%;
-  margin: 12px auto 0;
-  padding: 5px 8px;
-  gap: 7px;
-}
-html[data-theme="meadow"] #view-shell .shell-prize img { width: 30px; height: 30px; }
-html[data-theme="meadow"] #view-shell .shell-prize b { font-size: 9px; }
-html[data-theme="meadow"] #view-shell .shell-prize small { font-size: 7px; }
-html[data-theme="meadow"] #view-shell .shell-prize-edit { padding: 6px 7px; font-size: 8px; }
-html[data-theme="meadow"] #shellDepositBtn { width: auto; min-width: 190px; align-self: center; }
 
 html[data-theme="meadow"] .toast {
   bottom: calc(108px + var(--safe-bottom));
@@ -2709,8 +2570,7 @@ html[data-theme="meadow"][data-sky="night"], html[data-theme="meadow"][data-sky=
 .shell-subtitle { font-size: 16px; line-height: 1.4; }
 @media (max-height: 700px) { .title { font-size: 16px; } }
 @media (max-width: 350px) { .shell-subtitle { font-size: 8px; line-height: 1.8; } }
-
-.shell-cap, .wheel-center .hat, .thumb img, .shell-prize img { image-rendering: pixelated; }
+.wheel-center .hat, .thumb img { image-rendering: pixelated; }
 
 .weapon-btn img { width: 78%; height: 78%; transform: none; object-fit: contain; image-rendering: pixelated; }
 html[data-theme="meadow"] .weapon-menu img { width: 30px; height: 30px; }
@@ -2949,8 +2809,18 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 <script>
   try { if (localStorage.getItem('theme') === 'classic') document.documentElement.removeAttribute('data-theme'); } catch (e) {}
 </script>
+<script>
+  /* Манифест видео-фона запрашиваем сразу, параллельно с остальной загрузкой. */
+  (function () {
+    try {
+      window.__bgHold = true;
+      window.__bgManifest = fetch('/api/bg', { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    } catch (e) { window.__bgHold = false; window.__bgManifest = Promise.resolve(null); }
+  })();
+</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
+<script defer src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 <style id="cx-css">
 #view-chests [hidden] { display: none !important; }
 #view-chests .title { margin-top: 6px; }
@@ -3023,21 +2893,21 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .adm-key .adm-form { margin-top: 6px; }
 .adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
 
-/* ===== сундуки: анимации ===== */
-.cx-cell { position: relative; transform-origin: 50% 60%; transition: filter .15s; }
+/* ===== сундуки: анимации =====
+   Только transform/opacity и только по событию: никаких бесконечных анимаций box-shadow/filter
+   на 25 клетках (они перерисовывались каждый кадр и давали лаги). */
+.cx-cell { position: relative; transform-origin: 50% 60%; contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .cx-cell::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%); transform: translateX(-120%); }
-.cx-grid.live .cx-cell:not(:disabled):not(.gold) { animation: cxBob 2.6s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -.13s); }
-.cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); }
-@keyframes cxBob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
-.cx-cell.gold { animation: cxFlip .6s cubic-bezier(.2,.9,.3,1.15), cxGlow 1.8s ease-in-out .6s infinite; }
-.cx-cell.gold::after { animation: cxShine .9s ease-out .15s 1; }
+@media (hover: hover) { .cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); } }
+.cx-cell.pending { transform: translateY(3px) scale(.96); }
+.cx-cell.gold { animation: cxFlip .5s cubic-bezier(.2,.9,.3,1.15); }
+.cx-cell.gold::after { animation: cxShine .8s ease-out .12s 1; }
 @keyframes cxFlip { 0% { transform: perspective(260px) rotateY(0) scale(1); } 40% { transform: perspective(260px) rotateY(90deg) scale(1.2); } 100% { transform: perspective(260px) rotateY(0) scale(1); } }
-@keyframes cxGlow { 0%, 100% { box-shadow: inset 2px 2px 0 #ffe39a, 0 0 8px rgba(255,198,74,.45), 0 3px 0 #2e1a0c; } 50% { box-shadow: inset 2px 2px 0 #ffe39a, 0 0 20px rgba(255,198,74,.95), 0 3px 0 #2e1a0c; } }
 @keyframes cxShine { 0% { opacity: 1; transform: translateX(-120%); } 100% { opacity: 1; transform: translateX(120%); } }
-.cx-cell.empty { animation: cxBoom .65s ease-out; }
-@keyframes cxBoom { 0% { transform: scale(.6); filter: brightness(2.2); } 20% { transform: scale(1.3) rotate(-8deg); } 40% { transform: scale(1.1) rotate(8deg); filter: none; } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } 100% { transform: none; } }
-.cx-cell.ghost { opacity: .72; animation: cxReveal .4s ease-out both; animation-delay: var(--d, 0s); }
+.cx-cell.empty { animation: cxBoom .6s ease-out; }
+@keyframes cxBoom { 0% { transform: scale(.6); } 20% { transform: scale(1.3) rotate(-8deg); } 40% { transform: scale(1.1) rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } 100% { transform: none; } }
+.cx-cell.ghost { opacity: .72; animation: cxReveal .35s ease-out both; animation-delay: var(--d, 0s); }
 .cx-cell.ghost::after { display: none; }
 @keyframes cxReveal { from { opacity: 0; transform: scale(.55) rotate(-12deg); } to { opacity: .72; transform: none; } }
 .cx-grid.shake { animation: cxShake .5s; }
@@ -3067,6 +2937,16 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 #admTonConnect .tc-actions button{min-width:0;white-space:normal;padding:13px 7px;min-height:45px;border-radius:10px;border:2px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:10px;cursor:pointer}
 #admTonConnect #tcSave{background:var(--gold);border-color:var(--gold-dark);color:#2a1900}
 #admTonConnect #tcIconPreview{width:66px;height:66px;object-fit:contain;border:2px solid var(--card-line);border-radius:12px;margin:10px 0;background:var(--track-bg)}
+</style>
+<style id="bgvideo-css">
+/* Видео-фон: показывается поверх запасного canvas-фона, когда в /static есть ролики. */
+html[data-theme="meadow"] .bg-video { opacity: 0; transition: opacity .4s ease; object-fit: cover;
+  object-position: var(--bg-pos, 50% 50%); background: transparent; transform: translateZ(0); backface-visibility: hidden; }
+html[data-theme="meadow"] .bg-video.on { opacity: 1; }
+html.has-bgvideo .bg-scene { display: none !important; }
+html[data-theme="meadow"] .bg-wide { background: #0b1030; }
+html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
+@media (prefers-reduced-motion: reduce) { html[data-theme="meadow"] .bg-video { transition: none; } }
 </style>
 </head>
 <body>
@@ -3144,6 +3024,8 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 
 <div class="bg-wide" aria-hidden="true">
   <canvas class="bg-scene" id="bgScene"></canvas>
+  <video class="bg-video" id="bgVideo" muted loop playsinline webkit-playsinline preload="auto"
+         disablepictureinpicture disableremoteplayback tabindex="-1"></video>
   <div class="bg-dim"></div>
 </div>
 
@@ -3212,51 +3094,11 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
           <svg class="ic"><use href="#ic-trophy"></use></svg>
           <span>Лидеры</span>
         </button>
-        <button class="menu-card" id="menuShell" type="button">
-          <img src="images/hat.png" alt="">
-          <span id="shellTabName">Три шляпы</span>
-        </button>
         <button class="menu-card" id="menuChests" type="button" hidden="">
           <img id="cxMenuImg" alt="">
           <span>Сундуки</span>
         </button>
       </div>
-    </section>
-
-    <section class="view view-center" id="view-shell" hidden="">
-      <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
-      <h1 class="title">ТРИ ШЛЯПЫ</h1>
-      <p class="subtitle shell-subtitle" id="shellSubtitle">под одной сидит кот — найди его</p>
-
-      <div class="shell-table" id="shellTable">
-        <img class="shell-cat-intro" id="shellCatIntro" src="images/cat.png" alt="">
-        <div class="shell-hat" data-i="0">
-          <img class="shell-cat" src="images/cat.png" alt="">
-          <img class="shell-cap" src="images/hat.png" alt="">
-        </div>
-        <div class="shell-hat" data-i="1">
-          <img class="shell-cat" src="images/cat.png" alt="">
-          <img class="shell-cap" src="images/hat.png" alt="">
-        </div>
-        <div class="shell-hat" data-i="2">
-          <img class="shell-cat" src="images/cat.png" alt="">
-          <img class="shell-cap" src="images/hat.png" alt="">
-        </div>
-      </div>
-
-      <p class="shell-hint" id="shellHint">—</p>
-
-      <button class="cta" id="shellBtn">Угадать</button>
-
-      <button class="shell-prize" id="shellPrize" type="button" hidden="">
-        <img id="shellPrizeImg" src="images/hat.png" alt="">
-        <span class="shell-prize-text">
-          <b id="shellPrizeName">Шляпа волшебника</b>
-          <small id="shellPrizeInfo">шанс 1 из 3</small>
-        </span>
-        <span class="shell-prize-edit">сменить</span>
-      </button>
-      <button class="ghost" id="shellDepositBtn" hidden="">Пополнить баланс</button>
     </section>
 
     <section class="view view-center" id="view-chests" hidden="">
@@ -4483,7 +4325,10 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   let last = 0;
   function loop(ms) {
     if (stopped) return;
-    if (!document.hidden && ms - last > 40 && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
+    if (!document.hidden && !window.__bgHold && ms - last > 50
+        && !document.documentElement.classList.contains('has-bgvideo')
+        && document.body.dataset.view !== 'chests'
+        && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
     requestAnimationFrame(loop);
   }
 
@@ -4508,8 +4353,8 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     }
     if (!anchorY || !stage.width) return;
     window.bgAnchorY = anchorY;
-    for (const el of [document.getElementById('bgPhoto'), document.getElementById('bgVideo')]) {
-      if (!el || el.hidden) continue;
+    for (const el of [document.getElementById('bgVideo')]) {
+      if (!el || !window.BG_VIDEO_ALIGN || !el.classList.contains('on')) continue;
       const iw = el.naturalWidth || el.videoWidth, ih = el.naturalHeight || el.videoHeight;
       if (!iw || !ih) continue;
       const A = photoAnchor;
@@ -4541,6 +4386,152 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
   let sky = 'day';
   try { sky = localStorage.getItem('sky') || 'day'; } catch (e) {}
   setSky(sky, true);
+})();
+</script>
+<script>
+/* ===== Видео-фон: утро / ночь =====
+   Файлы кладутся в static/ (см. README, раздел «Видео-фон»). Сервер сам находит их по имени и отдаёт
+   список в /api/bg. Если роликов нет или они не играют - остаётся нарисованный canvas-фон. */
+(function bgVideo() {
+  'use strict';
+  const video = document.getElementById('bgVideo');
+  const root = document.documentElement;
+  const release = () => { window.__bgHold = false; };
+  if (!video) { release(); return; }
+
+  // true - выравнивать ролик «пеньком» под колесо (как раньше для фото); false - обычный cover по центру
+  window.BG_VIDEO_ALIGN = false;
+
+  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const conn = navigator.connection || {};
+  if (reduce || conn.saveData) { release(); return; }
+
+  video.muted = true;
+  video.defaultMuted = true;
+  video.setAttribute('muted', '');
+
+  let manifest = null;
+  let token = 0;
+  let wanted = root.dataset.sky === 'night' ? 'night' : 'day';
+  let currentUrl = '';
+  const sticky = {};
+  const failed = new Set();
+
+  const isSmall = () => Math.min(window.innerWidth, window.innerHeight) <= 820
+    || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
+  function choose(theme) {
+    const list = ((manifest || {})[theme] || []).filter((c) => !failed.has(c.url) && video.canPlayType(c.type) !== '');
+    if (!list.length) return null;
+    const keys = [...new Set(list.map((c) => c.key))];
+    if (!keys.includes(sticky[theme])) sticky[theme] = keys[Math.floor(Math.random() * keys.length)];
+    const group = list.filter((c) => c.key === sticky[theme]);
+    const small = isSmall();
+    const exact = group.filter((c) => (small ? c.mobile : c.desktop));
+    const neutral = group.filter((c) => !c.mobile && !c.desktop);
+    const generic = group.filter((c) => (small ? !c.desktop : !c.mobile));
+    const pool = exact.length ? exact : neutral.length ? neutral : generic.length ? generic : group;
+    // mp4 (аппаратное декодирование везде) раньше webm; из равных - меньший файл
+    pool.sort((a, b) => (a.type === 'video/mp4' ? 0 : 1) - (b.type === 'video/mp4' ? 0 : 1) || a.size - b.size);
+    return pool[0];
+  }
+
+  function fallback() {
+    token += 1;
+    video.classList.remove('on');
+    root.classList.remove('has-bgvideo');
+    try { video.pause(); } catch (e) {}
+    release();
+  }
+
+  function play() {
+    const pr = video.play();
+    if (pr && pr.catch) {
+      pr.catch(() => {
+        // автозапуск запрещён (экономия энергии и т.п.) - повторим после первого касания
+        const again = () => { video.play().catch(() => {}); };
+        window.addEventListener('pointerdown', again, { once: true, passive: true });
+      });
+    }
+  }
+
+  function show(theme) {
+    wanted = theme;
+    if (!manifest) return;
+    const clip = choose(theme);
+    if (!clip) { fallback(); return; }
+    if (clip.url === currentUrl && video.readyState >= 2) {
+      root.classList.add('has-bgvideo');
+      video.classList.add('on');
+      play();
+      release();
+      return;
+    }
+    const my = ++token;
+    video.classList.remove('on');
+    const swap = () => {
+      if (my !== token) return;
+      currentUrl = clip.url;
+      if (clip.poster) video.poster = clip.poster; else video.removeAttribute('poster');
+      const onReady = () => {
+        if (my !== token) return;
+        root.classList.add('has-bgvideo');
+        video.classList.add('on');
+        play();
+        release();
+        if (window.alignBg) window.alignBg();
+      };
+      video.addEventListener('loadeddata', onReady, { once: true });
+      video.addEventListener('error', () => {
+        if (my !== token) return;
+        failed.add(clip.url);
+        currentUrl = '';
+        show(wanted);       // пробуем другой файл; если нет - вернётся canvas
+      }, { once: true });
+      // есть превью-картинка - показываем её сразу, пока грузится ролик
+      if (clip.poster) { root.classList.add('has-bgvideo'); video.classList.add('on'); release(); }
+      video.src = clip.url;
+      video.load();
+    };
+    // при смене темы старый ролик плавно гаснет, затем грузится новый
+    if (root.classList.contains('has-bgvideo')) setTimeout(swap, 300); else swap();
+  }
+
+  // переключатель день/ночь
+  const prevSetSky = window.setSky;
+  window.setSky = (mode) => {
+    if (prevSetSky) prevSetSky(mode);
+    show(mode === 'night' ? 'night' : 'day');
+  };
+
+  // экономим батарею: на паузе, пока приложение свёрнуто
+  const pauseIf = (hidden) => {
+    if (!root.classList.contains('has-bgvideo')) return;
+    if (hidden) { try { video.pause(); } catch (e) {} } else play();
+  };
+  document.addEventListener('visibilitychange', () => pauseIf(document.hidden));
+  try {
+    const wa = window.Telegram && window.Telegram.WebApp;
+    if (wa && wa.onEvent) {
+      wa.onEvent('activated', () => pauseIf(false));
+      wa.onEvent('deactivated', () => pauseIf(true));
+    }
+  } catch (e) {}
+
+  let rz = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => { if (manifest && root.classList.contains('has-bgvideo')) { const c = choose(wanted); if (c && c.url !== currentUrl) show(wanted); } }, 400);
+  });
+
+  // страховка: не держим canvas в ожидании дольше 2.5 с
+  setTimeout(() => { if (!manifest) release(); }, 2500);
+
+  Promise.resolve(window.__bgManifest).then((m) => {
+    manifest = m && typeof m === 'object' ? m : null;
+    if (!manifest || (!(manifest.day || []).length && !(manifest.night || []).length)) { release(); return; }
+    show(root.dataset.sky === 'night' ? 'night' : 'day');
+  }).catch(release);
 })();
 </script>
 <script>
@@ -4698,6 +4689,8 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     'Поиск': { en: 'Search', zh: '搜索' },
     'Любая модель': { en: 'Any model', zh: '任意款式' },
     'Загружаю модели…': { en: 'Loading models…', zh: '正在加载款式…' },
+    'Повторить': { en: 'Retry', zh: '重试' },
+    'Сервер долго отвечает': { en: 'The server is slow to respond', zh: '服务器响应较慢' },
     'Ничего не нашлось': { en: 'Nothing found', zh: '未找到' },
     'Загружаю подарки…': { en: 'Loading gifts…', zh: '正在加载礼物…' },
     'Подарки пока недоступны': { en: 'Gifts are unavailable for now', zh: '礼物暂不可用' },
@@ -4822,8 +4815,8 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
     'место свободно': { en: 'spot is free', zh: '虚位以待' },
     'Админы в рейтинге не участвуют': { en: 'Admins don’t take part in the ranking', zh: '管理员不参与排名' },
     'Твоё место': { en: 'Your place', zh: '你的名次' },
-    'Тебя пока нет в топе — крути апгрейд или играй в «Три шляпы», чтобы попасть в рейтинг':
-      { en: 'You’re not in the top yet — play Upgrade or “Three Hats” to get ranked', zh: '你还未上榜——玩“升级”或“三顶帽子”即可进入排名' },
+    'Тебя пока нет в топе — крути апгрейд или играй в «Сундуки», чтобы попасть в рейтинг':
+      { en: 'You’re not in the top yet — play Upgrade or “Chests” to get ranked', zh: '你还未上榜——玩“升级”或“宝箱”即可进入排名' },
     '{name} (ты)': { en: '{name} (you)', zh: '{name}（你）' },
 
     'Поздравляем!': { en: 'Congratulations!', zh: '恭喜！' },
@@ -5202,7 +5195,6 @@ let giftCatalog = null;
 let selectedGift = null;
 let giftCatalogAt = 0;
 let gpModels = null;
-let gpFor = 'upgrade';
 
 function giftImage(slug) {
   return `/gimg/${slug}.webp?v=2`;
@@ -5385,16 +5377,51 @@ async function loadGiftCatalog(force = false) {
   giftCatalog = { items: r.items || [], margin: r.margin || 0, steps: r.price_steps || [], base: r.price_base || 1 };
   giftCatalogAt = Date.now();
   refreshSelectedGift().catch(() => {});
+  prefetchPopularModels();
   return giftCatalog;
 }
 
 const cachedGiftModels = new Map();
+const inflightModels = new Map();
 async function fetchModels(slug, force = false) {
   const old = cachedGiftModels.get(slug);
-  if (!force && old && Date.now() - old.at < 120000) return old.value;
-  const r = await api('/api/gifts/models', { slug });
-  if (r.models && r.models.length) cachedGiftModels.set(slug, {at: Date.now(), value: r});
-  return r;
+  if (!force && old && Date.now() - old.at < 300000) return old.value;
+  if (inflightModels.has(slug)) return inflightModels.get(slug);   // один запрос на коллекцию, а не пачка
+  const p = api('/api/gifts/models', { slug }).then((r) => {
+    if (r.models && r.models.length) cachedGiftModels.set(slug, { at: Date.now(), value: r });
+    return r;
+  }).finally(() => inflightModels.delete(slug));
+  inflightModels.set(slug, p);
+  return p;
+}
+
+// Ждём модели, пока сервер их подтягивает: опрос с нарастающей паузой, видимый статус и повтор при ошибке.
+const MODELS_POLL_MS = [500, 700, 1000, 1400, 2000, 2500];
+const MODELS_MAX_WAIT = 40000;
+async function pollModels(view) {
+  const started = Date.now();
+  for (let i = 0; ; i += 1) {
+    await new Promise((res) => setTimeout(res, MODELS_POLL_MS[Math.min(i, MODELS_POLL_MS.length - 1)]));
+    if ($('giftPickModal').hidden || gpModels !== view) return;       // окно закрыли или перешли в другую коллекцию
+    let r;
+    try { r = await fetchModels(view.slug, true); } catch (e) { r = null; }
+    if (gpModels !== view) return;
+    if (r && r.models && r.models.length) {
+      Object.assign(view, { name: r.name, floor: r.floor, image: r.image, models: r.models, loading: false, status: 'ready' });
+      renderGiftPicker();
+      return;
+    }
+    if (r && r.status === 'failed') { view.status = 'failed'; view.loading = false; renderGiftPicker(); return; }
+    if (Date.now() - started > MODELS_MAX_WAIT) { view.status = 'timeout'; view.loading = false; renderGiftPicker(); return; }
+  }
+}
+
+// Подгружаем модели самых популярных коллекций заранее, пока человек листает список
+function prefetchPopularModels() {
+  if (!giftCatalog || !giftCatalog.items.length) return;
+  const top = giftCatalog.items.filter((g) => g.slug !== HAT_SLUG).sort((a, b) => (b.popular || 0) - (a.popular || 0)).slice(0, 4);
+  const run = () => top.forEach((g, i) => setTimeout(() => fetchModels(g.slug).catch(() => {}), i * 400));
+  if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3000 }); else setTimeout(run, 1500);
 }
 
 async function refreshSelectedGift() {
@@ -5505,18 +5532,18 @@ function renderGiftPicker() {
     list.innerHTML = `<p class="muted gp-empty">${tr('Загружаю…')}</p>`;
     return;
   }
-  const forShell = gpFor === 'shell';
-  const picked = forShell ? shellGift : (currentTier === 'gift' ? selectedGift : null);
+  const picked = currentTier === 'gift' ? selectedGift : null;
   const frag = document.createDocumentFragment();
   let note = '';
+  let retry = false;
   if (gpModels) {
     const sel = picked && picked.slug === gpModels.slug ? picked.model : null;
     if (gpModels.slug === HAT_SLUG) {
       for (const key of Object.keys(HAT_TIER_KEYS)) {
         const tier = HAT_TIER_KEYS[key];
-        if (tier !== 'random' && (forShell || !hatBackdropsOn())) continue;
+        if (tier !== 'random' && !hatBackdropsOn()) continue;
         const words = `${hatTierName(tier)} ${HAT_TIER_LABEL[tier]}`.toLowerCase();
-        const on = forShell ? !shellGift : currentTier === tier;
+        const on = currentTier === tier;
         if (!q || words.includes(q)) frag.appendChild(gpHatTile(key, on));
       }
     }
@@ -5528,9 +5555,13 @@ function renderGiftPicker() {
       frag.appendChild(gpTile(m.model, m.model, m.price_ton, m.image, sel === m.model, gpModels.image));
     }
     if (gpModels.loading) note = tr('Загружаю модели…');
+    else if (gpModels.status === 'failed' || gpModels.status === 'timeout') {
+      note = gpModels.status === 'timeout' ? tr('Сервер долго отвечает') : tr('Не удалось загрузить модели');
+      retry = true;
+    }
     else if (!frag.childNodes.length) note = tr('Ничего не нашлось');
   } else {
-    const hatOn = (forShell ? !shellGift : currentTier !== 'gift') || (!!picked && picked.slug === HAT_SLUG);
+    const hatOn = currentTier !== 'gift' || (!!picked && picked.slug === HAT_SLUG);
     if (!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) {
       frag.appendChild(gpHatTile(HAT_KEY, hatOn));
     }
@@ -5551,13 +5582,19 @@ function renderGiftPicker() {
     p.className = 'muted gp-empty';
     p.textContent = note;
     list.appendChild(p);
+    if (retry) {
+      const rb = document.createElement('button');
+      rb.type = 'button';
+      rb.className = 'cx-chip';
+      rb.textContent = tr('Повторить');
+      rb.addEventListener('click', retryGiftModels);
+      list.appendChild(rb);
+    }
   }
 }
 
-async function openGiftPicker(forWhat) {
-  const shell = forWhat === 'shell';
-  if (shell ? shellPhase !== 'idle' : spinning) return;
-  gpFor = shell ? 'shell' : 'upgrade';
+async function openGiftPicker() {
+  if (spinning) return;
   gpModels = null;
   $('giftPickModal').hidden = false;
   $('gpSearch').value = '';
@@ -5577,18 +5614,13 @@ async function openGiftModels(slug) {
   try {
     const r = await fetchModels(slug);
     if (gpModels !== 'loading') return true;
-    gpModels = { slug: r.slug, name: r.name, floor: r.floor, image: r.image, models: r.models || [], loading: !r.models?.length };
-    if (gpModels.loading) {
-      setTimeout(async () => {
-        if ($('giftPickModal').hidden || gpModels?.slug !== slug) return;
-        try {
-          const updated = await fetchModels(slug, true);
-          if (gpModels?.slug === slug && updated.models?.length) {
-            Object.assign(gpModels, {models:updated.models, loading:false});
-            renderGiftPicker();
-          }
-        } catch (_) {}
-      }, 4500);
+    const ready = !!(r.models && r.models.length);
+    const view = { slug: r.slug, name: r.name, floor: r.floor, image: r.image, models: r.models || [],
+      loading: !ready, status: ready ? 'ready' : (r.status || 'loading') };
+    gpModels = view;
+    if (!ready) {
+      if (view.status === 'failed') view.loading = false;
+      else pollModels(view);
     }
   } catch (e) {
     gpModels = null;
@@ -5597,6 +5629,15 @@ async function openGiftModels(slug) {
   }
   renderGiftPicker();
   return true;
+}
+
+async function retryGiftModels() {
+  const slug = gpModels && gpModels.slug;
+  if (!slug) return;
+  gpModels = 'loading';
+  renderGiftPicker();
+  const ok = await openGiftModels(slug);
+  if (!ok) toast(tr('Не удалось загрузить модели'), true);
 }
 
 async function openHatList() {
@@ -5617,16 +5658,8 @@ async function openHatList() {
 
 function pickHatTier(tier) {
   $('giftPickModal').hidden = true;
-  if (gpFor === 'shell') pickShellPrize(null);
-  else setTier(tier);
+  setTier(tier);
   haptic('impact', 'light');
-}
-
-function pickShellPrize(gift) {
-  shellGift = gift;
-  renderShellPrize();
-  updateShellButton();
-  if (shellPhase === 'idle') shellSetHint(shellIdleHint());
 }
 
 function gpBack() {
@@ -5656,12 +5689,8 @@ function onGiftTile(key) {
       price_ton: m.price_ton, image: m.image };
   }
   $('giftPickModal').hidden = true;
-  if (gpFor === 'shell') {
-    pickShellPrize(gift);
-  } else {
-    selectedGift = gift;
-    setTier('gift');
-  }
+  selectedGift = gift;
+  setTier('gift');
   haptic('impact', 'light');
 }
 
@@ -5804,7 +5833,6 @@ function renderState(s) {
   syncTierButtons();
   const _tm = tierMeta(s.config);
   buildModes(_tm);
-  renderShell(s.config);
   renderChests();
   giftCfg = s.config.gift_deposit || null;
   $('giftDepositBtn').hidden = !(giftCfg && giftCfg.enabled && giftCfg.account);
@@ -5903,7 +5931,6 @@ async function sellAll() {
     setBalance(res.balance_ton);
     renderPrizes(res.prizes);
     updateSpinButton();
-    updateShellButton();
     toast(res.count
       ? tr('Продано {n} шт. на {sum} TON', { n: res.count, sum: fmt(res.payout_ton, 2) })
       : tr('Продавать нечего'), !res.count, 3200);
@@ -6210,8 +6237,6 @@ function setTheme(name) {
   try { localStorage.setItem('theme', name === 'classic' ? 'classic' : 'meadow'); } catch (e) {}
   syncThemeButtons();
   if (window.alignBg) window.alignBg();
-  shellAlignStump();
-  if (!$('view-shell').hidden && shellPhase === 'idle') shellPlace();
 }
 
 function syncThemeButtons() {
@@ -6365,7 +6390,6 @@ async function openHistory() {
     img.className = 'hist-img';
     const tier = r.image.startsWith('tier:') ? r.image.slice(5) : '';
     if (r.kind === 'chests') img.src = r.win ? CX_IMG.gold : CX_IMG.empty;
-    else if (r.kind === 'shell' && !r.win) img.src = 'images/hat.png';
     else if (tier || !r.image) img.src = hatAsset(tier || 'random');
     else setGiftImg(img, r.image, r.image);
 
@@ -6438,18 +6462,6 @@ function initThemeSwitch() {
   syncThemeButtons();
 }
 
-function shellAlignStump() {
-  const table = $('shellTable');
-  const y = window.bgAnchorY;
-  if (!table) return;
-  if (!isMeadow()) { table.style.marginTop = ''; return; }
-  if (!y || $('view-shell').hidden) return;
-  const stage = document.querySelector('.stage').getBoundingClientRect();
-  const sub = $('shellSubtitle').getBoundingClientRect();
-  const want = y - 10 - table.offsetHeight - (sub.bottom - stage.top);
-  table.style.marginTop = `${Math.max(4, Math.round(want))}px`;
-}
-
 function initSwipeTabs() {
   const content = document.querySelector('.content');
   let x0 = 0, y0 = 0, t0 = 0, ok = false;
@@ -6465,7 +6477,7 @@ function initSwipeTabs() {
     const t = e.changedTouches[0];
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if (Date.now() - t0 > 600 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
-    if (spinning || shellPhase !== 'idle' || cxBusy) return;
+    if (spinning || cxBusy) return;
     const main = ['menu', 'upgrade', 'profile'];
     const sub = !main.includes(currentView);
     const i = main.indexOf(VIEW_TAB[currentView]);
@@ -6507,9 +6519,9 @@ function slideViews(ghost, next, dir) {
   setTimeout(done, VIEW_SLIDE_MS + 120);
 }
 
-const VIEWS = ['menu', 'shell', 'chests', 'leaders', 'upgrade', 'profile'];
-const VIEW_TAB = { menu: 'menu', shell: 'menu', chests: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
-const VIEW_POS = { menu: 0, shell: 0.5, chests: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };
+const VIEWS = ['menu', 'chests', 'leaders', 'upgrade', 'profile'];
+const VIEW_TAB = { menu: 'menu', chests: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
+const VIEW_POS = { menu: 0, chests: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };
 let currentView = 'upgrade';
 
 function showView(name) {
@@ -6524,8 +6536,6 @@ function showView(name) {
   currentView = name;
   if (name === 'leaders') loadLeaderboard();
   lbStartTimer(name === 'leaders');
-  if (name === 'shell') shellAlignStump();
-  if (name === 'shell' && shellPhase === 'idle') shellPlace();
   if (name === 'chests') cxOnShow();
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === VIEW_TAB[name]));
   document.querySelector('.content').scrollTop = 0;
@@ -6659,7 +6669,7 @@ function renderLeaderboard(data) {
     s.textContent = fmtTon(data.me.total_ton);
     me.append(r, t, s);
   } else {
-    me.textContent = tr('Тебя пока нет в топе — крути апгрейд или играй в «Три шляпы», чтобы попасть в рейтинг');
+    me.textContent = tr('Тебя пока нет в топе — крути апгрейд или играй в «Сундуки», чтобы попасть в рейтинг');
     me.classList.add('muted');
   }
 
@@ -6702,444 +6712,6 @@ async function loadLeaderboard(force = false) {
   } finally {
     lbLoading = false;
   }
-}
-
-let shellOrder = [0, 1, 2];
-let shellPhase = 'idle';
-let shellCfg = null;
-
-let shellRound = 0;
-
-const SHUFFLE_SWAPS = 16;
-const SWAP_FIRST_MS = 400;
-const SWAP_DECAY = 0.84;
-const SWAP_MIN_MS = 70;
-
-function shellHats() {
-  return [...document.querySelectorAll('#shellTable .shell-hat')];
-}
-
-function shellStep() {
-  const table = $('shellTable');
-  return (table ? table.clientWidth : 330) / 3;
-}
-
-function shellTf(slot, dy = 0, scale = 1) {
-  const x = (slot - 1) * shellStep();
-  return `translate(${x.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${scale})`;
-}
-
-function shellPlace() {
-  const hats = shellHats();
-  shellOrder.forEach((hatIdx, slot) => {
-    hats[hatIdx].style.transform = shellTf(slot);
-  });
-}
-
-function shellPlan() {
-  const plan = [];
-  let dur = SWAP_FIRST_MS;
-  let prev = -1;
-  for (let i = 0; i < SHUFFLE_SWAPS; i++) {
-    let a = Math.floor(Math.random() * 3);
-    let b;
-    do { b = Math.floor(Math.random() * 3); } while (b === a);
-    const key = Math.min(a, b) * 3 + Math.max(a, b);
-    if (key === prev && i) { const t = a; a = b; b = (3 - t - b); }
-    prev = Math.min(a, b) * 3 + Math.max(a, b);
-    plan.push({ a, b, dur: Math.round(dur) });
-    dur = Math.max(SWAP_MIN_MS, dur * SWAP_DECAY);
-  }
-  return plan;
-}
-
-function shellShuffle(round, done) {
-  const hats = shellHats();
-  const plan = shellPlan();
-  const total = plan.reduce((s, p) => s + p.dur, 0);
-  const frames = hats.map(() => []);
-
-  shellOrder.forEach((hatIdx, slot) => {
-    frames[hatIdx].push({ offset: 0, transform: shellTf(slot) });
-  });
-
-  let t = 0;
-  for (const p of plan) {
-    const hatA = shellOrder[p.a];
-    const hatB = shellOrder[p.b];
-    const t0 = t / total;
-    const tm = (t + p.dur / 2) / total;
-    const t1 = (t + p.dur) / total;
-    const mid = (p.a + p.b) / 2;
-
-    frames[hatA].push({ offset: t0, transform: shellTf(p.a), easing: 'ease-in-out' });
-    frames[hatB].push({ offset: t0, transform: shellTf(p.b), easing: 'ease-in-out' });
-    frames[hatA].push({ offset: tm, transform: shellTf(mid, -26, 0.9), easing: 'ease-in-out' });
-    frames[hatB].push({ offset: tm, transform: shellTf(mid, 16, 1.08), easing: 'ease-in-out' });
-    frames[hatA].push({ offset: t1, transform: shellTf(p.b) });
-    frames[hatB].push({ offset: t1, transform: shellTf(p.a) });
-
-    shellOrder[p.a] = hatB;
-    shellOrder[p.b] = hatA;
-    t += p.dur;
-  }
-
-  shellOrder.forEach((hatIdx, slot) => {
-    frames[hatIdx].push({ offset: 1, transform: shellTf(slot) });
-  });
-
-  const running = [];
-  hats.forEach((hat, i) => {
-    hat.getAnimations().forEach((a) => a.cancel());
-    hat.style.zIndex = '';
-    running.push(hat.animate(frames[i], { duration: total, easing: 'linear', fill: 'forwards' }));
-  });
-
-  let finished = false;
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    running.forEach((a) => a.cancel());
-    if (!shellAlive(round)) return;
-    shellPlace();
-    done();
-  };
-  if (running.length) {
-    running[running.length - 1].onfinish = finish;
-    setTimeout(finish, total + 300);
-  } else {
-    finish();
-  }
-  return total;
-}
-
-function shellSetHint(text, cls = '') {
-  const el = $('shellHint');
-  el.textContent = text;
-  el.className = 'shell-hint' + (cls ? ' ' + cls : '');
-}
-
-function shellClearMarks() {
-  shellHats().forEach((h) => h.classList.remove('chosen', 'miss'));
-}
-
-function shellAlive(round) {
-  return round === shellRound;
-}
-
-function shellReset() {
-  const intro = $('shellCatIntro');
-  if (intro) {
-    intro.getAnimations().forEach((a) => a.cancel());
-    intro.style.opacity = '';
-    intro.style.transform = '';
-  }
-  shellHats().forEach((hat) => {
-    const cap = hat.querySelector('.shell-cap');
-    const cat = hat.querySelector('.shell-cat');
-    [hat, cap, cat].forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
-    cap.style.transform = '';
-    cat.style.opacity = '';
-    cat.style.transform = '';
-    hat.classList.remove('chosen', 'miss');
-    hat.style.zIndex = '';
-  });
-  $('shellTable').classList.remove('picking');
-  shellPlace();
-}
-
-const CAP_UP = 'translateY(-124px) rotate(-13deg)';
-const CAP_DOWN = 'translateY(0px) rotate(0deg)';
-
-function shellAnimate(el, frames, opts, finalStyle) {
-  el.getAnimations().forEach((a) => a.cancel());
-  Object.assign(el.style, finalStyle);
-  el.animate(frames, opts);
-}
-
-function shellLift(hat, withCat) {
-  const cap = hat.querySelector('.shell-cap');
-  const cat = hat.querySelector('.shell-cat');
-
-  shellAnimate(cap, [
-    { transform: CAP_DOWN },
-    { transform: 'translateY(-138px) rotate(-17deg)', offset: 0.45 },
-    { transform: 'translateY(-118px) rotate(-11deg)', offset: 0.72 },
-    { transform: CAP_UP },
-  ], { duration: 460, easing: 'cubic-bezier(.22,.9,.3,1)' }, { transform: CAP_UP });
-
-  if (!withCat) return;
-  shellAnimate(cat, [
-    { opacity: 0, transform: 'translateY(30px) scale(.7)' },
-    { opacity: 0, transform: 'translateY(30px) scale(.7)', offset: 0.22 },
-    { opacity: 1, transform: 'translateY(-6px) scale(1.06)', offset: 0.68 },
-    { opacity: 1, transform: 'translateY(0px) scale(1)' },
-  ], { duration: 540, easing: 'ease-out' }, { opacity: '1', transform: 'none' });
-}
-
-function shellDrop() {
-  shellHats().forEach((hat) => {
-    const cap = hat.querySelector('.shell-cap');
-    const cat = hat.querySelector('.shell-cat');
-    shellAnimate(cap, [{ transform: CAP_UP }, { transform: CAP_DOWN }],
-      { duration: 300, easing: 'cubic-bezier(.5,0,.75,.6)' }, { transform: '' });
-    cat.getAnimations().forEach((a) => a.cancel());
-    cat.style.opacity = '';
-    cat.style.transform = '';
-  });
-  shellClearMarks();
-}
-
-let shellGift = null;
-let shellRoundGift = null;
-
-function shellCost() {
-  if (!shellGift) return shellCfg.cost_ton;
-  if (shellGift.cost_ton != null) return shellGift.cost_ton;
-  return roundTon(shellGift.price_ton * (shellCfg.price_share || 0));
-}
-
-let shellHiddenKey = null;
-function shellApplyHidden(gift) {
-  const key = gift ? gift.image : 'cat';
-  if (key === shellHiddenKey) return;
-  shellHiddenKey = key;
-  [$('shellCatIntro'), ...document.querySelectorAll('.shell-cat')].forEach((img) => {
-    img.classList.toggle('is-gift', !!gift);
-    if (gift) setGiftImg(img, gift.image, giftImage(gift.slug));
-    else { img.onerror = null; img.src = 'images/cat.png'; }
-  });
-}
-
-function shellText(key, gift) {
-  const t = gift ? {
-    subtitle: tr('под одной спрятан подарок — найди его'),
-    idle: tr('Жми «Угадать» — подарок покажется и спрячется'),
-    hiding: tr('Подарок сейчас спрячется'),
-    pick: tr('Где подарок? Жми на шляпу'),
-    win: tr('Подарок твой! Он уже в профиле'),
-    lose: tr('Подарок был не там. Ещё разок?'),
-  } : {
-    subtitle: tr('под одной сидит кот — найди его'),
-    idle: tr('Жми «Угадать» — кот покажется и спрячется'),
-    hiding: tr('Кот сейчас спрячется'),
-    pick: tr('Где кот? Жми на шляпу'),
-    win: tr('Кот твой! Приз в профиле'),
-    lose: tr('Кот был не там. Ещё разок?'),
-  };
-  return t[key];
-}
-
-function shellIdleHint() {
-  return lsGet('shellPlayed') === '1' ? '' : shellText('idle', shellGift);
-}
-
-function renderShellPrize() {
-  const box = $('shellPrize');
-  if (!shellCfg) return;
-  if (shellPhase === 'idle') {
-    shellApplyHidden(shellGift);
-    $('shellSubtitle').textContent = shellText('subtitle', shellGift);
-  }
-  box.hidden = !shellCfg.gifts;
-  const img = $('shellPrizeImg');
-  if (shellGift) {
-    setGiftImg(img, shellGift.image, giftImage(shellGift.slug));
-    img.classList.add('is-gift');
-    $('shellPrizeName').textContent = shellGift.name;
-    $('shellPrizeInfo').textContent = tr('{price} TON · шанс 1 из {cups}', { price: fmt(shellGift.price_ton, 2), cups: shellCfg.cups });
-  } else {
-    img.onerror = null;
-    img.src = TIER_HAT_ASSET.random;
-    img.classList.remove('is-gift');
-    $('shellPrizeName').textContent = trName(shellCfg.prize_name) || hatPrizeName();
-    $('shellPrizeInfo').textContent = tr('шанс 1 из {cups}', { cups: shellCfg.cups });
-  }
-}
-
-function updateShellButton() {
-  if (!shellCfg || !state) return;
-  const cost = shellCost();
-  const enough = state.balance_ton + 1e-9 >= cost;
-  const busy = shellPhase !== 'idle';
-  $('shellBtn').disabled = busy || !enough;
-  $('shellBtn').textContent = busy
-    ? tr('Идёт игра…')
-    : (enough ? tr('Угадать за {sum} TON', { sum: fmt(cost, 2) }) : tr('Не хватает на игру'));
-  $('shellDepositBtn').hidden = enough;
-  $('shellPrize').disabled = busy;
-}
-
-function renderShell(cfg) {
-  shellCfg = cfg.shell || null;
-  const tab = $('menuShell');
-  if (!shellCfg || !shellCfg.enabled) {
-    if (tab) tab.hidden = true;
-    return;
-  }
-  if (tab) tab.hidden = false;
-  $('shellTabName').textContent = tr(shellCfg.tab_name);
-  if (!shellCfg.gifts) shellGift = null;
-  renderShellPrize();
-  if (shellPhase === 'idle') {
-    shellSetHint(shellIdleHint());
-    shellPlace();
-  }
-  updateShellButton();
-}
-
-async function shellStart() {
-  if (shellPhase !== 'idle' || !shellCfg || !state) return;
-  if (state.balance_ton + 1e-9 < shellCost()) { openDeposit(); return; }
-
-  shellPhase = 'starting';
-  shellRoundGift = shellGift;
-  updateShellButton();
-  try {
-    const res = await api('/api/shell/start', shellGift
-      ? { gift: shellGift.slug, model: shellGift.model, cost: shellCost() }
-      : {});
-    state.balance_ton = res.balance_ton;
-    $('balanceValue').textContent = fmt(res.balance_ton, 4);
-    updateSpinButton();
-  } catch (e) {
-    shellPhase = 'idle';
-    if (e.code === 'price_changed' && shellGift) {
-      shellGift.price_ton = e.data.price_ton;
-      shellGift.cost_ton = e.data.cost_ton;
-      renderShellPrize();
-      updateShellButton();
-      shellSetHint(tr('Цена подарка обновилась — проверь и жми «Угадать»'), 'lose');
-      return;
-    }
-    if (e.code === 'gift_unavailable') {
-      shellGift = null;
-      renderShellPrize();
-      updateShellButton();
-      shellSetHint(tr('Этот подарок сейчас недоступен — выбери другой'), 'lose');
-      return;
-    }
-    updateShellButton();
-    if (e.code === 'insufficient_funds') { refresh(); openDeposit(); return; }
-    shellSetHint(e.code === 'mode_disabled' ? tr('Режим сейчас выключен') : tr('Ошибка запроса'), 'lose');
-    return;
-  }
-
-  const round = ++shellRound;
-  lsSet('shellPlayed', '1');
-  shellApplyHidden(shellRoundGift);
-  shellPhase = 'intro';
-  shellReset();
-  updateShellButton();
-  haptic('impact', 'light');
-
-  const intro = $('shellCatIntro');
-  shellAnimate(intro, [
-    { opacity: 0, transform: 'translateY(24px) scale(.6)' },
-    { opacity: 1, transform: 'translateY(-6px) scale(1.06)', offset: 0.45 },
-    { opacity: 1, transform: 'translateY(0) scale(1)' },
-  ], { duration: 700, easing: 'ease-out' }, { opacity: '1', transform: 'none' });
-  shellSetHint(shellText('hiding', shellRoundGift));
-
-  setTimeout(() => {
-    if (!shellAlive(round)) return;
-    shellAnimate(intro, [
-      { opacity: 1, transform: 'translateY(0) scale(1)' },
-      { opacity: 0, transform: 'translateY(56px) scale(.45)' },
-    ], { duration: 320, easing: 'ease-in' }, { opacity: '', transform: '' });
-
-    setTimeout(() => {
-      if (!shellAlive(round)) return;
-      shellPhase = 'shuffle';
-      shellSetHint(tr('Мешаем!'));
-      shellShuffle(round, () => {
-        if (!shellAlive(round)) return;
-        shellPhase = 'pick';
-        $('shellTable').classList.add('picking');
-        shellSetHint(shellText('pick', shellRoundGift));
-        updateShellButton();
-      });
-    }, 300);
-  }, 1200);
-}
-
-async function shellPick(hatEl) {
-  if (shellPhase !== 'pick') return;
-  const round = shellRound;
-  const hats = shellHats();
-  const hatIdx = hats.indexOf(hatEl);
-  const slot = shellOrder.indexOf(hatIdx);
-  if (slot < 0) return;
-
-  shellPhase = 'reveal';
-  $('shellTable').classList.remove('picking');
-  hatEl.classList.add('chosen');
-  shellSetHint(tr('Смотрим…'));
-  haptic('impact', 'medium');
-
-  let res;
-  try {
-    res = await api('/api/shell/play', shellRoundGift
-      ? { pick: slot, gift: shellRoundGift.slug }
-      : { pick: slot });
-  } catch (e) {
-    if (!shellAlive(round)) return;
-    shellPhase = 'idle';
-    shellClearMarks();
-    const messages = {
-      round_expired: tr('Партия устарела, ставка вернулась — жми «Угадать»'),
-      insufficient_funds: tr('Недостаточно средств'),
-      too_fast: tr('Слишком часто, подожди секунду'),
-      mode_disabled: tr('Режим сейчас выключен'),
-      bad_pick: tr('Странный выбор, попробуй ещё раз'),
-    };
-    shellSetHint(messages[e.code] || tr('Ошибка запроса'), 'lose');
-    updateShellButton();
-    if (e.code === 'insufficient_funds' || e.code === 'round_expired') refresh();
-    return;
-  }
-
-  if (!shellAlive(round)) return;
-  setCoins(res.hatcoin_balance);
-
-  const catHat = hats[shellOrder[res.cat]];
-
-  shellLift(hatEl, hatEl === catHat);
-  if (!res.win) hatEl.classList.add('miss');
-
-  setTimeout(() => {
-    if (!shellAlive(round)) return;
-    hats.forEach((h) => { if (h !== hatEl) shellLift(h, h === catHat); });
-
-    if (res.win) {
-      haptic('notification', 'success');
-      const r = catHat.getBoundingClientRect();
-      const st = document.querySelector('.stage').getBoundingClientRect();
-      burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
-      shellSetHint(shellText('win', shellRoundGift), 'win');
-      spinTier = shellRoundGift ? `url:${shellRoundGift.image}` : 'random';
-      flyPrizeToProfile(() => {});
-    } else if (res.consolation) {
-      haptic('notification', 'error');
-      shellSetHint(shellText('lose', shellRoundGift), 'lose');
-      if (res.consolation.first) toast(bearText(), false, 4200);
-      flyItemToProfile(hatEl, BEAR_ASSET);
-    } else {
-      haptic('notification', 'error');
-      shellSetHint(shellText('lose', shellRoundGift), 'lose');
-    }
-
-    setTimeout(() => {
-      if (!shellAlive(round)) return;
-      shellDrop();
-      shellPhase = 'idle';
-      shellPlace();
-      shellSetHint(tr('Ещё разок?'));
-      updateShellButton();
-    }, 2200);
-
-    refresh();
-  }, res.win ? 420 : 620);
 }
 
 /* ===== Сундуки (режим «мины»): золото или пустой сундук ===== */
@@ -7305,19 +6877,23 @@ function cxDraw() {
   const opened = new Set(r ? r.opened : end ? end.opened : []);
   const bad = new Set(end ? end.bad : []);
   let revealN = 0;
-  [...$('cxGrid').children].forEach((b, i) => {
+  const cells = $('cxGrid').children;
+  for (let i = 0; i < cells.length; i += 1) {
+    const b = cells[i];
     let cls = 'cx-cell';
-    let src = CX_IMG.closed;
-    if (opened.has(i)) { cls += ' gold'; src = CX_IMG.gold; }
-    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; src = CX_IMG.empty; }
-    else if (end) { cls += ' ghost'; src = CX_IMG.gold; }
+    let kind = 'closed';
+    if (opened.has(i)) { cls += ' gold'; kind = 'gold'; }
+    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; kind = 'empty'; }
+    else if (end) { cls += ' ghost'; kind = 'gold'; }
     if (b.className !== cls) {
       if (cls.includes('ghost')) b.style.setProperty('--d', `${(revealN++) * 0.05}s`);
       b.className = cls;
     }
-    b.firstChild.src = src;
-    b.disabled = !r || cxBusy || opened.has(i);
-  });
+    // картинку меняем только если она правда сменилась (иначе браузер перекодирует SVG на каждом кадре UI)
+    if (b._kind !== kind) { b._kind = kind; b.firstChild.src = CX_IMG[kind]; }
+    const dis = !r || cxBusy || opened.has(i);
+    if (b.disabled !== dis) b.disabled = dis;
+  }
   $('cxGrid').classList.toggle('live', !!r && !cxBusy);
 
   const nxt = r ? r.next_mult : cxMultAt(cxEmpties, 1);
@@ -7436,13 +7012,15 @@ function cxFinish(res) {
     cxSetHint(tr('Пустой сундук! Ставка сгорела'), 'lose');
     if (res.consolation && res.consolation.first) toast(bearText(), false, 4200);
   }
-  refresh();
+  setTimeout(refresh, 1100);   // полное обновление состояния - после анимации раскрытия, а не посреди неё
 }
 
 async function cxOpen(i) {
   if (!cxRound || cxBusy) return;
   cxBusy = true;
   cxDraw();
+  const cell = $('cxGrid').children[i];
+  if (cell) cell.classList.add('pending');      // мгновенный отклик, не дожидаясь ответа сервера
   try {
     const res = await api('/api/chests/open', { cell: i });
     cxStamp = Date.now();
@@ -8219,7 +7797,6 @@ async function sellPrize(prize, btn, card) {
       $('balanceValue').textContent = fmt(res.balance_ton, 4);
       renderPrizes(res.prizes);
       updateSpinButton();
-      if (typeof updateShellButton === 'function') updateShellButton();
     }
   } catch (e) {
     sellingNow.delete(prize.id);
@@ -8568,26 +8145,14 @@ function bind() {
     if (item) onGiftTile(item.dataset.key);
   });
 
-  $('shellBtn').addEventListener('click', shellStart);
-  $('shellPrize').addEventListener('click', () => { openGiftPicker('shell'); haptic('impact', 'light'); });
-  $('shellDepositBtn').addEventListener('click', openDeposit);
-  $('shellTable').addEventListener('click', (e) => {
-    if (!$('shellTable').classList.contains('picking')) return;
-    const hat = e.target.closest('.shell-hat');
-    if (hat) shellPick(hat);
-  });
-  window.addEventListener('resize', () => {
-    if (shellPhase === 'idle') shellPlace();
-  });
   $('balanceChip').addEventListener('click', openDeposit);
   $('depWalletBtn').addEventListener('click', onWalletClick);
   $('depWalletSwitch').addEventListener('click', switchWallet);
   $('menuLeaders').addEventListener('click', () => { haptic('impact', 'light'); showView('leaders'); });
-  $('menuShell').addEventListener('click', () => { haptic('impact', 'light'); showView('shell'); });
   initChests();
   document.querySelectorAll('.view-back').forEach((b) => {
     b.addEventListener('click', () => {
-      if (shellPhase !== 'idle' || cxBusy) return;
+      if (cxBusy) return;
       haptic('impact', 'light');
       showView(b.dataset.back);
     });
@@ -8635,7 +8200,6 @@ function bind() {
     t.addEventListener('click', () => showView(t.dataset.view));
   });
   initSwipeTabs();
-  window.addEventListener('bgaligned', shellAlignStump);
 
   document.querySelectorAll('.amt').forEach((b) => {
     b.addEventListener('click', () => {

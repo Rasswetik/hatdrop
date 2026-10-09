@@ -1,3 +1,5 @@
+import atexit
+import gzip
 import hashlib
 import hmac
 import html
@@ -8,13 +10,14 @@ import sqlite3
 import threading
 import time
 import re
+import signal
 import urllib.error
 import urllib.request
 from math import comb
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))  # старый JSON-файл (только для миграции)
@@ -61,9 +64,6 @@ PROMO_CODES = {"DEMO": 10.0}  # legacy codes; new codes use persistent DB
 MARGIN = 0.05
 SELL_SHARE = 0.9
 MIN_DEPOSIT = 0.5
-SHELL_CUPS = 3
-SHELL_HAT_VALUE = 3.0
-SHELL_PRICE_SHARE = round(1 / SHELL_CUPS / (1 - MARGIN), 4)
 ROUND_TTL = 180
 HISTORY_LIMIT = 50
 MIN_CHANCE_PCT, MAX_CHANCE_PCT = 10, 70
@@ -216,14 +216,70 @@ def load_db():
     # утешительных мишек больше нет: чистим старые у всех игроков
     for u in db["users"].values():
         u["prizes"] = [p for p in u.get("prizes", []) if p.get("tier") != "bear"]
+        # режим «Три шляпы» удалён: незавершённую партию возвращаем ставкой на баланс
+        rnd = u.get("round")
+        if rnd:
+            u["balance"] = ton((u.get("balance") or 0) + (rnd.get("cost") or 0))
+            u["round"] = None
 
 
-def save_db():
-    text = json.dumps(db, ensure_ascii=False)
+# Запись БД отложенная: раньше ПОСЛЕ КАЖДОГО запроса весь файл БД сериализовался и писался
+# в Postgres/SQLite под глобальным локком - отсюда лаги на каждом клике. Теперь save_db()
+# только помечает «грязно», а фоновый поток пишет не чаще раза в SAVE_DELAY секунд;
+# на выходе процесса (SIGTERM/atexit) состояние дописывается принудительно.
+SAVE_DELAY = float(os.environ.get("SAVE_DELAY", "2"))
+_dirty = threading.Event()
+
+
+def flush_db():
+    with lock:
+        text = json.dumps(db, ensure_ascii=False)
     if text == _last_saved["db"]:
         return
     store_put("db", DB_PATH, text)
     _last_saved["db"] = text
+
+
+def save_db():
+    _dirty.set()
+
+
+def _saver_loop():
+    while True:
+        _dirty.wait()
+        time.sleep(SAVE_DELAY)
+        _dirty.clear()
+        try:
+            flush_db()
+        except Exception as e:
+            _dirty.set()
+            print(f"DB flush failed: {e}", flush=True)
+            time.sleep(5)
+
+
+def _flush_on_exit(*_):
+    try:
+        flush_db()
+        save_catalog()
+    except Exception as e:
+        print(f"final flush failed: {e}", flush=True)
+
+
+def _install_exit_hooks():
+    atexit.register(_flush_on_exit)
+    try:
+        prev = signal.getsignal(signal.SIGTERM)
+
+        def on_term(signum, frame):
+            _flush_on_exit()
+            if callable(prev):
+                prev(signum, frame)
+            else:
+                raise SystemExit(0)
+
+        signal.signal(signal.SIGTERM, on_term)
+    except (ValueError, OSError):
+        pass  # не главный поток - atexit всё равно отработает
 
 
 def load_catalog():
@@ -364,10 +420,6 @@ CHEST_LADDER = {
 
 def spin_cost(value, chance):
     return max(0.01, money(value * chance / (1 - MARGIN)))
-
-
-def shell_cost_for(price):
-    return money(price * SHELL_PRICE_SHARE)
 
 
 def verified_telegram_user(init_data):
@@ -525,15 +577,6 @@ def public_config():
             "max_empty": CHEST_MAX_EMPTY,
             "ladder": CHEST_LADDER,
         },
-        "shell": {
-            "enabled": True,
-            "tab_name": "Три шляпы",
-            "prize_name": TIERS["random"]["name"],
-            "cups": SHELL_CUPS,
-            "gifts": True,
-            "cost_ton": shell_cost_for(TIERS["random"]["value"]),
-            "price_share": SHELL_PRICE_SHARE,
-        },
     }
 
 
@@ -633,53 +676,6 @@ def spin(user, body):
         bear = consolation(user)
     record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
     return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0, "consolation": bear}
-
-
-@route("/api/shell/start")
-def shell_start(user, body):
-    if body.get("gift"):
-        target = resolve_target({"gift": body["gift"], "model": body.get("model", "")}, "gift")
-        cost = shell_cost_for(target["value"])
-        asked = body.get("cost")
-        if not isinstance(asked, (int, float)) or abs(asked - cost) > 0.005:
-            raise ApiError("price_changed", price_ton=target["value"], cost_ton=cost)
-    else:
-        target = resolve_target({}, "random")
-        target["value"] = TIERS["random"]["value"]
-        cost = shell_cost_for(TIERS["random"]["value"])
-    old = user["round"]
-    if old:
-        user["balance"] = ton(user["balance"] + old["cost"])
-        user["round"] = None
-    if user["balance"] + 1e-9 < cost:
-        raise ApiError("insufficient_funds")
-    user["balance"] = ton(user["balance"] - cost)
-    user["round"] = {"cost": cost, "target": target, "at": time.time()}
-    return {"balance_ton": ton(user["balance"])}
-
-
-@route("/api/shell/play")
-def shell_play(user, body):
-    rnd = user["round"]
-    if not rnd or time.time() - rnd["at"] > ROUND_TTL:
-        if rnd:
-            user["balance"] = ton(user["balance"] + rnd["cost"])
-            user["round"] = None
-        raise ApiError("round_expired")
-    pick = body.get("pick")
-    if pick not in range(SHELL_CUPS):
-        raise ApiError("bad_pick")
-    user["round"] = None
-    cat = secrets.randbelow(SHELL_CUPS)
-    win = cat == pick
-    target = rnd["target"]
-    bear = None
-    if win:
-        add_prize(user, target["tier"], target["name"], target["value"], target["image"])
-    else:
-        bear = consolation(user)
-    record_game(user, "shell", rnd["cost"], win, "", target["image"] or f"tier:{target['tier']}", bool(bear))
-    return {"win": win, "cat": cat, "hatcoin_balance": 0, "consolation": bear}
 
 
 def chest_view(user):
@@ -1125,7 +1121,18 @@ def gifts_catalog(user, body):
 def _models_payload(user, body):
     slug = body.get("slug", "")
     entry = gift_entry(slug)
-    return {"slug": slug, "name": entry["name"], "floor": gift_floor(slug), "image": gift_image(slug), "models": gift_models(slug)}
+    models = gift_models(slug)
+    # Явное состояние для клиента: ready / loading / failed (раньше был только пустой список).
+    if models:
+        status = "ready"
+    elif slug in MODEL_LOADING:
+        status = "loading"
+    elif time.time() - MODEL_FAIL.get(slug, 0) < 45:
+        status = "failed"
+    else:
+        status = "loading"
+    return {"slug": slug, "name": entry["name"], "floor": gift_floor(slug), "image": gift_image(slug),
+            "models": models, "status": status}
 
 
 _models_view = api(_models_payload)
@@ -2569,15 +2576,167 @@ def images(name):
     return ("", 404)
 
 
+# ---------------------------------------------------------------- сжатие и главная страница
+_COMPRESSIBLE = {"application/json", "text/html", "text/css", "application/javascript", "text/javascript",
+                 "image/svg+xml", "text/plain"}
+
+
+@app.after_request
+def compress_response(resp):
+    try:
+        if (resp.direct_passthrough or resp.status_code != 200 or "Content-Encoding" in resp.headers
+                or resp.mimetype not in _COMPRESSIBLE
+                or "gzip" not in request.headers.get("Accept-Encoding", "").lower()):
+            return resp
+        data = resp.get_data()
+        if len(data) < 1024:
+            return resp
+        resp.set_data(gzip.compress(data, 5))
+        resp.headers["Content-Encoding"] = "gzip"
+        resp.headers["Vary"] = "Accept-Encoding"
+        resp.headers["Content-Length"] = str(len(resp.get_data()))
+    except Exception:
+        pass
+    return resp
+
+
+_INDEX_CACHE = {"mtime": None, "raw": b"", "gz": b"", "etag": ""}
+
+
+def _index_bytes():
+    path = os.path.join(BASE_DIR, "index.html")
+    mtime = os.path.getmtime(path)
+    if _INDEX_CACHE["mtime"] != mtime:
+        with open(path, "rb") as f:
+            raw = f.read()
+        _INDEX_CACHE.update(mtime=mtime, raw=raw, gz=gzip.compress(raw, 9),
+                            etag='"' + hashlib.sha1(raw).hexdigest()[:20] + '"')
+    return _INDEX_CACHE
+
+
 @app.get("/")
 def index():
-    return send_from_directory(BASE_DIR, "index.html")
+    cache = _index_bytes()
+    headers = {"ETag": cache["etag"], "Cache-Control": "no-cache", "Vary": "Accept-Encoding",
+               "Content-Type": "text/html; charset=utf-8"}
+    if request.headers.get("If-None-Match") == cache["etag"]:
+        return Response(status=304, headers=headers)
+    if "gzip" in request.headers.get("Accept-Encoding", "").lower():
+        headers["Content-Encoding"] = "gzip"
+        return Response(cache["gz"], headers=headers)
+    return Response(cache["raw"], headers=headers)
+
+
+# ---------------------------------------------------------------- /static и видео-фон
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+STATIC_ALLOWED = {".mp4", ".m4v", ".webm", ".webp", ".jpg", ".jpeg", ".png", ".avif", ".gif", ".svg",
+                  ".js", ".css", ".json", ".woff", ".woff2", ".ico"}
+VIDEO_EXT = {".mp4", ".m4v", ".webm"}
+POSTER_EXT = {".webp", ".jpg", ".jpeg", ".png", ".avif"}
+BG_SKIP_DIRS = {"next", "css", "js", "img"}
+
+
+@app.get("/static/<path:name>")
+def static_files(name):
+    if os.path.splitext(name)[1].lower() not in STATIC_ALLOWED:
+        return ("", 404)
+    resp = send_from_directory(STATIC_DIR, name, conditional=True)  # Range/206 для видео, ETag/304
+    # URL с ?v=<mtime> меняется вместе с файлом, поэтому кэшируем надолго
+    resp.headers["Cache-Control"] = ("public, max-age=31536000, immutable" if request.args.get("v")
+                                     else "public, max-age=3600")
+    return resp
+
+
+# Определение «утро/ночь» по имени файла - чтобы не заставлять переименовывать.
+_NIGHT_RE = re.compile(r"night|ноч|dark|moon|луна|midnight|evening|вечер|dusk|закат|sunset", re.I)
+_DAY_RE = re.compile(r"day|morning|morn|утр|дн|день|dawn|sunrise|рассвет|sun|light|солн|bright", re.I)
+_MOBILE_RE = re.compile(r"mobile|mob|phone|vertical|portrait|vert|9x16|9-16|9_16|small|[-_ .]sm(?![a-z])", re.I)
+_DESKTOP_RE = re.compile(r"desktop|pc|wide|landscape|16x9|16-9|16_9", re.I)
+_BG_CACHE = {"at": 0, "data": None}
+
+
+def _bg_theme(stem):
+    if _NIGHT_RE.search(stem):
+        return "night"
+    if _DAY_RE.search(stem):
+        return "day"
+    return None
+
+
+def scan_backgrounds():
+    clips = {"day": [], "night": []}
+    posters = {}
+    found = []
+    for root, dirs, files in os.walk(STATIC_DIR):
+        dirs[:] = [d for d in dirs if d not in BG_SKIP_DIRS or root != STATIC_DIR]
+        for fn in files:
+            ext = os.path.splitext(fn)[1].lower()
+            if ext in VIDEO_EXT or ext in POSTER_EXT:
+                full = os.path.join(root, fn)
+                rel = os.path.relpath(full, STATIC_DIR).replace(os.sep, "/")
+                found.append((rel, fn, ext, full))
+    for rel, fn, ext, full in sorted(found):
+        stem = os.path.splitext(fn)[0]
+        if ext in POSTER_EXT:
+            posters.setdefault(os.path.splitext(rel)[0].lower(), rel)
+            continue
+        theme = _bg_theme(stem) or _bg_theme(os.path.dirname(rel))
+        if not theme:
+            continue
+        try:
+            st = os.stat(full)
+        except OSError:
+            continue
+        url = "/static/" + quote(rel) + "?v=" + str(int(st.st_mtime))
+        clips[theme].append({
+            "url": url, "type": "video/webm" if ext == ".webm" else "video/mp4", "size": st.st_size,
+            "mobile": bool(_MOBILE_RE.search(stem)), "desktop": bool(_DESKTOP_RE.search(stem)),
+            "key": _MOBILE_RE.sub("", _DESKTOP_RE.sub("", os.path.splitext(rel)[0])).lower().strip("-_ ."),
+            "_poster": os.path.splitext(rel)[0].lower(),
+        })
+    for theme in clips:
+        for c in clips[theme]:
+            pr = posters.get(c.pop("_poster"))
+            if pr:
+                c["poster"] = "/static/" + quote(pr)
+    return clips
+
+
+@app.get("/api/bg")
+def bg_manifest():
+    now = time.time()
+    if _BG_CACHE["data"] is None or now - _BG_CACHE["at"] > 20:
+        _BG_CACHE.update(at=now, data=scan_backgrounds())
+    resp = jsonify(_BG_CACHE["data"])
+    resp.headers["Cache-Control"] = "public, max-age=20"
+    return resp
+
+
+def models_prewarm_loop():
+    """Заранее подгружает модели самых популярных коллекций, чтобы окно выбора открывалось мгновенно."""
+    time.sleep(8)
+    while True:
+        try:
+            with lock:
+                order = sorted(CATALOG.items(), key=lambda kv: -(kv[1].get("pop") or 0))
+                todo = [slug for slug, e in order if not e.get("models")][:24]
+            for slug in todo:
+                if time.time() - MODEL_FAIL.get(slug, 0) < 60:
+                    continue
+                ensure_models(slug)
+                time.sleep(0.6)
+        except Exception as e:
+            print(f"models prewarm: {e}", flush=True)
+        time.sleep(120)
 
 
 load_db()
 load_catalog()
 apply_tier_values()
+_install_exit_hooks()
+threading.Thread(target=_saver_loop, daemon=True).start()
 threading.Thread(target=portals_loop, daemon=True).start()
+threading.Thread(target=models_prewarm_loop, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")), threaded=True)
