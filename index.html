@@ -2534,7 +2534,8 @@ html[data-theme="meadow"] .spin-row { gap: 12px; }
 html[data-theme="meadow"] .spin-side .fast-btn:not(.gear-btn) { width: 58px; height: 58px; }
 html[data-theme="meadow"] .spin-side .ic-bolt { width: 22px; height: 30px; }
 html[data-theme="meadow"] .weapon-menu.spin-menu { left: auto; right: 0; }
-html[data-theme="meadow"] .weapon-menu.spin-menu button { min-width: 112px; justify-content: center; padding: 9px 9px; }
+html[data-theme="meadow"] .weapon-menu.spin-menu button { min-width: 132px; justify-content: flex-start; padding: 8px 9px; }
+.sp-ic { width: 22px; height: 22px; flex: 0 0 auto; }
 
 .sky-btn { display: none; }
 html[data-theme="meadow"] .sky-btn {
@@ -2962,22 +2963,24 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 </style>
 <style id="upgrade-css">
 /* ===== Апгрейд: две квадратные плашки над колесом ===== */
-.up-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin: 2px 0 12px; }
-.up-box { align-self: stretch; height: 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; font: inherit; color: inherit; cursor: pointer; text-align: center;
+.up-panels { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto; align-items: start; gap: 10px; width: 100%; margin: 2px 0 12px; }
+.up-box { align-self: start; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 8px; font: inherit; color: inherit; cursor: pointer; text-align: center;
   background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%); border: 3px solid #2e1a0c; border-radius: 10px;
   box-shadow: inset 0 0 0 2px #a8713c, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0,0,0,.3); -webkit-tap-highlight-color: transparent; }
 .up-box:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px #a8713c, 0 2px 0 #2e1a0c; }
-.up-box:disabled { opacity: .6; cursor: default; }
-.up-label { font-size: 9px; line-height: 1.3; color: #ffe39a; text-shadow: 1px 1px 0 #24122e; }
-.up-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; aspect-ratio: 1.45 / 1; padding: 6px; min-width: 0;
+.up-box:disabled { opacity: 1; color: inherit; cursor: default; }
+.up-label { height: 12px; font-size: 9px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffe39a; text-shadow: 1px 1px 0 #24122e; }
+.up-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: clamp(84px, 25vw, 108px); box-sizing: border-box; overflow: hidden; padding: 6px; min-width: 0; flex: 0 0 auto;
   background: #3f2411; border: 2px solid #2e1a0c; border-radius: 6px; box-shadow: inset 2px 2px 0 rgba(0,0,0,.35); }
-.up-box.empty .up-slot { border-style: dashed; border-color: #a8713c; }
+.up-box.is-empty .up-slot { border-style: dashed; border-color: #a8713c; }
+.up-box.is-empty { color: inherit; margin-top: 0; }
 .up-slot img { width: 38px; height: 38px; object-fit: contain; image-rendering: auto; flex: 0 0 auto; }
 .up-slot img[hidden] { display: none; }
 .up-slot b { max-width: 100%; font-weight: 400; font-size: 9px; line-height: 1.3; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.up-box.empty .up-slot b { color: #c9b08a; white-space: normal; }
+.up-box.is-empty .up-slot b { color: #c9b08a; }
+.up-slot small { min-height: 10px; }
 .up-slot small { max-width: 100%; font-size: 8px; line-height: 1.2; color: #c9b08a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.up-panels.locked { opacity: .6; pointer-events: none; }
+.up-panels.locked { pointer-events: none; }
 /* окно ставки */
 .up-seg { display: flex; gap: 6px; margin: 4px 0 10px; }
 .up-tab, .up-chip { flex: 1 1 0; min-width: 0; padding: 9px 4px; font: inherit; font-size: 9px; line-height: 1.2; color: #f3dcb0; background: #3f2411;
@@ -2997,6 +3000,15 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 .up-chance-mult { color: var(--gold); }
 .up-hint { min-height: 16px; margin: 0 0 6px; font-size: 9px; line-height: 1.5; text-align: center; color: #fff1d0; text-shadow: 2px 2px 0 #24122e; }
 .up-hint.bad { color: #ffc9ce; }
+.cx-win-card { overflow: hidden; }
+.cx-win-glow { position: absolute; left: 50%; top: 12px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,214,110,.35) 0%, rgba(255,214,110,0) 65%); }
+.cx-win-img { position: relative; width: 120px; height: 120px; object-fit: contain; image-rendering: auto; }
+.cx-win-gift { min-height: 14px; margin: 0 0 10px; color: #fff1d0; font-size: 11px; }
+.cx-win-sum { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; padding: 10px; background: #2a1708; border: 2px solid #2e1a0c; border-radius: 6px; }
+.cx-win-sum span { font-size: 9px; color: #c9b08a; }
+.cx-win-sum b { font-size: 18px; font-weight: 400; color: var(--gold); }
+.gp-fit { grid-column: 1 / -1; margin: 0 0 4px; font-size: 8px; line-height: 1.6; text-align: center; }
 #view-upgrade .wheel-row { margin-top: 2px; }
 #view-upgrade .wheel-wrap { width: min(78vw, 33vh, 300px); }
 </style>
@@ -3329,8 +3341,11 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
             </svg>
           </button>
           <div class="weapon-menu spin-menu" id="spinMenu" hidden="">
-            <button type="button" data-spin="plain"><span>Обычная</span></button>
-            <button type="button" data-spin="wild"><span>Азартная</span></button>
+            <button type="button" data-spin="plain"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 12V5.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg><span>Обычная</span></button>
+            <button type="button" data-spin="wild"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="8.5" cy="8.5" r="1.7" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.7" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.7" fill="currentColor"/></svg><span>Азартная</span></button>
+            <button type="button" data-spin="roulette"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6.5" r="1.9" fill="currentColor"/></svg><span>Рулетка</span></button>
+            <button type="button" data-spin="pendulum"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5Q12 2 20 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2.4"/><path d="M12 3.5L7 17" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="6.2" cy="19" r="3" fill="currentColor"/></svg><span>Маятник</span></button>
+            <button type="button" data-spin="turbo"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5l8 7-8 7zM12 5l8 7-8 7z" fill="currentColor"/></svg><span>Рывок</span></button>
           </div>
         </span>
       </div>
@@ -3461,6 +3476,17 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     <p id="resultText">Приз уже в профиле</p>
     <button class="cta" id="toUpgradeBtn">Перейти в апгрейд</button>
     <button class="ghost" id="toProfileBtn">Перейти в профиль</button>
+  </div>
+</div>
+
+<div class="modal" id="cxWinModal" hidden="">
+  <div class="modal-card cx-win-card">
+    <div class="cx-win-glow"></div>
+    <img alt="" class="modal-hat cx-win-img" id="cxWinImg" src="images/gram.webp">
+    <h2 id="cxWinTitle">Победа!</h2>
+    <p id="cxWinGift" class="cx-win-gift"></p>
+    <div class="cx-win-sum"><span>На баланс добавлено</span><b id="cxWinSum">+0 TON</b></div>
+    <button class="cta" id="cxWinOk" type="button">Отлично</button>
   </div>
 </div>
 
@@ -4857,6 +4883,15 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
     'Тип крутки': { en: 'Spin style', zh: '旋转方式' },
+    'Рулетка': { en: 'Roulette', zh: '轮盘' },
+    'Маятник': { en: 'Pendulum', zh: '摆锤' },
+    'Рывок': { en: 'Dash', zh: '冲刺' },
+    'Победа!': { en: 'Victory!', zh: '胜利！' },
+    'На баланс добавлено': { en: 'Added to balance', zh: '已加到余额' },
+    'Отлично': { en: 'Great', zh: '太棒了' },
+    'в профиле': { en: 'in profile', zh: '在个人资料中' },
+    'Для этой ставки нет подходящих подарков': { en: 'No gifts fit this stake', zh: '没有适合此赌注的礼物' },
+    'Показаны подарки с шансом {a}–{b}% для вашей ставки': { en: 'Showing gifts with {a}–{b}% chance for your stake', zh: '显示适合您赌注的 {a}–{b}% 概率礼物' },
     'День / ночь': { en: 'Day / night', zh: '白天 / 夜晚' },
     'Обычная': { en: 'Classic', zh: '普通' },
     'Азартная': { en: 'Wild', zh: '刺激' },
@@ -5596,8 +5631,18 @@ function setGpSort(mode) {
   renderGiftPicker();
 }
 
+function upFitRange() {
+  const cfg = state && state.config;
+  const bet = upBetValue();
+  if (!cfg || !(bet > 0)) return null;
+  return { min: bet * (1 - cfg.margin) / cfg.chance_max - 1e-9, max: bet * (1 - cfg.margin) / cfg.chance_min + 1e-9 };
+}
+
 function renderGiftPicker() {
   const list = $('gpList');
+  const fit = upFitRange();
+  const inFit = (v) => !fit || (v >= fit.min && v <= fit.max);
+  let hidden = 0;
   const q = $('gpSearch').value.trim().toLowerCase();
   document.querySelectorAll('#gpSort button').forEach((b) => b.classList.toggle('active', b.dataset.sort === gpSort));
   $('gpBack').hidden = !gpModels;
@@ -5622,14 +5667,17 @@ function renderGiftPicker() {
         if (tier !== 'random' && !hatBackdropsOn()) continue;
         const words = `${hatTierName(tier)} ${HAT_TIER_LABEL[tier]}`.toLowerCase();
         const on = currentTier === tier;
+        const tcfg = state.config.tiers && state.config.tiers[tier];
+        if (tcfg && !inFit(tcfg.value_ton)) { hidden++; continue; }
         if (!q || words.includes(q)) frag.appendChild(gpHatTile(key, on));
       }
     }
-    if (gpModels.floor != null && (!q || tr('любая модель').includes(q))) {
+    if (gpModels.floor != null && inFit(gpModels.floor) && (!q || tr('любая модель').includes(q))) {
       frag.appendChild(gpTile('', tr('Любая модель'), gpModels.floor, gpModels.image, sel === ''));
     }
     for (const m of gpSorted(gpModels.models, true)) {
       if (q && !m.model.toLowerCase().includes(q)) continue;
+      if (!inFit(m.price_ton)) { hidden++; continue; }
       frag.appendChild(gpTile(m.model, m.model, m.price_ton, m.image, sel === m.model, gpModels.image));
     }
     if (gpModels.loading) note = tr('Загружаю модели…');
@@ -5640,19 +5688,29 @@ function renderGiftPicker() {
     else if (!frag.childNodes.length) note = tr('Ничего не нашлось');
   } else {
     const hatOn = currentTier !== 'gift' || (!!picked && picked.slug === HAT_SLUG);
-    if (!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) {
+    const hatCfg = state.config.tiers && state.config.tiers.random;
+    if ((!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) && !(hatCfg && !inFit(hatCfg.value_ton))) {
       frag.appendChild(gpHatTile(HAT_KEY, hatOn));
     }
     let gifts = 0;
     for (const g of gpSorted(giftCatalog ? giftCatalog.items : [], false)) {
       if (g.slug === HAT_SLUG) continue;
       if (q && !g.name.toLowerCase().includes(q)) continue;
+      if (fit && g.price_ton > fit.max) { hidden++; continue; }
       frag.appendChild(gpTile(g.slug, g.name, g.price_ton, g.image, !!picked && picked.slug === g.slug));
       gifts += 1;
     }
     if (!giftCatalog) note = tr('Загружаю подарки…');
     else if (!giftCatalog.items.length) note = tr('Подарки пока недоступны');
     else if (!gifts && !frag.childNodes.length) note = tr('Ничего не нашлось');
+  }
+  if (fit && hidden && !frag.childNodes.length && !note) note = tr('Для этой ставки нет подходящих подарков');
+  if (fit) {
+    const cfg = state.config;
+    const hp = document.createElement('p');
+    hp.className = 'muted gp-fit';
+    hp.textContent = tr('Показаны подарки с шансом {a}–{b}% для вашей ставки', { a: Math.round(cfg.chance_min * 100), b: Math.round(cfg.chance_max * 100) });
+    list.appendChild(hp);
   }
   list.appendChild(frag);
   if (note) {
@@ -5922,8 +5980,8 @@ function renderUpgrade() {
   } else {
     upSetPick({ name: 'upTargetName', info: 'upTargetInfo' }, 'upTargetImg', tr('Выберите цель'), '', '', '');
   }
-  $('upBetBox').classList.toggle('empty', upSource === 'gift' && !upPrize);
-  $('upTargetBox').classList.toggle('empty', !t);
+  $('upBetBox').classList.toggle('is-empty', upSource === 'gift' && !upPrize);
+  $('upTargetBox').classList.toggle('is-empty', !t);
 
   const shown = r.status === 'ok' || r.status === 'poor' || r.status === 'low' || r.status === 'high';
   const chance = shown ? Math.min(1, r.chance) : 0;
@@ -7213,6 +7271,17 @@ function cxShake() {
   setTimeout(() => g.classList.remove('shake'), 560);
 }
 
+function cxShowWin(res) {
+  const g = res.gift;
+  const img = $('cxWinImg');
+  if (g) setGiftImg(img, g.image || hatAsset(g.tier), 'images/gram.webp');
+  else img.src = 'images/gram.webp';
+  $('cxWinGift').textContent = g ? `${trName(g.name)} · ${tr('в профиле')}` : `x${fmt(res.mult, 2)}`;
+  const added = g ? res.ton_part : res.payout_ton;
+  $('cxWinSum').textContent = `+${fmt(added, 2)} TON`;
+  setTimeout(() => { $('cxWinModal').hidden = false; }, 650);
+}
+
 function cxFinish(res) {
   const prev = cxRound;
   const opened = prev ? prev.opened.slice() : [];
@@ -7232,6 +7301,7 @@ function cxFinish(res) {
     const r = $('cxGrid').getBoundingClientRect();
     const st = document.querySelector('.stage').getBoundingClientRect();
     burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
+    cxShowWin(res);
   } else {
     haptic('notification', 'error');
     if (res.cell != null) cxSparkAt(res.cell, 8);
@@ -7284,6 +7354,8 @@ async function cxCashout() {
 }
 
 function initChests() {
+  $('cxWinOk').addEventListener('click', () => { $('cxWinModal').hidden = true; haptic('impact', 'light'); });
+  $('cxWinModal').addEventListener('click', (e) => { if (e.target === $('cxWinModal')) $('cxWinModal').hidden = true; });
   $('cxMenuImg').src = CX_IMG.closed;
   $('menuChests').addEventListener('click', () => { haptic('impact', 'light'); showView('chests'); });
   $('cxGrid').addEventListener('click', (e) => {
@@ -7795,7 +7867,11 @@ async function doSpin() {
   const pointer = $('pointer');
   let spinDur = spinMs();
 
-  if (isMeadow() && spinStyle === 'wild') {
+  if (spinStyle === 'roulette' || spinStyle === 'pendulum' || spinStyle === 'turbo') {
+    const swung = swingPointer(pointer, current, targetAngle, spinStyle);
+    pointerDeg = swung.deg;
+    spinDur = swung.ms;
+  } else if (isMeadow() && spinStyle === 'wild') {
     const thrown = throwPointer(pointer, current, targetAngle);
     pointerDeg = thrown.deg;
     spinDur = thrown.ms;
@@ -7834,6 +7910,51 @@ async function doSpin() {
 
 const WILD_BASE_MS = 3200;
 const WILD_STOP_MS = 1100;
+
+function swingPointer(pointer, from, target, style) {
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const quick = fastSpin || calm;
+  const dir = style === 'pendulum' ? (Math.random() < 0.5 ? 1 : -1) : 1;
+  const turns = quick ? 1 : (style === 'turbo' ? 3 : style === 'roulette' ? 6 : 2);
+  const delta = (((dir * (target - from)) % 360) + 360) % 360;
+  const end = from + dir * (360 * turns + delta);
+  const total = quick ? spinMs() : style === 'turbo' ? 1900 : style === 'roulette' ? 5200 : 4300;
+  let frames;
+  if (style === 'pendulum' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'cubic-bezier(.2,.6,.3,1)' },
+      { transform: `rotate(${end + dir * 55}deg)`, offset: .56, easing: 'ease-in-out' },
+      { transform: `rotate(${end - dir * 24}deg)`, offset: .78, easing: 'ease-in-out' },
+      { transform: `rotate(${end + dir * 8}deg)`, offset: .91, easing: 'ease-in-out' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else if (style === 'turbo' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'cubic-bezier(.3,.1,.2,1)' },
+      { transform: `rotate(${end + 14}deg)`, offset: .82, easing: 'ease-out' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'cubic-bezier(.12,.55,.08,1)' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  }
+  pointer.classList.remove('spinning');
+  pointer.style.transform = `rotate(${from}deg)`;
+  const wrap = document.querySelector('.wheel-wrap');
+  wrap.classList.add('throwing');
+  let anim = null;
+  try { anim = pointer.animate(frames, { duration: total, fill: 'forwards' }); } catch (e) {}
+  const ticks = style === 'turbo' ? 2 : 4;
+  for (let i = 1; i <= ticks && !quick; i++) setTimeout(() => haptic('impact', 'light'), total * (0.2 + 0.18 * i));
+  setTimeout(() => {
+    pointer.style.transform = `rotate(${end}deg)`;
+    if (anim) anim.cancel();
+    wrap.classList.remove('throwing');
+  }, total);
+  return { deg: end, ms: total };
+}
 
 function throwPointer(pointer, from, target) {
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -7910,10 +8031,11 @@ function initSky() {
   });
 }
 
+const SPIN_STYLES = ['plain', 'wild', 'roulette', 'pendulum', 'turbo'];
 let spinStyle = 'wild';
 
 function setSpinStyle(name) {
-  spinStyle = name === 'plain' ? 'plain' : 'wild';
+  spinStyle = SPIN_STYLES.includes(name) ? name : 'wild';
   try { localStorage.setItem('spinStyle', spinStyle); } catch (e) {}
   document.querySelectorAll('#spinMenu [data-spin]').forEach((b) => b.classList.toggle('on', b.dataset.spin === spinStyle));
 }
