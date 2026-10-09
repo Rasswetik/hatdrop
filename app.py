@@ -2771,6 +2771,31 @@ def models_prewarm_loop():
         time.sleep(120)
 
 
+@app.get("/healthz")
+def healthz():
+    """Лёгкий ответ без блокировок и БД - для пингов, чтобы хостинг не усыплял сервис."""
+    return Response("ok", mimetype="text/plain", headers={"Cache-Control": "no-store"})
+
+
+KEEPALIVE_URL = (os.environ.get("KEEPALIVE_URL") or os.environ.get("RENDER_EXTERNAL_URL") or "").rstrip("/")
+KEEPALIVE_SEC = max(60, int(os.environ.get("KEEPALIVE_SEC", "540") or 540))
+
+
+def keepalive_loop():
+    """Render (free) усыпляет сервис после ~15 минут без входящих запросов.
+    Раз в KEEPALIVE_SEC (по умолчанию 9 мин) стучимся на собственный публичный адрес - это входящий трафик для роутера.
+    Адрес берётся из KEEPALIVE_URL или автоматически из RENDER_EXTERNAL_URL."""
+    time.sleep(30)
+    while True:
+        try:
+            req = urllib.request.Request(KEEPALIVE_URL + "/healthz", headers={"User-Agent": "keepalive"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                r.read(8)
+        except Exception as e:
+            print(f"keepalive: {e}", flush=True)
+        time.sleep(KEEPALIVE_SEC)
+
+
 load_db()
 load_catalog()
 apply_tier_values()
@@ -2778,6 +2803,8 @@ _install_exit_hooks()
 threading.Thread(target=_saver_loop, daemon=True).start()
 threading.Thread(target=portals_loop, daemon=True).start()
 threading.Thread(target=models_prewarm_loop, daemon=True).start()
+if KEEPALIVE_URL:
+    threading.Thread(target=keepalive_loop, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")), threaded=True)
