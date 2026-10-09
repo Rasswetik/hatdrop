@@ -557,6 +557,7 @@ def tier_config(tier):
         "chances": [{"chance": c, "cost_ton": spin_cost(value, c)} for c in CHANCES],
         "default_chance": 0.5,
         "prize_name": TIERS[tier]["name"],
+        "value_ton": value,
     }
 
 
@@ -567,6 +568,9 @@ def public_config():
         "tiers": {t: tier_config(t) for t in TIERS},
         "tier_enabled": True,
         "gift_upgrade": True,
+        "margin": MARGIN,
+        "chance_min": MIN_CHANCE_PCT / 100,
+        "chance_max": MAX_CHANCE_PCT / 100,
         "min_deposit_ton": MIN_DEPOSIT,
         "gift_deposit": {"enabled": False, "account": "", "share": 0, "hold_days": 0},
         "chests": {
@@ -649,33 +653,56 @@ def state(user, body):
     return full_state(user)
 
 
+def upgrade_chance(bet, target_value):
+    """Шанс апгрейда = ставка (за вычетом комиссии) / стоимость желаемого подарка."""
+    if target_value <= 0:
+        raise ApiError("gift_price_unavailable")
+    return round(bet * (1 - MARGIN) / target_value, 4)
+
+
 @route("/api/spin")
 def spin(user, body):
-    try:
-        chance = float(body.get("chance"))
-    except (TypeError, ValueError):
-        raise ApiError("bad_request")
-    pct = chance * 100
-    if abs(pct - round(pct)) > 1e-6 or not (MIN_CHANCE_PCT <= round(pct) <= MAX_CHANCE_PCT):
-        raise ApiError("bad_request")
-    chance = round(pct) / 100
+    """Апгрейд: ставка (TON с баланса или подарок из инвентаря) -> желаемый подарок. Шанс считается из ставки."""
     target = resolve_target(body, body.get("tier", "random"))
-    cost = spin_cost(target["value"], chance)
-    if body.get("tier") == "gift":
-        asked = body.get("cost")
-        if not isinstance(asked, (int, float)) or abs(asked - cost) > 0.005:
-            raise ApiError("price_changed", price_ton=target["value"], cost_ton=cost)
-    if user["balance"] + 1e-9 < cost:
-        raise ApiError("insufficient_funds")
-    user["balance"] = ton(user["balance"] - cost)
+    prize = None
+    if body.get("prize_id") is not None:
+        prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
+        if not prize or prize["status"] != "owned" or prize["tier"] == "bear":
+            raise ApiError("not_found")
+        bet = money(prize["value"])
+    else:
+        try:
+            bet = money(float(body.get("bet")))
+        except (TypeError, ValueError, OverflowError):
+            raise ApiError("bad_request")
+        if bet <= 0:
+            raise ApiError("bad_request")
+    chance = upgrade_chance(bet, target["value"])
+    lo, hi = MIN_CHANCE_PCT / 100, MAX_CHANCE_PCT / 100
+    if not (lo - 1e-9 <= chance <= hi + 1e-9):
+        raise ApiError("bad_chance", chance=chance, min_chance=lo, max_chance=hi)
+    asked = body.get("chance")
+    if asked is not None:
+        try:
+            if abs(float(asked) - chance) > 0.0006:
+                raise ApiError("price_changed", price_ton=target["value"], chance=chance)
+        except (TypeError, ValueError):
+            raise ApiError("bad_request")
+    if prize:
+        prize["status"] = "sold"          # подарок-ставка уходит в игру
+    else:
+        if user["balance"] + 1e-9 < bet:
+            raise ApiError("insufficient_funds")
+        user["balance"] = ton(user["balance"] - bet)
     win = secrets.randbelow(1_000_000) < chance * 1_000_000
     bear = None
     if win:
         add_prize(user, target["tier"], target["name"], target["value"], target["image"])
     else:
         bear = consolation(user)
-    record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
-    return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0, "consolation": bear}
+    record_game(user, "upgrade", bet, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
+    return {"win": win, "chance": chance, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0,
+            "consolation": bear, "prizes": visible_prizes(user)}
 
 
 def chest_view(user):
