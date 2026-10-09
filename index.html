@@ -5635,7 +5635,7 @@ function upFitRange() {
   const cfg = state && state.config;
   const bet = upBetValue();
   if (!cfg || !(bet > 0)) return null;
-  return { min: bet * (1 - cfg.margin) / cfg.chance_max - 1e-9, max: bet * (1 - cfg.margin) / cfg.chance_min + 1e-9 };
+  return { min: bet / (cfg.chance_max + cfg.margin) - 1e-9, max: bet / (cfg.chance_min + cfg.margin) + 1e-9 };
 }
 
 function renderGiftPicker() {
@@ -5921,7 +5921,7 @@ function upCompute() {
   if (!r.target) { r.status = 'no_target'; return r; }
   if (!(r.target.value > 0)) { r.status = 'wait'; return r; }
   if (!(r.bet > 0)) { r.status = 'no_bet'; return r; }
-  r.chance = Math.round(r.bet * (1 - cfg.margin) / r.target.value * 10000) / 10000;
+  r.chance = Math.round(Math.max(0, r.bet / r.target.value - cfg.margin) * 10000) / 10000;
   r.status = 'ok';
   if (r.chance < cfg.chance_min - 1e-9) r.status = 'low';
   else if (r.chance > cfg.chance_max + 1e-9) r.status = 'high';
@@ -5986,7 +5986,7 @@ function renderUpgrade() {
   const shown = r.status === 'ok' || r.status === 'poor' || r.status === 'low' || r.status === 'high';
   const chance = shown ? Math.min(1, r.chance) : 0;
   $('upChanceVal').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%` : `${tr('Шанс')} —`;
-  $('upChanceMult').textContent = shown && r.chance > 0 ? `x${fmt((1 - cfg.margin) / r.chance, 2)}` : '';
+  $('upChanceMult').textContent = shown && r.chance > 0 ? `x${fmt(1 / r.chance, 2)}` : '';
   const hints = {
     no_target: tr('Выбери желаемый подарок'),
     no_bet: upSource === 'gift' ? tr('Выбери подарок из инвентаря') : tr('Введи ставку'),
@@ -5995,7 +5995,7 @@ function renderUpgrade() {
     poor: tr('Не хватает на апгрейд — пополни баланс'),
   };
   $('upHint').textContent = hints[r.status] || '';
-  $('upPreview').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%  x${fmt((1 - cfg.margin) / Math.max(r.chance, 1e-9), 2)}` : (hints[r.status] || '');
+  $('upPreview').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%  x${fmt(1 / Math.max(r.chance, 1e-9), 2)}` : (hints[r.status] || '');
   $('upHint').classList.toggle('bad', r.status === 'low' || r.status === 'high' || r.status === 'poor');
 
   const pct = Math.round(chance * 100);
@@ -6032,7 +6032,7 @@ function upMaxBet() {
   const cfg = state && state.config;
   const t = upTarget();
   if (!cfg || !t || !(t.value > 0)) return state ? state.balance_ton : 0;
-  return Math.min(state.balance_ton, Math.floor(t.value * cfg.chance_max / (1 - cfg.margin) * 100) / 100);
+  return Math.min(state.balance_ton, Math.floor(t.value * (cfg.chance_max + cfg.margin) * 100) / 100);
 }
 
 function renderInvList() {

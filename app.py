@@ -654,10 +654,10 @@ def state(user, body):
 
 
 def upgrade_chance(bet, target_value):
-    """Шанс апгрейда = ставка (за вычетом комиссии) / стоимость желаемого подарка."""
+    """Шанс апгрейда = ставка / цена подарка минус комиссия (5 п.п.): 5 TON на 10 TON = 50% - 5% = 45%."""
     if target_value <= 0:
         raise ApiError("gift_price_unavailable")
-    return round(bet * (1 - MARGIN) / target_value, 4)
+    return round(max(0.0, bet / target_value - MARGIN), 4)
 
 
 @route("/api/spin")
