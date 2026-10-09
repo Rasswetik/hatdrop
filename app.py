@@ -2665,6 +2665,7 @@ def _bg_theme(stem):
 
 def scan_backgrounds():
     clips = {"day": [], "night": []}
+    images = {"day": [], "night": []}      # запасной вариант без видео: Day.png / Night.png
     posters = {}
     found = []
     for root, dirs, files in os.walk(STATIC_DIR):
@@ -2679,6 +2680,17 @@ def scan_backgrounds():
         stem = os.path.splitext(fn)[0]
         if ext in POSTER_EXT:
             posters.setdefault(os.path.splitext(rel)[0].lower(), rel)
+            img_theme = _bg_theme(stem) or _bg_theme(os.path.dirname(rel))
+            if img_theme:
+                try:
+                    st = os.stat(full)
+                except OSError:
+                    continue
+                images[img_theme].append({
+                    "url": "/static/" + quote(rel) + "?v=" + str(int(st.st_mtime)), "size": st.st_size,
+                    "exact": stem.lower() in ("day", "night", "morning", "утро", "ночь"),
+                    "mobile": bool(_MOBILE_RE.search(stem)), "desktop": bool(_DESKTOP_RE.search(stem)),
+                })
             continue
         theme = _bg_theme(stem) or _bg_theme(os.path.dirname(rel))
         if not theme:
@@ -2699,6 +2711,7 @@ def scan_backgrounds():
             pr = posters.get(c.pop("_poster"))
             if pr:
                 c["poster"] = "/static/" + quote(pr)
+    clips["images"] = images
     return clips
 
 
