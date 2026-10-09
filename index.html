@@ -2522,15 +2522,7 @@ html[data-theme="meadow"][data-weapon="staff"] .pointer > * { display: inline; }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-axe { display: none; }
 html[data-theme="meadow"][data-weapon="sword"] .pointer > .pk-sword { display: inline; }
 html[data-theme="meadow"][data-weapon="sword"] .pointer > .ptr-axe { display: none; }
-html[data-theme="meadow"][data-weapon="spear"] .pointer > .pk-spear { display: inline; }
-html[data-theme="meadow"][data-weapon="spear"] .pointer > .ptr-axe { display: none; }
-html[data-theme="meadow"][data-weapon="arrow"] .pointer > .pk-arrow { display: inline; }
-html[data-theme="meadow"][data-weapon="arrow"] .pointer > .ptr-axe { display: none; }
-html[data-theme="meadow"][data-weapon="trident"] .pointer > .pk-trident { display: inline; }
-html[data-theme="meadow"][data-weapon="trident"] .pointer > .ptr-axe { display: none; }
-html[data-theme="meadow"][data-weapon="wand"] .pointer > .pk-wand { display: inline; }
-html[data-theme="meadow"][data-weapon="wand"] .pointer > .ptr-axe { display: none; }
-.weapon-btn svg.wp-ic { width: 70%; height: 70%; transform: rotate(38deg); filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
+.weapon-btn svg.wp-ic { width: 68%; height: 68%; transform: rotate(38deg); filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
 .weapon-btn svg.wp-ic[hidden], .weapon-btn img[hidden] { display: none; }
 html[data-theme="meadow"] .weapon-menu svg.wp-ic { width: 34px; height: 34px; flex: 0 0 auto; transform: rotate(38deg) scale(1.15); }
 html[data-theme="meadow"] #weaponMenu { max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -3072,59 +3064,50 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 #view-upgrade .wheel-row { margin-top: 2px; }
 #view-upgrade .wheel-wrap { width: min(78vw, 33vh, 300px); }
 </style>
+<style id="modal-skin">
+/* ===== Единый дизайн всех окон: деревянная панель ===== */
+html[data-theme="meadow"] .modal-card {
+  color: #fff1d0;
+  background: linear-gradient(180deg, #7c4a24 0%, #5e3417 100%);
+  border: 3px solid #2e1a0c;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px #a8713c, inset 2px 2px 0 2px #c08a4d, 0 6px 0 #2e1a0c, 0 12px 14px rgba(0, 0, 0, .45);
+}
+html[data-theme="meadow"] .modal-card h2 { color: #ffe39a; text-shadow: 0 2px 0 #2e1a0c; }
+html[data-theme="meadow"] .modal-card p, html[data-theme="meadow"] .modal-card .muted, html[data-theme="meadow"] .modal-card label { color: #ecd5ab; }
+html[data-theme="meadow"] .modal-card .warn { color: #ffd77a !important; }
+html[data-theme="meadow"] .modal-card input:not([type="checkbox"]):not([type="radio"]) {
+  color: #fff1d0; background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, .35); outline: none;
+}
+html[data-theme="meadow"] .modal-card input:focus { border-color: #ffc64a; }
+html[data-theme="meadow"] .modal-card #depositAmount { color: #fff1d0; background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px; }
+html[data-theme="meadow"] .modal-card .cx-note, html[data-theme="meadow"] .modal-card .gp-empty { color: #ecd5ab; font-size: 9px; line-height: 1.7; padding: 14px 0; }
+html[data-theme="meadow"] .modal-card input::placeholder { color: #a98a62; }
+html[data-theme="meadow"] .modal-card :is(.amt, .gp-sort button, .up-tab, .cx-chip, .copy-row button, .dep-wallet-btn) {
+  color: #fff1d0; background: #4a2a14; border: 3px solid #2e1a0c; border-radius: 8px; box-shadow: none;
+}
+html[data-theme="meadow"] .modal-card :is(.amt.active, .gp-sort button.active, .up-tab.on) {
+  color: #3a1f00; background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%); border-color: #7a4a10;
+}
+html[data-theme="meadow"] .modal-card .up-chip { color: #3a1f00; background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%); border: 3px solid #7a4a10; border-radius: 8px; box-shadow: 0 3px 0 #5a340a; }
+html[data-theme="meadow"] .modal-card :is(.gp-item, .gift-item) {
+  color: #fff1d0; background: #4a2a14; border: 3px solid #2e1a0c; border-radius: 9px; box-shadow: inset 0 2px 0 rgba(255, 220, 160, .14);
+}
+html[data-theme="meadow"] .modal-card :is(.gp-item.active, .gift-item.picked) { border-color: #ffc64a; box-shadow: 0 0 0 2px rgba(255, 198, 74, .35), inset 0 2px 0 rgba(255, 220, 160, .14); }
+html[data-theme="meadow"] .modal-card :is(.gp-item img, .gift-item img) { background: #2a1708; border-radius: 6px; }
+html[data-theme="meadow"] .modal-card .gp-price { color: #ffd45e; }
+html[data-theme="meadow"] .modal-card .gp-back { color: #3a1f00; background: linear-gradient(180deg, #ffcb52 0%, #f9b233 100%); border: 3px solid #7a4a10; border-radius: 8px; }
+html[data-theme="meadow"] .modal-card :is(.dep-wallet, .copy-row code, .up-sq, .up-input, .cx-win-sum) { background: #3f2411; border: 3px solid #2e1a0c; border-radius: 9px; color: #fff1d0; }
+html[data-theme="meadow"] .modal-card .up-input { background: #2a1708; }
+html[data-theme="meadow"] .modal-card .manual summary { color: #ffd77a; }
+html[data-theme="meadow"] .modal-card .up-preview { color: #ffe39a; }
+html[data-theme="meadow"] .modal-card .gift-dep-btn { background: linear-gradient(180deg, #5fa8ff 0%, #2d6bd6 100%); border-color: #143c86; box-shadow: 0 4px 0 #0e2a5c; }
+html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient(circle, rgba(255, 214, 110, .35) 0%, rgba(255, 214, 110, 0) 65%); }
+html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
+</style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-<defs>
-<linearGradient id="pkSteel" x1="0" x2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset=".5" stop-color="#b9c6d8"/><stop offset="1" stop-color="#7d8da3"/></linearGradient>
-<linearGradient id="pkGold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".55" stop-color="#ffc52e"/><stop offset="1" stop-color="#c9791a"/></linearGradient>
-<linearGradient id="pkWood" x1="0" x2="1"><stop offset="0" stop-color="#c98745"/><stop offset=".55" stop-color="#8b4d22"/><stop offset="1" stop-color="#5e3015"/></linearGradient>
-<linearGradient id="pkRed" x1="0" x2="1"><stop offset="0" stop-color="#ff7a86"/><stop offset="1" stop-color="#c22b44"/></linearGradient>
-<linearGradient id="pkViolet" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#e5c2ff"/><stop offset=".5" stop-color="#a45cff"/><stop offset="1" stop-color="#5a24b8"/></linearGradient>
-<symbol id="pk-sword" viewBox="110 10 80 160">
-  <path d="M150 12L159 28V108H141V28Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 20V104" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <rect x="145" y="116" width="10" height="32" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M146 124H154M146 132H154M146 140H154" stroke="#2a1608" stroke-opacity=".55" stroke-width="2"/>
-  <circle cx="150" cy="154" r="7.5" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <circle cx="150" cy="115" r="2.6" fill="#ff5a6e" stroke="#2a1608" stroke-width="1.6"/>
-</symbol>
-<symbol id="pk-spear" viewBox="110 10 80 160">
-  <rect x="146.5" y="56" width="7" height="104" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 12Q166 34 163 50L150 62L137 50Q134 34 150 12Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 22V56" stroke="#fff" stroke-opacity=".8" stroke-width="2.4" stroke-linecap="round"/>
-  <rect x="142" y="60" width="16" height="8" rx="2" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M153.5 68Q168 74 164 92Q160 80 153.5 78Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M146.5 68Q134 76 138 94Q142 82 146.5 78Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <rect x="143" y="150" width="14" height="10" rx="3" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-</symbol>
-<symbol id="pk-arrow" viewBox="110 10 80 160">
-  <path d="M150 12L164 46H136Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 22L150 42" stroke="#fff" stroke-opacity=".8" stroke-width="2.2" stroke-linecap="round"/>
-  <rect x="147.5" y="44" width="5" height="100" rx="2" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M152.5 112Q172 112 170 136L152.5 150Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M147.5 112Q128 112 130 136L147.5 150Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 126V154" stroke="#2a1608" stroke-width="2.4" stroke-linecap="round"/>
-  <path d="M150 146L142 160M150 146L158 160" stroke="#2a1608" stroke-width="3" stroke-linecap="round"/>
-</symbol>
-<symbol id="pk-trident" viewBox="110 10 80 160">
-  <rect x="146.5" y="52" width="7" height="108" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 12L158 40V56H142V40Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M120 22Q118 54 150 60Q182 54 180 22L171 26V44Q170 52 160 54L158 40L142 40L140 54Q130 52 129 44V26Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M120 22L125 8L130 24ZM180 22L175 8L170 24Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 20V50" stroke="#fff" stroke-opacity=".7" stroke-width="2.2" stroke-linecap="round"/>
-  <rect x="141" y="62" width="18" height="8" rx="2" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-</symbol>
-<symbol id="pk-wand" viewBox="110 10 80 160">
-  <rect x="146.5" y="52" width="7" height="108" rx="3.5" fill="url(#pkViolet)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M146.5 80H153.5M146.5 100H153.5M146.5 120H153.5" stroke="#ffe27a" stroke-width="3"/>
-  <path d="M150 10L158.5 28L178 30L163.5 43L168 62L150 52L132 62L136.5 43L122 30L141.5 28Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M150 20L154 31L150 36L146 31Z" fill="#fff" fill-opacity=".85"/>
-  <circle cx="122" cy="16" r="3" fill="#fff8c4"/><circle cx="178" cy="12" r="2.2" fill="#fff8c4"/><circle cx="184" cy="46" r="2.6" fill="#e5c2ff"/>
-</symbol>
-</defs>
-</svg>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
   <div class="magic-boot-inner">
     <svg class="magic-boot-staff" viewBox="0 0 150 184" aria-hidden="true">
@@ -3450,11 +3433,20 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <use class="pk pk-sword" href="#pk-sword" x="110" y="10" width="80" height="160"></use>
-            <use class="pk pk-spear" href="#pk-spear" x="110" y="10" width="80" height="160"></use>
-            <use class="pk pk-arrow" href="#pk-arrow" x="110" y="10" width="80" height="160"></use>
-            <use class="pk pk-trident" href="#pk-trident" x="110" y="10" width="80" height="160"></use>
-            <use class="pk pk-wand" href="#pk-wand" x="110" y="10" width="80" height="160"></use>
+            <g class="pk pk-sword" shape-rendering="geometricPrecision">
+              <defs>
+                <linearGradient id="pkSteel" x1="0" x2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset=".5" stop-color="#b9c6d8"/><stop offset="1" stop-color="#7d8da3"/></linearGradient>
+                <linearGradient id="pkGold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".55" stop-color="#ffc52e"/><stop offset="1" stop-color="#c9791a"/></linearGradient>
+                <linearGradient id="pkWood" x1="0" x2="1"><stop offset="0" stop-color="#c98745"/><stop offset=".55" stop-color="#8b4d22"/><stop offset="1" stop-color="#5e3015"/></linearGradient>
+              </defs>
+              <path d="M150 12L159 28V108H141V28Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M150 20V104" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+              <rect x="145" y="116" width="10" height="32" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M146 124H154M146 132H154M146 140H154" stroke="#2a1608" stroke-opacity=".55" stroke-width="2"/>
+              <circle cx="150" cy="154" r="7.5" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="150" cy="115" r="2.6" fill="#ff5a6e" stroke="#2a1608" stroke-width="1.6"/>
+            </g>
           </g>
         </svg>
 
@@ -3489,16 +3481,12 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
         <span class="spin-side spin-side-left">
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
             <img id="weaponIcon" src="images/axe-icon.webp" alt="">
-            <svg class="wp-ic" id="weaponSvg" viewBox="0 0 80 160" hidden><use id="weaponUse" width="80" height="160" href="#pk-sword"></use></svg>
+            <svg class="wp-ic" id="weaponSvg" hidden viewBox="110 10 80 160" aria-hidden="true"><path d="M150 12L159 28V108H141V28Z" fill="#d5deec" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M150 22V102" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><rect x="145" y="116" width="10" height="32" rx="3" fill="#8b4d22" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="150" cy="154" r="7.5" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>
           </button>
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="sword"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-sword"></use></svg><span>Меч</span></button>
-            <button type="button" data-weapon="spear"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-spear"></use></svg><span>Копьё</span></button>
-            <button type="button" data-weapon="arrow"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-arrow"></use></svg><span>Стрела</span></button>
-            <button type="button" data-weapon="trident"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-trident"></use></svg><span>Трезубец</span></button>
-            <button type="button" data-weapon="wand"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-wand"></use></svg><span>Палочка</span></button>
+            <button type="button" data-weapon="sword"><svg class="wp-ic" viewBox="110 10 80 160" aria-hidden="true"><path d="M150 12L159 28V108H141V28Z" fill="#d5deec" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M150 22V102" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><rect x="145" y="116" width="10" height="32" rx="3" fill="#8b4d22" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="150" cy="154" r="7.5" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Меч</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -5066,10 +5054,6 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     'Оружие': { en: 'Weapon', zh: '武器' },
     'Тип крутки': { en: 'Spin style', zh: '旋转方式' },
     'Меч': { en: 'Sword', zh: '剑' },
-    'Копьё': { en: 'Spear', zh: '长矛' },
-    'Стрела': { en: 'Arrow', zh: '箭' },
-    'Трезубец': { en: 'Trident', zh: '三叉戟' },
-    'Палочка': { en: 'Wand', zh: '魔杖' },
     'Подарок для ставки': { en: 'Gift for stake', zh: '用于下注的礼物' },
     'Ставить TON': { en: 'Bet TON', zh: '用TON下注' },
     'Рулетка': { en: 'Roulette', zh: '轮盘' },
@@ -8223,7 +8207,7 @@ function throwPointer(pointer, from, target) {
 
 const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2' };
 
-const SVG_WEAPONS = ['sword', 'spear', 'arrow', 'trident', 'wand'];
+const SVG_WEAPONS = ['sword'];
 
 function setWeapon(name) {
   const w = (WEAPONS[name] || SVG_WEAPONS.includes(name)) ? name : 'axe';
@@ -8231,8 +8215,8 @@ function setWeapon(name) {
   try { localStorage.setItem('weapon', w); } catch (e) {}
   const svgW = SVG_WEAPONS.includes(w);
   $('weaponIcon').hidden = svgW;
-  $('weaponSvg').hidden = !svgW;
-  if (svgW) $('weaponUse').setAttribute('href', '#pk-' + w); else $('weaponIcon').src = WEAPONS[w];
+  $('weaponSvg').toggleAttribute('hidden', !svgW);
+  if (!svgW) $('weaponIcon').src = WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
