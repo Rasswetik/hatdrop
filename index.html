@@ -2807,16 +2807,14 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap" rel="stylesheet">
 <script>
-  try { if (localStorage.getItem('theme') === 'classic') document.documentElement.removeAttribute('data-theme'); } catch (e) {}
-</script>
-<script>
   /* Манифест видео-фона запрашиваем сразу, параллельно с остальной загрузкой. */
   (function () {
     try {
       window.__bgHold = true;
+      document.documentElement.classList.add('bg-loading');
       window.__bgManifest = fetch('/api/bg', { credentials: 'same-origin' })
         .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-    } catch (e) { window.__bgHold = false; window.__bgManifest = Promise.resolve(null); }
+    } catch (e) { window.__bgHold = false; document.documentElement.classList.remove('bg-loading'); window.__bgManifest = Promise.resolve(null); }
   })();
 </script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -2894,26 +2892,27 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
 
 /* ===== сундуки: анимации =====
-   Только transform/opacity и только по событию: никаких бесконечных анимаций box-shadow/filter
-   на 25 клетках (они перерисовывались каждый кадр и давали лаги). */
+   Итоговые состояния (gold / empty / ghost) - статичные и анимаций не имеют, поэтому при возврате
+   на экран или обновлении данных ничего не «перестраивается». Анимация играет ОДИН раз в момент
+   события через временные классы fx-* (их снимает JS по animationend). */
 .cx-cell { position: relative; transform-origin: 50% 60%; contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.cx-cell.gold, .cx-cell.empty, .cx-cell.ghost { animation: none; }
+.cx-cell.ghost { opacity: .72; box-shadow: 0 3px 0 #2e1a0c; }
 .cx-cell::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%); transform: translateX(-120%); }
+.cx-cell.ghost::after { display: none; }
 @media (hover: hover) { .cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); } }
 .cx-cell.pending { transform: translateY(3px) scale(.96); }
-.cx-cell.gold { animation: cxFlip .5s cubic-bezier(.2,.9,.3,1.15); }
-.cx-cell.gold::after { animation: cxShine .8s ease-out .12s 1; }
-@keyframes cxFlip { 0% { transform: perspective(260px) rotateY(0) scale(1); } 40% { transform: perspective(260px) rotateY(90deg) scale(1.2); } 100% { transform: perspective(260px) rotateY(0) scale(1); } }
+.cx-cell.gold.fx-flip { animation: cxFlip .45s cubic-bezier(.2,.9,.3,1.15); }
+.cx-cell.gold.fx-flip::after { animation: cxShine .6s ease-out .1s 1; }
+.cx-cell.empty.fx-boom { animation: cxBoom .5s ease-out; }
+.cx-cell.fx-fade { animation: cxFade .25s ease-out; }
+@keyframes cxFlip { 0% { transform: perspective(260px) rotateY(0) scale(1); } 40% { transform: perspective(260px) rotateY(90deg) scale(1.15); } 100% { transform: perspective(260px) rotateY(0) scale(1); } }
 @keyframes cxShine { 0% { opacity: 1; transform: translateX(-120%); } 100% { opacity: 1; transform: translateX(120%); } }
-.cx-cell.empty { animation: cxBoom .6s ease-out; }
-@keyframes cxBoom { 0% { transform: scale(.6); } 20% { transform: scale(1.3) rotate(-8deg); } 40% { transform: scale(1.1) rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } 100% { transform: none; } }
-.cx-cell.ghost { opacity: .72; animation: cxReveal .35s ease-out both; animation-delay: var(--d, 0s); }
-.cx-cell.ghost::after { display: none; }
-@keyframes cxReveal { from { opacity: 0; transform: scale(.55) rotate(-12deg); } to { opacity: .72; transform: none; } }
-.cx-grid.shake { animation: cxShake .5s; }
-@keyframes cxShake { 0%, 100% { transform: none; } 15% { transform: translate(-6px, 2px); } 30% { transform: translate(5px, -3px); } 45% { transform: translate(-4px, 3px); } 60% { transform: translate(3px, -2px); } 80% { transform: translate(-2px, 1px); } }
-.cx-info b.pop { animation: cxPop .4s ease-out; }
-@keyframes cxPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); color: #fff; } 100% { transform: scale(1); } }
+@keyframes cxBoom { 0% { transform: scale(.7); } 30% { transform: scale(1.2) rotate(-6deg); } 60% { transform: scale(1.05) rotate(4deg); } 100% { transform: none; } }
+@keyframes cxFade { from { opacity: 0; } to { opacity: .72; } }
+.cx-info b.pop { animation: cxPop .35s ease-out; }
+@keyframes cxPop { 0% { transform: scale(1); } 40% { transform: scale(1.25); color: #fff; } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .cx-cell, .cx-cell::after, .cx-grid { animation: none !important; } }
 </style>
 <style>
@@ -2940,16 +2939,66 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 </style>
 <style id="bgvideo-css">
 /* Видео-фон: показывается поверх запасного canvas-фона, когда в /static есть ролики. */
-html[data-theme="meadow"] .bg-video { opacity: 0; transition: opacity .4s ease; object-fit: cover;
+html[data-theme="meadow"] .bg-video { opacity: 0; object-fit: cover;
   object-position: var(--bg-pos, 50% 50%); background: transparent; transform: translateZ(0); backface-visibility: hidden; }
 html[data-theme="meadow"] .bg-video.on { opacity: 1; }
-html[data-theme="meadow"] .bg-photo { opacity: 0; transition: opacity .4s ease; object-fit: cover;
+html[data-theme="meadow"] .bg-photo { opacity: 0; object-fit: cover;
   object-position: var(--bg-pos, 50% 50%); }
 html[data-theme="meadow"] .bg-photo.on { opacity: 1; }
 html.has-bgvideo .bg-scene { display: none !important; }
 html[data-theme="meadow"] .bg-wide { background: #0b1030; }
 html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
-@media (prefers-reduced-motion: reduce) { html[data-theme="meadow"] .bg-video { transition: none; } }
+/* Занавес смены дня/ночи: закрывает фон, пока грузится новый ролик/картинка, затем плавно открывается */
+.bg-veil { position: absolute; inset: 0; z-index: -1; display: grid; place-items: center; pointer-events: none; opacity: 0;
+  transition: opacity .45s ease; background: linear-gradient(180deg, #8fd0ff 0%, #eaf7ff 100%); }
+.bg-veil.night { background: linear-gradient(180deg, #0b1030 0%, #2a2f78 100%); }
+.bg-veil.on, html.bg-loading .bg-veil { opacity: 1; transition-duration: .3s; }
+.bg-veil i { width: 30px; height: 30px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; opacity: 0;
+  animation: veilSpin .9s steps(8) infinite, veilIn .3s ease .7s forwards; }
+.bg-veil.day i { border-color: rgba(30,90,160,.25); border-top-color: #1e5aa0; }
+@keyframes veilSpin { to { transform: rotate(360deg); } }
+@keyframes veilIn { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bg-veil { transition: none; } .bg-veil i { animation: none; } }
+</style>
+<style id="upgrade-css">
+/* ===== Апгрейд: две квадратные плашки над колесом ===== */
+.up-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin: 2px 0 12px; }
+.up-box { align-self: stretch; height: 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; font: inherit; color: inherit; cursor: pointer; text-align: center;
+  background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%); border: 3px solid #2e1a0c; border-radius: 10px;
+  box-shadow: inset 0 0 0 2px #a8713c, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0,0,0,.3); -webkit-tap-highlight-color: transparent; }
+.up-box:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px #a8713c, 0 2px 0 #2e1a0c; }
+.up-box:disabled { opacity: .6; cursor: default; }
+.up-label { font-size: 9px; line-height: 1.3; color: #ffe39a; text-shadow: 1px 1px 0 #24122e; }
+.up-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; aspect-ratio: 1.45 / 1; padding: 6px; min-width: 0;
+  background: #3f2411; border: 2px solid #2e1a0c; border-radius: 6px; box-shadow: inset 2px 2px 0 rgba(0,0,0,.35); }
+.up-box.empty .up-slot { border-style: dashed; border-color: #a8713c; }
+.up-slot img { width: 38px; height: 38px; object-fit: contain; image-rendering: auto; flex: 0 0 auto; }
+.up-slot img[hidden] { display: none; }
+.up-slot b { max-width: 100%; font-weight: 400; font-size: 9px; line-height: 1.3; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.up-box.empty .up-slot b { color: #c9b08a; white-space: normal; }
+.up-slot small { max-width: 100%; font-size: 8px; line-height: 1.2; color: #c9b08a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.up-panels.locked { opacity: .6; pointer-events: none; }
+/* окно ставки */
+.up-seg { display: flex; gap: 6px; margin: 4px 0 10px; }
+.up-tab, .up-chip { flex: 1 1 0; min-width: 0; padding: 9px 4px; font: inherit; font-size: 9px; line-height: 1.2; color: #f3dcb0; background: #3f2411;
+  border: 2px solid #2e1a0c; border-radius: 6px; cursor: pointer; }
+.up-tab.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9; }
+.up-chip { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); box-shadow: inset 1px 1px 0 var(--gold-soft), 0 2px 0 #5a340a; }
+.up-chip:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 var(--gold-soft); }
+.up-bet-ton[hidden], #invList[hidden] { display: none; }
+.up-sq { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #3f2411; border: 2px solid #2e1a0c; border-radius: 8px; }
+.up-input { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #2a1708; border: 2px solid #2e1a0c; border-radius: 6px; }
+.up-input .ton-ico { width: 18px; height: 18px; flex: 0 0 auto; }
+.up-input input { flex: 1; min-width: 0; width: 100%; padding: 0; font: inherit; font-size: 16px; color: #fff1d0; background: transparent; border: 0; outline: none; }
+.up-chips { display: flex; gap: 6px; }
+.up-preview { min-height: 18px; margin: 10px 0 8px; font-size: 11px; line-height: 1.5; text-align: center; color: var(--gold); }
+#upBetModal .cta { width: 100%; }
+.up-chance { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 10px 0 2px; font-size: 13px; color: #fff1d0; text-shadow: 2px 2px 0 #24122e; }
+.up-chance-mult { color: var(--gold); }
+.up-hint { min-height: 16px; margin: 0 0 6px; font-size: 9px; line-height: 1.5; text-align: center; color: #fff1d0; text-shadow: 2px 2px 0 #24122e; }
+.up-hint.bad { color: #ffc9ce; }
+#view-upgrade .wheel-row { margin-top: 2px; }
+#view-upgrade .wheel-wrap { width: min(78vw, 33vh, 300px); }
 </style>
 </head>
 <body>
@@ -3030,6 +3079,7 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
   <img class="bg-photo" id="bgPhoto" alt="" decoding="async">
   <video class="bg-video" id="bgVideo" muted loop playsinline webkit-playsinline preload="auto"
          disablepictureinpicture disableremoteplayback tabindex="-1"></video>
+  <div class="bg-veil" id="bgVeil"><i></i></div>
   <div class="bg-dim"></div>
 </div>
 
@@ -3140,13 +3190,23 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     </section>
 
     <section class="view" id="view-upgrade">
-      <p class="subtitle upgrade-prize">Приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
-
-      <div class="tier-picker" id="tierPicker" role="group" aria-label="Выбор приза" hidden="">
-        <button class="tier-btn" data-tier="random" type="button" hidden="">Рандом</button>
-        <button class="tier-btn active" data-tier="gift" type="button">Подарки</button>
-        <button class="tier-btn" data-tier="onyx" type="button">Оникс</button>
-        <button class="tier-btn" data-tier="black" type="button">Блэк</button>
+      <div class="up-panels" id="upPanels">
+        <button class="up-box" id="upBetBox" type="button" aria-label="Ваша ставка">
+          <span class="up-label">Ваша ставка</span>
+          <span class="up-slot" id="upBetSlot">
+            <img id="upBetImg" alt="" hidden>
+            <b id="upBetName">Выберите ставку</b>
+            <small id="upBetInfo"></small>
+          </span>
+        </button>
+        <button class="up-box" id="upTargetBox" type="button" aria-label="Желаемый подарок">
+          <span class="up-label">Желаемый подарок</span>
+          <span class="up-slot" id="upTargetSlot">
+            <img id="upTargetImg" alt="" hidden>
+            <b id="upTargetName">Выберите цель</b>
+            <small id="upTargetInfo"></small>
+          </span>
+        </button>
       </div>
 
       <div class="wheel-row">
@@ -3240,24 +3300,11 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
       </div>
       </div>
 
-      <button class="hat-hint" id="hatHint" type="button" hidden="">Нажми, чтобы выбрать любой подарок</button>
-
-      <div class="mode-picker">
-        <span class="mode-edge" id="chanceMin">—</span>
-        <div class="mode-track" id="modeTrack">
-          <span class="mode-tag mode-cost">
-            <img src="images/gram.webp" alt="TON" class="ton-ico"><span id="modeCost">—</span>
-          </span>
-          <input type="range" id="modeSlider" min="0" max="60" step="1" value="30" aria-label="Шанс выигрыша">
-          <span class="mode-tag mode-chance" id="modeChance">—</span>
-        </div>
-        <span class="mode-edge" id="chanceMax">—</span>
+      <div class="up-chance" id="upChance">
+        <span class="up-chance-val" id="upChanceVal">—</span>
+        <span class="up-chance-mult" id="upChanceMult"></span>
       </div>
-      <div class="chance-custom">
-        <label for="chanceInput">Свой шанс</label>
-        <input type="number" id="chanceInput" min="10" max="70" step="1" inputmode="numeric" aria-label="Свой шанс, %">
-        <span>%</span>
-      </div>
+      <p class="up-hint" id="upHint"></p>
 
       <div class="spin-row">
         <span class="spin-side spin-side-left">
@@ -3476,14 +3523,6 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
       </div>
 
       <div class="lang-row">
-        <span class="lang-label">Дизайн</span>
-        <div class="lang-btns" id="themeBtns">
-          <button class="lang-btn" type="button" data-theme-pick="meadow">Новый</button>
-          <button class="lang-btn" type="button" data-theme-pick="classic">Старый</button>
-        </div>
-      </div>
-
-      <div class="lang-row">
         <span class="lang-label">Аноним</span>
         <div class="lang-btns" id="anonBtns">
           <button class="lang-btn" type="button" data-anon="0">Выкл</button>
@@ -3531,6 +3570,32 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     </div>
     <div class="gp-list" id="gpList"></div>
     <button class="ghost" id="gpClose" type="button">Закрыть</button>
+  </div>
+</div>
+
+<div class="modal" id="upBetModal" hidden="">
+  <div class="modal-card gp-card">
+    <div class="gp-head"><h2>Ваша ставка</h2></div>
+    <div class="up-seg" role="group" aria-label="Источник ставки">
+      <button class="up-tab on" id="upSrcTon" type="button">Ставка TON</button>
+      <button class="up-tab" id="upSrcGift" type="button">Ставка подарком</button>
+    </div>
+    <div class="up-bet-ton" id="upBetTon">
+      <div class="up-sq">
+        <div class="up-input">
+          <img src="images/gram.webp" alt="TON" class="ton-ico">
+          <input id="upBetInput" type="text" inputmode="decimal" value="1" autocomplete="off" aria-label="Ставка, TON">
+        </div>
+        <div class="up-chips">
+          <button class="up-chip" data-mul="0.5" type="button">½</button>
+          <button class="up-chip" data-mul="2" type="button">×2</button>
+          <button class="up-chip" data-max="1" type="button">MAX</button>
+        </div>
+      </div>
+    </div>
+    <div class="gp-list" id="invList" hidden></div>
+    <p class="up-preview" id="upPreview"></p>
+    <button class="cta" id="upBetDone" type="button">Готово</button>
   </div>
 </div>
 
@@ -4395,35 +4460,38 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 </script>
 <script>
 /* ===== Видео-фон: утро / ночь =====
-   Файлы кладутся в static/ (см. README, раздел «Видео-фон»). Сервер сам находит их по имени и отдаёт
-   список в /api/bg. Если роликов нет или они не играют - остаётся нарисованный canvas-фон. */
+   Файлы кладутся в static/ (см. README, раздел «Видео-фон»). Сервер находит их по имени и отдаёт список
+   в /api/bg. Порядок: видео -> картинка Day/Night -> нарисованный canvas-фон.
+   Смена дня/ночи: «занавес» закрывает экран, новый фон полностью догружается за ним и только потом
+   занавес плавно открывается - никаких пустых кадров и дёрганых подгрузок. */
 (function bgVideo() {
   'use strict';
   const video = document.getElementById('bgVideo');
-  const root = document.documentElement;
-  const release = () => { window.__bgHold = false; };
-  if (!video) { release(); return; }
-
-  // true - выравнивать ролик «пеньком» под колесо (как раньше для фото); false - обычный cover по центру
-  window.BG_VIDEO_ALIGN = false;
-  // картинки Day/Night - как раньше: пенёк на картинке ставится под колесо
-  window.BG_PHOTO_ALIGN = true;
   const photo = document.getElementById('bgPhoto');
+  const veil = document.getElementById('bgVeil');
+  const root = document.documentElement;
+  const done = () => { window.__bgHold = false; root.classList.remove('bg-loading'); if (veil) veil.classList.remove('on'); };
+  if (!video) { done(); return; }
+
+  window.BG_VIDEO_ALIGN = false;   // true - ставить «пенёк» ролика под колесо
+  window.BG_PHOTO_ALIGN = true;    // картинки Day/Night - как раньше, пенёк под колесо
 
   const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const conn = navigator.connection || {};
-  if (reduce || conn.saveData) { release(); return; }
+  if (reduce || conn.saveData) { done(); return; }
 
-  video.muted = true;
-  video.defaultMuted = true;
-  video.setAttribute('muted', '');
+  video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
+
+  const skyNow = () => (root.dataset.sky === 'night' ? 'night' : 'day');
+  if (veil) veil.className = 'bg-veil ' + skyNow();
 
   let manifest = null;
   let token = 0;
-  let wanted = root.dataset.sky === 'night' ? 'night' : 'day';
-  let currentUrl = '';
+  let current = '';
+  let wanted = skyNow();
   const sticky = {};
   const failed = new Set();
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const isSmall = () => Math.min(window.innerWidth, window.innerHeight) <= 820
     || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
@@ -4439,113 +4507,108 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     const neutral = group.filter((c) => !c.mobile && !c.desktop);
     const generic = group.filter((c) => (small ? !c.desktop : !c.mobile));
     const pool = exact.length ? exact : neutral.length ? neutral : generic.length ? generic : group;
-    // mp4 (аппаратное декодирование везде) раньше webm; из равных - меньший файл
     pool.sort((a, b) => (a.type === 'video/mp4' ? 0 : 1) - (b.type === 'video/mp4' ? 0 : 1) || a.size - b.size);
     return pool[0];
   }
 
   function pickImage(theme) {
-    const list = (((manifest || {}).images || {})[theme] || []).slice();
+    const list = (((manifest || {}).images || {})[theme] || []).filter((c) => !failed.has(c.url));
     if (!list.length) return null;
     const small = isSmall();
     list.sort((a, b) => (b.exact - a.exact)
-      || ((small ? b.mobile : b.desktop) - (small ? a.mobile : a.desktop))
-      || a.url.localeCompare(b.url));
+      || ((small ? b.mobile : b.desktop) - (small ? a.mobile : a.desktop)) || a.url.localeCompare(b.url));
     return list[0];
   }
 
-  function showPhoto(theme) {
-    const pick = photo && pickImage(theme);
-    if (!pick) return false;
-    const my = ++token;
-    video.classList.remove('on');
-    try { video.pause(); } catch (e) {}
-    photo.onload = () => {
-      if (my !== token) return;
-      root.classList.add('has-bgvideo');
-      photo.classList.add('on');
-      release();
-      if (window.alignBg) window.alignBg();
-    };
-    photo.onerror = () => { if (my !== token) return; photo.classList.remove('on'); fallback(); };
-    photo.classList.remove('on');
-    photo.src = pick.url;
-    if (photo.complete && photo.naturalWidth) photo.onload();
-    return true;
+  // догружает видео (до первого кадра); resolve(true/false)
+  function loadVideo(clip, my) {
+    return new Promise((resolve) => {
+      if (current === clip.url && video.readyState >= 2) { resolve(true); return; }
+      let finished = false;
+      const end = (ok) => {
+        if (finished) return;
+        finished = true; clearTimeout(timer);
+        video.removeEventListener('loadeddata', onOk); video.removeEventListener('error', onErr);
+        resolve(ok);
+      };
+      const onOk = () => end(true);
+      const onErr = () => { failed.add(clip.url); end(false); };
+      const timer = setTimeout(() => { failed.add(clip.url); end(false); }, 15000);
+      video.addEventListener('loadeddata', onOk);
+      video.addEventListener('error', onErr);
+      if (clip.poster) video.poster = clip.poster; else video.removeAttribute('poster');
+      video.src = clip.url;
+      video.load();
+    });
   }
 
-  function fallback() {
-    token += 1;
-    if (photo) photo.classList.remove('on');
-    video.classList.remove('on');
-    root.classList.remove('has-bgvideo');
-    try { video.pause(); } catch (e) {}
-    release();
+  function loadPhoto(pick) {
+    return new Promise((resolve) => {
+      if (current === pick.url && photo.complete && photo.naturalWidth) { resolve(true); return; }
+      let finished = false;
+      const end = (ok) => { if (finished) return; finished = true; clearTimeout(timer); resolve(ok); };
+      const timer = setTimeout(() => { failed.add(pick.url); end(false); }, 15000);
+      photo.onload = () => { (photo.decode ? photo.decode().catch(() => {}) : Promise.resolve()).then(() => end(true)); };
+      photo.onerror = () => { failed.add(pick.url); end(false); };
+      photo.src = pick.url;
+    });
   }
 
   function play() {
     const pr = video.play();
-    if (pr && pr.catch) {
-      pr.catch(() => {
-        // автозапуск запрещён (экономия энергии и т.п.) - повторим после первого касания
-        const again = () => { video.play().catch(() => {}); };
-        window.addEventListener('pointerdown', again, { once: true, passive: true });
-      });
-    }
+    if (pr && pr.catch) pr.catch(() => {
+      window.addEventListener('pointerdown', () => { video.play().catch(() => {}); }, { once: true, passive: true });
+    });
   }
 
-  function show(theme) {
+  // подготовить фон для темы (за закрытым занавесом) -> 'video' | 'photo' | null
+  async function prepare(theme, my) {
+    for (let i = 0; i < 4; i += 1) {
+      if (my !== token) return 'stale';
+      const clip = choose(theme);
+      if (clip) {
+        if (await loadVideo(clip, my)) { current = clip.url; return 'video'; }
+        continue;
+      }
+      const pick = pickImage(theme);
+      if (pick) {
+        if (await loadPhoto(pick)) { current = pick.url; return 'photo'; }
+        continue;
+      }
+      return null;
+    }
+    return null;
+  }
+
+  async function transition(theme, first) {
     wanted = theme;
     if (!manifest) return;
-    const clip = choose(theme);
-    if (!clip) { if (!showPhoto(theme)) fallback(); return; }
-    if (photo && !root.classList.contains('has-bgvideo')) photo.classList.remove('on');
-    if (clip.url === currentUrl && video.readyState >= 2) {
-      root.classList.add('has-bgvideo');
-      video.classList.add('on');
-      play();
-      release();
-      return;
-    }
     const my = ++token;
-    video.classList.remove('on');
-    const swap = () => {
-      if (my !== token) return;
-      currentUrl = clip.url;
-      if (clip.poster) video.poster = clip.poster; else video.removeAttribute('poster');
-      const onReady = () => {
-        if (my !== token) return;
-        root.classList.add('has-bgvideo');
-        video.classList.add('on');
-        if (photo) photo.classList.remove('on');
-        play();
-        release();
-        if (window.alignBg) window.alignBg();
-      };
-      video.addEventListener('loadeddata', onReady, { once: true });
-      video.addEventListener('error', () => {
-        if (my !== token) return;
-        failed.add(clip.url);
-        currentUrl = '';
-        show(wanted);       // пробуем другой файл; если нет - вернётся canvas
-      }, { once: true });
-      // есть превью-картинка - показываем её сразу, пока грузится ролик
-      if (clip.poster) { root.classList.add('has-bgvideo'); video.classList.add('on'); release(); }
-      video.src = clip.url;
-      video.load();
-    };
-    // при смене темы старый ролик плавно гаснет, затем грузится новый
-    if (root.classList.contains('has-bgvideo')) setTimeout(swap, 300); else swap();
+    if (veil) {
+      veil.classList.toggle('night', theme === 'night');
+      veil.classList.toggle('day', theme !== 'night');
+      if (!first) { veil.classList.add('on'); await wait(330); }
+    }
+    const kind = await prepare(theme, my);
+    if (kind === 'stale' || my !== token) return;
+    video.classList.toggle('on', kind === 'video');
+    photo.classList.toggle('on', kind === 'photo');
+    if (kind === 'video') play(); else { try { video.pause(); } catch (e) {} }
+    root.classList.toggle('has-bgvideo', !!kind);
+    if (window.alignBg) window.alignBg();
+    await wait(60);                 // даём кадру отрисоваться и только потом открываем занавес
+    if (my !== token) return;
+    done();
   }
 
   // переключатель день/ночь
   const prevSetSky = window.setSky;
   window.setSky = (mode) => {
     if (prevSetSky) prevSetSky(mode);
-    show(mode === 'night' ? 'night' : 'day');
+    transition(mode === 'night' ? 'night' : 'day', false);
   };
 
-  // экономим батарею: на паузе, пока приложение свёрнуто
+  // экономим батарею: пауза, пока приложение свёрнуто
   const pauseIf = (hidden) => {
     if (!video.classList.contains('on')) return;
     if (hidden) { try { video.pause(); } catch (e) {} } else play();
@@ -4553,28 +4616,29 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
   document.addEventListener('visibilitychange', () => pauseIf(document.hidden));
   try {
     const wa = window.Telegram && window.Telegram.WebApp;
-    if (wa && wa.onEvent) {
-      wa.onEvent('activated', () => pauseIf(false));
-      wa.onEvent('deactivated', () => pauseIf(true));
-    }
+    if (wa && wa.onEvent) { wa.onEvent('activated', () => pauseIf(false)); wa.onEvent('deactivated', () => pauseIf(true)); }
   } catch (e) {}
 
   let rz = 0;
   window.addEventListener('resize', () => {
     clearTimeout(rz);
-    rz = setTimeout(() => { if (manifest && root.classList.contains('has-bgvideo')) { const c = choose(wanted); if (c && c.url !== currentUrl) show(wanted); } }, 400);
+    rz = setTimeout(() => {
+      if (!manifest || !video.classList.contains('on')) return;
+      const c = choose(wanted);
+      if (c && c.url !== current) transition(wanted, false);
+    }, 500);
   });
 
-  // страховка: не держим canvas в ожидании дольше 2.5 с
-  setTimeout(() => { if (!manifest) release(); }, 2500);
+  // страховка: не держим экран закрытым дольше 3 с, если манифест не пришёл
+  setTimeout(() => { if (!manifest) done(); }, 3000);
 
   Promise.resolve(window.__bgManifest).then((m) => {
     manifest = m && typeof m === 'object' ? m : null;
     const imgs = (manifest && manifest.images) || {};
     if (!manifest || (!(manifest.day || []).length && !(manifest.night || []).length
-        && !(imgs.day || []).length && !(imgs.night || []).length)) { release(); return; }
-    show(root.dataset.sky === 'night' ? 'night' : 'day');
-  }).catch(release);
+        && !(imgs.day || []).length && !(imgs.night || []).length)) { done(); return; }
+    transition(skyNow(), true);
+  }).catch(done);
 })();
 </script>
 <script>
@@ -4733,6 +4797,32 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     'Любая модель': { en: 'Any model', zh: '任意款式' },
     'Загружаю модели…': { en: 'Loading models…', zh: '正在加载款式…' },
     'Повторить': { en: 'Retry', zh: '重试' },
+    'Готово': { en: 'Done', zh: '完成' },
+    'Ставка подарком': { en: 'Gift stake', zh: '礼物赌注' },
+    'Ставка TON': { en: 'TON stake', zh: 'TON 赌注' },
+    'с баланса': { en: 'from balance', zh: '来自余额' },
+    'Выберите цель': { en: 'Choose a target', zh: '选择目标' },
+    'Выберите ставку': { en: 'Choose a stake', zh: '选择赌注' },
+    'Инвентарь': { en: 'Inventory', zh: '背包' },
+    'Шанс': { en: 'Chance', zh: '几率' },
+    'Выбрать': { en: 'Choose', zh: '选择' },
+    'из инвентаря': { en: 'from inventory', zh: '来自背包' },
+    'любой подарок': { en: 'any gift', zh: '任意礼物' },
+    'Выбери желаемый подарок': { en: 'Choose the gift you want', zh: '请选择想要的礼物' },
+    'Выбери подарок из инвентаря': { en: 'Choose a gift from your inventory', zh: '请从背包选择礼物' },
+    'Введи ставку': { en: 'Enter a stake', zh: '请输入赌注' },
+    'Шанс не меньше {n}% — увеличь ставку': { en: 'Chance must be at least {n}% — raise your stake', zh: '几率至少 {n}% — 请提高赌注' },
+    'Шанс не больше {n}% — уменьши ставку': { en: 'Chance must be at most {n}% — lower your stake', zh: '几率最多 {n}% — 请降低赌注' },
+    'Ставка слишком мала для апгрейда': { en: 'Stake is too small for an upgrade', zh: '赌注太小' },
+    'Ставка слишком велика для апгрейда': { en: 'Stake is too large for an upgrade', zh: '赌注太大' },
+    'Шанс вне допустимых пределов — измени ставку': { en: 'Chance is out of range — change your stake', zh: '几率超出范围 — 请调整赌注' },
+    'Подарок-ставка недоступен': { en: 'The staked gift is unavailable', zh: '赌注礼物不可用' },
+    'В инвентаре пока пусто': { en: 'Your inventory is empty', zh: '背包是空的' },
+    'Подарок уйдёт в апгрейд как ставка. Шанс зависит от его цены.': { en: 'The gift is used as your stake. The chance depends on its price.', zh: '礼物将作为赌注，几率取决于其价格。' },
+    'Баланс': { en: 'Balance', zh: '余额' },
+    'Ваша ставка': { en: 'Your stake', zh: '你的赌注' },
+    'Желаемый подарок': { en: 'Desired gift', zh: '想要的礼物' },
+    'Подарок из инвентаря': { en: 'Gift from inventory', zh: '背包礼物' },
     'Сервер долго отвечает': { en: 'The server is slow to respond', zh: '服务器响应较慢' },
     'Ничего не нашлось': { en: 'Nothing found', zh: '未找到' },
     'Загружаю подарки…': { en: 'Loading gifts…', zh: '正在加载礼物…' },
@@ -5109,8 +5199,6 @@ let state = null;
 let tonUI = null;
 let spinning = false;
 let pointerDeg = 0;
-let modeIndex = 0;
-let modes = [];
 
 function initTelegram() {
   if (!tg) return;
@@ -5272,37 +5360,8 @@ function hatAsset(tier) {
   return TIER_HAT_ASSET[tier] || TIER_HAT_ASSET.random;
 }
 
-function giftCost(price, chance) {
-  const m = giftCatalog ? giftCatalog.margin || 0 : 0;
-  return roundTon(price * chance / Math.max(0.01, (1 - m) * giftPriceFactor(price)));
-}
-
-function giftPriceFactor(price) {
-  if (!giftCatalog) return 1;
-  for (const [limit, factor] of giftCatalog.steps || []) {
-    if (price > limit) return factor;
-  }
-  return giftCatalog.base || 1;
-}
-
 function roundTon(x) {
   return Number(x.toFixed(2));
-}
-
-function tierMeta(cfg) {
-  if (currentTier === 'gift' && selectedGift) {
-    const base = cfg.chances || [];
-    return {
-      chances: base.map((m) => ({ chance: m.chance, cost_ton: giftCost(selectedGift.price_ton, m.chance) })),
-      default_chance: cfg.default_chance,
-      prize_name: `${selectedGift.name} · ${fmt(selectedGift.price_ton, 2)} TON`,
-    };
-  }
-  const t = cfg.tiers && cfg.tiers[currentTier === 'gift' ? 'random' : currentTier];
-  if (!t) {
-    return { chances: cfg.chances, default_chance: cfg.default_chance, prize_name: cfg.prize_name };
-  }
-  return { chances: t.chances, default_chance: t.default_chance, prize_name: t.prize_name };
 }
 
 function saveTier(tier) {
@@ -5331,18 +5390,6 @@ const HAT_KEY = '__hat__';
 const HAT_TIER_KEYS = { [HAT_KEY]: 'random', __onyx__: 'onyx', __black__: 'black' };
 const HAT_SLUG = 'WitchHat';
 
-function syncTierButtons() {
-  const gifts = state ? !!state.config.gift_upgrade : true;
-  $('tierPicker').hidden = gifts;
-  document.querySelectorAll('.tier-btn').forEach((b) => {
-    const t = b.dataset.tier;
-    if (t === 'random') b.hidden = gifts;
-    if (t === 'gift') b.hidden = !gifts;
-    b.classList.toggle('active', !b.hidden
-      && (t === currentTier || (t === 'gift' && currentTier === 'random')));
-  });
-}
-
 function lsGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
 }
@@ -5354,10 +5401,8 @@ let needsPick = lsGet('prizeChosen') !== '1' && !lsGet('prizeTier');
 let needsPickChecked = false;
 
 function syncPickUI() {
-  const giftsOn = !!(state && state.config.gift_upgrade);
   $('centerHat').hidden = needsPick;
   $('hatQuestion').hidden = !needsPick;
-  $('hatHint').hidden = !giftsOn || lsGet('hatHintSeen') === '1';
 }
 
 function checkNeedsPick() {
@@ -5373,11 +5418,6 @@ function markPrizeChosen() {
   needsPick = false;
 }
 
-function markHintSeen() {
-  lsSet('hatHintSeen', '1');
-  $('hatHint').hidden = true;
-}
-
 function setTier(tier, save = true) {
   if (!TIER_ORDER.includes(tier)) tier = 'random';
   if (tier === 'gift' && !selectedGift) {
@@ -5387,7 +5427,6 @@ function setTier(tier, save = true) {
   currentTier = tier;
 
   applyBodyTierClass();
-  syncTierButtons();
 
   const hatImg = $('centerHat');
   if (hatImg) {
@@ -5407,11 +5446,7 @@ function setTier(tier, save = true) {
     }
   }
 
-  if (state) {
-    const meta = tierMeta(state.config);
-    $('prizeNameInline').textContent = needsPick ? tr('не выбран') : trName(meta.prize_name);
-    buildModes({ chances: meta.chances, default_chance: meta.default_chance });
-  }
+  renderUpgrade();
 }
 
 async function loadGiftCatalog(force = false) {
@@ -5753,39 +5788,6 @@ async function restoreSavedGift() {
   if (selectedGift && currentTier !== 'gift') setTier('gift', false);
 }
 
-function currentMode() {
-  return modes[modeIndex] || null;
-}
-
-function buildModes(cfg) {
-  const grid = cfg.chances || [];
-  const changed = JSON.stringify(grid) !== JSON.stringify(modes);
-  modes = grid;
-  if (!modes.length) return;
-
-  const slider = $('modeSlider');
-  slider.max = String(modes.length - 1);
-
-  if (changed) {
-    let def = modes.findIndex((m) => Math.abs(m.chance - cfg.default_chance) < 1e-9);
-    if (def < 0) def = Math.floor(modes.length / 2);
-    modeIndex = def;
-    slider.value = String(modeIndex);
-
-    $('chanceMin').textContent = `${Math.round(modes[0].chance * 100)}%`;
-    $('chanceMax').textContent = `${Math.round(modes[modes.length - 1].chance * 100)}%`;
-  }
-
-  applyMode();
-}
-
-function selectMode(index) {
-  if (spinning) return;
-  modeIndex = Math.max(0, Math.min(modes.length - 1, index));
-  $('modeSlider').value = String(modeIndex);
-  applyMode();
-}
-
 const THUMB_W = 24;
 
 function buildWheelScale() {
@@ -5830,38 +5832,236 @@ function buildWheelScale() {
   }
 }
 
-function applyMode() {
-  const m = currentMode();
-  if (!m) return;
+/* ===== Апгрейд: ставка -> желаемый подарок. Шанс = ставка * (1 - комиссия) / цена подарка ===== */
+let upSource = lsGet('upSource') === 'gift' ? 'gift' : 'ton';
+let upBetTon = (() => { const v = parseFloat(lsGet('upBet')); return v > 0 ? v : 1; })();
+let upPrize = null;
+let upView = null;
 
-  $('modeCost').textContent = needsPick ? '—' : fmt(m.cost_ton, 2);
-  $('modeChance').textContent = `${Math.round(m.chance * 100)}%`;
-  const ci = $('chanceInput');
-  if (ci && document.activeElement !== ci) ci.value = String(Math.round(m.chance * 100));
+function upTarget() {
+  const cfg = state && state.config;
+  if (!cfg || needsPick) return null;
+  if (currentTier === 'gift' && selectedGift) {
+    return { value: selectedGift.price_ton, name: selectedGift.name, image: selectedGift.image, fallback: giftImage(selectedGift.slug) };
+  }
+  const tier = currentTier === 'gift' ? 'random' : currentTier;
+  const t = cfg.tiers && cfg.tiers[tier];
+  if (!t) return null;
+  return { value: t.value_ton, name: trName(t.prize_name), image: hatAsset(tier), fallback: '' };
+}
 
-  const ratio = modes.length > 1 ? modeIndex / (modes.length - 1) : 0.5;
-  const thumbX = `calc(${THUMB_W / 2}px + (100% - ${THUMB_W}px) * ${ratio})`;
-  $('modeTrack').style.setProperty('--thumb-x', thumbX);
-  $('modeSlider').style.setProperty('--fill', thumbX);
+function upBetValue() {
+  return upSource === 'gift' ? (upPrize ? upPrize.value_ton : 0) : upBetTon;
+}
 
-  const pct = Math.round(m.chance * 100);
+function upCompute() {
+  const cfg = state && state.config;
+  const r = { target: null, bet: 0, chance: 0, status: 'wait' };
+  if (!cfg) return r;
+  r.target = upTarget();
+  r.bet = upBetValue();
+  if (!r.target) { r.status = 'no_target'; return r; }
+  if (!(r.target.value > 0)) { r.status = 'wait'; return r; }
+  if (!(r.bet > 0)) { r.status = 'no_bet'; return r; }
+  r.chance = Math.round(r.bet * (1 - cfg.margin) / r.target.value * 10000) / 10000;
+  r.status = 'ok';
+  if (r.chance < cfg.chance_min - 1e-9) r.status = 'low';
+  else if (r.chance > cfg.chance_max + 1e-9) r.status = 'high';
+  else if (upSource === 'ton' && state.balance_ton + 1e-9 < r.bet) r.status = 'poor';
+  return r;
+}
+
+function upPct(chance) {
+  const p = chance * 100;
+  return p >= 10 ? p.toFixed(1).replace(/\.0$/, '') : p.toFixed(2).replace(/0$/, '');
+}
+
+function upSetPick(btn, imgEl, name, info, image, fallback) {
+  $(btn.name).textContent = name;
+  $(btn.info).textContent = info;
+  const img = $(imgEl);
+  if (image) {
+    if (img.dataset.src !== image) { img.dataset.src = image; setGiftImg(img, image, fallback || image); }
+    img.hidden = false;
+  } else {
+    img.hidden = true;
+    delete img.dataset.src;
+  }
+}
+
+function renderUpgrade() {
+  if (!state) return;
+  const r = upCompute();
+  upView = r;
+  const cfg = state.config;
+
+  $('upSrcTon').classList.toggle('on', upSource === 'ton');
+  $('upSrcGift').classList.toggle('on', upSource === 'gift');
+  $('upBetTon').hidden = upSource !== 'ton';
+  $('invList').hidden = upSource !== 'gift';
+  const inp = $('upBetInput');
+  if (document.activeElement !== inp) inp.value = String(upBetTon);
+
+  // слот ставки
+  if (upSource === 'gift') {
+    if (upPrize) {
+      upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', trName(upPrize.name),
+        `${fmt(upPrize.value_ton, 2)} TON`, upPrize.image || hatAsset(upPrize.tier), '');
+    } else {
+      upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', tr('Выберите ставку'), '', '', '');
+    }
+  } else {
+    upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', `${fmt(upBetTon, 2)} TON`, tr('с баланса'), 'images/gram.webp', '');
+  }
+
+  // слот цели
+  const t = r.target;
+  if (t) {
+    upSetPick({ name: 'upTargetName', info: 'upTargetInfo' }, 'upTargetImg', trName(t.name),
+      t.value > 0 ? `${fmt(t.value, 2)} TON` : '…', t.image, t.fallback);
+  } else {
+    upSetPick({ name: 'upTargetName', info: 'upTargetInfo' }, 'upTargetImg', tr('Выберите цель'), '', '', '');
+  }
+  $('upBetBox').classList.toggle('empty', upSource === 'gift' && !upPrize);
+  $('upTargetBox').classList.toggle('empty', !t);
+
+  const shown = r.status === 'ok' || r.status === 'poor' || r.status === 'low' || r.status === 'high';
+  const chance = shown ? Math.min(1, r.chance) : 0;
+  $('upChanceVal').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%` : `${tr('Шанс')} —`;
+  $('upChanceMult').textContent = shown && r.chance > 0 ? `x${fmt((1 - cfg.margin) / r.chance, 2)}` : '';
+  const hints = {
+    no_target: tr('Выбери желаемый подарок'),
+    no_bet: upSource === 'gift' ? tr('Выбери подарок из инвентаря') : tr('Введи ставку'),
+    low: tr('Шанс не меньше {n}% — увеличь ставку', { n: Math.round(cfg.chance_min * 100) }),
+    high: tr('Шанс не больше {n}% — уменьши ставку', { n: Math.round(cfg.chance_max * 100) }),
+    poor: tr('Не хватает на апгрейд — пополни баланс'),
+  };
+  $('upHint').textContent = hints[r.status] || '';
+  $('upPreview').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%  x${fmt((1 - cfg.margin) / Math.max(r.chance, 1e-9), 2)}` : (hints[r.status] || '');
+  $('upHint').classList.toggle('bad', r.status === 'low' || r.status === 'high' || r.status === 'poor');
+
+  const pct = Math.round(chance * 100);
   document.querySelectorAll('#wheelScale [data-p]').forEach((el) => {
     el.classList.toggle('on', Number(el.dataset.p) <= pct);
   });
-
-  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance} ${RING_C}`);
+  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * chance} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
 
-  updateSpinButton();
+  $('spinBtn').disabled = spinning || homing;
+  $('spinBtnText').textContent = 'UP';
+  $('spinBtn').classList.toggle('low', r.status !== 'ok');
+}
+
+function upLock(on) {
+  $('upPanels').classList.toggle('locked', on);
+  $('upBetInput').disabled = on;
+  $('upBetBox').disabled = on;
+  $('upTargetBox').disabled = on;
+}
+
+function upSaveBet() {
+  lsSet('upBet', String(upBetTon));
+}
+
+function upSetBetTon(v) {
+  const x = Math.max(0.01, Math.floor(v * 100 + 1e-9) / 100);
+  upBetTon = x;
+  upSaveBet();
+  $('upBetInput').value = String(x);
+}
+
+function upMaxBet() {
+  const cfg = state && state.config;
+  const t = upTarget();
+  if (!cfg || !t || !(t.value > 0)) return state ? state.balance_ton : 0;
+  return Math.min(state.balance_ton, Math.floor(t.value * cfg.chance_max / (1 - cfg.margin) * 100) / 100);
+}
+
+function renderInvList() {
+  const box = $('invList');
+  box.textContent = '';
+  const items = (state.prizes || [])
+    .filter((p) => p.status === 'owned' && p.tier !== 'bear')
+    .sort((a, b) => b.value_ton - a.value_ton);
+  if (!items.length) {
+    const note = document.createElement('p');
+    note.className = 'muted gp-empty';
+    note.textContent = tr('В инвентаре пока пусто');
+    box.appendChild(note);
+    return;
+  }
+  for (const p of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'gp-item' + (upPrize && upPrize.id === p.id ? ' active' : '');
+    b.dataset.id = p.id;
+    const img = document.createElement('img');
+    img.loading = 'lazy'; img.decoding = 'async'; img.alt = '';
+    setGiftImg(img, p.image || hatAsset(p.tier), '');
+    const n = document.createElement('span');
+    n.className = 'gp-name';
+    n.textContent = trName(p.name);
+    const pr = document.createElement('span');
+    pr.className = 'gp-price';
+    pr.textContent = `${fmt(p.value_ton, 2)} TON`;
+    b.append(img, n, pr);
+    box.appendChild(b);
+  }
+}
+
+function openBetModal(src) {
+  if (spinning || !state) return;
+  if (src && src !== upSource) { upSource = src; lsSet('upSource', src); }
+  if (upSource === 'gift') renderInvList();
+  renderUpgrade();
+  $('upBetModal').hidden = false;
+}
+
+function initUpgrade() {
+  const setSource = (src) => {
+    if (spinning || upSource === src) return;
+    upSource = src;
+    lsSet('upSource', src);
+    haptic('impact', 'light');
+    if (src === 'gift') renderInvList();
+    renderUpgrade();
+  };
+  $('upSrcTon').addEventListener('click', () => setSource('ton'));
+  $('upSrcGift').addEventListener('click', () => setSource('gift'));
+  $('upBetBox').addEventListener('click', () => { haptic('impact', 'light'); openBetModal(); });
+  $('upTargetBox').addEventListener('click', () => { if (spinning) return; haptic('impact', 'light'); openGiftPicker(); });
+  $('upBetDone').addEventListener('click', () => { $('upBetModal').hidden = true; haptic('impact', 'light'); });
+  $('upBetModal').addEventListener('click', (e) => { if (e.target === $('upBetModal')) $('upBetModal').hidden = true; });
+  $('invList').addEventListener('click', (e) => {
+    const b = e.target.closest('.gp-item');
+    if (!b) return;
+    upPrize = (state.prizes || []).find((p) => p.id === Number(b.dataset.id)) || null;
+    $('upBetModal').hidden = true;
+    haptic('impact', 'light');
+    renderUpgrade();
+  });
+  const inp = $('upBetInput');
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/[^0-9.,]/g, '');
+    const v = parseFloat(inp.value.replace(',', '.'));
+    if (Number.isFinite(v) && v > 0) { upBetTon = Math.round(v * 100) / 100; upSaveBet(); }
+    renderUpgrade();
+  });
+  inp.addEventListener('blur', () => { inp.value = String(upBetTon); renderUpgrade(); });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+  $('upBetTon').addEventListener('click', (e) => {
+    const t = e.target.closest('button');
+    if (!t || spinning) return;
+    if (t.dataset.mul) upSetBetTon(upBetTon * Number(t.dataset.mul));
+    else if (t.dataset.max) upSetBetTon(Math.max(0.01, upMaxBet()));
+    else return;
+    haptic('impact', 'light');
+    renderUpgrade();
+  });
 }
 
 function updateSpinButton() {
-  const m = currentMode();
-  if (!m || !state) return;
-  $('spinBtn').disabled = spinning || homing;
-  $('spinBtnText').textContent = 'UP';
-  const enough = needsPick || state.balance_ton + 1e-9 >= m.cost_ton;
-  $('spinBtn').classList.toggle('low', !enough);
+  renderUpgrade();
 }
 
 function renderState(s) {
@@ -5873,16 +6073,14 @@ function renderState(s) {
   checkNeedsPick();
   if (!s.config.gift_upgrade) needsPick = false;
   syncPickUI();
-  syncTierButtons();
-  const _tm = tierMeta(s.config);
-  buildModes(_tm);
+  if (upPrize) upPrize = (s.prizes || []).find((p) => p.id === upPrize.id && p.status === 'owned') || null;
+  renderUpgrade();
   renderChests();
   giftCfg = s.config.gift_deposit || null;
   $('giftDepositBtn').hidden = !(giftCfg && giftCfg.enabled && giftCfg.account);
   setWithdrawLock(s);
 
   $('balanceValue').textContent = fmt(s.balance_ton, 4);
-  $('prizeNameInline').textContent = needsPick ? tr('не выбран') : trName(_tm.prize_name);
   $('depositAmount').min = s.config.min_deposit_ton;
 
   setProfileAvatar(s.user.avatar);
@@ -6272,20 +6470,7 @@ function buildPrizeCard(p) {
 
 const VIEW_SLIDE_MS = 260;
 
-const isMeadow = () => document.documentElement.dataset.theme === 'meadow';
-
-function setTheme(name) {
-  if (name === 'classic') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = 'meadow';
-  try { localStorage.setItem('theme', name === 'classic' ? 'classic' : 'meadow'); } catch (e) {}
-  syncThemeButtons();
-  if (window.alignBg) window.alignBg();
-}
-
-function syncThemeButtons() {
-  const cur = isMeadow() ? 'meadow' : 'classic';
-  document.querySelectorAll('#themeBtns .lang-btn').forEach((b) => b.classList.toggle('on', b.dataset.themePick === cur));
-}
+const isMeadow = () => true;   // старого дизайна больше нет
 
 function listNote(box, text) {
   box.textContent = '';
@@ -6498,20 +6683,13 @@ function initAnon() {
   });
 }
 
-function initThemeSwitch() {
-  document.querySelectorAll('#themeBtns .lang-btn').forEach((b) => {
-    b.addEventListener('click', () => { haptic('impact', 'light'); setTheme(b.dataset.themePick); });
-  });
-  syncThemeButtons();
-}
-
 function initSwipeTabs() {
   const content = document.querySelector('.content');
   let x0 = 0, y0 = 0, t0 = 0, ok = false;
   content.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
     ok = e.touches.length === 1
-      && !e.target.closest('input, textarea, select, .mode-picker, [data-noswipe]');
+      && !e.target.closest('input, textarea, select, [data-noswipe], .up-panels');
     x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
   }, { passive: true });
   content.addEventListener('touchend', (e) => {
@@ -6919,21 +7097,27 @@ function cxDraw() {
   const end = cxEnd;
   const opened = new Set(r ? r.opened : end ? end.opened : []);
   const bad = new Set(end ? end.bad : []);
-  let revealN = 0;
   const cells = $('cxGrid').children;
+  const visible = !$('view-chests').hidden;
   for (let i = 0; i < cells.length; i += 1) {
     const b = cells[i];
     let cls = 'cx-cell';
     let kind = 'closed';
-    if (opened.has(i)) { cls += ' gold'; kind = 'gold'; }
-    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; kind = 'empty'; }
-    else if (end) { cls += ' ghost'; kind = 'gold'; }
-    if (b.className !== cls) {
-      if (cls.includes('ghost')) b.style.setProperty('--d', `${(revealN++) * 0.05}s`);
+    let fx = '';
+    if (opened.has(i)) { cls += ' gold'; kind = 'gold'; fx = 'fx-flip'; }
+    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; kind = 'empty'; fx = end.hit === i ? 'fx-boom' : 'fx-fade'; }
+    else if (end) { cls += ' ghost'; kind = 'gold'; fx = 'fx-fade'; }
+    const was = b._kind;
+    if (b._cls !== cls) {
+      b._cls = cls;
       b.className = cls;
+      // анимацию запускаем только в момент самого события и только если экран виден
+      if (visible && was !== undefined && was !== kind && kind !== 'closed') {
+        b.classList.add(fx);
+        b.addEventListener('animationend', () => b.classList.remove(fx), { once: true });
+      }
     }
-    // картинку меняем только если она правда сменилась (иначе браузер перекодирует SVG на каждом кадре UI)
-    if (b._kind !== kind) { b._kind = kind; b.firstChild.src = CX_IMG[kind]; }
+    if (was !== kind) { b._kind = kind; b.firstChild.src = CX_IMG[kind]; }
     const dis = !r || cxBusy || opened.has(i);
     if (b.disabled !== dis) b.disabled = dis;
   }
@@ -7050,7 +7234,6 @@ function cxFinish(res) {
     burstSparks(r.left + r.width / 2 - st.left, r.top + r.height / 2 - st.top);
   } else {
     haptic('notification', 'error');
-    cxShake();
     if (res.cell != null) cxSparkAt(res.cell, 8);
     cxSetHint(tr('Пустой сундук! Ставка сгорела'), 'lose');
     if (res.consolation && res.consolation.first) toast(bearText(), false, 4200);
@@ -7079,6 +7262,7 @@ async function cxOpen(i) {
   } catch (e) {
     cxFail(e);
   }
+  if (cell) cell.classList.remove('pending');
   cxBusy = false;
   cxDraw();
 }
@@ -7515,26 +7699,33 @@ function castSpell(done) {
 }
 
 async function doSpin() {
-  const mode = currentMode();
-  if (spinning || homing || !state || !mode) return;
-  if (needsPick) {
-    markHintSeen();
-    openGiftPicker();
+  if (spinning || homing || !state) return;
+  const mode = upCompute();
+  if (mode.status === 'no_target') { openGiftPicker(); return; }
+  if (mode.status === 'no_bet') {
+    openBetModal();
     return;
   }
-  if (state.balance_ton + 1e-9 < mode.cost_ton) {
+  if (mode.status === 'low' || mode.status === 'high') {
+    toast(mode.status === 'low' ? tr('Ставка слишком мала для апгрейда') : tr('Ставка слишком велика для апгрейда'), true);
+    openBetModal();
+    return;
+  }
+  if (mode.status === 'poor') {
     toast(tr('Не хватает на апгрейд — пополни баланс'), true);
     openDeposit();
     return;
   }
+  if (mode.status !== 'ok') return;
 
   const giftSpin = currentTier === 'gift' && selectedGift;
+  const stakePrize = upSource === 'gift' ? upPrize : null;
   spinning = true;
   spinTier = giftSpin ? `url:${selectedGift.image}` : currentTier;
   const balanceBefore = state.balance_ton;
-  setBalance(balanceBefore - mode.cost_ton);
+  if (!stakePrize) setBalance(balanceBefore - mode.bet);
   $('spinBtn').disabled = true;
-  $('modeSlider').disabled = true; $('chanceInput').disabled = true;
+  upLock(true);
 
   $('fastBtn').disabled = true;
 
@@ -7545,15 +7736,18 @@ async function doSpin() {
   let result;
 
   try {
-    result = await api('/api/spin', giftSpin
-      ? { chance: mode.chance, tier: 'gift', gift: selectedGift.slug, model: selectedGift.model, cost: mode.cost_ton }
-      : { chance: mode.chance, tier: currentTier });
+    const body = { chance: mode.chance, tier: giftSpin ? 'gift' : currentTier };
+    if (giftSpin) { body.gift = selectedGift.slug; body.model = selectedGift.model; }
+    if (stakePrize) body.prize_id = stakePrize.id; else body.bet = mode.bet;
+    result = await api('/api/spin', body);
     setBalance(result.balance_ton);
     setCoins(result.hatcoin_balance);
+    if (result.prizes && state) { state.prizes = result.prizes; renderPrizes(result.prizes); }
+    if (stakePrize) upPrize = null;
   } catch (e) {
     setBalance(balanceBefore);
     spinning = false;
-    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
+    upLock(false);
     $('fastBtn').disabled = false;
     document.querySelector('.wheel-wrap').classList.remove('rolling');
     restStaff();
@@ -7565,16 +7759,18 @@ async function doSpin() {
       too_many_requests: tr('Слишком много запросов, подожди немного'),
       price_changed: tr('Цена подарка обновилась — проверь и крути снова'),
       gift_unavailable: tr('Этот подарок сейчас недоступен'),
+      bad_chance: tr('Шанс вне допустимых пределов — измени ставку'),
+      not_found: tr('Подарок-ставка недоступен'),
     };
 
     toast(messages[e.code] || tr('Ошибка запроса'), true);
 
-    if (e.code === 'insufficient_funds') refresh();
+    if (e.code === 'insufficient_funds' || e.code === 'not_found') refresh();
     if (e.code === 'price_changed' || e.code === 'gift_unavailable') loadGiftCatalog(true).catch(() => {});
     return;
   }
 
-  const visibleChance = mode.chance;
+  const visibleChance = Math.min(1, mode.chance);
 
   let targetAngle;
 
@@ -7615,7 +7811,8 @@ async function doSpin() {
     document.querySelector('.wheel-wrap').classList.remove('rolling');
 
     spinning = false;
-    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
+    upLock(false);
+    renderUpgrade();
     $('fastBtn').disabled = false;
 
     haptic(
@@ -8143,14 +8340,6 @@ function bind() {
     haptic('impact', 'light');
   });
 
-  document.querySelectorAll('.tier-btn').forEach((b) => {
-    b.addEventListener('click', () => {
-      if (spinning) return;
-      if (b.dataset.tier === 'gift') openGiftPicker();
-      else setTier(b.dataset.tier);
-      haptic('impact', 'light');
-    });
-  });
   $('gpClose').addEventListener('click', () => { $('giftPickModal').hidden = true; });
   $('gpSearch').addEventListener('input', renderGiftPicker);
   $('gpBack').addEventListener('click', gpBack);
@@ -8169,20 +8358,17 @@ function bind() {
     $('langBtns').appendChild(b);
   }
   window.addEventListener('langchange', onLangChange);
-  initThemeSwitch();
   initProfileWindows();
   initWeapon();
   initSpinStyle();
   initSky();
   const pickFromWheel = () => {
     if (spinning || !(state && state.config.gift_upgrade)) return;
-    markHintSeen();
     openGiftPicker();
     haptic('impact', 'light');
   };
   $('hatQuestion').addEventListener('click', pickFromWheel);
   $('centerHat').addEventListener('click', pickFromWheel);
-  $('hatHint').addEventListener('click', pickFromWheel);
   $('gpList').addEventListener('click', (e) => {
     const item = e.target.closest('.gp-item');
     if (item) onGiftTile(item.dataset.key);
@@ -8208,21 +8394,7 @@ function bind() {
   $('giftOpenAccount').addEventListener('click', openGiftAccount);
   $('walletBtn').addEventListener('click', onWalletClick);
 
-  $('modeSlider').addEventListener('input', (e) => selectMode(Number(e.target.value)));
-  const chanceInput = $('chanceInput');
-  const applyChanceInput = () => {
-    if (spinning || !modes.length) { applyMode(); return; }
-    const raw = Number(chanceInput.value);
-    if (!Number.isFinite(raw) || chanceInput.value === '') { applyMode(); return; }
-    const want = Math.round(raw) / 100;
-    let best = 0;
-    modes.forEach((m, i) => { if (Math.abs(m.chance - want) < Math.abs(modes[best].chance - want)) best = i; });
-    selectMode(best);
-    chanceInput.value = String(Math.round(modes[best].chance * 100));
-  };
-  chanceInput.addEventListener('change', applyChanceInput);
-  chanceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chanceInput.blur(); } });
-  chanceInput.addEventListener('blur', applyChanceInput);
+  initUpgrade();
 
   $('promoForm').addEventListener('submit', activatePromo);
   $('refToggle').addEventListener('click', toggleReferral);
