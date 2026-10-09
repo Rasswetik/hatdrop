@@ -2943,6 +2943,9 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 html[data-theme="meadow"] .bg-video { opacity: 0; transition: opacity .4s ease; object-fit: cover;
   object-position: var(--bg-pos, 50% 50%); background: transparent; transform: translateZ(0); backface-visibility: hidden; }
 html[data-theme="meadow"] .bg-video.on { opacity: 1; }
+html[data-theme="meadow"] .bg-photo { opacity: 0; transition: opacity .4s ease; object-fit: cover;
+  object-position: var(--bg-pos, 50% 50%); }
+html[data-theme="meadow"] .bg-photo.on { opacity: 1; }
 html.has-bgvideo .bg-scene { display: none !important; }
 html[data-theme="meadow"] .bg-wide { background: #0b1030; }
 html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
@@ -3024,6 +3027,7 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 
 <div class="bg-wide" aria-hidden="true">
   <canvas class="bg-scene" id="bgScene"></canvas>
+  <img class="bg-photo" id="bgPhoto" alt="" decoding="async">
   <video class="bg-video" id="bgVideo" muted loop playsinline webkit-playsinline preload="auto"
          disablepictureinpicture disableremoteplayback tabindex="-1"></video>
   <div class="bg-dim"></div>
@@ -4353,11 +4357,12 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     }
     if (!anchorY || !stage.width) return;
     window.bgAnchorY = anchorY;
-    for (const el of [document.getElementById('bgVideo')]) {
-      if (!el || !window.BG_VIDEO_ALIGN || !el.classList.contains('on')) continue;
+    for (const el of [document.getElementById('bgPhoto'), document.getElementById('bgVideo')]) {
+      const isPhoto = !!el && el.id === 'bgPhoto';
+      if (!el || !el.classList.contains('on') || !(isPhoto ? window.BG_PHOTO_ALIGN : window.BG_VIDEO_ALIGN)) continue;
       const iw = el.naturalWidth || el.videoWidth, ih = el.naturalHeight || el.videoHeight;
       if (!iw || !ih) continue;
-      const A = photoAnchor;
+      const A = isPhoto ? ANCHOR_WIDE : photoAnchor;
       let h = Math.max(stage.width / iw * ih, anchorY / A.y, (stage.height - anchorY) / (1 - A.y));
       let w = h / ih * iw;
       const left = Math.min(0, Math.max(stage.width - w, stage.width / 2 - w * A.x));
@@ -4401,6 +4406,9 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 
   // true - выравнивать ролик «пеньком» под колесо (как раньше для фото); false - обычный cover по центру
   window.BG_VIDEO_ALIGN = false;
+  // картинки Day/Night - как раньше: пенёк на картинке ставится под колесо
+  window.BG_PHOTO_ALIGN = true;
+  const photo = document.getElementById('bgPhoto');
 
   const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const conn = navigator.connection || {};
@@ -4436,8 +4444,39 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     return pool[0];
   }
 
+  function pickImage(theme) {
+    const list = (((manifest || {}).images || {})[theme] || []).slice();
+    if (!list.length) return null;
+    const small = isSmall();
+    list.sort((a, b) => (b.exact - a.exact)
+      || ((small ? b.mobile : b.desktop) - (small ? a.mobile : a.desktop))
+      || a.url.localeCompare(b.url));
+    return list[0];
+  }
+
+  function showPhoto(theme) {
+    const pick = photo && pickImage(theme);
+    if (!pick) return false;
+    const my = ++token;
+    video.classList.remove('on');
+    try { video.pause(); } catch (e) {}
+    photo.onload = () => {
+      if (my !== token) return;
+      root.classList.add('has-bgvideo');
+      photo.classList.add('on');
+      release();
+      if (window.alignBg) window.alignBg();
+    };
+    photo.onerror = () => { if (my !== token) return; photo.classList.remove('on'); fallback(); };
+    photo.classList.remove('on');
+    photo.src = pick.url;
+    if (photo.complete && photo.naturalWidth) photo.onload();
+    return true;
+  }
+
   function fallback() {
     token += 1;
+    if (photo) photo.classList.remove('on');
     video.classList.remove('on');
     root.classList.remove('has-bgvideo');
     try { video.pause(); } catch (e) {}
@@ -4459,7 +4498,8 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     wanted = theme;
     if (!manifest) return;
     const clip = choose(theme);
-    if (!clip) { fallback(); return; }
+    if (!clip) { if (!showPhoto(theme)) fallback(); return; }
+    if (photo && !root.classList.contains('has-bgvideo')) photo.classList.remove('on');
     if (clip.url === currentUrl && video.readyState >= 2) {
       root.classList.add('has-bgvideo');
       video.classList.add('on');
@@ -4477,6 +4517,7 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
         if (my !== token) return;
         root.classList.add('has-bgvideo');
         video.classList.add('on');
+        if (photo) photo.classList.remove('on');
         play();
         release();
         if (window.alignBg) window.alignBg();
@@ -4506,7 +4547,7 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 
   // экономим батарею: на паузе, пока приложение свёрнуто
   const pauseIf = (hidden) => {
-    if (!root.classList.contains('has-bgvideo')) return;
+    if (!video.classList.contains('on')) return;
     if (hidden) { try { video.pause(); } catch (e) {} } else play();
   };
   document.addEventListener('visibilitychange', () => pauseIf(document.hidden));
@@ -4529,7 +4570,9 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 
   Promise.resolve(window.__bgManifest).then((m) => {
     manifest = m && typeof m === 'object' ? m : null;
-    if (!manifest || (!(manifest.day || []).length && !(manifest.night || []).length)) { release(); return; }
+    const imgs = (manifest && manifest.images) || {};
+    if (!manifest || (!(manifest.day || []).length && !(manifest.night || []).length
+        && !(imgs.day || []).length && !(imgs.night || []).length)) { release(); return; }
     show(root.dataset.sky === 'night' ? 'night' : 'day');
   }).catch(release);
 })();
