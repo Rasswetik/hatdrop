@@ -5638,11 +5638,22 @@ function upFitRange() {
   return { min: bet / (cfg.chance_max + cfg.margin) - 1e-9, max: bet / (cfg.chance_min + cfg.margin) + 1e-9 };
 }
 
+function gpTopOf(g) {
+  if (g.top_ton != null) return g.top_ton;
+  const c = cachedGiftModels.get(g.slug);
+  const ms = c && c.value && c.value.models;
+  return ms && ms.length ? Math.max(...ms.map((m) => m.price_ton)) : Infinity;   // модели ещё не известны - не скрываем
+}
+
 function renderGiftPicker() {
   const list = $('gpList');
   const fit = upFitRange();
   const inFit = (v) => !fit || (v >= fit.min && v <= fit.max);
   let hidden = 0;
+  if (fit && gpModels && gpModels !== 'loading' && gpModels.slug !== HAT_SLUG && !gpModels.loading
+      && gpModels.models && gpModels.models.length && !gpModels.models.some((m) => inFit(m.price_ton))) {
+    gpModels = null;   // в коллекции нет ни одной подходящей модели - возвращаем к списку, а коллекция исчезнет из него
+  }
   const q = $('gpSearch').value.trim().toLowerCase();
   document.querySelectorAll('#gpSort button').forEach((b) => b.classList.toggle('active', b.dataset.sort === gpSort));
   $('gpBack').hidden = !gpModels;
@@ -5696,7 +5707,7 @@ function renderGiftPicker() {
     for (const g of gpSorted(giftCatalog ? giftCatalog.items : [], false)) {
       if (g.slug === HAT_SLUG) continue;
       if (q && !g.name.toLowerCase().includes(q)) continue;
-      if (fit && g.price_ton > fit.max) { hidden++; continue; }
+      if (fit && (g.price_ton > fit.max || gpTopOf(g) < fit.min)) { hidden++; continue; }
       frag.appendChild(gpTile(g.slug, g.name, g.price_ton, g.image, !!picked && picked.slug === g.slug));
       gifts += 1;
     }

@@ -1138,10 +1138,13 @@ def history(user, body):
 
 @route("/api/gifts/catalog")
 def gifts_catalog(user, body):
-    items = [
-        {"slug": s, "name": g["name"], "price_ton": gift_floor(s), "image": gift_image(s), "popular": g.get("pop", 0)}
-        for s, g in gifts_map().items()
-    ]
+    items = []
+    for s, g in gifts_map().items():
+        priced = [m["price_ton"] for m in gift_models(s)]
+        items.append({"slug": s, "name": g["name"], "price_ton": gift_floor(s), "image": gift_image(s),
+                      "popular": g.get("pop", 0),
+                      # самая дорогая модель: нужна клиенту, чтобы скрывать коллекции, где ничего не подходит по шансу
+                      "top_ton": max(priced) if priced else None})
     return {"items": items, "margin": MARGIN, "price_steps": [], "price_base": 1}
 
 
