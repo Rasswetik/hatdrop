@@ -2607,40 +2607,30 @@ img[src*="/gimg/"], .thumb-gift img { image-rendering: auto; }
 .menu-card .ic { font-size: 52px; }
 .menu-card img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
 
-/* ===== Меню: длинные карточки с SVG-анимацией ===== */
+/* ===== Меню: длинные карточки в стиле игры, простые чёткие SVG-анимации ===== */
 .menu-grid { grid-template-columns: 1fr; gap: 16px; }
-.menu-card.menu-wide { position: relative; overflow: hidden; flex-direction: row; justify-content: flex-start; align-items: center; width: 100%; min-height: 124px; padding: 0 18px; text-align: left; }
-.menu-card.menu-wide .mc-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.menu-card.menu-wide .mc-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 10px; max-width: 58%; }
-.mc-title { font-weight: 400; font-size: clamp(17px, 5.4vw, 24px); line-height: 1.1; letter-spacing: 1px; color: #fff3c4; text-shadow: 0 3px 0 #2a1305, 0 0 14px rgba(255, 200, 80, .55); }
-.mc-sub { font-size: 8px; line-height: 1.6; color: #f3dcb0; text-shadow: 1px 1px 0 #2a1305; }
-.mc-leaders .mc-title { text-shadow: 0 3px 0 #120a33, 0 0 14px rgba(190, 150, 255, .7); }
-.mc-leaders .mc-sub { color: #dccdff; text-shadow: 1px 1px 0 #120a33; }
+.menu-card.menu-wide { flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 112px; padding: 14px 16px; text-align: left; }
+.menu-card.menu-wide .mc-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mc-title { font-weight: 400; font-size: clamp(16px, 5.2vw, 22px); line-height: 1.1; letter-spacing: 1px; color: #fff3c4; text-shadow: 0 3px 0 #2e1a0c; }
+.mc-sub { font-size: 8px; line-height: 1.6; color: #f3dcb0; text-shadow: 1px 1px 0 #2e1a0c; }
+.mc-plate { flex: 0 0 auto; display: grid; place-items: center; width: 88px; height: 88px; background: #3f2411; border: 3px solid #2e1a0c; border-radius: 10px; box-shadow: inset 2px 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px #7a4a22; }
+.mc-art { width: 76px; height: 76px; overflow: visible; }
 .mc-art * { transform-box: fill-box; }
-.mc-glow { animation: mcPulse 3.2s ease-in-out infinite; transform-origin: center; }
-.mc-rays, .mc-spin { transform-origin: 262px 66px; transform-box: view-box; animation: mcSpin 26s linear infinite; }
-.mc-chest { animation: mcBob 3.4s ease-in-out infinite; transform-origin: center bottom; }
-.mc-lid { transform-origin: 50% 100%; animation: mcLid 3.4s ease-in-out infinite; }
-.mc-coin { animation: mcFall 3.6s linear infinite; transform-origin: center; }
-.mc-coin.c1 { animation-delay: 0s; } .mc-coin.c2 { animation-delay: -1.2s; animation-duration: 3s; } .mc-coin.c3 { animation-delay: -2.1s; }
-.mc-coin.c4 { animation-delay: -.7s; animation-duration: 4.2s; } .mc-coin.c5 { animation-delay: -2.8s; animation-duration: 3.3s; }
-.mc-tw { transform-origin: center; animation: mcTwinkle 2.4s ease-in-out infinite; }
-.mc-tw.t2 { animation-delay: -.6s; } .mc-tw.t3 { animation-delay: -1.2s; } .mc-tw.t4 { animation-delay: -1.8s; }
-.mc-sheen { animation: mcSheen 5s ease-in-out infinite; }
-.mc-trophy { animation: mcBob 3s ease-in-out infinite; transform-origin: center bottom; }
-.mc-crown { animation: mcCrown 3s ease-in-out infinite; }
-.mc-bars rect { transform-origin: center bottom; animation: mcBar 2.6s ease-in-out infinite; }
-.mc-bars .b2 { animation-delay: -.8s; } .mc-bars .b3 { animation-delay: -1.6s; }
-@keyframes mcPulse { 0%, 100% { opacity: .75; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.06); } }
-@keyframes mcSpin { to { transform: rotate(360deg); } }
+.mc-lid { transform-origin: 8% 100%; animation: mcLid 2.4s ease-in-out infinite; }
+.mc-hop { animation: mcHop 1.8s ease-in-out infinite; }
+.mc-hop.h2 { animation-delay: -.6s; } .mc-hop.h3 { animation-delay: -1.2s; }
+.mc-tw { transform-origin: center; animation: mcTwinkle 1.8s ease-in-out infinite; }
+.mc-tw.t2 { animation-delay: -.9s; }
+.mc-cup { animation: mcBob 2.2s ease-in-out infinite; }
+.mc-crown { animation: mcCrown 2.2s ease-in-out infinite; }
+.mc-shine { animation: mcShine 2.2s ease-in-out infinite; }
+@keyframes mcLid { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+@keyframes mcHop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-9px); } 70% { transform: translateY(0); } }
+@keyframes mcTwinkle { 0%, 100% { opacity: .2; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1); } }
 @keyframes mcBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes mcLid { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(-12deg); } }
-@keyframes mcFall { 0% { transform: translateY(-14px) scaleX(1); opacity: 0; } 12% { opacity: 1; } 25% { transform: translateY(18px) scaleX(.25); } 50% { transform: translateY(54px) scaleX(1); } 75% { transform: translateY(88px) scaleX(.25); opacity: 1; } 100% { transform: translateY(126px) scaleX(1); opacity: 0; } }
-@keyframes mcTwinkle { 0%, 100% { opacity: .15; transform: scale(.5) rotate(0); } 50% { opacity: 1; transform: scale(1.15) rotate(45deg); } }
-@keyframes mcSheen { 0%, 62% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(520px) skewX(-20deg); } }
-@keyframes mcCrown { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-4px) rotate(2deg); } }
-@keyframes mcBar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.22); } }
-@media (prefers-reduced-motion: reduce) { .mc-art * { animation: none !important; } .mc-coin { opacity: 1; } }
+@keyframes mcCrown { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-3px) rotate(3deg); } }
+@keyframes mcShine { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }
+@media (prefers-reduced-motion: reduce) { .mc-art * { animation: none !important; } }
 
 .view { position: relative; }
 .view-back {
@@ -3251,67 +3241,36 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
       <h1 class="title">МЕНЮ</h1>
       <div class="menu-grid">
         <button class="menu-card menu-wide mc-chests" id="menuChests" type="button" hidden="">
-          <svg class="mc-art" viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-  <defs>
-    <linearGradient id="mcCBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a3512"/><stop offset="1" stop-color="#2a1305"/></linearGradient>
-    <radialGradient id="mcCGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd25a" stop-opacity=".85"/><stop offset="1" stop-color="#ffd25a" stop-opacity="0"/></radialGradient>
-    <linearGradient id="mcCoin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2a6"/><stop offset=".6" stop-color="#ffc42e"/><stop offset="1" stop-color="#c77a14"/></linearGradient>
-    <linearGradient id="mcChestBody" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#a8622a"/><stop offset="1" stop-color="#6a3512"/></linearGradient>
-    <symbol id="mcStar" viewBox="-6 -6 12 12"><path d="M0-6Q.8-.8 6 0Q.8.8 0 6Q-.8.8-6 0Q-.8-.8 0-6Z" fill="#fff6c2"/></symbol>
-  </defs>
-  <rect width="320" height="120" fill="url(#mcCBg)"/>
-  <circle class="mc-glow" cx="262" cy="70" r="70" fill="url(#mcCGlow)"/>
-  <g class="mc-rays" opacity=".18"><path d="M262 70L200 -20L226 -20ZM262 70L300 -20L326 -20ZM262 70L340 40L340 70ZM262 70L190 40L190 20Z" fill="#ffe08a"/></g>
-  <g class="mc-chest">
-    <path d="M226 92H298V112H226Z" fill="#2a1305" opacity=".45"/>
-    <rect x="232" y="68" width="60" height="36" rx="4" fill="url(#mcChestBody)" stroke="#2a1305" stroke-width="3"/>
-    <rect x="232" y="82" width="60" height="6" fill="#ffc42e" stroke="#2a1305" stroke-width="2"/>
-    <rect x="256" y="78" width="12" height="16" rx="2" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="2"/>
-    <g class="mc-lid"><path d="M230 68Q262 34 294 68Z" fill="url(#mcChestBody)" stroke="#2a1305" stroke-width="3" stroke-linejoin="round"/><path d="M236 64Q262 44 288 64" fill="none" stroke="#ffc42e" stroke-width="4" stroke-linecap="round"/></g>
-    <g class="mc-pile"><ellipse cx="262" cy="66" rx="26" ry="7" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="2"/><circle cx="248" cy="62" r="6" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/><circle cx="276" cy="61" r="6" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/><circle cx="262" cy="57" r="6.5" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/></g>
-  </g>
-  <g class="mc-coin c1"><ellipse cx="238" cy="0" rx="6" ry="6" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/></g>
-  <g class="mc-coin c2"><ellipse cx="262" cy="0" rx="5" ry="5" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/></g>
-  <g class="mc-coin c3"><ellipse cx="286" cy="0" rx="6" ry="6" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.6"/></g>
-  <g class="mc-coin c4"><ellipse cx="206" cy="0" rx="4.5" ry="4.5" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.4"/></g>
-  <g class="mc-coin c5"><ellipse cx="308" cy="0" rx="4.5" ry="4.5" fill="url(#mcCoin)" stroke="#2a1305" stroke-width="1.4"/></g>
-  <use class="mc-tw t1" href="#mcStar" x="214" y="22" width="14" height="14"/>
-  <use class="mc-tw t2" href="#mcStar" x="296" y="30" width="11" height="11"/>
-  <use class="mc-tw t3" href="#mcStar" x="250" y="14" width="9" height="9"/>
-  <use class="mc-tw t4" href="#mcStar" x="196" y="78" width="9" height="9"/>
-  <rect class="mc-sheen" x="-60" y="-10" width="36" height="140" fill="#fff" opacity=".13" transform="skewX(-20)"/>
-</svg>
           <span class="mc-text"><b class="mc-title">СУНДУКИ</b><small class="mc-sub">Открывай и забирай золото</small></span>
+          <span class="mc-plate"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <g class="mc-hop h1"><circle cx="32" cy="42" r="8" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
+            <g class="mc-hop h2"><circle cx="50" cy="38" r="8" fill="#ffd45e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
+            <g class="mc-hop h3"><circle cx="68" cy="42" r="8" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
+            <rect x="14" y="54" width="72" height="34" rx="4" fill="#a8622a" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+            <rect x="14" y="66" width="72" height="8" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+            <rect x="44" y="62" width="12" height="16" rx="2" fill="#ffd45e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+            <g class="mc-lid"><path d="M12 54Q50 14 88 54Z" fill="#c07a3a" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><path d="M24 48Q50 28 76 48" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/></g>
+            <path class="mc-tw t1" d="M86 22L89 14L92 22L100 25L92 28L89 36L86 28L78 25Z" fill="#fff6c2"/>
+            <path class="mc-tw t2" d="M10 28L12 23L14 28L19 30L14 32L12 37L10 32L5 30Z" fill="#fff6c2"/>
+          </svg></span>
         </button>
         <button class="menu-card menu-wide mc-leaders" id="menuLeaders" type="button">
-          <svg class="mc-art" viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-  <defs>
-    <linearGradient id="mcLBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34226f"/><stop offset="1" stop-color="#120a33"/></linearGradient>
-    <radialGradient id="mcLGlow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#b98bff" stop-opacity=".8"/><stop offset="1" stop-color="#b98bff" stop-opacity="0"/></radialGradient>
-    <linearGradient id="mcGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2a6"/><stop offset=".55" stop-color="#ffc42e"/><stop offset="1" stop-color="#c77a14"/></linearGradient>
-    <linearGradient id="mcBar" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8f6bff"/><stop offset="1" stop-color="#3b2492"/></linearGradient>
-    <symbol id="mcStar2" viewBox="-6 -6 12 12"><path d="M0-6Q.8-.8 6 0Q.8.8 0 6Q-.8.8-6 0Q-.8-.8 0-6Z" fill="#efe2ff"/></symbol>
-  </defs>
-  <rect width="320" height="120" fill="url(#mcLBg)"/>
-  <circle class="mc-glow" cx="262" cy="62" r="72" fill="url(#mcLGlow)"/>
-  <g class="mc-spin" opacity=".2"><path d="M262 62L246 -30H278ZM262 62L350 30V62ZM262 62L346 100V80ZM262 62L278 150H246ZM262 62L174 94V62ZM262 62L178 24V44Z" fill="#d9c2ff"/></g>
-  <g class="mc-bars"><rect class="b1" x="198" y="78" width="16" height="34" rx="2" fill="url(#mcBar)" stroke="#120a33" stroke-width="2"/><rect class="b2" x="222" y="66" width="16" height="46" rx="2" fill="url(#mcBar)" stroke="#120a33" stroke-width="2"/><rect class="b3" x="296" y="84" width="16" height="28" rx="2" fill="url(#mcBar)" stroke="#120a33" stroke-width="2"/></g>
-  <g transform="translate(0 10)"><g class="mc-trophy">
-    <path d="M244 30H280V54Q280 72 262 76Q244 72 244 54Z" fill="url(#mcGold)" stroke="#120a33" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M244 36Q226 36 228 50Q230 62 246 62" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/>
-    <path d="M280 36Q298 36 296 50Q294 62 278 62" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/>
-    <rect x="257" y="76" width="10" height="14" fill="#e8a21d" stroke="#120a33" stroke-width="2.4"/>
-    <rect x="246" y="90" width="32" height="10" rx="2" fill="url(#mcGold)" stroke="#120a33" stroke-width="2.6"/>
-    <path d="M252 36V54" stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
-    <path class="mc-crown" d="M250 24L254 10L262 20L270 10L274 24Z" fill="url(#mcGold)" stroke="#120a33" stroke-width="2.4" stroke-linejoin="round"/>
-  </g></g>
-  <use class="mc-tw t1" href="#mcStar2" x="206" y="18" width="13" height="13"/>
-  <use class="mc-tw t2" href="#mcStar2" x="300" y="22" width="11" height="11"/>
-  <use class="mc-tw t3" href="#mcStar2" x="188" y="62" width="9" height="9"/>
-  <use class="mc-tw t4" href="#mcStar2" x="236" y="6" width="8" height="8"/>
-  <rect class="mc-sheen" x="-60" y="-10" width="36" height="140" fill="#fff" opacity=".1" transform="skewX(-20)"/>
-</svg>
           <span class="mc-text"><b class="mc-title">ЛИДЕРЫ</b><small class="mc-sub">Топ игроков недели</small></span>
+          <span class="mc-plate"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+            <g class="mc-cup">
+              <path d="M30 34Q10 34 14 50Q18 62 34 62" fill="none" stroke="#2e1a0c" stroke-width="12" stroke-linecap="round"/>
+              <path d="M30 34Q10 34 14 50Q18 62 34 62" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/>
+              <path d="M70 34Q90 34 86 50Q82 62 66 62" fill="none" stroke="#2e1a0c" stroke-width="12" stroke-linecap="round"/>
+              <path d="M70 34Q90 34 86 50Q82 62 66 62" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/>
+              <path d="M28 28H72V50Q72 70 50 74Q28 70 28 50Z" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="mc-shine" d="M37 34V52" stroke="#fff6c2" stroke-width="5" stroke-linecap="round"/>
+              <rect x="44" y="74" width="12" height="10" fill="#e0902a" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              <rect x="32" y="84" width="36" height="9" rx="2" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+              <path class="mc-crown" d="M38 22L40 10L50 18L60 10L62 22Z" fill="#ffd45e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+            </g>
+            <path class="mc-tw t1" d="M88 30L91 22L94 30L102 33L94 36L91 44L88 36L80 33Z" fill="#fff6c2"/>
+            <path class="mc-tw t2" d="M8 38L10 33L12 38L17 40L12 42L10 47L8 42L3 40Z" fill="#fff6c2"/>
+          </svg></span>
         </button>
       </div>
     </section>
