@@ -2520,6 +2520,21 @@ html[data-theme="meadow"] .weapon-menu img { width: 26px; height: 26px; object-f
 
 html[data-theme="meadow"][data-weapon="staff"] .pointer > * { display: inline; }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-axe { display: none; }
+html[data-theme="meadow"][data-weapon="sword"] .pointer > .pk-sword { display: inline; }
+html[data-theme="meadow"][data-weapon="sword"] .pointer > .ptr-axe { display: none; }
+html[data-theme="meadow"][data-weapon="spear"] .pointer > .pk-spear { display: inline; }
+html[data-theme="meadow"][data-weapon="spear"] .pointer > .ptr-axe { display: none; }
+html[data-theme="meadow"][data-weapon="arrow"] .pointer > .pk-arrow { display: inline; }
+html[data-theme="meadow"][data-weapon="arrow"] .pointer > .ptr-axe { display: none; }
+html[data-theme="meadow"][data-weapon="trident"] .pointer > .pk-trident { display: inline; }
+html[data-theme="meadow"][data-weapon="trident"] .pointer > .ptr-axe { display: none; }
+html[data-theme="meadow"][data-weapon="wand"] .pointer > .pk-wand { display: inline; }
+html[data-theme="meadow"][data-weapon="wand"] .pointer > .ptr-axe { display: none; }
+.weapon-btn svg.wp-ic { width: 70%; height: 70%; transform: rotate(38deg); filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
+.weapon-btn svg.wp-ic[hidden], .weapon-btn img[hidden] { display: none; }
+html[data-theme="meadow"] .weapon-menu svg.wp-ic { width: 34px; height: 34px; flex: 0 0 auto; transform: rotate(38deg) scale(1.15); }
+html[data-theme="meadow"] #weaponMenu { max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
 
 html[data-theme="meadow"] .wheel-wrap.throwing .pointer {
   filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)) drop-shadow(0 0 10px rgba(255, 255, 255, .8)) drop-shadow(0 0 18px rgba(120, 200, 255, .7));
@@ -2845,6 +2860,16 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-chip.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9, 0 2px 0 #0a3a1f; }
 .cx-label { margin: 4px 0 6px; font-size: 9px; color: #fff1d0; text-align: left; width: 100%; text-shadow: 2px 2px 0 #24122e; }
 #cxHint { text-shadow: 2px 2px 0 #24122e; }
+.cx-giftbtn { position: relative; display: grid; place-items: center; padding: 0; min-width: 44px; }
+.cx-giftbtn .cx-gift-ic { width: 24px; height: 24px; }
+.cx-giftbtn img { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); object-fit: contain; }
+.cx-giftbtn img[hidden] { display: none; }
+.cx-giftbtn.on { background: var(--green); border-color: var(--green-dark); box-shadow: 0 0 8px rgba(80, 255, 140, .45); }
+.cx-giftbtn.on .cx-gift-ic { opacity: 0; }
+#cxBetInput.is-gift { color: var(--gold); }
+.cxg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; max-height: 48vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.cxg-grid .gp-item { min-width: 0; }
+.cxg-grid .cx-note { grid-column: 1 / -1; }
 .cx-gifts { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; width: 100%; margin: 0 0 6px; padding: 2px 0 6px; }
 .cx-gift { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; font: inherit; font-size: 8px; color: var(--gold); background: var(--card); border: 2px solid var(--card-line); cursor: pointer; }
 .cx-gift img { width: 36px; height: 36px; object-fit: contain; image-rendering: auto; }
@@ -3014,6 +3039,57 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<linearGradient id="pkSteel" x1="0" x2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset=".5" stop-color="#b9c6d8"/><stop offset="1" stop-color="#7d8da3"/></linearGradient>
+<linearGradient id="pkGold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".55" stop-color="#ffc52e"/><stop offset="1" stop-color="#c9791a"/></linearGradient>
+<linearGradient id="pkWood" x1="0" x2="1"><stop offset="0" stop-color="#c98745"/><stop offset=".55" stop-color="#8b4d22"/><stop offset="1" stop-color="#5e3015"/></linearGradient>
+<linearGradient id="pkRed" x1="0" x2="1"><stop offset="0" stop-color="#ff7a86"/><stop offset="1" stop-color="#c22b44"/></linearGradient>
+<linearGradient id="pkViolet" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#e5c2ff"/><stop offset=".5" stop-color="#a45cff"/><stop offset="1" stop-color="#5a24b8"/></linearGradient>
+<symbol id="pk-sword" viewBox="110 10 80 160">
+  <path d="M150 12L159 28V108H141V28Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 20V104" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <rect x="145" y="116" width="10" height="32" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M146 124H154M146 132H154M146 140H154" stroke="#2a1608" stroke-opacity=".55" stroke-width="2"/>
+  <circle cx="150" cy="154" r="7.5" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="150" cy="115" r="2.6" fill="#ff5a6e" stroke="#2a1608" stroke-width="1.6"/>
+</symbol>
+<symbol id="pk-spear" viewBox="110 10 80 160">
+  <rect x="146.5" y="56" width="7" height="104" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 12Q166 34 163 50L150 62L137 50Q134 34 150 12Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 22V56" stroke="#fff" stroke-opacity=".8" stroke-width="2.4" stroke-linecap="round"/>
+  <rect x="142" y="60" width="16" height="8" rx="2" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M153.5 68Q168 74 164 92Q160 80 153.5 78Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M146.5 68Q134 76 138 94Q142 82 146.5 78Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <rect x="143" y="150" width="14" height="10" rx="3" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+<symbol id="pk-arrow" viewBox="110 10 80 160">
+  <path d="M150 12L164 46H136Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 22L150 42" stroke="#fff" stroke-opacity=".8" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="147.5" y="44" width="5" height="100" rx="2" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M152.5 112Q172 112 170 136L152.5 150Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M147.5 112Q128 112 130 136L147.5 150Z" fill="url(#pkRed)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 126V154" stroke="#2a1608" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M150 146L142 160M150 146L158 160" stroke="#2a1608" stroke-width="3" stroke-linecap="round"/>
+</symbol>
+<symbol id="pk-trident" viewBox="110 10 80 160">
+  <rect x="146.5" y="52" width="7" height="108" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 12L158 40V56H142V40Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M120 22Q118 54 150 60Q182 54 180 22L171 26V44Q170 52 160 54L158 40L142 40L140 54Q130 52 129 44V26Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M120 22L125 8L130 24ZM180 22L175 8L170 24Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 20V50" stroke="#fff" stroke-opacity=".7" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="141" y="62" width="18" height="8" rx="2" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+</symbol>
+<symbol id="pk-wand" viewBox="110 10 80 160">
+  <rect x="146.5" y="52" width="7" height="108" rx="3.5" fill="url(#pkViolet)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M146.5 80H153.5M146.5 100H153.5M146.5 120H153.5" stroke="#ffe27a" stroke-width="3"/>
+  <path d="M150 10L158.5 28L178 30L163.5 43L168 62L150 52L132 62L136.5 43L122 30L141.5 28Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M150 20L154 31L150 36L146 31Z" fill="#fff" fill-opacity=".85"/>
+  <circle cx="122" cy="16" r="3" fill="#fff8c4"/><circle cx="178" cy="12" r="2.2" fill="#fff8c4"/><circle cx="184" cy="46" r="2.6" fill="#e5c2ff"/>
+</symbol>
+</defs>
+</svg>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
   <div class="magic-boot-inner">
     <svg class="magic-boot-staff" viewBox="0 0 150 184" aria-hidden="true">
@@ -3182,17 +3258,13 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
       <p class="shell-hint" id="cxHint">—</p>
 
       <div class="cx-setup" id="cxSetup">
-        <div class="cx-row" data-noswipe>
-          <button class="cx-chip on" id="cxSrcTon" type="button">TON</button>
-          <button class="cx-chip" id="cxSrcGift" type="button">Подарок</button>
-        </div>
         <div class="cx-bet" id="cxBetBox">
           <input id="cxBetInput" type="text" inputmode="decimal" value="1" autocomplete="off" aria-label="Ставка">
           <button class="cx-chip" data-mul="0.5" type="button">½</button>
           <button class="cx-chip" data-mul="2" type="button">×2</button>
           <button class="cx-chip" data-max="1" type="button">MAX</button>
+          <button class="cx-chip cx-giftbtn" id="cxGiftBtn" type="button" aria-label="Ставка подарком" title="Ставка подарком"><svg class="cx-gift-ic" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ffcb52" d="M1 5h14v3H1z"/><path fill="#e0902a" d="M1 7h14v1H1z"/><path fill="#ff5a6e" d="M2 8h12v7H2z"/><path fill="#c63a4e" d="M2 13h12v2H2z"/><path fill="#ffe8a0" d="M7 5h2v10H7z"/><path fill="#ff5a6e" d="M5 2h3v3H5zM8 2h3v3H8z"/><path fill="#c63a4e" d="M6 3h1v1H6zM9 3h1v1H9z"/></svg><img id="cxGiftBtnImg" alt="" hidden></button>
         </div>
-        <div class="cx-gifts" id="cxGifts" data-noswipe hidden=""></div>
         <p class="cx-label">Пустых сундуков</p>
         <div class="cx-row" id="cxEmpties" data-noswipe></div>
       </div>
@@ -3288,6 +3360,11 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
+            <use class="pk pk-sword" href="#pk-sword" x="110" y="10" width="80" height="160"></use>
+            <use class="pk pk-spear" href="#pk-spear" x="110" y="10" width="80" height="160"></use>
+            <use class="pk pk-arrow" href="#pk-arrow" x="110" y="10" width="80" height="160"></use>
+            <use class="pk pk-trident" href="#pk-trident" x="110" y="10" width="80" height="160"></use>
+            <use class="pk pk-wand" href="#pk-wand" x="110" y="10" width="80" height="160"></use>
           </g>
         </svg>
 
@@ -3322,10 +3399,16 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
         <span class="spin-side spin-side-left">
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
             <img id="weaponIcon" src="images/axe-icon.webp" alt="">
+            <svg class="wp-ic" id="weaponSvg" viewBox="0 0 80 160" hidden><use id="weaponUse" width="80" height="160" href="#pk-sword"></use></svg>
           </button>
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
+            <button type="button" data-weapon="sword"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-sword"></use></svg><span>Меч</span></button>
+            <button type="button" data-weapon="spear"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-spear"></use></svg><span>Копьё</span></button>
+            <button type="button" data-weapon="arrow"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-arrow"></use></svg><span>Стрела</span></button>
+            <button type="button" data-weapon="trident"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-trident"></use></svg><span>Трезубец</span></button>
+            <button type="button" data-weapon="wand"><svg class="wp-ic" viewBox="0 0 80 160" aria-hidden="true"><use width="80" height="160" href="#pk-wand"></use></svg><span>Палочка</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -3476,6 +3559,15 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     <p id="resultText">Приз уже в профиле</p>
     <button class="cta" id="toUpgradeBtn">Перейти в апгрейд</button>
     <button class="ghost" id="toProfileBtn">Перейти в профиль</button>
+  </div>
+</div>
+
+<div class="modal" id="cxGiftModal" hidden="">
+  <div class="modal-card">
+    <h2>Подарок для ставки</h2>
+    <div class="cxg-grid" id="cxGiftGrid" data-noswipe></div>
+    <button class="ghost" id="cxGiftClear" type="button">Ставить TON</button>
+    <button class="cta" id="cxGiftClose" type="button">Закрыть</button>
   </div>
 </div>
 
@@ -4883,6 +4975,13 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
     'Тип крутки': { en: 'Spin style', zh: '旋转方式' },
+    'Меч': { en: 'Sword', zh: '剑' },
+    'Копьё': { en: 'Spear', zh: '长矛' },
+    'Стрела': { en: 'Arrow', zh: '箭' },
+    'Трезубец': { en: 'Trident', zh: '三叉戟' },
+    'Палочка': { en: 'Wand', zh: '魔杖' },
+    'Подарок для ставки': { en: 'Gift for stake', zh: '用于下注的礼物' },
+    'Ставить TON': { en: 'Bet TON', zh: '用TON下注' },
     'Рулетка': { en: 'Roulette', zh: '轮盘' },
     'Маятник': { en: 'Pendulum', zh: '摆锤' },
     'Рывок': { en: 'Dash', zh: '冲刺' },
@@ -7098,31 +7197,38 @@ function cxBuild() {
 
 function cxRenderGifts() {
   const cfg = cxCfg();
-  const box = $('cxGifts');
+  const box = $('cxGiftGrid');
   box.textContent = '';
   const items = ((state && state.prizes) || [])
     .filter((p) => p.status === 'owned' && p.tier !== 'bear' && p.value_ton >= cfg.min_bet && p.value_ton <= cfg.max_bet)
     .sort((a, b) => b.value_ton - a.value_ton);
   if (!items.length) {
     const note = document.createElement('p');
-    note.className = 'cx-note';
+    note.className = 'cx-note muted';
     note.textContent = tr('У тебя нет подарков для ставки');
     box.appendChild(note);
     return;
   }
   for (const p of items) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'cx-gift' + (cxPrize && cxPrize.id === p.id ? ' on' : '');
+    const b = gpTile('', trName(p.name), p.value_ton, p.image || hatAsset(p.tier), !!(cxPrize && cxPrize.id === p.id), '');
     b.dataset.gift = p.id;
-    const img = document.createElement('img');
-    img.alt = '';
-    img.src = p.image || hatAsset(p.tier);
-    const t = document.createElement('span');
-    t.textContent = fmt(p.value_ton, 2);
-    b.append(img, t);
     box.appendChild(b);
   }
+}
+
+function cxOpenGiftModal() {
+  cxRenderGifts();
+  $('cxGiftModal').hidden = false;
+}
+
+function cxSyncBetUI() {
+  const gift = cxSource === 'gift' && cxPrize;
+  const inp = $('cxBetInput');
+  inp.classList.toggle('is-gift', !!gift);
+  if (gift && document.activeElement !== inp) inp.value = String(cxPrize.value_ton);
+  $('cxGiftBtn').classList.toggle('on', !!gift);
+  const im = $('cxGiftBtnImg');
+  if (gift) { im.src = cxPrize.image || hatAsset(cxPrize.tier); im.hidden = false; } else { im.hidden = true; }
 }
 
 function cxUpdateButton() {
@@ -7203,11 +7309,7 @@ function cxDraw() {
   $('cxWin').textContent = r ? fmt(r.bet * r.mult, 2) : end && end.win ? fmt(end.payout, 2) : '—';
 
   $('cxSetup').hidden = !!r;
-  $('cxSrcTon').classList.toggle('on', cxSource === 'ton');
-  $('cxSrcGift').classList.toggle('on', cxSource === 'gift');
-  $('cxBetBox').hidden = cxSource !== 'ton';
-  $('cxGifts').hidden = cxSource !== 'gift';
-  if (cxSource === 'gift' && !r) cxRenderGifts();
+  cxSyncBetUI();
   [...$('cxEmpties').children].forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === cxEmpties));
   cxUpdateButton();
 }
@@ -7221,7 +7323,7 @@ function renderChests() {
     if (state.chest_round) { cxRound = state.chest_round; cxEnd = null; }
     else cxRound = null;
   }
-  if (cxPrize && !(state.prizes || []).some((p) => p.id === cxPrize.id && p.status === 'owned')) cxPrize = null;
+  if (cxPrize && !(state.prizes || []).some((p) => p.id === cxPrize.id && p.status === 'owned')) { cxPrize = null; cxSource = 'ton'; }
   cxDraw();
 }
 
@@ -7237,7 +7339,7 @@ function cxFail(e) {
   if (c === 'no_round') { cxRound = null; refresh(); cxSetHint(tr('Раунд уже закончился'), 'lose'); return; }
   if (c === 'insufficient_funds') { refresh(); openDeposit(); return; }
   if (c === 'bad_bet') { toast(tr('Ставка {min}–{max} TON', { min: fmt(e.data.min_ton, 2), max: fmt(e.data.max_ton, 0) }), true); return; }
-  if (c === 'not_found') { cxPrize = null; refresh(); toast(tr('Подарок недоступен'), true); return; }
+  if (c === 'not_found') { cxPrize = null; cxSource = 'ton'; refresh(); toast(tr('Подарок недоступен'), true); return; }
   toast(tr('Ошибка запроса'), true);
 }
 
@@ -7257,7 +7359,7 @@ async function cxStart() {
     if (res.prizes) { state.prizes = res.prizes; renderPrizes(res.prizes); }
     cxRound = res.round;
     cxEnd = null;
-    if (cxSource === 'gift') cxPrize = null;
+    if (cxSource === 'gift') { cxPrize = null; cxSource = 'ton'; }
     cxSetHint(tr('Пустых сундуков: {n}. Открывай и забирай вовремя', { n: res.round.empties }));
     haptic('impact', 'light');
   } catch (e) {
@@ -7290,7 +7392,7 @@ function cxShowWin(res) {
   $('cxWinGift').textContent = g ? `${trName(g.name)} · ${tr('в профиле')}` : `x${fmt(res.mult, 2)}`;
   const added = g ? res.ton_part : res.payout_ton;
   $('cxWinSum').textContent = `+${fmt(added, 2)} TON`;
-  setTimeout(() => { $('cxWinModal').hidden = false; }, 650);
+  setTimeout(() => { $('cxWinModal').hidden = false; }, 120);
 }
 
 function cxFinish(res) {
@@ -7305,7 +7407,6 @@ function cxFinish(res) {
     haptic('notification', 'success');
     if (res.gift) {
       cxSetHint(`${trName(res.gift.name)} + ${fmt(res.ton_part, 2)} TON · x${fmt(res.mult, 2)}`, 'win');
-      toast(`${trName(res.gift.name)} + ${fmt(res.ton_part, 2)} TON`);
     } else {
       cxSetHint(tr('+{sum} TON · x{mult}', { sum: fmt(res.payout_ton, 2), mult: fmt(res.mult, 2) }), 'win');
     }
@@ -7379,19 +7480,30 @@ function initChests() {
     const cfg = cxCfg();
     const t = e.target.closest('button');
     if (!t || cxBusy || cxRound || !cfg) return;
-    if (t.id === 'cxSrcTon') cxSource = 'ton';
-    else if (t.id === 'cxSrcGift') cxSource = 'gift';
+    if (t.id === 'cxGiftBtn') { haptic('impact', 'light'); cxOpenGiftModal(); return; }
     else if (t.dataset.n) cxEmpties = Number(t.dataset.n);
-    else if (t.dataset.mul) cxSetBet(cxBet() * Number(t.dataset.mul));
-    else if (t.dataset.max) cxSetBet(Math.min(state.balance_ton, cfg.max_bet));
-    else if (t.dataset.gift) cxPrize = (state.prizes || []).find((p) => p.id === Number(t.dataset.gift)) || null;
+    else if (t.dataset.mul) { const b = cxBet(); cxSource = 'ton'; cxSetBet(b * Number(t.dataset.mul)); }
+    else if (t.dataset.max) { cxSource = 'ton'; cxSetBet(Math.min(state.balance_ton, cfg.max_bet)); }
     else return;
     haptic('impact', 'light');
     cxDraw();
   });
   const input = $('cxBetInput');
+  $('cxGiftGrid').addEventListener('click', (e) => {
+    const b = e.target.closest('.gp-item');
+    if (!b) return;
+    cxPrize = (state.prizes || []).find((p) => p.id === Number(b.dataset.gift)) || null;
+    cxSource = cxPrize ? 'gift' : 'ton';
+    $('cxGiftModal').hidden = true;
+    haptic('impact', 'light');
+    cxDraw();
+  });
+  $('cxGiftClear').addEventListener('click', () => { cxSource = 'ton'; cxPrize = null; $('cxGiftModal').hidden = true; cxDraw(); });
+  $('cxGiftClose').addEventListener('click', () => { $('cxGiftModal').hidden = true; });
+  $('cxGiftModal').addEventListener('click', (e) => { if (e.target === $('cxGiftModal')) $('cxGiftModal').hidden = true; });
   input.addEventListener('input', () => {
     input.value = input.value.replace(/[^0-9.,]/g, '');
+    if (cxSource === 'gift') { cxSource = 'ton'; cxPrize = null; cxSyncBetUI(); }
     cxUpdateButton();
   });
   input.addEventListener('blur', () => { if (cxCfg() && cxBet() > 0) cxSetBet(cxBet()); cxDraw(); });
@@ -8022,11 +8134,16 @@ function throwPointer(pointer, from, target) {
 
 const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2' };
 
+const SVG_WEAPONS = ['sword', 'spear', 'arrow', 'trident', 'wand'];
+
 function setWeapon(name) {
-  const w = WEAPONS[name] ? name : 'axe';
+  const w = (WEAPONS[name] || SVG_WEAPONS.includes(name)) ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); } catch (e) {}
-  $('weaponIcon').src = WEAPONS[w];
+  const svgW = SVG_WEAPONS.includes(w);
+  $('weaponIcon').hidden = svgW;
+  $('weaponSvg').hidden = !svgW;
+  if (svgW) $('weaponUse').setAttribute('href', '#pk-' + w); else $('weaponIcon').src = WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 

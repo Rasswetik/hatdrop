@@ -780,15 +780,13 @@ def chest_cash(user, extra=None):
     r = user["chest"]
     mult = chest_mult(r["empties"], len(r["opened"]))
     payout = money(r["bet"] * mult)
+    # Ставка подарком списана при старте; выигрыш считается как при ставке TON:
+    # другой подарок на часть суммы + остаток TON на баланс (тот же самый подарок не возвращается).
     gift = None
-    if r.get("source") == "gift" and r.get("tier") and payout + 1e-9 >= r["bet"]:
-        # ставили подарком - он возвращается, а прибыль идёт в TON
-        gift = add_prize(user, r["tier"], r["name"], r["bet"], r.get("image", ""))
-    else:
-        pick = pick_gift_for(payout)
-        if pick:
-            value, slug = pick
-            gift = add_prize(user, f"gift:{slug}:", gift_entry(slug)["name"], value, gift_image(slug))
+    pick = pick_gift_for(payout)
+    if pick:
+        value, slug = pick
+        gift = add_prize(user, f"gift:{slug}:", gift_entry(slug)["name"], value, gift_image(slug))
     ton_part = money(payout - gift["value"]) if gift else payout
     user["balance"] = ton(user["balance"] + ton_part)
     user["chest"] = None
