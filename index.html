@@ -2604,12 +2604,17 @@ img[src*="/gimg/"], .thumb-gift img { image-rendering: auto; }
 
 /* ===== Меню: длинные карточки в стиле игры, простые чёткие SVG-анимации ===== */
 .menu-grid { grid-template-columns: 1fr; gap: 16px; }
-.menu-card.menu-wide { flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 112px; padding: 14px 16px; text-align: left; }
-.menu-card.menu-wide .mc-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.menu-card.menu-wide { position: relative; overflow: hidden; flex-direction: row; justify-content: flex-start; align-items: center; gap: 14px; width: 100%; min-height: 104px; padding: 12px 16px 12px 14px; text-align: left; --mc: #ffc42e; }
+.menu-card.menu-wide::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--mc); box-shadow: inset -2px 0 0 rgba(0, 0, 0, .25); }
+.menu-card.menu-wide::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .045) 0 10px, rgba(255, 255, 255, 0) 10px 20px); }
+.menu-card.menu-wide.mc-leaders { --mc: #a98bff; }
+.menu-card.menu-wide .mc-text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; z-index: 1; }
 .mc-title { font-weight: 400; font-size: clamp(16px, 5.2vw, 22px); line-height: 1.1; letter-spacing: 1px; color: #fff3c4; text-shadow: 0 3px 0 #2e1a0c; }
 .mc-sub { font-size: 8px; line-height: 1.6; color: #f3dcb0; text-shadow: 1px 1px 0 #2e1a0c; }
-.mc-plate { flex: 0 0 auto; display: grid; place-items: center; width: 88px; height: 88px; background: #3f2411; border: 3px solid #2e1a0c; border-radius: 10px; box-shadow: inset 2px 2px 0 rgba(0, 0, 0, .35), inset 0 0 0 2px #7a4a22; }
-.mc-art { width: 76px; height: 76px; overflow: visible; }
+.mc-medal { position: relative; z-index: 1; flex: 0 0 auto; display: grid; place-items: center; width: 78px; height: 78px; margin-left: 6px; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #5a3318 0%, #2f1a0b 100%); border: 4px solid var(--mc); box-shadow: 0 0 0 3px #2e1a0c, inset 0 0 0 3px #2e1a0c, 0 4px 0 3px #2e1a0c; }
+.mc-chev { position: relative; z-index: 1; flex: 0 0 auto; width: 22px; height: 22px; color: var(--mc); filter: drop-shadow(0 2px 0 #2e1a0c); animation: mcNudge 1.6s ease-in-out infinite; }
+@keyframes mcNudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+.mc-art { width: 54px; height: 54px; overflow: visible; }
 .mc-art * { transform-box: fill-box; }
 .mc-lid { transform-origin: 8% 100%; animation: mcLid 2.4s ease-in-out infinite; }
 .mc-hop { animation: mcHop 1.8s ease-in-out infinite; }
@@ -3196,8 +3201,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
       <h1 class="title">МЕНЮ</h1>
       <div class="menu-grid">
         <button class="menu-card menu-wide mc-chests" id="menuChests" type="button" hidden="">
-          <span class="mc-text"><b class="mc-title">СУНДУКИ</b><small class="mc-sub">Открывай и забирай золото</small></span>
-          <span class="mc-plate"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <span class="mc-medal"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
             <g class="mc-hop h1"><circle cx="32" cy="42" r="8" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
             <g class="mc-hop h2"><circle cx="50" cy="38" r="8" fill="#ffd45e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
             <g class="mc-hop h3"><circle cx="68" cy="42" r="8" fill="#ffc42e" stroke="#2e1a0c" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></g>
@@ -3208,10 +3212,11 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
             <path class="mc-tw t1" d="M86 22L89 14L92 22L100 25L92 28L89 36L86 28L78 25Z" fill="#fff6c2"/>
             <path class="mc-tw t2" d="M10 28L12 23L14 28L19 30L14 32L12 37L10 32L5 30Z" fill="#fff6c2"/>
           </svg></span>
+          <span class="mc-text"><b class="mc-title">СУНДУКИ</b><small class="mc-sub">Открывай и забирай золото</small></span>
+          <svg class="mc-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2L11 8L5 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <button class="menu-card menu-wide mc-leaders" id="menuLeaders" type="button">
-          <span class="mc-text"><b class="mc-title">ЛИДЕРЫ</b><small class="mc-sub">Топ игроков недели</small></span>
-          <span class="mc-plate"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <span class="mc-medal"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
             <g class="mc-cup">
               <path d="M30 34Q10 34 14 50Q18 62 34 62" fill="none" stroke="#2e1a0c" stroke-width="12" stroke-linecap="round"/>
               <path d="M30 34Q10 34 14 50Q18 62 34 62" fill="none" stroke="#ffc42e" stroke-width="5" stroke-linecap="round"/>
@@ -3226,6 +3231,8 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
             <path class="mc-tw t1" d="M88 30L91 22L94 30L102 33L94 36L91 44L88 36L80 33Z" fill="#fff6c2"/>
             <path class="mc-tw t2" d="M8 38L10 33L12 38L17 40L12 42L10 47L8 42L3 40Z" fill="#fff6c2"/>
           </svg></span>
+          <span class="mc-text"><b class="mc-title">ЛИДЕРЫ</b><small class="mc-sub">Топ игроков недели</small></span>
+          <svg class="mc-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2L11 8L5 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
     </section>
