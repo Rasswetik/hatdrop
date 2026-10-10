@@ -2877,6 +2877,7 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-chip.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9, 0 2px 0 #0a3a1f; }
 .cx-label { margin: 4px 0 6px; font-size: 9px; color: #fff1d0; text-align: left; width: 100%; text-shadow: 2px 2px 0 #24122e; }
 #cxHint { text-shadow: 2px 2px 0 #24122e; }
+.cx-giftbtn[hidden] { display: none; }
 .cx-giftbtn { position: relative; display: grid; place-items: center; padding: 0; min-width: 44px; }
 .cx-giftbtn .cx-gift-ic { width: 24px; height: 24px; }
 .cx-giftbtn img { position: absolute; inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); object-fit: contain; }
@@ -2960,17 +2961,28 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 </style>
 <style>
 /* Opening screen — entirely inline, so it appears before external scripts load. */
-#magicBoot {position:fixed;inset:0;z-index:2147483000;background:radial-gradient(circle at 50% 40%,#342069 0,#170e39 48%,#0b0a22 100%);display:flex;justify-content:center;align-items:center;color:#ffe6ae;transition:opacity .38s ease,visibility .38s ease;overflow:hidden}
+#magicBoot {position:fixed;inset:0;z-index:2147483000;background:linear-gradient(180deg,#3a9cf0 0%,#7cc6ff 55%,#bfe6ff 78%);display:flex;justify-content:center;align-items:center;color:#fff1d0;transition:opacity .38s ease,visibility .38s ease;overflow:hidden;font-family:"Press Start 2P",ui-monospace,monospace}
 #magicBoot.done {opacity:0;visibility:hidden;pointer-events:none}
-.magic-boot-inner {display:flex;flex-direction:column;align-items:center;gap:18px;padding:20px;max-width:320px;text-align:center}
-.magic-boot-staff {width:150px;height:184px;filter:drop-shadow(0 7px 15px rgba(128,83,255,.45));overflow:visible}
-.magic-boot-staff .wand {transform-origin:92px 169px;animation:wandSway 2.5s ease-in-out infinite}
-.magic-boot-staff .halo {transform-origin:94px 33px;animation:haloPulse 1.4s ease-in-out infinite alternate}
-.magic-boot-name {font-size:17px;line-height:1.6;letter-spacing:1px;color:#ffe4a0;text-shadow:0 3px #604295}
-.magic-boot-sub {font-size:10px;color:#bca8ec;letter-spacing:1px}
-@keyframes wandSway {0%,100%{transform:rotate(-12deg)}50%{transform:rotate(10deg)}}
-@keyframes haloPulse {from{opacity:.45;transform:scale(.83)}to{opacity:1;transform:scale(1.15)}}
-@media(prefers-reduced-motion:reduce){.magic-boot-staff .wand,.magic-boot-staff .halo{animation:none}}
+#magicBoot .mb-grass {position:absolute;left:0;right:0;bottom:0;height:24%;background:linear-gradient(180deg,#6fd35a 0,#6fd35a 14px,#3fa83f 14px,#3fa83f 100%);border-top:4px solid #2c7a2c;box-shadow:inset 0 14px 0 rgba(255,255,255,.12)}
+#magicBoot .mb-cloud {position:absolute;width:56px;height:14px;background:#fff;box-shadow:12px -12px 0 #fff,28px -12px 0 #fff,40px 0 0 #fff,-12px 0 0 #fff;opacity:.92;animation:mbDrift 26s linear infinite}
+#magicBoot .mb-cloud.c1 {top:14%;left:-90px}
+#magicBoot .mb-cloud.c2 {top:30%;left:-90px;animation-duration:38s;animation-delay:-14s;transform:scale(.8)}
+#magicBoot .mb-cloud.c3 {top:8%;left:-90px;animation-duration:46s;animation-delay:-30s;transform:scale(.6)}
+.magic-boot-inner {position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(86vw,320px);padding:22px 18px 20px;text-align:center;background:linear-gradient(180deg,#7c4a24 0%,#5e3417 100%);border:3px solid #2e1a0c;border-radius:12px;box-shadow:inset 0 0 0 2px #a8713c,inset 2px 2px 0 2px #c08a4d,0 6px 0 #2e1a0c,0 14px 16px rgba(0,0,0,.35)}
+.magic-boot-hatwrap {position:relative;width:112px;height:112px;display:grid;place-items:center;background:#3f2411;border:3px solid #2e1a0c;border-radius:10px;box-shadow:inset 2px 2px 0 rgba(0,0,0,.35),inset 0 0 0 2px #7a4a22}
+.magic-boot-hat {width:84px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 0 14px rgba(255,200,80,.5));animation:mbBob 1.6s ease-in-out infinite}
+.mb-star {position:absolute;width:10px;height:10px;background:#fff6c2;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:mbTw 1.6s ease-in-out infinite}
+.mb-star.s1 {top:10px;right:12px}
+.mb-star.s2 {bottom:14px;left:10px;animation-delay:-.8s}
+.magic-boot-name {font-size:16px;line-height:1.5;letter-spacing:1px;color:#ffe39a;text-shadow:0 3px 0 #2e1a0c}
+.magic-boot-bar {position:relative;width:100%;height:18px;background:#2a1708;border:3px solid #2e1a0c;border-radius:8px;overflow:hidden;box-shadow:inset 2px 2px 0 rgba(0,0,0,.4)}
+.magic-boot-bar i {position:absolute;top:0;bottom:0;left:-40%;width:40%;background:repeating-linear-gradient(135deg,#ffcb52 0 8px,#f9b233 8px 16px);border-radius:5px;animation:mbBar 1.3s ease-in-out infinite}
+.magic-boot-sub {font-size:9px;line-height:1.5;color:#ecd5ab;letter-spacing:1px}
+@keyframes mbBob {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes mbTw {0%,100%{opacity:.2;transform:scale(.5)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes mbBar {0%{left:-40%}100%{left:100%}}
+@keyframes mbDrift {from{transform:translateX(0)}to{transform:translateX(calc(100vw + 180px))}}
+@media(prefers-reduced-motion:reduce){#magicBoot *{animation:none!important}.magic-boot-bar i{left:30%}}
 #admTonConnect .tc-label{display:block;color:var(--gold);margin:12px 0 5px;font-size:10px}
 #admTonConnect .tc-input{display:block;width:100%;min-width:0;box-sizing:border-box;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);border-radius:9px;padding:12px;font:inherit;font-size:10px;outline:none}
 #admTonConnect .tc-input:focus{border-color:var(--gold)}
@@ -3059,22 +3071,12 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 </head>
 <body>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
+  <i class="mb-cloud c1"></i><i class="mb-cloud c2"></i><i class="mb-cloud c3"></i>
+  <div class="mb-grass"></div>
   <div class="magic-boot-inner">
-    <svg class="magic-boot-staff" viewBox="0 0 150 184" aria-hidden="true">
-      <g class="halo"><circle cx="94" cy="33" r="30" fill="#b36aff" opacity=".14"/><circle cx="94" cy="33" r="20" fill="#ffd66e" opacity=".22"/></g>
-      <g class="wand">
-        <path d="M88 171L93 51L101 51L97 171Z" fill="#593018" stroke="#281128" stroke-width="3"/>
-        <path d="M91 165L96 54L98 54L95 165Z" fill="#b9804a"/>
-        <path d="M75 48L94 8L114 48L96 69Z" fill="#8a4de4" stroke="#25133f" stroke-width="4"/>
-        <path d="M94 11L94 64L78 48Z" fill="#d9b7ff"/>
-        <path d="M97 11L111 47L97 64Z" fill="#6732b5"/>
-        <path d="M94 11L110 48L78 48Z" fill="#79daff" opacity=".88"/>
-        <path d="M92 10L96 17L93 28L89 18Z" fill="#ffffff" opacity=".9"/>
-        <path d="M86 75L103 75L101 83L85 83Z" fill="#e6b74c" stroke="#302047" stroke-width="2"/>
-      </g>
-      <g fill="#ffde8a"><path d="M37 38h4v-9h4v9h9v4h-9v9h-4v-9h-4Z"/><path d="M120 91h3v-7h3v7h7v3h-7v7h-3v-7h-3Z"/></g>
-    </svg>
+    <div class="magic-boot-hatwrap"><img class="magic-boot-hat" src="images/hat.png" alt=""><i class="mb-star s1"></i><i class="mb-star s2"></i></div>
     <div class="magic-boot-name">ШЛЯПА ДРОП</div>
+    <div class="magic-boot-bar"><i></i></div>
     <div class="magic-boot-sub" id="magicBootText">Загружаем волшебство…</div>
   </div>
 </div>
@@ -7035,6 +7037,9 @@ function cxOpenGiftModal() {
 }
 
 function cxSyncBetUI() {
+  const giftsOn = !!(cxCfg() && cxCfg().gift_bets);
+  $('cxGiftBtn').hidden = !giftsOn;
+  if (!giftsOn && cxSource === 'gift') { cxSource = 'ton'; cxPrize = null; }
   const gift = cxSource === 'gift' && cxPrize;
   const inp = $('cxBetInput');
   inp.classList.toggle('is-gift', !!gift);

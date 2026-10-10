@@ -96,6 +96,8 @@ CHEST_MAX_EMPTY = 20
 CHEST_RTP = 0.97
 CHEST_MIN_BET = 0.1
 CHEST_MAX_BET = 300.0
+# Ставки подарками в сундуках пока выключены. Включить: переменная окружения CHEST_GIFT_BETS=1
+CHEST_GIFT_BETS = os.environ.get("CHEST_GIFT_BETS", "0") == "1"
 CHEST_MIN_MULT = 1.01
 
 app = Flask(__name__, static_folder=None)
@@ -575,6 +577,7 @@ def public_config():
         "gift_deposit": {"enabled": False, "account": "", "share": 0, "hold_days": 0},
         "chests": {
             "enabled": True,
+            "gift_bets": CHEST_GIFT_BETS,
             "cells": CHEST_CELLS,
             "min_bet": CHEST_MIN_BET,
             "max_bet": CHEST_MAX_BET,
@@ -717,6 +720,8 @@ def chests_start(user, body):
     prize = None
     name = image = ""
     if body.get("prize_id") is not None:
+        if not CHEST_GIFT_BETS:
+            raise ApiError("gift_bets_disabled")
         prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
         if not prize or prize["status"] != "owned" or prize["tier"] == "bear":
             raise ApiError("not_found")
