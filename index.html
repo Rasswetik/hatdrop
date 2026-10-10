@@ -2520,11 +2520,6 @@ html[data-theme="meadow"] .weapon-menu img { width: 26px; height: 26px; object-f
 
 html[data-theme="meadow"][data-weapon="staff"] .pointer > * { display: inline; }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-axe { display: none; }
-html[data-theme="meadow"][data-weapon="sword"] .pointer > .pk-sword { display: inline; }
-html[data-theme="meadow"][data-weapon="sword"] .pointer > .ptr-axe { display: none; }
-.weapon-btn svg.wp-ic { width: 68%; height: 68%; transform: rotate(38deg); filter: drop-shadow(0 1px 0 rgba(0,0,0,.35)); }
-.weapon-btn svg.wp-ic[hidden], .weapon-btn img[hidden] { display: none; }
-html[data-theme="meadow"] .weapon-menu svg.wp-ic { width: 34px; height: 34px; flex: 0 0 auto; transform: rotate(38deg) scale(1.15); }
 html[data-theme="meadow"] #weaponMenu { max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 
@@ -3004,44 +2999,7 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 @media (prefers-reduced-motion: reduce) { .bg-veil { transition: none; } .bg-veil i { animation: none; } }
 </style>
 <style id="upgrade-css">
-/* ===== Апгрейд: две квадратные плашки над колесом ===== */
-.up-panels { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto; align-items: start; gap: 10px; width: 100%; margin: 2px 0 12px; }
-.up-box { align-self: start; min-width: 0; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px; padding: 8px; font: inherit; color: inherit; cursor: pointer; text-align: center;
-  background: linear-gradient(180deg, #7c4a24 0%, #643a1a 100%); border: 3px solid #2e1a0c; border-radius: 10px;
-  box-shadow: inset 0 0 0 2px #a8713c, 0 4px 0 #2e1a0c, 0 6px 6px rgba(0,0,0,.3); -webkit-tap-highlight-color: transparent; }
-.up-box:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 0 0 2px #a8713c, 0 2px 0 #2e1a0c; }
-.up-box:disabled { opacity: 1; color: inherit; cursor: default; }
-.up-label { height: 12px; font-size: 9px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffe39a; text-shadow: 1px 1px 0 #24122e; }
-.up-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; height: clamp(84px, 25vw, 108px); box-sizing: border-box; overflow: hidden; padding: 6px; min-width: 0; flex: 0 0 auto;
-  background: #3f2411; border: 2px solid #2e1a0c; border-radius: 6px; box-shadow: inset 2px 2px 0 rgba(0,0,0,.35); }
-.up-box.is-empty .up-slot { border-style: dashed; border-color: #a8713c; }
-.up-box.is-empty { color: inherit; margin-top: 0; }
-.up-slot img { width: 38px; height: 38px; object-fit: contain; image-rendering: auto; flex: 0 0 auto; }
-.up-slot img[hidden] { display: none; }
-.up-slot b { max-width: 100%; font-weight: 400; font-size: 9px; line-height: 1.3; color: var(--gold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.up-box.is-empty .up-slot b { color: #c9b08a; }
-.up-slot small { min-height: 10px; }
-.up-slot small { max-width: 100%; font-size: 8px; line-height: 1.2; color: #c9b08a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.up-panels.locked { pointer-events: none; }
-/* окно ставки */
-.up-seg { display: flex; gap: 6px; margin: 4px 0 10px; }
-.up-tab, .up-chip { flex: 1 1 0; min-width: 0; padding: 9px 4px; font: inherit; font-size: 9px; line-height: 1.2; color: #f3dcb0; background: #3f2411;
-  border: 2px solid #2e1a0c; border-radius: 6px; cursor: pointer; }
-.up-tab.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9; }
-.up-chip { color: #2a1a00; background: var(--gold); border-color: var(--gold-dark); box-shadow: inset 1px 1px 0 var(--gold-soft), 0 2px 0 #5a340a; }
-.up-chip:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 var(--gold-soft); }
-.up-bet-ton[hidden], #invList[hidden] { display: none; }
-.up-sq { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #3f2411; border: 2px solid #2e1a0c; border-radius: 8px; }
-.up-input { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #2a1708; border: 2px solid #2e1a0c; border-radius: 6px; }
-.up-input .ton-ico { width: 18px; height: 18px; flex: 0 0 auto; }
-.up-input input { flex: 1; min-width: 0; width: 100%; padding: 0; font: inherit; font-size: 16px; color: #fff1d0; background: transparent; border: 0; outline: none; }
-.up-chips { display: flex; gap: 6px; }
-.up-preview { min-height: 18px; margin: 10px 0 8px; font-size: 11px; line-height: 1.5; text-align: center; color: var(--gold); }
-#upBetModal .cta { width: 100%; }
-.up-chance { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin: 10px 0 2px; font-size: 13px; color: #fff1d0; text-shadow: 2px 2px 0 #24122e; }
-.up-chance-mult { color: var(--gold); }
-.up-hint { min-height: 16px; margin: 0 0 6px; font-size: 9px; line-height: 1.5; text-align: center; color: #fff1d0; text-shadow: 2px 2px 0 #24122e; }
-.up-hint.bad { color: #ffc9ce; }
+/* окно победы в минах */
 .cx-win-card { overflow: hidden; }
 .cx-win-glow { position: absolute; left: 50%; top: 12px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,214,110,.35) 0%, rgba(255,214,110,0) 65%); }
@@ -3050,9 +3008,6 @@ html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
 .cx-win-sum { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; padding: 10px; background: #2a1708; border: 2px solid #2e1a0c; border-radius: 6px; }
 .cx-win-sum span { font-size: 9px; color: #c9b08a; }
 .cx-win-sum b { font-size: 18px; font-weight: 400; color: var(--gold); }
-.gp-fit { grid-column: 1 / -1; margin: 0 0 4px; font-size: 8px; line-height: 1.6; text-align: center; }
-#view-upgrade .wheel-row { margin-top: 2px; }
-#view-upgrade .wheel-wrap { width: min(78vw, 33vh, 300px); }
 </style>
 <style id="modal-skin">
 /* ===== Единый дизайн всех окон: деревянная панель ===== */
@@ -3306,23 +3261,13 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
     </section>
 
     <section class="view" id="view-upgrade">
-      <div class="up-panels" id="upPanels">
-        <button class="up-box" id="upBetBox" type="button" aria-label="Ваша ставка">
-          <span class="up-label">Ваша ставка</span>
-          <span class="up-slot" id="upBetSlot">
-            <img id="upBetImg" alt="" hidden>
-            <b id="upBetName">Выберите ставку</b>
-            <small id="upBetInfo"></small>
-          </span>
-        </button>
-        <button class="up-box" id="upTargetBox" type="button" aria-label="Желаемый подарок">
-          <span class="up-label">Желаемый подарок</span>
-          <span class="up-slot" id="upTargetSlot">
-            <img id="upTargetImg" alt="" hidden>
-            <b id="upTargetName">Выберите цель</b>
-            <small id="upTargetInfo"></small>
-          </span>
-        </button>
+      <p class="subtitle upgrade-prize">Приз: <span id="prizeNameInline">Шляпа волшебника</span></p>
+
+      <div class="tier-picker" id="tierPicker" role="group" aria-label="Выбор приза" hidden="">
+        <button class="tier-btn" data-tier="random" type="button" hidden="">Рандом</button>
+        <button class="tier-btn active" data-tier="gift" type="button">Подарки</button>
+        <button class="tier-btn" data-tier="onyx" type="button">Оникс</button>
+        <button class="tier-btn" data-tier="black" type="button">Блэк</button>
       </div>
 
       <div class="wheel-row">
@@ -3392,20 +3337,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <g class="pk pk-sword" shape-rendering="geometricPrecision">
-              <defs>
-                <linearGradient id="pkSteel" x1="0" x2="1"><stop offset="0" stop-color="#f6f9ff"/><stop offset=".5" stop-color="#b9c6d8"/><stop offset="1" stop-color="#7d8da3"/></linearGradient>
-                <linearGradient id="pkGold" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".55" stop-color="#ffc52e"/><stop offset="1" stop-color="#c9791a"/></linearGradient>
-                <linearGradient id="pkWood" x1="0" x2="1"><stop offset="0" stop-color="#c98745"/><stop offset=".55" stop-color="#8b4d22"/><stop offset="1" stop-color="#5e3015"/></linearGradient>
-              </defs>
-              <path d="M150 12L159 28V108H141V28Z" fill="url(#pkSteel)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-              <path d="M150 20V104" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linecap="round"/>
-              <path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-              <rect x="145" y="116" width="10" height="32" rx="3" fill="url(#pkWood)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-              <path d="M146 124H154M146 132H154M146 140H154" stroke="#2a1608" stroke-opacity=".55" stroke-width="2"/>
-              <circle cx="150" cy="154" r="7.5" fill="url(#pkGold)" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
-              <circle cx="150" cy="115" r="2.6" fill="#ff5a6e" stroke="#2a1608" stroke-width="1.6"/>
-            </g>
           </g>
         </svg>
 
@@ -3430,22 +3361,33 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
       </div>
       </div>
 
-      <div class="up-chance" id="upChance">
-        <span class="up-chance-val" id="upChanceVal">—</span>
-        <span class="up-chance-mult" id="upChanceMult"></span>
+      <button class="hat-hint" id="hatHint" type="button" hidden="">Нажми, чтобы выбрать любой подарок</button>
+
+      <div class="mode-picker">
+        <span class="mode-edge" id="chanceMin">—</span>
+        <div class="mode-track" id="modeTrack">
+          <span class="mode-tag mode-cost">
+            <img src="images/gram.webp" alt="TON" class="ton-ico"><span id="modeCost">—</span>
+          </span>
+          <input type="range" id="modeSlider" min="0" max="60" step="1" value="30" aria-label="Шанс выигрыша">
+          <span class="mode-tag mode-chance" id="modeChance">—</span>
+        </div>
+        <span class="mode-edge" id="chanceMax">—</span>
       </div>
-      <p class="up-hint" id="upHint"></p>
+      <div class="chance-custom">
+        <label for="chanceInput">Свой шанс</label>
+        <input type="number" id="chanceInput" min="10" max="70" step="1" inputmode="numeric" aria-label="Свой шанс, %">
+        <span>%</span>
+      </div>
 
       <div class="spin-row">
         <span class="spin-side spin-side-left">
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
             <img id="weaponIcon" src="images/axe-icon.webp" alt="">
-            <svg class="wp-ic" id="weaponSvg" hidden viewBox="110 10 80 160" aria-hidden="true"><path d="M150 12L159 28V108H141V28Z" fill="#d5deec" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M150 22V102" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><rect x="145" y="116" width="10" height="32" rx="3" fill="#8b4d22" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="150" cy="154" r="7.5" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>
           </button>
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="sword"><svg class="wp-ic" viewBox="110 10 80 160" aria-hidden="true"><path d="M150 12L159 28V108H141V28Z" fill="#d5deec" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><path d="M150 22V102" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M124 106Q150 98 176 106V116Q150 110 124 116Z" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><rect x="145" y="116" width="10" height="32" rx="3" fill="#8b4d22" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><circle cx="150" cy="154" r="7.5" fill="#ffc42e" stroke="#2a1608" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg><span>Меч</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -3725,32 +3667,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
     </div>
     <div class="gp-list" id="gpList"></div>
     <button class="ghost" id="gpClose" type="button">Закрыть</button>
-  </div>
-</div>
-
-<div class="modal" id="upBetModal" hidden="">
-  <div class="modal-card gp-card">
-    <div class="gp-head"><h2>Ваша ставка</h2></div>
-    <div class="up-seg" role="group" aria-label="Источник ставки">
-      <button class="up-tab on" id="upSrcTon" type="button">Ставка TON</button>
-      <button class="up-tab" id="upSrcGift" type="button">Ставка подарком</button>
-    </div>
-    <div class="up-bet-ton" id="upBetTon">
-      <div class="up-sq">
-        <div class="up-input">
-          <img src="images/gram.webp" alt="TON" class="ton-ico">
-          <input id="upBetInput" type="text" inputmode="decimal" value="1" autocomplete="off" aria-label="Ставка, TON">
-        </div>
-        <div class="up-chips">
-          <button class="up-chip" data-mul="0.5" type="button">½</button>
-          <button class="up-chip" data-mul="2" type="button">×2</button>
-          <button class="up-chip" data-max="1" type="button">MAX</button>
-        </div>
-      </div>
-    </div>
-    <div class="gp-list" id="invList" hidden></div>
-    <p class="up-preview" id="upPreview"></p>
-    <button class="cta" id="upBetDone" type="button">Готово</button>
   </div>
 </div>
 
@@ -5012,7 +4928,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
     'Тип крутки': { en: 'Spin style', zh: '旋转方式' },
-    'Меч': { en: 'Sword', zh: '剑' },
     'Подарок для ставки': { en: 'Gift for stake', zh: '用于下注的礼物' },
     'Ставить TON': { en: 'Bet TON', zh: '用TON下注' },
     'Рулетка': { en: 'Roulette', zh: '轮盘' },
@@ -5366,6 +5281,8 @@ let state = null;
 let tonUI = null;
 let spinning = false;
 let pointerDeg = 0;
+let modeIndex = 0;
+let modes = [];
 
 function initTelegram() {
   if (!tg) return;
@@ -5527,8 +5444,37 @@ function hatAsset(tier) {
   return TIER_HAT_ASSET[tier] || TIER_HAT_ASSET.random;
 }
 
+function giftCost(price, chance) {
+  const m = giftCatalog ? giftCatalog.margin || 0 : 0;
+  return roundTon(price * chance / Math.max(0.01, (1 - m) * giftPriceFactor(price)));
+}
+
+function giftPriceFactor(price) {
+  if (!giftCatalog) return 1;
+  for (const [limit, factor] of giftCatalog.steps || []) {
+    if (price > limit) return factor;
+  }
+  return giftCatalog.base || 1;
+}
+
 function roundTon(x) {
   return Number(x.toFixed(2));
+}
+
+function tierMeta(cfg) {
+  if (currentTier === 'gift' && selectedGift) {
+    const base = cfg.chances || [];
+    return {
+      chances: base.map((m) => ({ chance: m.chance, cost_ton: giftCost(selectedGift.price_ton, m.chance) })),
+      default_chance: cfg.default_chance,
+      prize_name: `${selectedGift.name} · ${fmt(selectedGift.price_ton, 2)} TON`,
+    };
+  }
+  const t = cfg.tiers && cfg.tiers[currentTier === 'gift' ? 'random' : currentTier];
+  if (!t) {
+    return { chances: cfg.chances, default_chance: cfg.default_chance, prize_name: cfg.prize_name };
+  }
+  return { chances: t.chances, default_chance: t.default_chance, prize_name: t.prize_name };
 }
 
 function saveTier(tier) {
@@ -5557,6 +5503,18 @@ const HAT_KEY = '__hat__';
 const HAT_TIER_KEYS = { [HAT_KEY]: 'random', __onyx__: 'onyx', __black__: 'black' };
 const HAT_SLUG = 'WitchHat';
 
+function syncTierButtons() {
+  const gifts = state ? !!state.config.gift_upgrade : true;
+  $('tierPicker').hidden = gifts;
+  document.querySelectorAll('.tier-btn').forEach((b) => {
+    const t = b.dataset.tier;
+    if (t === 'random') b.hidden = gifts;
+    if (t === 'gift') b.hidden = !gifts;
+    b.classList.toggle('active', !b.hidden
+      && (t === currentTier || (t === 'gift' && currentTier === 'random')));
+  });
+}
+
 function lsGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
 }
@@ -5568,8 +5526,10 @@ let needsPick = lsGet('prizeChosen') !== '1' && !lsGet('prizeTier');
 let needsPickChecked = false;
 
 function syncPickUI() {
+  const giftsOn = !!(state && state.config.gift_upgrade);
   $('centerHat').hidden = needsPick;
   $('hatQuestion').hidden = !needsPick;
+  $('hatHint').hidden = !giftsOn || lsGet('hatHintSeen') === '1';
 }
 
 function checkNeedsPick() {
@@ -5585,6 +5545,11 @@ function markPrizeChosen() {
   needsPick = false;
 }
 
+function markHintSeen() {
+  lsSet('hatHintSeen', '1');
+  $('hatHint').hidden = true;
+}
+
 function setTier(tier, save = true) {
   if (!TIER_ORDER.includes(tier)) tier = 'random';
   if (tier === 'gift' && !selectedGift) {
@@ -5594,6 +5559,7 @@ function setTier(tier, save = true) {
   currentTier = tier;
 
   applyBodyTierClass();
+  syncTierButtons();
 
   const hatImg = $('centerHat');
   if (hatImg) {
@@ -5613,7 +5579,11 @@ function setTier(tier, save = true) {
     }
   }
 
-  renderUpgrade();
+  if (state) {
+    const meta = tierMeta(state.config);
+    $('prizeNameInline').textContent = needsPick ? tr('не выбран') : trName(meta.prize_name);
+    buildModes({ chances: meta.chances, default_chance: meta.default_chance });
+  }
 }
 
 async function loadGiftCatalog(force = false) {
@@ -5763,29 +5733,8 @@ function setGpSort(mode) {
   renderGiftPicker();
 }
 
-function upFitRange() {
-  const cfg = state && state.config;
-  const bet = upBetValue();
-  if (!cfg || !(bet > 0)) return null;
-  return { min: bet / (cfg.chance_max + cfg.margin) - 1e-9, max: bet / (cfg.chance_min + cfg.margin) + 1e-9 };
-}
-
-function gpTopOf(g) {
-  if (g.top_ton != null) return g.top_ton;
-  const c = cachedGiftModels.get(g.slug);
-  const ms = c && c.value && c.value.models;
-  return ms && ms.length ? Math.max(...ms.map((m) => m.price_ton)) : Infinity;   // модели ещё не известны - не скрываем
-}
-
 function renderGiftPicker() {
   const list = $('gpList');
-  const fit = upFitRange();
-  const inFit = (v) => !fit || (v >= fit.min && v <= fit.max);
-  let hidden = 0;
-  if (fit && gpModels && gpModels !== 'loading' && gpModels.slug !== HAT_SLUG && !gpModels.loading
-      && gpModels.models && gpModels.models.length && !gpModels.models.some((m) => inFit(m.price_ton))) {
-    gpModels = null;   // в коллекции нет ни одной подходящей модели - возвращаем к списку, а коллекция исчезнет из него
-  }
   const q = $('gpSearch').value.trim().toLowerCase();
   document.querySelectorAll('#gpSort button').forEach((b) => b.classList.toggle('active', b.dataset.sort === gpSort));
   $('gpBack').hidden = !gpModels;
@@ -5810,17 +5759,14 @@ function renderGiftPicker() {
         if (tier !== 'random' && !hatBackdropsOn()) continue;
         const words = `${hatTierName(tier)} ${HAT_TIER_LABEL[tier]}`.toLowerCase();
         const on = currentTier === tier;
-        const tcfg = state.config.tiers && state.config.tiers[tier];
-        if (tcfg && !inFit(tcfg.value_ton)) { hidden++; continue; }
         if (!q || words.includes(q)) frag.appendChild(gpHatTile(key, on));
       }
     }
-    if (gpModels.floor != null && inFit(gpModels.floor) && (!q || tr('любая модель').includes(q))) {
+    if (gpModels.floor != null && (!q || tr('любая модель').includes(q))) {
       frag.appendChild(gpTile('', tr('Любая модель'), gpModels.floor, gpModels.image, sel === ''));
     }
     for (const m of gpSorted(gpModels.models, true)) {
       if (q && !m.model.toLowerCase().includes(q)) continue;
-      if (!inFit(m.price_ton)) { hidden++; continue; }
       frag.appendChild(gpTile(m.model, m.model, m.price_ton, m.image, sel === m.model, gpModels.image));
     }
     if (gpModels.loading) note = tr('Загружаю модели…');
@@ -5831,29 +5777,19 @@ function renderGiftPicker() {
     else if (!frag.childNodes.length) note = tr('Ничего не нашлось');
   } else {
     const hatOn = currentTier !== 'gift' || (!!picked && picked.slug === HAT_SLUG);
-    const hatCfg = state.config.tiers && state.config.tiers.random;
-    if ((!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) && !(hatCfg && !inFit(hatCfg.value_ton))) {
+    if (!q || hatPrizeName().toLowerCase().includes(q) || 'witch hat'.includes(q)) {
       frag.appendChild(gpHatTile(HAT_KEY, hatOn));
     }
     let gifts = 0;
     for (const g of gpSorted(giftCatalog ? giftCatalog.items : [], false)) {
       if (g.slug === HAT_SLUG) continue;
       if (q && !g.name.toLowerCase().includes(q)) continue;
-      if (fit && (g.price_ton > fit.max || gpTopOf(g) < fit.min)) { hidden++; continue; }
       frag.appendChild(gpTile(g.slug, g.name, g.price_ton, g.image, !!picked && picked.slug === g.slug));
       gifts += 1;
     }
     if (!giftCatalog) note = tr('Загружаю подарки…');
     else if (!giftCatalog.items.length) note = tr('Подарки пока недоступны');
     else if (!gifts && !frag.childNodes.length) note = tr('Ничего не нашлось');
-  }
-  if (fit && hidden && !frag.childNodes.length && !note) note = tr('Для этой ставки нет подходящих подарков');
-  if (fit) {
-    const cfg = state.config;
-    const hp = document.createElement('p');
-    hp.className = 'muted gp-fit';
-    hp.textContent = tr('Показаны подарки с шансом {a}–{b}% для вашей ставки', { a: Math.round(cfg.chance_min * 100), b: Math.round(cfg.chance_max * 100) });
-    list.appendChild(hp);
   }
   list.appendChild(frag);
   if (note) {
@@ -5989,6 +5925,39 @@ async function restoreSavedGift() {
   if (selectedGift && currentTier !== 'gift') setTier('gift', false);
 }
 
+function currentMode() {
+  return modes[modeIndex] || null;
+}
+
+function buildModes(cfg) {
+  const grid = cfg.chances || [];
+  const changed = JSON.stringify(grid) !== JSON.stringify(modes);
+  modes = grid;
+  if (!modes.length) return;
+
+  const slider = $('modeSlider');
+  slider.max = String(modes.length - 1);
+
+  if (changed) {
+    let def = modes.findIndex((m) => Math.abs(m.chance - cfg.default_chance) < 1e-9);
+    if (def < 0) def = Math.floor(modes.length / 2);
+    modeIndex = def;
+    slider.value = String(modeIndex);
+
+    $('chanceMin').textContent = `${Math.round(modes[0].chance * 100)}%`;
+    $('chanceMax').textContent = `${Math.round(modes[modes.length - 1].chance * 100)}%`;
+  }
+
+  applyMode();
+}
+
+function selectMode(index) {
+  if (spinning) return;
+  modeIndex = Math.max(0, Math.min(modes.length - 1, index));
+  $('modeSlider').value = String(modeIndex);
+  applyMode();
+}
+
 const THUMB_W = 24;
 
 function buildWheelScale() {
@@ -6033,236 +6002,38 @@ function buildWheelScale() {
   }
 }
 
-/* ===== Апгрейд: ставка -> желаемый подарок. Шанс = ставка * (1 - комиссия) / цена подарка ===== */
-let upSource = lsGet('upSource') === 'gift' ? 'gift' : 'ton';
-let upBetTon = (() => { const v = parseFloat(lsGet('upBet')); return v > 0 ? v : 1; })();
-let upPrize = null;
-let upView = null;
+function applyMode() {
+  const m = currentMode();
+  if (!m) return;
 
-function upTarget() {
-  const cfg = state && state.config;
-  if (!cfg || needsPick) return null;
-  if (currentTier === 'gift' && selectedGift) {
-    return { value: selectedGift.price_ton, name: selectedGift.name, image: selectedGift.image, fallback: giftImage(selectedGift.slug) };
-  }
-  const tier = currentTier === 'gift' ? 'random' : currentTier;
-  const t = cfg.tiers && cfg.tiers[tier];
-  if (!t) return null;
-  return { value: t.value_ton, name: trName(t.prize_name), image: hatAsset(tier), fallback: '' };
-}
+  $('modeCost').textContent = needsPick ? '—' : fmt(m.cost_ton, 2);
+  $('modeChance').textContent = `${Math.round(m.chance * 100)}%`;
+  const ci = $('chanceInput');
+  if (ci && document.activeElement !== ci) ci.value = String(Math.round(m.chance * 100));
 
-function upBetValue() {
-  return upSource === 'gift' ? (upPrize ? upPrize.value_ton : 0) : upBetTon;
-}
+  const ratio = modes.length > 1 ? modeIndex / (modes.length - 1) : 0.5;
+  const thumbX = `calc(${THUMB_W / 2}px + (100% - ${THUMB_W}px) * ${ratio})`;
+  $('modeTrack').style.setProperty('--thumb-x', thumbX);
+  $('modeSlider').style.setProperty('--fill', thumbX);
 
-function upCompute() {
-  const cfg = state && state.config;
-  const r = { target: null, bet: 0, chance: 0, status: 'wait' };
-  if (!cfg) return r;
-  r.target = upTarget();
-  r.bet = upBetValue();
-  if (!r.target) { r.status = 'no_target'; return r; }
-  if (!(r.target.value > 0)) { r.status = 'wait'; return r; }
-  if (!(r.bet > 0)) { r.status = 'no_bet'; return r; }
-  r.chance = Math.round(Math.max(0, r.bet / r.target.value - cfg.margin) * 10000) / 10000;
-  r.status = 'ok';
-  if (r.chance < cfg.chance_min - 1e-9) r.status = 'low';
-  else if (r.chance > cfg.chance_max + 1e-9) r.status = 'high';
-  else if (upSource === 'ton' && state.balance_ton + 1e-9 < r.bet) r.status = 'poor';
-  return r;
-}
-
-function upPct(chance) {
-  const p = chance * 100;
-  return p >= 10 ? p.toFixed(1).replace(/\.0$/, '') : p.toFixed(2).replace(/0$/, '');
-}
-
-function upSetPick(btn, imgEl, name, info, image, fallback) {
-  $(btn.name).textContent = name;
-  $(btn.info).textContent = info;
-  const img = $(imgEl);
-  if (image) {
-    if (img.dataset.src !== image) { img.dataset.src = image; setGiftImg(img, image, fallback || image); }
-    img.hidden = false;
-  } else {
-    img.hidden = true;
-    delete img.dataset.src;
-  }
-}
-
-function renderUpgrade() {
-  if (!state) return;
-  const r = upCompute();
-  upView = r;
-  const cfg = state.config;
-
-  $('upSrcTon').classList.toggle('on', upSource === 'ton');
-  $('upSrcGift').classList.toggle('on', upSource === 'gift');
-  $('upBetTon').hidden = upSource !== 'ton';
-  $('invList').hidden = upSource !== 'gift';
-  const inp = $('upBetInput');
-  if (document.activeElement !== inp) inp.value = String(upBetTon);
-
-  // слот ставки
-  if (upSource === 'gift') {
-    if (upPrize) {
-      upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', trName(upPrize.name),
-        `${fmt(upPrize.value_ton, 2)} TON`, upPrize.image || hatAsset(upPrize.tier), '');
-    } else {
-      upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', tr('Выберите ставку'), '', '', '');
-    }
-  } else {
-    upSetPick({ name: 'upBetName', info: 'upBetInfo' }, 'upBetImg', `${fmt(upBetTon, 2)} TON`, tr('с баланса'), 'images/gram.webp', '');
-  }
-
-  // слот цели
-  const t = r.target;
-  if (t) {
-    upSetPick({ name: 'upTargetName', info: 'upTargetInfo' }, 'upTargetImg', trName(t.name),
-      t.value > 0 ? `${fmt(t.value, 2)} TON` : '…', t.image, t.fallback);
-  } else {
-    upSetPick({ name: 'upTargetName', info: 'upTargetInfo' }, 'upTargetImg', tr('Выберите цель'), '', '', '');
-  }
-  $('upBetBox').classList.toggle('is-empty', upSource === 'gift' && !upPrize);
-  $('upTargetBox').classList.toggle('is-empty', !t);
-
-  const shown = r.status === 'ok' || r.status === 'poor' || r.status === 'low' || r.status === 'high';
-  const chance = shown ? Math.min(1, r.chance) : 0;
-  $('upChanceVal').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%` : `${tr('Шанс')} —`;
-  $('upChanceMult').textContent = shown && r.chance > 0 ? `x${fmt(1 / r.chance, 2)}` : '';
-  const hints = {
-    no_target: tr('Выбери желаемый подарок'),
-    no_bet: upSource === 'gift' ? tr('Выбери подарок из инвентаря') : tr('Введи ставку'),
-    low: tr('Шанс не меньше {n}% — увеличь ставку', { n: Math.round(cfg.chance_min * 100) }),
-    high: tr('Шанс не больше {n}% — уменьши ставку', { n: Math.round(cfg.chance_max * 100) }),
-    poor: tr('Не хватает на апгрейд — пополни баланс'),
-  };
-  $('upHint').textContent = hints[r.status] || '';
-  $('upPreview').textContent = shown ? `${tr('Шанс')} ${upPct(r.chance)}%  x${fmt(1 / Math.max(r.chance, 1e-9), 2)}` : (hints[r.status] || '');
-  $('upHint').classList.toggle('bad', r.status === 'low' || r.status === 'high' || r.status === 'poor');
-
-  const pct = Math.round(chance * 100);
+  const pct = Math.round(m.chance * 100);
   document.querySelectorAll('#wheelScale [data-p]').forEach((el) => {
     el.classList.toggle('on', Number(el.dataset.p) <= pct);
   });
-  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * chance} ${RING_C}`);
+
+  $('arcWin').setAttribute('stroke-dasharray', `${RING_C * m.chance} ${RING_C}`);
   $('arcLose').setAttribute('stroke-dasharray', `${RING_C} 0`);
 
-  $('spinBtn').disabled = spinning || homing;
-  $('spinBtnText').textContent = 'UP';
-  $('spinBtn').classList.toggle('low', r.status !== 'ok');
-}
-
-function upLock(on) {
-  $('upPanels').classList.toggle('locked', on);
-  $('upBetInput').disabled = on;
-  $('upBetBox').disabled = on;
-  $('upTargetBox').disabled = on;
-}
-
-function upSaveBet() {
-  lsSet('upBet', String(upBetTon));
-}
-
-function upSetBetTon(v) {
-  const x = Math.max(0.01, Math.floor(v * 100 + 1e-9) / 100);
-  upBetTon = x;
-  upSaveBet();
-  $('upBetInput').value = String(x);
-}
-
-function upMaxBet() {
-  const cfg = state && state.config;
-  const t = upTarget();
-  if (!cfg || !t || !(t.value > 0)) return state ? state.balance_ton : 0;
-  return Math.min(state.balance_ton, Math.floor(t.value * (cfg.chance_max + cfg.margin) * 100) / 100);
-}
-
-function renderInvList() {
-  const box = $('invList');
-  box.textContent = '';
-  const items = (state.prizes || [])
-    .filter((p) => p.status === 'owned' && p.tier !== 'bear')
-    .sort((a, b) => b.value_ton - a.value_ton);
-  if (!items.length) {
-    const note = document.createElement('p');
-    note.className = 'muted gp-empty';
-    note.textContent = tr('В инвентаре пока пусто');
-    box.appendChild(note);
-    return;
-  }
-  for (const p of items) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'gp-item' + (upPrize && upPrize.id === p.id ? ' active' : '');
-    b.dataset.id = p.id;
-    const img = document.createElement('img');
-    img.loading = 'lazy'; img.decoding = 'async'; img.alt = '';
-    setGiftImg(img, p.image || hatAsset(p.tier), '');
-    const n = document.createElement('span');
-    n.className = 'gp-name';
-    n.textContent = trName(p.name);
-    const pr = document.createElement('span');
-    pr.className = 'gp-price';
-    pr.textContent = `${fmt(p.value_ton, 2)} TON`;
-    b.append(img, n, pr);
-    box.appendChild(b);
-  }
-}
-
-function openBetModal(src) {
-  if (spinning || !state) return;
-  if (src && src !== upSource) { upSource = src; lsSet('upSource', src); }
-  if (upSource === 'gift') renderInvList();
-  renderUpgrade();
-  $('upBetModal').hidden = false;
-}
-
-function initUpgrade() {
-  const setSource = (src) => {
-    if (spinning || upSource === src) return;
-    upSource = src;
-    lsSet('upSource', src);
-    haptic('impact', 'light');
-    if (src === 'gift') renderInvList();
-    renderUpgrade();
-  };
-  $('upSrcTon').addEventListener('click', () => setSource('ton'));
-  $('upSrcGift').addEventListener('click', () => setSource('gift'));
-  $('upBetBox').addEventListener('click', () => { haptic('impact', 'light'); openBetModal(); });
-  $('upTargetBox').addEventListener('click', () => { if (spinning) return; haptic('impact', 'light'); openGiftPicker(); });
-  $('upBetDone').addEventListener('click', () => { $('upBetModal').hidden = true; haptic('impact', 'light'); });
-  $('upBetModal').addEventListener('click', (e) => { if (e.target === $('upBetModal')) $('upBetModal').hidden = true; });
-  $('invList').addEventListener('click', (e) => {
-    const b = e.target.closest('.gp-item');
-    if (!b) return;
-    upPrize = (state.prizes || []).find((p) => p.id === Number(b.dataset.id)) || null;
-    $('upBetModal').hidden = true;
-    haptic('impact', 'light');
-    renderUpgrade();
-  });
-  const inp = $('upBetInput');
-  inp.addEventListener('input', () => {
-    inp.value = inp.value.replace(/[^0-9.,]/g, '');
-    const v = parseFloat(inp.value.replace(',', '.'));
-    if (Number.isFinite(v) && v > 0) { upBetTon = Math.round(v * 100) / 100; upSaveBet(); }
-    renderUpgrade();
-  });
-  inp.addEventListener('blur', () => { inp.value = String(upBetTon); renderUpgrade(); });
-  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
-  $('upBetTon').addEventListener('click', (e) => {
-    const t = e.target.closest('button');
-    if (!t || spinning) return;
-    if (t.dataset.mul) upSetBetTon(upBetTon * Number(t.dataset.mul));
-    else if (t.dataset.max) upSetBetTon(Math.max(0.01, upMaxBet()));
-    else return;
-    haptic('impact', 'light');
-    renderUpgrade();
-  });
+  updateSpinButton();
 }
 
 function updateSpinButton() {
-  renderUpgrade();
+  const m = currentMode();
+  if (!m || !state) return;
+  $('spinBtn').disabled = spinning || homing;
+  $('spinBtnText').textContent = 'UP';
+  const enough = needsPick || state.balance_ton + 1e-9 >= m.cost_ton;
+  $('spinBtn').classList.toggle('low', !enough);
 }
 
 function renderState(s) {
@@ -6274,14 +6045,16 @@ function renderState(s) {
   checkNeedsPick();
   if (!s.config.gift_upgrade) needsPick = false;
   syncPickUI();
-  if (upPrize) upPrize = (s.prizes || []).find((p) => p.id === upPrize.id && p.status === 'owned') || null;
-  renderUpgrade();
+  syncTierButtons();
+  const _tm = tierMeta(s.config);
+  buildModes(_tm);
   renderChests();
   giftCfg = s.config.gift_deposit || null;
   $('giftDepositBtn').hidden = !(giftCfg && giftCfg.enabled && giftCfg.account);
   setWithdrawLock(s);
 
   $('balanceValue').textContent = fmt(s.balance_ton, 4);
+  $('prizeNameInline').textContent = needsPick ? tr('не выбран') : trName(_tm.prize_name);
   $('depositAmount').min = s.config.min_deposit_ton;
 
   setProfileAvatar(s.user.avatar);
@@ -6890,7 +6663,7 @@ function initSwipeTabs() {
   content.addEventListener('touchstart', (e) => {
     const t = e.touches[0];
     ok = e.touches.length === 1
-      && !e.target.closest('input, textarea, select, [data-noswipe], .up-panels');
+      && !e.target.closest('input, textarea, select, .mode-picker, [data-noswipe]');
     x0 = t.clientX; y0 = t.clientY; t0 = Date.now();
   }, { passive: true });
   content.addEventListener('touchend', (e) => {
@@ -7926,33 +7699,26 @@ function castSpell(done) {
 }
 
 async function doSpin() {
-  if (spinning || homing || !state) return;
-  const mode = upCompute();
-  if (mode.status === 'no_target') { openGiftPicker(); return; }
-  if (mode.status === 'no_bet') {
-    openBetModal();
+  const mode = currentMode();
+  if (spinning || homing || !state || !mode) return;
+  if (needsPick) {
+    markHintSeen();
+    openGiftPicker();
     return;
   }
-  if (mode.status === 'low' || mode.status === 'high') {
-    toast(mode.status === 'low' ? tr('Ставка слишком мала для апгрейда') : tr('Ставка слишком велика для апгрейда'), true);
-    openBetModal();
-    return;
-  }
-  if (mode.status === 'poor') {
+  if (state.balance_ton + 1e-9 < mode.cost_ton) {
     toast(tr('Не хватает на апгрейд — пополни баланс'), true);
     openDeposit();
     return;
   }
-  if (mode.status !== 'ok') return;
 
   const giftSpin = currentTier === 'gift' && selectedGift;
-  const stakePrize = upSource === 'gift' ? upPrize : null;
   spinning = true;
   spinTier = giftSpin ? `url:${selectedGift.image}` : currentTier;
   const balanceBefore = state.balance_ton;
-  if (!stakePrize) setBalance(balanceBefore - mode.bet);
+  setBalance(balanceBefore - mode.cost_ton);
   $('spinBtn').disabled = true;
-  upLock(true);
+  $('modeSlider').disabled = true; $('chanceInput').disabled = true;
 
   $('fastBtn').disabled = true;
 
@@ -7963,18 +7729,15 @@ async function doSpin() {
   let result;
 
   try {
-    const body = { chance: mode.chance, tier: giftSpin ? 'gift' : currentTier };
-    if (giftSpin) { body.gift = selectedGift.slug; body.model = selectedGift.model; }
-    if (stakePrize) body.prize_id = stakePrize.id; else body.bet = mode.bet;
-    result = await api('/api/spin', body);
+    result = await api('/api/spin', giftSpin
+      ? { chance: mode.chance, tier: 'gift', gift: selectedGift.slug, model: selectedGift.model, cost: mode.cost_ton }
+      : { chance: mode.chance, tier: currentTier });
     setBalance(result.balance_ton);
     setCoins(result.hatcoin_balance);
-    if (result.prizes && state) { state.prizes = result.prizes; renderPrizes(result.prizes); }
-    if (stakePrize) upPrize = null;
   } catch (e) {
     setBalance(balanceBefore);
     spinning = false;
-    upLock(false);
+    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
     $('fastBtn').disabled = false;
     document.querySelector('.wheel-wrap').classList.remove('rolling');
     restStaff();
@@ -7986,18 +7749,16 @@ async function doSpin() {
       too_many_requests: tr('Слишком много запросов, подожди немного'),
       price_changed: tr('Цена подарка обновилась — проверь и крути снова'),
       gift_unavailable: tr('Этот подарок сейчас недоступен'),
-      bad_chance: tr('Шанс вне допустимых пределов — измени ставку'),
-      not_found: tr('Подарок-ставка недоступен'),
     };
 
     toast(messages[e.code] || tr('Ошибка запроса'), true);
 
-    if (e.code === 'insufficient_funds' || e.code === 'not_found') refresh();
+    if (e.code === 'insufficient_funds') refresh();
     if (e.code === 'price_changed' || e.code === 'gift_unavailable') loadGiftCatalog(true).catch(() => {});
     return;
   }
 
-  const visibleChance = Math.min(1, mode.chance);
+  const visibleChance = mode.chance;
 
   let targetAngle;
 
@@ -8042,8 +7803,7 @@ async function doSpin() {
     document.querySelector('.wheel-wrap').classList.remove('rolling');
 
     spinning = false;
-    upLock(false);
-    renderUpgrade();
+    $('modeSlider').disabled = false; $('chanceInput').disabled = false;
     $('fastBtn').disabled = false;
 
     haptic(
@@ -8166,16 +7926,11 @@ function throwPointer(pointer, from, target) {
 
 const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2' };
 
-const SVG_WEAPONS = ['sword'];
-
 function setWeapon(name) {
-  const w = (WEAPONS[name] || SVG_WEAPONS.includes(name)) ? name : 'axe';
+  const w = WEAPONS[name] ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); } catch (e) {}
-  const svgW = SVG_WEAPONS.includes(w);
-  $('weaponIcon').hidden = svgW;
-  $('weaponSvg').toggleAttribute('hidden', !svgW);
-  if (!svgW) $('weaponIcon').src = WEAPONS[w];
+  $('weaponIcon').src = WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
@@ -8622,6 +8377,14 @@ function bind() {
     haptic('impact', 'light');
   });
 
+  document.querySelectorAll('.tier-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (spinning) return;
+      if (b.dataset.tier === 'gift') openGiftPicker();
+      else setTier(b.dataset.tier);
+      haptic('impact', 'light');
+    });
+  });
   $('gpClose').addEventListener('click', () => { $('giftPickModal').hidden = true; });
   $('gpSearch').addEventListener('input', renderGiftPicker);
   $('gpBack').addEventListener('click', gpBack);
@@ -8646,11 +8409,13 @@ function bind() {
   initSky();
   const pickFromWheel = () => {
     if (spinning || !(state && state.config.gift_upgrade)) return;
+    markHintSeen();
     openGiftPicker();
     haptic('impact', 'light');
   };
   $('hatQuestion').addEventListener('click', pickFromWheel);
   $('centerHat').addEventListener('click', pickFromWheel);
+  $('hatHint').addEventListener('click', pickFromWheel);
   $('gpList').addEventListener('click', (e) => {
     const item = e.target.closest('.gp-item');
     if (item) onGiftTile(item.dataset.key);
@@ -8676,7 +8441,6 @@ function bind() {
   $('giftOpenAccount').addEventListener('click', openGiftAccount);
   $('walletBtn').addEventListener('click', onWalletClick);
 
-  initUpgrade();
 
   $('promoForm').addEventListener('submit', activatePromo);
   $('refToggle').addEventListener('click', toggleReferral);

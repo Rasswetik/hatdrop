@@ -662,47 +662,31 @@ def upgrade_chance(bet, target_value):
 
 @route("/api/spin")
 def spin(user, body):
-    """Апгрейд: ставка (TON с баланса или подарок из инвентаря) -> желаемый подарок. Шанс считается из ставки."""
+    try:
+        chance = float(body.get("chance"))
+    except (TypeError, ValueError):
+        raise ApiError("bad_request")
+    pct = chance * 100
+    if abs(pct - round(pct)) > 1e-6 or not (MIN_CHANCE_PCT <= round(pct) <= MAX_CHANCE_PCT):
+        raise ApiError("bad_request")
+    chance = round(pct) / 100
     target = resolve_target(body, body.get("tier", "random"))
-    prize = None
-    if body.get("prize_id") is not None:
-        prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
-        if not prize or prize["status"] != "owned" or prize["tier"] == "bear":
-            raise ApiError("not_found")
-        bet = money(prize["value"])
-    else:
-        try:
-            bet = money(float(body.get("bet")))
-        except (TypeError, ValueError, OverflowError):
-            raise ApiError("bad_request")
-        if bet <= 0:
-            raise ApiError("bad_request")
-    chance = upgrade_chance(bet, target["value"])
-    lo, hi = MIN_CHANCE_PCT / 100, MAX_CHANCE_PCT / 100
-    if not (lo - 1e-9 <= chance <= hi + 1e-9):
-        raise ApiError("bad_chance", chance=chance, min_chance=lo, max_chance=hi)
-    asked = body.get("chance")
-    if asked is not None:
-        try:
-            if abs(float(asked) - chance) > 0.0006:
-                raise ApiError("price_changed", price_ton=target["value"], chance=chance)
-        except (TypeError, ValueError):
-            raise ApiError("bad_request")
-    if prize:
-        prize["status"] = "sold"          # подарок-ставка уходит в игру
-    else:
-        if user["balance"] + 1e-9 < bet:
-            raise ApiError("insufficient_funds")
-        user["balance"] = ton(user["balance"] - bet)
+    cost = spin_cost(target["value"], chance)
+    if body.get("tier") == "gift":
+        asked = body.get("cost")
+        if not isinstance(asked, (int, float)) or abs(asked - cost) > 0.005:
+            raise ApiError("price_changed", price_ton=target["value"], cost_ton=cost)
+    if user["balance"] + 1e-9 < cost:
+        raise ApiError("insufficient_funds")
+    user["balance"] = ton(user["balance"] - cost)
     win = secrets.randbelow(1_000_000) < chance * 1_000_000
     bear = None
     if win:
         add_prize(user, target["tier"], target["name"], target["value"], target["image"])
     else:
         bear = consolation(user)
-    record_game(user, "upgrade", bet, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
-    return {"win": win, "chance": chance, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0,
-            "consolation": bear, "prizes": visible_prizes(user)}
+    record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
+    return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0, "consolation": bear}
 
 
 def chest_view(user):
