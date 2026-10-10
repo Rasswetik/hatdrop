@@ -2773,7 +2773,7 @@ img[src*="/gimg/"] { object-fit: contain; }
 .avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s; }
 .avatar > img.ok { opacity: 1; }
 
-/* PNG подарков чуть пикселизированы (см. скрипт pixelGifts) */
+/* Pixel gift appearance is handled by CSS without canvas image conversion. */
 img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-rendering: pixelated; }
 
 /* свой шанс */
@@ -2839,17 +2839,7 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap" rel="stylesheet">
-<script>
-  /* Манифест видео-фона запрашиваем сразу, параллельно с остальной загрузкой. */
-  (function () {
-    try {
-      window.__bgHold = true;
-      document.documentElement.classList.add('bg-loading');
-      window.__bgManifest = fetch('/api/bg', { credentials: 'same-origin' })
-        .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-    } catch (e) { window.__bgHold = false; document.documentElement.classList.remove('bg-loading'); window.__bgManifest = Promise.resolve(null); }
-  })();
-</script>
+
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script defer src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 <style id="cx-css">
@@ -2864,8 +2854,8 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-cell img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
 .cx-grid.live .cx-cell:not(:disabled) { cursor: pointer; }
 .cx-grid.live .cx-cell:not(:disabled):active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #a8713c, 0 0 0 #2e1a0c; }
-.cx-cell.gold { background: linear-gradient(180deg, #7a5a10 0%, #4d3608 100%); box-shadow: inset 2px 2px 0 #ffe39a, 0 0 10px rgba(255, 198, 74, .55), 0 3px 0 #2e1a0c; animation: cxpop .32s steps(5); }
-.cx-cell.empty { background: linear-gradient(180deg, #4a2a2a 0%, #2c1818 100%); box-shadow: inset 2px 2px 0 #7a4a4a, 0 0 10px rgba(255, 93, 108, .6), 0 3px 0 #2e1a0c; animation: cxpop .32s steps(5); }
+.cx-cell.gold { background: linear-gradient(180deg, #7a5a10 0%, #4d3608 100%); box-shadow: inset 2px 2px 0 #ffe39a, 0 0 10px rgba(255, 198, 74, .55), 0 3px 0 #2e1a0c; }
+.cx-cell.empty { background: linear-gradient(180deg, #4a2a2a 0%, #2c1818 100%); box-shadow: inset 2px 2px 0 #7a4a4a, 0 0 10px rgba(255, 93, 108, .6), 0 3px 0 #2e1a0c; }
 .cx-cell.ghost { opacity: .72; animation: none; box-shadow: 0 3px 0 #2e1a0c; }
 @keyframes cxpop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
 .cx-setup { width: 100%; }
@@ -2935,29 +2925,10 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .adm-key .adm-form { margin-top: 6px; }
 .adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
 
-/* ===== сундуки: анимации =====
-   Итоговые состояния (gold / empty / ghost) - статичные и анимаций не имеют, поэтому при возврате
-   на экран или обновлении данных ничего не «перестраивается». Анимация играет ОДИН раз в момент
-   события через временные классы fx-* (их снимает JS по animationend). */
-.cx-cell { position: relative; transform-origin: 50% 60%; contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.cx-cell.gold, .cx-cell.empty, .cx-cell.ghost { animation: none; }
+/* Static cells: change the artwork as soon as the server confirms the result. */
+.cx-cell { contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .cx-cell.ghost { opacity: .72; box-shadow: 0 3px 0 #2e1a0c; }
-.cx-cell::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
-  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.75) 50%, transparent 65%); transform: translateX(-120%); }
-.cx-cell.ghost::after { display: none; }
 @media (hover: hover) { .cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); } }
-.cx-cell.pending { transform: translateY(3px) scale(.96); }
-.cx-cell.gold.fx-flip { animation: cxFlip .45s cubic-bezier(.2,.9,.3,1.15); }
-.cx-cell.gold.fx-flip::after { animation: cxShine .6s ease-out .1s 1; }
-.cx-cell.empty.fx-boom { animation: cxBoom .5s ease-out; }
-.cx-cell.fx-fade { animation: cxFade .25s ease-out; }
-@keyframes cxFlip { 0% { transform: perspective(260px) rotateY(0) scale(1); } 40% { transform: perspective(260px) rotateY(90deg) scale(1.15); } 100% { transform: perspective(260px) rotateY(0) scale(1); } }
-@keyframes cxShine { 0% { opacity: 1; transform: translateX(-120%); } 100% { opacity: 1; transform: translateX(120%); } }
-@keyframes cxBoom { 0% { transform: scale(.7); } 30% { transform: scale(1.2) rotate(-6deg); } 60% { transform: scale(1.05) rotate(4deg); } 100% { transform: none; } }
-@keyframes cxFade { from { opacity: 0; } to { opacity: .72; } }
-.cx-info b.pop { animation: cxPop .35s ease-out; }
-@keyframes cxPop { 0% { transform: scale(1); } 40% { transform: scale(1.25); color: #fff; } 100% { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .cx-cell, .cx-cell::after, .cx-grid { animation: none !important; } }
 </style>
 <style>
 /* Opening screen — entirely inline, so it appears before external scripts load. */
@@ -2992,29 +2963,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 #admTonConnect #tcSave{background:var(--gold);border-color:var(--gold-dark);color:#2a1900}
 #admTonConnect #tcIconPreview{width:66px;height:66px;object-fit:contain;border:2px solid var(--card-line);border-radius:12px;margin:10px 0;background:var(--track-bg)}
 </style>
-<style id="bgvideo-css">
-/* Видео-фон: показывается поверх запасного canvas-фона, когда в /static есть ролики. */
-html[data-theme="meadow"] .bg-video { opacity: 0; object-fit: cover;
-  object-position: var(--bg-pos, 50% 50%); background: transparent; transform: translateZ(0); backface-visibility: hidden; }
-html[data-theme="meadow"] .bg-video.on { opacity: 1; }
-html[data-theme="meadow"] .bg-photo { opacity: 0; object-fit: cover;
-  object-position: var(--bg-pos, 50% 50%); }
-html[data-theme="meadow"] .bg-photo.on { opacity: 1; }
-html.has-bgvideo .bg-scene { display: none !important; }
-html[data-theme="meadow"] .bg-wide { background: #0b1030; }
-html[data-theme="meadow"][data-sky="day"] .bg-wide { background: #7cc5f8; }
-/* Занавес смены дня/ночи: закрывает фон, пока грузится новый ролик/картинка, затем плавно открывается */
-.bg-veil { position: absolute; inset: 0; z-index: -1; display: grid; place-items: center; pointer-events: none; opacity: 0;
-  transition: opacity .45s ease; background: linear-gradient(180deg, #8fd0ff 0%, #eaf7ff 100%); }
-.bg-veil.night { background: linear-gradient(180deg, #0b1030 0%, #2a2f78 100%); }
-.bg-veil.on, html.bg-loading .bg-veil { opacity: 1; transition-duration: .3s; }
-.bg-veil i { width: 30px; height: 30px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; opacity: 0;
-  animation: veilSpin .9s steps(8) infinite, veilIn .3s ease .7s forwards; }
-.bg-veil.day i { border-color: rgba(30,90,160,.25); border-top-color: #1e5aa0; }
-@keyframes veilSpin { to { transform: rotate(360deg); } }
-@keyframes veilIn { to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .bg-veil { transition: none; } .bg-veil i { animation: none; } }
-</style>
+
 <style id="upgrade-css">
 /* окно победы в минах */
 .cx-win-card { overflow: hidden; }
@@ -3068,6 +3017,7 @@ html[data-theme="meadow"] .modal-card .gift-dep-btn { background: linear-gradien
 html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient(circle, rgba(255, 214, 110, .35) 0%, rgba(255, 214, 110, 0) 65%); }
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
+<link rel="stylesheet" href="/static/village-scene.css?v=1">
 </head>
 <body>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
@@ -3133,12 +3083,336 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 </svg>
 
 <div class="bg-wide" aria-hidden="true">
-  <canvas class="bg-scene" id="bgScene"></canvas>
-  <img class="bg-photo" id="bgPhoto" alt="" decoding="async">
-  <video class="bg-video" id="bgVideo" muted loop playsinline webkit-playsinline preload="auto"
-         disablepictureinpicture disableremoteplayback tabindex="-1"></video>
-  <div class="bg-veil" id="bgVeil"><i></i></div>
-  <div class="bg-dim"></div>
+<svg id="villageScene" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
+<defs>
+  <linearGradient id="vDusk" x2="0" y2="1"><stop stop-color="#e17587" stop-opacity="0"/><stop offset=".65" stop-color="#ef8871"/><stop offset="1" stop-color="#ffc986"/></linearGradient>
+  <clipPath id="vLandClip"><path d="M0 262V210h28v-24h24v-24h28v-20h24v-20h32v-24h24V80h24v18h20v20h32v24h24v18h32v28h40v-20h24v-24h24v-20h24v-20h24V88h24V72h24v20h24v20h28v24h24v20h24v24h32v24h36v-20h24v-24h28v-24h28v-24h24v-24h24v-20h24v20h24v24h28v24h24v24h24v24h32v28h72v62z"/><path d="M0 242H960V640H0Z"/></clipPath>
+  <clipPath id="vRiverClip"><path d="M510 294h32v32h-12v22h28v28h26v32h-8v32h36v40h-10v40h44v40h32v80H530v-60h-20v-40h16v-40h-18v-44h24v-32h-10v-36h-22v-32h-18v-32h18v-30h10z"/></clipPath>
+  <g id="vPine"><path fill="#513b2e" d="M-4-14h8V8h-8z"/><path fill="#234f3e" d="M-26-14h52v-8h-8v-10h-8v-12H2v-12h-4v12h-8v12h-8v10h-8z"/><path fill="#387a4d" d="M-18-24h18v-8h-6v-10h-4v10h-8zM-24-14h24v-8h-16v-8h-4v8h-4z"/></g>
+  <g id="vCloud"><path fill="#f3f7df" d="M0 12h16V4h24V0h20v8h16v4h12v12H0z"/><path fill="#d4e7db" d="M0 22h88v4H0z"/></g>
+  <g id="vCottage"><path fill="#59392c" d="M0 0h76v52H0z"/><path fill="#ead2a0" d="M4 4h68v44H4z"/><path fill="#c19a69" d="M4 38h68v10H4z"/><path fill="#915b43" d="M0 0h76v4H0zM8 4h4v44H8zM64 4h4v44h-4zM4 26h68v4H4z"/><path fill="#95473c" d="M-8 0h92v-8h-8v-8h-8v-8H56v-8H44v-8H32v8H20v8H8v8H0v8h-8z"/><path fill="#c46d50" d="M-8-4h92v-4H-8zM0-12h76v-4H0zM8-20h60v-4H8zM20-28h36v-4H20z"/><path fill="#825541" d="M56-38h10v20H56z"/><path fill="#c29571" d="M54-40h14v4H54z"/><path fill="#543727" d="M30 22h16v26H30z"/><path fill="#946444" d="M34 26h8v22h-8z"/><path fill="#e9bb57" d="M40 36h2v3h-2z"/><path fill="#3c565b" d="M14 10h12v14H14zM50 10h12v14H50z"/><path fill="#8fbac1" d="M16 12h8v10h-8zM52 12h8v10h-8z"/><path fill="#7c5037" d="M19 10h2v14h-2zM14 16h12v2H14zM55 10h2v14h-2zM50 16h12v2H50z"/></g>
+  <g id="vLitWindows"><path fill="#ffe5a0" d="M16 12h8v10h-8zM52 12h8v10h-8z"/><path fill="#c88945" d="M19 12h2v10h-2zM16 16h8v2h-8zM55 12h2v10h-2zM52 16h8v2h-8z"/><path fill="#ffc669" opacity=".1" d="M6 4h28v28H6zM42 4h28v28H42z"/></g>
+  <g id="vLamp"><path fill="#47372c" d="M-2 0h4v-58H-2zM0-58h14v4H0zM10-54h2v8h-2zM6-46h10v16H6z"/><path fill="#78827a" d="M8-44h6v12H8z"/><path fill="#594537" d="M-6 0H6v4H-6z"/></g>
+  <g id="vLampGlow"><path fill="#ffd178" opacity=".08" d="M-10-62h42v48h-42z"/><path fill="#ffe7a2" d="M8-44h6v12H8z"/><path fill="#efb85f" d="M8-34h6v2H8z"/></g>
+</defs>
+<rect x="0" y="0" width="960" height="49" fill="#659ec0" />
+<rect x="0" y="48" width="960" height="49" fill="#78b5cc" />
+<rect x="0" y="96" width="960" height="49" fill="#91c9d5" />
+<rect x="0" y="144" width="960" height="49" fill="#aedadd" />
+<rect x="0" y="192" width="960" height="49" fill="#c4e4dd" />
+<rect x="0" y="240" width="960" height="49" fill="#d4e8d5" />
+<g class="night-sky">
+<rect x="0" y="0" width="960" height="49" fill="#111c38" />
+<rect x="0" y="48" width="960" height="49" fill="#182543" />
+<rect x="0" y="96" width="960" height="49" fill="#243653" />
+<rect x="0" y="144" width="960" height="49" fill="#344765" />
+<rect x="0" y="192" width="960" height="49" fill="#40556c" />
+<rect x="0" y="240" width="960" height="49" fill="#536b78" />
+<g class="v-stars">
+<rect x="588" y="136" width="4" height="4" fill="#d8e4cb" />
+<rect x="168" y="52" width="2" height="2" fill="#d8e4cb" />
+<rect x="464" y="28" width="2" height="2" fill="#d8e4cb" />
+<rect x="128" y="184" width="4" height="4" fill="#d8e4cb" />
+<rect x="296" y="68" width="2" height="2" fill="#d8e4cb" />
+<rect x="256" y="96" width="2" height="2" fill="#d8e4cb" />
+<rect x="164" y="32" width="4" height="4" fill="#d8e4cb" />
+<rect x="500" y="56" width="2" height="2" fill="#d8e4cb" />
+<rect x="440" y="96" width="2" height="2" fill="#d8e4cb" />
+<rect x="652" y="68" width="4" height="4" fill="#d8e4cb" />
+<rect x="564" y="180" width="2" height="2" fill="#d8e4cb" />
+<rect x="804" y="76" width="2" height="2" fill="#d8e4cb" />
+<rect x="536" y="60" width="4" height="4" fill="#d8e4cb" />
+<rect x="124" y="24" width="2" height="2" fill="#d8e4cb" />
+<rect x="100" y="136" width="2" height="2" fill="#d8e4cb" />
+<rect x="436" y="116" width="4" height="4" fill="#d8e4cb" />
+<rect x="664" y="64" width="2" height="2" fill="#d8e4cb" />
+<rect x="640" y="100" width="2" height="2" fill="#d8e4cb" />
+<rect x="568" y="136" width="4" height="4" fill="#d8e4cb" />
+<rect x="688" y="100" width="2" height="2" fill="#d8e4cb" />
+<rect x="528" y="76" width="2" height="2" fill="#d8e4cb" />
+<rect x="216" y="124" width="4" height="4" fill="#d8e4cb" />
+<rect x="720" y="148" width="2" height="2" fill="#d8e4cb" />
+<rect x="644" y="64" width="2" height="2" fill="#d8e4cb" />
+<rect x="660" y="52" width="4" height="4" fill="#d8e4cb" />
+<rect x="92" y="112" width="2" height="2" fill="#d8e4cb" />
+<rect x="532" y="68" width="2" height="2" fill="#d8e4cb" />
+<rect x="752" y="132" width="4" height="4" fill="#d8e4cb" />
+<rect x="712" y="28" width="2" height="2" fill="#d8e4cb" />
+<rect x="752" y="48" width="2" height="2" fill="#d8e4cb" />
+<rect x="560" y="168" width="4" height="4" fill="#d8e4cb" />
+<rect x="652" y="128" width="2" height="2" fill="#d8e4cb" />
+<rect x="228" y="72" width="2" height="2" fill="#d8e4cb" />
+<rect x="356" y="84" width="4" height="4" fill="#d8e4cb" />
+<rect x="180" y="100" width="2" height="2" fill="#d8e4cb" />
+<rect x="156" y="60" width="2" height="2" fill="#d8e4cb" />
+<rect x="188" y="176" width="4" height="4" fill="#d8e4cb" />
+<rect x="500" y="168" width="2" height="2" fill="#d8e4cb" />
+<rect x="692" y="36" width="2" height="2" fill="#d8e4cb" />
+<rect x="264" y="84" width="4" height="4" fill="#d8e4cb" />
+<rect x="556" y="88" width="2" height="2" fill="#d8e4cb" />
+<rect x="404" y="188" width="2" height="2" fill="#d8e4cb" />
+<rect x="752" y="124" width="4" height="4" fill="#d8e4cb" />
+<rect x="588" y="60" width="2" height="2" fill="#d8e4cb" />
+<rect x="660" y="104" width="2" height="2" fill="#d8e4cb" />
+<rect x="728" y="168" width="4" height="4" fill="#d8e4cb" />
+<rect x="332" y="160" width="2" height="2" fill="#d8e4cb" />
+<rect x="672" y="184" width="2" height="2" fill="#d8e4cb" />
+<rect x="384" y="172" width="4" height="4" fill="#d8e4cb" />
+<rect x="100" y="148" width="2" height="2" fill="#d8e4cb" />
+<rect x="524" y="132" width="2" height="2" fill="#d8e4cb" />
+<rect x="724" y="120" width="4" height="4" fill="#d8e4cb" />
+</g>
+</g>
+<g class="v-dusk">
+<rect x="0" y="0" width="960" height="300" fill="url(#vDusk)" />
+</g>
+<g class="v-sun">
+<path d="M576 54h28v4h8v8h4v28h-4v8h-8v4h-28v-4h-8v-8h-4V66h4v-8h8z" fill="#ffe9b0" />
+<rect x="576" y="62" width="24" height="4" fill="#fff2c6" />
+</g>
+<g class="v-moon">
+<path d="M366 48h24v4h8v8h4v24h-4v8h-8v4h-24v-4h-8v-8h-4V60h4v-8h8z" fill="#e1e7c8" />
+<path d="M386 48h4v4h8v8h4v24h-4v8h-8v4h-4V84h-8V60h8z" fill="#adc4bb" />
+<rect x="364" y="66" width="6" height="6" fill="#bccdbb" />
+<rect x="374" y="80" width="4" height="4" fill="#bccdbb" />
+</g>
+<g class="v-clouds" opacity=".7">
+<use href="#vCloud" transform="translate(80 62) scale(1)"/>
+<use href="#vCloud" transform="translate(320 110) scale(0.65)"/>
+<use href="#vCloud" transform="translate(650 40) scale(0.8)"/>
+<use href="#vCloud" transform="translate(800 126) scale(1.1)"/>
+</g>
+<path d="M0 262V210h28v-24h24v-24h28v-20h24v-20h32v-24h24V80h24v18h20v20h32v24h24v18h32v28h40v-20h24v-24h24v-20h24v-20h24V88h24V72h24v20h24v20h28v24h24v20h24v24h32v24h36v-20h24v-24h28v-24h28v-24h24v-24h24v-20h24v20h24v24h28v24h24v24h24v24h32v28h72v62z" fill="#71979e" />
+<path d="M136 98h24V80h24v18h20v20h32v24h-20v-12h-24v-12h-20v12h-20v12h-24zM432 104h24V88h24V72h24v20h24v20h28v24h-20v-12h-24v-12h-16v8h-16v-12h-12v16h-24v12h-12zM736 112h24V88h24v-20h24v20h24v24h28v24h-24v-12h-20v-16h-12v8h-16v-12h-8v20h-24z" fill="#d8e4d4" />
+<path d="M0 270v-28h40v-24h40v-20h40v-24h32v-20h32v24h36v20h40v24h52v-16h32v-24h40v-20h32v-20h24v20h32v24h40v20h40v24h40v-16h40v-24h40v-20h40v-24h32v-16h24v20h32v20h40v24h48v24h48v40z" fill="#537b77" />
+<path d="M0 254h64v-8h48v-12h64v8h80v-12h64v8h72v-10h64v12h96v-8h88v8h64v-10h72v12h88v-6h56v402H0z" fill="#547e4f" />
+<rect x="0" y="280" width="960" height="90" fill="#709453" />
+<rect x="0" y="370" width="960" height="130" fill="#63854a" />
+<rect x="0" y="500" width="960" height="140" fill="#547640" />
+<path d="M510 294h32v32h-12v22h28v28h26v32h-8v32h36v40h-10v40h44v40h32v80H530v-60h-20v-40h16v-40h-18v-44h24v-32h-10v-36h-22v-32h-18v-32h18v-30h10z" fill="#a9b99b" stroke="#436958" stroke-width="8"/>
+<path d="M510 294h32v32h-12v22h28v28h26v32h-8v32h36v40h-10v40h44v40h32v80H530v-60h-20v-40h16v-40h-18v-44h24v-32h-10v-36h-22v-32h-18v-32h18v-30h10z" fill="#689ba4" />
+<g clip-path="url(#vRiverClip)">
+<g class="v-ripples" opacity=".8">
+<rect x="509" y="314" width="20" height="3" fill="#c0d7c9" />
+<rect x="512" y="348" width="15" height="3" fill="#c0d7c9" />
+<rect x="539" y="389" width="23" height="3" fill="#c0d7c9" />
+<rect x="552" y="421" width="17" height="3" fill="#c0d7c9" />
+<rect x="563" y="466" width="28" height="3" fill="#c0d7c9" />
+<rect x="557" y="510" width="22" height="3" fill="#c0d7c9" />
+<rect x="575" y="549" width="42" height="3" fill="#c0d7c9" />
+<rect x="584" y="587" width="34" height="3" fill="#c0d7c9" />
+<rect x="620" y="610" width="38" height="3" fill="#c0d7c9" />
+</g>
+</g>
+<path d="M444 320h22v36h-8v56h18v64h-12v72h22v92h-68v-92h8v-72h-8v-64h12v-56h14z" fill="#c6ac78" />
+<rect x="435" y="409" width="19" height="4" fill="#b39964" />
+<rect x="439" y="470" width="12" height="4" fill="#b39964" />
+<rect x="432" y="540" width="16" height="4" fill="#b39964" />
+<rect x="450" y="603" width="20" height="4" fill="#b39964" />
+<use href="#vCottage" transform="translate(244 287) scale(0.6)"/>
+<use href="#vCottage" transform="translate(668 288) scale(0.62)"/>
+<use href="#vCottage" transform="translate(330 341) scale(1)"/>
+<use href="#vCottage" transform="translate(588 374) scale(1.1)"/>
+<use href="#vCottage" transform="translate(180 395) scale(0.85)"/>
+<use href="#vCottage" transform="translate(747 403) scale(0.95)"/>
+<g transform="translate(614 272)">
+<path d="M-16 0h32l-6-52h-20z" fill="#d3b580" />
+<path d="M-14-50h28v-6h-6v-6H-8v6h-6z" fill="#914d3c" />
+<rect x="-4" y="-14" width="8" height="14" fill="#644933" />
+<g transform="translate(0 -46)">
+<g class="v-blades">
+<path d="M-2-32h4v64h-4zM-32-2h64v4h-64z" fill="#615347" />
+<path d="M-1-30h8v20H-1zM10-1h20v8H10zM-7 10h8v20h-8zM-30-7h20v8h-20z" fill="#eadfbb" />
+</g>
+<rect x="-3" y="-3" width="6" height="6" fill="#5c4534" />
+</g>
+</g>
+<g class="v-smoke" fill="#eee4cf" opacity=".35">
+<rect x="386" y="288" width="6" height="8" fill="#eee4cf" />
+<rect x="382" y="277" width="10" height="6" fill="#eee4cf" />
+<rect x="390" y="266" width="8" height="6" fill="#eee4cf" />
+</g>
+<rect x="484" y="395" width="106" height="12" fill="#5a4534" />
+<rect x="486" y="395" width="102" height="7" fill="#bfa375" />
+<rect x="488" y="395" width="2" height="7" fill="#846345" />
+<rect x="498" y="395" width="2" height="7" fill="#846345" />
+<rect x="508" y="395" width="2" height="7" fill="#846345" />
+<rect x="518" y="395" width="2" height="7" fill="#846345" />
+<rect x="528" y="395" width="2" height="7" fill="#846345" />
+<rect x="538" y="395" width="2" height="7" fill="#846345" />
+<rect x="548" y="395" width="2" height="7" fill="#846345" />
+<rect x="558" y="395" width="2" height="7" fill="#846345" />
+<rect x="568" y="395" width="2" height="7" fill="#846345" />
+<rect x="578" y="395" width="2" height="7" fill="#846345" />
+<rect x="480" y="378" width="114" height="4" fill="#b99569" />
+<rect x="480" y="390" width="114" height="4" fill="#866745" />
+<rect x="480" y="373" width="4" height="42" fill="#76543b" />
+<rect x="480" y="373" width="4" height="3" fill="#d3b183" />
+<rect x="512" y="373" width="4" height="42" fill="#76543b" />
+<rect x="512" y="373" width="4" height="3" fill="#d3b183" />
+<rect x="552" y="373" width="4" height="42" fill="#76543b" />
+<rect x="552" y="373" width="4" height="3" fill="#d3b183" />
+<rect x="590" y="373" width="4" height="42" fill="#76543b" />
+<rect x="590" y="373" width="4" height="3" fill="#d3b183" />
+<rect x="752" y="358" width="8" height="2" fill="#41663d" />
+<rect x="928" y="330" width="8" height="2" fill="#92a563" />
+<rect x="892" y="538" width="8" height="2" fill="#92a563" />
+<rect x="112" y="606" width="8" height="2" fill="#41663d" />
+<rect x="724" y="542" width="8" height="2" fill="#92a563" />
+<rect x="164" y="334" width="8" height="2" fill="#92a563" />
+<rect x="144" y="606" width="8" height="2" fill="#92a563" />
+<rect x="708" y="534" width="8" height="2" fill="#41663d" />
+<rect x="388" y="338" width="8" height="2" fill="#92a563" />
+<rect x="296" y="498" width="8" height="2" fill="#92a563" />
+<rect x="832" y="466" width="8" height="2" fill="#41663d" />
+<rect x="388" y="390" width="8" height="2" fill="#92a563" />
+<rect x="228" y="350" width="8" height="2" fill="#92a563" />
+<rect x="948" y="322" width="8" height="2" fill="#41663d" />
+<rect x="736" y="562" width="8" height="2" fill="#41663d" />
+<rect x="956" y="330" width="8" height="2" fill="#92a563" />
+<rect x="912" y="434" width="8" height="2" fill="#92a563" />
+<rect x="48" y="554" width="8" height="2" fill="#41663d" />
+<rect x="752" y="334" width="8" height="2" fill="#92a563" />
+<rect x="240" y="614" width="8" height="2" fill="#92a563" />
+<rect x="788" y="338" width="8" height="2" fill="#92a563" />
+<rect x="932" y="586" width="8" height="2" fill="#41663d" />
+<rect x="900" y="450" width="8" height="2" fill="#92a563" />
+<rect x="252" y="530" width="8" height="2" fill="#92a563" />
+<rect x="824" y="522" width="8" height="2" fill="#92a563" />
+<rect x="108" y="478" width="8" height="2" fill="#92a563" />
+<rect x="748" y="422" width="8" height="2" fill="#92a563" />
+<rect x="360" y="530" width="8" height="2" fill="#41663d" />
+<rect x="944" y="490" width="8" height="2" fill="#92a563" />
+<rect x="892" y="314" width="8" height="2" fill="#41663d" />
+<rect x="728" y="386" width="8" height="2" fill="#92a563" />
+<rect x="792" y="490" width="8" height="2" fill="#41663d" />
+<rect x="288" y="542" width="8" height="2" fill="#41663d" />
+<rect x="132" y="486" width="8" height="2" fill="#92a563" />
+<rect x="296" y="582" width="8" height="2" fill="#41663d" />
+<rect x="224" y="434" width="8" height="2" fill="#92a563" />
+<rect x="152" y="538" width="8" height="2" fill="#41663d" />
+<rect x="356" y="426" width="8" height="2" fill="#92a563" />
+<rect x="56" y="638" width="8" height="2" fill="#41663d" />
+<rect x="704" y="338" width="8" height="2" fill="#92a563" />
+<rect x="208" y="466" width="8" height="2" fill="#92a563" />
+<rect x="280" y="470" width="8" height="2" fill="#41663d" />
+<rect x="824" y="386" width="8" height="2" fill="#92a563" />
+<rect x="752" y="606" width="8" height="2" fill="#41663d" />
+<rect x="144" y="402" width="8" height="2" fill="#92a563" />
+<rect x="172" y="450" width="8" height="2" fill="#92a563" />
+<rect x="68" y="518" width="8" height="2" fill="#41663d" />
+<rect x="188" y="530" width="8" height="2" fill="#92a563" />
+<rect x="884" y="454" width="8" height="2" fill="#92a563" />
+<rect x="768" y="562" width="8" height="2" fill="#41663d" />
+<rect x="176" y="618" width="8" height="2" fill="#92a563" />
+<rect x="200" y="470" width="8" height="2" fill="#41663d" />
+<rect x="880" y="330" width="8" height="2" fill="#92a563" />
+<rect x="320" y="330" width="8" height="2" fill="#41663d" />
+<rect x="72" y="318" width="8" height="2" fill="#92a563" />
+<rect x="12" y="482" width="8" height="2" fill="#41663d" />
+<rect x="60" y="630" width="8" height="2" fill="#92a563" />
+<rect x="708" y="502" width="8" height="2" fill="#92a563" />
+<rect x="288" y="542" width="8" height="2" fill="#41663d" />
+<rect x="888" y="498" width="8" height="2" fill="#92a563" />
+<rect x="908" y="602" width="8" height="2" fill="#41663d" />
+<rect x="344" y="438" width="8" height="2" fill="#92a563" />
+<rect x="900" y="574" width="8" height="2" fill="#92a563" />
+<rect x="200" y="586" width="8" height="2" fill="#92a563" />
+<rect x="792" y="322" width="8" height="2" fill="#41663d" />
+<rect x="864" y="538" width="8" height="2" fill="#92a563" />
+<rect x="264" y="546" width="8" height="2" fill="#92a563" />
+<rect x="784" y="330" width="8" height="2" fill="#41663d" />
+<use href="#vPine" transform="translate(96 332) scale(1.5)"/>
+<use href="#vPine" transform="translate(260 324) scale(0.8)"/>
+<use href="#vPine" transform="translate(730 339) scale(0.8)"/>
+<use href="#vPine" transform="translate(875 351) scale(1.5)"/>
+<use href="#vPine" transform="translate(298 488) scale(1.7)"/>
+<use href="#vPine" transform="translate(732 503) scale(1.8)"/>
+<use href="#vPine" transform="translate(78 601) scale(2.4)"/>
+<use href="#vPine" transform="translate(888 621) scale(2.6)"/>
+<rect x="354" y="535" width="2" height="10" fill="#324f32" />
+<rect x="352" y="533" width="6" height="4" fill="#d9c07c" />
+<rect x="354" y="531" width="2" height="8" fill="#e2cc8c" />
+<rect x="373" y="549" width="2" height="10" fill="#324f32" />
+<rect x="371" y="547" width="6" height="4" fill="#d9c07c" />
+<rect x="373" y="545" width="2" height="8" fill="#e2cc8c" />
+<rect x="308" y="585" width="2" height="10" fill="#324f32" />
+<rect x="306" y="583" width="6" height="4" fill="#d9c07c" />
+<rect x="308" y="581" width="2" height="8" fill="#e2cc8c" />
+<rect x="702" y="566" width="2" height="10" fill="#324f32" />
+<rect x="700" y="564" width="6" height="4" fill="#d9c07c" />
+<rect x="702" y="562" width="2" height="8" fill="#e2cc8c" />
+<rect x="744" y="593" width="2" height="10" fill="#324f32" />
+<rect x="742" y="591" width="6" height="4" fill="#d9c07c" />
+<rect x="744" y="589" width="2" height="8" fill="#e2cc8c" />
+<rect x="268" y="609" width="2" height="10" fill="#324f32" />
+<rect x="266" y="607" width="6" height="4" fill="#d9c07c" />
+<rect x="268" y="605" width="2" height="8" fill="#e2cc8c" />
+<rect x="220" y="558" width="24" height="4" fill="#947447" />
+<rect x="220" y="574" width="24" height="4" fill="#947447" />
+<rect x="228" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="244" y="558" width="24" height="4" fill="#947447" />
+<rect x="244" y="574" width="24" height="4" fill="#947447" />
+<rect x="252" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="268" y="558" width="24" height="4" fill="#947447" />
+<rect x="268" y="574" width="24" height="4" fill="#947447" />
+<rect x="276" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="292" y="558" width="24" height="4" fill="#947447" />
+<rect x="292" y="574" width="24" height="4" fill="#947447" />
+<rect x="300" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="316" y="558" width="24" height="4" fill="#947447" />
+<rect x="316" y="574" width="24" height="4" fill="#947447" />
+<rect x="324" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="340" y="558" width="24" height="4" fill="#947447" />
+<rect x="340" y="574" width="24" height="4" fill="#947447" />
+<rect x="348" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="364" y="558" width="24" height="4" fill="#947447" />
+<rect x="364" y="574" width="24" height="4" fill="#947447" />
+<rect x="372" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="388" y="558" width="24" height="4" fill="#947447" />
+<rect x="388" y="574" width="24" height="4" fill="#947447" />
+<rect x="396" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="716" y="558" width="24" height="4" fill="#947447" />
+<rect x="716" y="574" width="24" height="4" fill="#947447" />
+<rect x="724" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="740" y="558" width="24" height="4" fill="#947447" />
+<rect x="740" y="574" width="24" height="4" fill="#947447" />
+<rect x="748" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="764" y="558" width="24" height="4" fill="#947447" />
+<rect x="764" y="574" width="24" height="4" fill="#947447" />
+<rect x="772" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="788" y="558" width="24" height="4" fill="#947447" />
+<rect x="788" y="574" width="24" height="4" fill="#947447" />
+<rect x="796" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="812" y="558" width="24" height="4" fill="#947447" />
+<rect x="812" y="574" width="24" height="4" fill="#947447" />
+<rect x="820" y="550" width="4" height="38" fill="#bd9b67" />
+<rect x="836" y="558" width="24" height="4" fill="#947447" />
+<rect x="836" y="574" width="24" height="4" fill="#947447" />
+<rect x="844" y="550" width="4" height="38" fill="#bd9b67" />
+<use href="#vLamp" transform="translate(410 432)"/>
+<use href="#vLamp" transform="translate(702 449)"/>
+<use href="#vLamp" transform="translate(336 602)"/>
+<rect x="0" y="0" width="960" height="640" fill="#0a2038" class="terrain-night" clip-path="url(#vLandClip)"/>
+<g class="night-lights">
+<use href="#vLitWindows" transform="translate(244 287) scale(0.6)"/>
+<use href="#vLitWindows" transform="translate(668 288) scale(0.62)"/>
+<use href="#vLitWindows" transform="translate(330 341) scale(1)"/>
+<use href="#vLitWindows" transform="translate(588 374) scale(1.1)"/>
+<use href="#vLitWindows" transform="translate(180 395) scale(0.85)"/>
+<use href="#vLitWindows" transform="translate(747 403) scale(0.95)"/>
+<use href="#vLampGlow" transform="translate(410 432)"/>
+<use href="#vLampGlow" transform="translate(702 449)"/>
+<use href="#vLampGlow" transform="translate(336 602)"/>
+<g clip-path="url(#vRiverClip)" opacity=".45">
+<rect x="554" y="421" width="18" height="3" fill="#ffd58f" />
+<rect x="568" y="446" width="12" height="3" fill="#ffd58f" />
+<rect x="575" y="469" width="18" height="3" fill="#ffd58f" />
+<rect x="578" y="496" width="10" height="3" fill="#ffd58f" />
+</g>
+</g>
+</svg>
+<div class="bg-dim"></div>
 </div>
 
 <div class="stage">
@@ -3259,7 +3533,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
           <button class="cx-chip" data-mul="0.5" type="button">½</button>
           <button class="cx-chip" data-mul="2" type="button">×2</button>
           <button class="cx-chip" data-max="1" type="button">MAX</button>
-          <button class="cx-chip cx-giftbtn" id="cxGiftBtn" type="button" aria-label="Ставка подарком" title="Ставка подарком"><svg class="cx-gift-ic" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#ffcb52" d="M1 5h14v3H1z"/><path fill="#e0902a" d="M1 7h14v1H1z"/><path fill="#ff5a6e" d="M2 8h12v7H2z"/><path fill="#c63a4e" d="M2 13h12v2H2z"/><path fill="#ffe8a0" d="M7 5h2v10H7z"/><path fill="#ff5a6e" d="M5 2h3v3H5zM8 2h3v3H8z"/><path fill="#c63a4e" d="M6 3h1v1H6zM9 3h1v1H9z"/></svg><img id="cxGiftBtnImg" alt="" hidden></button>
         </div>
         <p class="cx-label">Пустых сундуков</p>
         <div class="cx-row" id="cxEmpties" data-noswipe></div>
@@ -3550,15 +3823,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
   </div>
 </div>
 
-<div class="modal" id="cxGiftModal" hidden="">
-  <div class="modal-card">
-    <h2>Подарок для ставки</h2>
-    <div class="cxg-grid" id="cxGiftGrid" data-noswipe></div>
-    <button class="ghost" id="cxGiftClear" type="button">Ставить TON</button>
-    <button class="cta" id="cxGiftClose" type="button">Закрыть</button>
-  </div>
-</div>
-
 <div class="modal" id="cxWinModal" hidden="">
   <div class="modal-card cx-win-card">
     <div class="cx-win-glow"></div>
@@ -3802,980 +4066,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 })();
 </script>
 
-<script>
-(function () {
-  'use strict';
-
-  const cv = document.getElementById('bgScene');
-  if (!cv || !cv.getContext) return;
-  const ctx = cv.getContext('2d');
-  const W = 180;
-  let H = 213;
-  let stopped = false;
-
-  function rnd(seed) {
-    let s = seed >>> 0;
-    return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
-  }
-
-  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-  const ease = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
-
-  const r0 = rnd(7);
-  const clouds = Array.from({ length: 7 }, (_, i) => ({
-    x: r0() * (W + 70), y: 4 + (i % 4) * 8 + r0() * 5, w: 22 + r0() * 28, sp: 0.5 + r0() * 1.0, far: i % 2 === 1,
-  }));
-  const flowers = Array.from({ length: 34 }, () => ({
-    x: r0(), y: r0(), c: ['#ffd23f', '#ff6b8a', '#ffffff', '#b98bff', '#ff9a3c'][(r0() * 5) | 0], ph: r0() * 6,
-  }));
-  const tufts = Array.from({ length: 46 }, () => ({ x: r0(), y: r0() }));
-  const flies = Array.from({ length: 4 }, (_, i) => ({
-    ax: 0.2 + r0() * 0.6, ay: 0.55 + r0() * 0.3, rx: 10 + r0() * 14, ry: 5 + r0() * 8,
-    sp: 0.25 + r0() * 0.3, ph: r0() * 6, c: ['#ffe08a', '#ff9ac1', '#c9f0ff', '#ffffff'][i],
-  }));
-  const pollen = Array.from({ length: 22 }, (_, i) => ({
-    x: r0(), y: r0(), sp: 0.05 + r0() * 0.07, ph: r0(), c: i % 4 === 0 ? '#ffc6dc' : i % 4 === 1 ? '#ffffff' : '#fff3b0',
-  }));
-  const stars = Array.from({ length: 95 }, () => ({
-    x: r0() * W, y: r0(), ph: r0() * 6.28, sp: 0.8 + r0() * 2.2, big: r0() > 0.88,
-    c: ['#ffffff', '#cfe0ff', '#ffe9a8'][(r0() * 3) | 0],
-  }));
-  const fireflies = Array.from({ length: 18 }, () => ({
-    ax: r0(), ay: 0.52 + r0() * 0.42, rx: 6 + r0() * 14, ry: 3 + r0() * 7, sp: 0.2 + r0() * 0.4, ph: r0() * 6.28,
-  }));
-  const birds = Array.from({ length: 3 }, (_, i) => ({ y: 0.1 + r0() * 0.16, sp: 5 + r0() * 4, off: r0() * 200 + i * 60, ph: r0() * 6 }));
-  const bats = Array.from({ length: 4 }, () => ({ y: 0.14 + r0() * 0.22, sp: 7 + r0() * 5, off: r0() * 200, ph: r0() * 6 }));
-
-  const FINE = 2;
-  const NIGHT_TINT = '#141c52';
-
-  const hexCache = new Map();
-  function rgb(c) {
-    let v = hexCache.get(c);
-    if (!v) { const n = parseInt(c.slice(1), 16); v = [(n >> 16) & 255, (n >> 8) & 255, n & 255]; hexCache.set(c, v); }
-    return v;
-  }
-  const mixCache = new Map();
-  function mix(a, b, k) {
-    if (k <= 0.001) return a;
-    if (k >= 0.999) return b;
-    const q = Math.round(k * 48);
-    const key = a + b + q;
-    let v = mixCache.get(key);
-    if (!v) {
-      const A = rgb(a), B = rgb(b), kk = q / 48;
-      const ch = (i) => Math.round(A[i] + (B[i] - A[i]) * kk);
-      v = '#' + ((1 << 24) + (ch(0) << 16) + (ch(1) << 8) + ch(2)).toString(16).slice(1);
-      if (mixCache.size > 8000) mixCache.clear();
-      mixCache.set(key, v);
-    }
-    return v;
-  }
-
-  let nk = 0;
-  let tint = false;
-  let trans = null;
-  const shade = (c) => (nk > 0.004 ? mix(c, NIGHT_TINT, 0.64 * nk) : c);
-
-  const px = (x, y, w, h, c) => { ctx.fillStyle = tint ? shade(c) : c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
-  const pa = (x, y, w, h, c, a) => {
-    if (a <= 0.01) return;
-    ctx.globalAlpha = Math.min(1, a);
-    ctx.fillStyle = c;
-    ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
-    ctx.globalAlpha = 1;
-  };
-
-  function discA(cx, cy, r, c, a) {
-    if (a <= 0.01) return;
-    ctx.globalAlpha = Math.min(1, a);
-    ctx.fillStyle = c;
-    for (let y = -r; y <= r; y++) {
-      const half = Math.floor(Math.sqrt(r * r - y * y));
-      ctx.fillRect(Math.round(cx - half), Math.round(cy + y), half * 2 + 1, 1);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function glow(cx, cy, r, c, a) {
-    for (let i = 3; i >= 0; i--) discA(cx, cy, r + i * 2, c, a / (i + 1.6) * 0.5);
-  }
-
-  function disc(cx, cy, r, c) {
-    for (let y = -r; y <= r; y++) {
-      const half = Math.floor(Math.sqrt(r * r - y * y));
-      px(cx - half, cy + y, half * 2 + 1, 1, c);
-    }
-  }
-
-  function line(x0, y0, x1, y1, c, t) {
-    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) | 0 || 1;
-    for (let i = 0; i <= n; i++) px(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, t || 1, t || 1, c);
-  }
-
-  const SKY_DAY = ['#2f8fe8', '#3d9bee', '#4ea8f2', '#63b6f5', '#7cc5f8', '#98d4fa', '#b6e2fc', '#d3effd'];
-  const SKY_NIGHT = ['#04071a', '#070d29', '#0b1437', '#101d49', '#172a5b', '#21396f', '#2e4a85', '#41609a'];
-  const SKY_DUSK = ['#2e2a72', '#4f3687', '#80448c', '#b4538a', '#e0657a', '#f58868', '#ffab5e', '#ffd27a'];
-
-  function skyColor(pos, dusk) {
-    const f = pos * 7, i = Math.min(6, Math.floor(f)), k = f - i;
-    const d = mix(SKY_DAY[i], SKY_DAY[i + 1], k);
-    const n = mix(SKY_NIGHT[i], SKY_NIGHT[i + 1], k);
-    const u = mix(SKY_DUSK[i], SKY_DUSK[i + 1], k);
-    return mix(mix(d, n, nk), u, dusk * 0.8);
-  }
-
-  function drawSky() {
-    const hz = Math.round(H * 0.44);
-    const dusk = Math.sin(Math.PI * nk);
-    const N = 30, bh = hz / N;
-    for (let i = 0; i < N; i++) {
-      ctx.fillStyle = skyColor(i / (N - 1), dusk);
-      ctx.fillRect(0, Math.round(i * bh), W, Math.ceil(bh) + 1);
-    }
-    return hz;
-  }
-
-  function drawAurora(t, hz) {
-    const a = clamp((nk - 0.6) / 0.4);
-    if (a < 0.03) return;
-    for (let x = 0; x < W; x++) {
-      const base = hz * 0.36 + Math.sin(x * 0.06 + t * 0.35) * 6 + Math.sin(x * 0.13 - t * 0.5) * 2.5;
-      const hgt = 14 + Math.sin(x * 0.045 + t * 0.2) * 5;
-      const col = mix('#3dffb0', '#9a6bff', 0.5 + 0.5 * Math.sin(x * 0.05 + t * 0.2));
-      for (let j = 0; j < 6; j++) pa(x, base - hgt + j * hgt / 6, 1, hgt / 6 + 1, col, a * 0.1 * (j + 1) / 6);
-    }
-  }
-
-  function drawStars(t, hz) {
-    const a = clamp((nk - 0.22) / 0.5);
-    if (a < 0.03) return;
-    for (const s of stars) {
-      const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph));
-      const y = s.y * hz * 0.92;
-      pa(s.x, y, 1, 1, s.c, a * tw);
-      if (s.big) {
-        pa(s.x - 1, y, 3, 1, s.c, a * tw * 0.45);
-        pa(s.x, y - 1, 1, 3, s.c, a * tw * 0.45);
-      }
-    }
-  }
-
-  function drawShooting(t, hz) {
-    if (nk < 0.8) return;
-    const slot = Math.floor(t / 5), f = t / 5 - slot;
-    if (f > 0.22) return;
-    const rr = rnd(slot * 7919 + 13);
-    const x0 = rr() * W * 0.8 + 30, y0 = rr() * hz * 0.35 + 3, p = f / 0.22;
-    const x = x0 - p * 38, y = y0 + p * 20;
-    const a = (nk - 0.8) / 0.2 * (1 - p * 0.5);
-    for (let i = 0; i < 11; i++) pa(x + i * 1.9, y - i, 1, 1, '#ffffff', (1 - i / 11) * a);
-    glow(x, y, 1, '#cfe0ff', a * 0.5);
-  }
-
-  function drawSun(t, hz) {
-    const vis = 1 - clamp((nk - 0.55) / 0.35);
-    if (vis <= 0.01) return;
-    const e = ease(clamp(nk / 0.85));
-    const sx = W * (0.26 + 0.4 * e), sy = hz * (0.2 + 1.0 * e);
-    if (sy > hz + 14) return;
-    const warm = clamp(nk * 2.4);
-    const core = mix('#ffe45c', '#ff6a2a', warm);
-    const halo = mix('#fff6b0', '#ff9a50', warm);
-    glow(sx, sy, 9, halo, 0.55 * vis);
-    for (let i = 0; i < 12; i++) {
-      const ang = t * 0.22 + i * Math.PI / 6;
-      const len = 13 + Math.sin(t * 2.2 + i * 1.7) * 2.2 + (i % 2) * 3;
-      for (let r = 9; r < len; r++) {
-        pa(sx + Math.cos(ang) * r, sy + Math.sin(ang) * r, 1, 1, halo, vis * (1 - (r - 9) / (len - 8)) * 0.8);
-      }
-    }
-    discA(sx, sy, 6, core, vis);
-    discA(sx - 1, sy - 1, 4, mix('#fff7c2', '#ffb070', warm), vis);
-  }
-
-  function drawMoon(t, hz) {
-    const k = clamp((nk - 0.12) / 0.88);
-    if (k <= 0.01) return;
-    const mx = W * (0.12 + 0.24 * nk), my = hz * (1.1 - 0.84 * ease(k));
-    if (my > hz + 14) return;
-    const pulse = 0.85 + Math.sin(t * 1.3) * 0.1;
-    glow(mx, my, 8, '#cfd8ff', 0.3 * pulse * k);
-    discA(mx, my, 6, '#fff3c4', k);
-    discA(mx + 1, my - 1, 5, '#fffbe6', k * 0.8);
-    pa(mx - 3, my - 1, 2, 2, '#e3d8a2', k);
-    pa(mx + 1, my + 2, 2, 2, '#e3d8a2', k);
-    pa(mx - 1, my - 4, 1, 1, '#e3d8a2', k);
-    pa(mx + 2, my - 2, 1, 1, '#e3d8a2', k);
-  }
-
-  function drawClouds(t, dusk) {
-    const cw = mix(mix('#ffffff', '#5b6aa8', nk * 0.9), '#ffb89a', dusk * 0.6);
-    const cs = mix(mix('#cfe9ff', '#36427c', nk * 0.9), '#d98a8a', dusk * 0.5);
-    for (const c of clouds) {
-      const cx = ((c.x + t * c.sp * (c.far ? 0.7 : 1.3)) % (W + 70)) - 35;
-      const x = cx - 20, y = c.y, w = c.w;
-      const al = c.far ? 0.75 : 1;
-      pa(x + 2, y + 3, w - 4, 4, cw, al); pa(x, y + 5, w, 3, cw, al);
-      pa(x + 5, y + 1, w * 0.35, 3, cw, al); pa(x + w * 0.5, y, w * 0.3, 4, cw, al);
-      pa(x + 1, y + 8, w - 2, 1, cs, al);
-      if (nk > 0.3) pa(x + w * 0.5, y, w * 0.3, 1, '#dfe6ff', 0.5 * nk * al);
-    }
-  }
-
-  function drawBirds(t, hz) {
-    const a = 1 - clamp(nk * 2.5);
-    if (a < 0.05) return;
-    for (const b of birds) {
-      const x = ((t * b.sp + b.off) % (W + 40)) - 20;
-      const y = hz * b.y * 2.2 + Math.sin(t * 0.9 + b.ph) * 3;
-      const up = Math.sin(t * 11 + b.ph) > 0;
-      pa(x, y, 1, 1, '#2c3a58', a);
-      if (up) { pa(x - 2, y - 1, 2, 1, '#2c3a58', a); pa(x + 1, y - 1, 2, 1, '#2c3a58', a); }
-      else { pa(x - 2, y, 2, 1, '#2c3a58', a); pa(x + 1, y, 2, 1, '#2c3a58', a); }
-    }
-  }
-
-  function drawBats(t, hz) {
-    const a = clamp((nk - 0.5) * 2);
-    if (a < 0.05) return;
-    for (const b of bats) {
-      const x = W + 20 - (((t * b.sp + b.off) % (W + 40)));
-      const y = hz * (0.34 + b.y) + Math.sin(t * 3 + b.ph) * 4;
-      const up = Math.sin(t * 14 + b.ph) > 0;
-      pa(x, y, 1, 1, '#05081c', a);
-      if (up) { pa(x - 2, y - 1, 2, 1, '#05081c', a); pa(x + 1, y - 1, 2, 1, '#05081c', a); }
-      else { pa(x - 2, y, 2, 1, '#05081c', a); pa(x + 1, y, 2, 1, '#05081c', a); }
-    }
-  }
-
-  function drawHaze(hz, dusk) {
-    if (dusk < 0.03) return;
-    const g = ctx.createLinearGradient(0, hz - 22, 0, hz + 12);
-    g.addColorStop(0, 'rgba(255,150,80,0)');
-    g.addColorStop(0.55, `rgba(255,150,80,${(0.26 * dusk).toFixed(3)})`);
-    g.addColorStop(1, 'rgba(255,150,80,0)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, hz - 22, W, 34);
-  }
-
-  function drawVignette() {
-    if (nk < 0.03) return;
-    const g = ctx.createRadialGradient(W / 2, H * 0.52, W * 0.3, W / 2, H * 0.52, Math.max(W, H) * 0.78);
-    g.addColorStop(0, 'rgba(5,8,30,0)');
-    g.addColorStop(1, `rgba(5,8,30,${(0.5 * nk).toFixed(3)})`);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  // ===== детальная сцена: горы, лес, озеро, ручей, деревня, мельница, поляна =====
-  const rs = rnd(20260);
-  const PINES = Array.from({ length: 64 }, (_, i) => ({ x: i * (W / 64) + rs() * 3, h: 9 + rs() * 8, c: rs() > 0.5 ? 0 : 1 }));
-  const TUFTS2 = Array.from({ length: 150 }, () => ({ x: rs(), y: rs(), l: rs() > 0.5, ph: rs() * 6 }));
-  const FLOW2 = Array.from({ length: 110 }, () => ({
-    x: rs(), y: rs(), c: ['#ffd23f', '#ff6b8a', '#ffffff', '#b98bff', '#ff9a3c', '#6fd0ff'][(rs() * 6) | 0], ph: rs() * 6,
-  }));
-  const ROCKS = Array.from({ length: 9 }, () => ({ x: rs(), y: 0.3 + rs() * 0.65, s: 2 + ((rs() * 3) | 0) }));
-  const MUSH = Array.from({ length: 7 }, () => ({ x: rs(), y: 0.5 + rs() * 0.45 }));
-  let WINS = [];
-  let LAMPS = [];
-
-  const mtnA = (x) => 28 + Math.abs(Math.sin(x * 0.034 + 1.2)) * 34 + Math.sin(x * 0.17) * 2.6 + Math.sin(x * 0.46) * 1.2;
-  const mtnB = (x) => 12 + Math.abs(Math.sin(x * 0.055 + 4)) * 22 + Math.sin(x * 0.21) * 2.2;
-  const hillH = (x) => 8 + Math.sin(x * 0.04 + 2) * 3.2 + Math.sin(x * 0.13) * 1.3;
-
-  const lakeOf = (hz) => ({ cx: Math.round(W * 0.27), cy: Math.round(hz + (H - hz) * 0.16), rx: Math.round(W * 0.2), ry: 9 });
-  const pathCx = (hz, y) => {
-    const k = clamp((y - hz) / (H - hz));
-    return W * 0.5 + W * 0.17 * Math.pow(1 - k, 1.6) + Math.sin(k * 5) * 5;
-  };
-  const pathHalf = (hz, y) => (4 + clamp((y - hz) / (H - hz)) * 22) / 2;
-  const streamAt = (hz, y) => {
-    const L = lakeOf(hz);
-    const k = clamp((y - L.cy) / (H - L.cy));
-    return [L.cx + 12 + Math.sin(k * 5) * 8 + k * 34, 4 + k * 12];
-  };
-
-  function drawFar(hz) {
-    WINS = [];
-    LAMPS = [];
-    // дальние снежные горы
-    for (let x = 0; x < W; x++) {
-      const h = Math.round(mtnA(x));
-      const slope = mtnA(x + 2) - mtnA(x - 2);
-      const base = slope > 0.5 ? '#7a9fcc' : slope < -0.5 ? '#a3c3e8' : '#8db1db';
-      px(x, hz - h, 1, h, base);
-      for (let y = 8; y < h - 6; y += 7) px(x, hz - h + y + ((x * 7) % 4), 1, 1, '#7fa4d0');
-      const snow = h - 36;
-      if (snow > 0) {
-        const ragged = x % 3 === 0 ? 2 : x % 5 === 0 ? -1 : 0;
-        const sh = Math.min(h, snow + 4 + ragged);
-        px(x, hz - h, 1, sh, slope > 0.5 ? '#cfe3f7' : '#f6fbff');
-      }
-    }
-    // средние горы
-    for (let x = 0; x < W; x++) {
-      const h = Math.round(mtnB(x));
-      const slope = mtnB(x + 2) - mtnB(x - 2);
-      px(x, hz - h, 1, h, slope > 0.4 ? '#4d7fb0' : slope < -0.4 ? '#6a9ccb' : '#5b8fc0');
-      if (h > 26) px(x, hz - h, 1, 2, '#dcecfa');
-    }
-    pa(0, hz - 16, W, 16, '#ffffff', 0.09);
-    // холмы и сосновый лес
-    for (let x = 0; x < W; x++) {
-      const h = Math.round(hillH(x));
-      px(x, hz - h, 1, h + 1, '#3f8f4a');
-    }
-    for (const p of PINES) {
-      const x = Math.round(p.x);
-      const by = hz - Math.round(hillH(x)) + 3;
-      const dark = p.c ? '#1f6b3a' : '#2a7a44';
-      const lite = '#3f9a55';
-      for (let i = 0; i < 4; i++) {
-        const w = 1 + i;
-        const y = by - p.h + i * Math.round(p.h / 4);
-        px(x - w, y, w * 2 + 1, Math.round(p.h / 4) + 1, dark);
-        px(x - w, y, 1, Math.round(p.h / 4) + 1, lite);
-      }
-      px(x, by - 1, 1, 2, '#4a2e16');
-    }
-  }
-
-  function drawMeadow(hz, t) {
-    const greens = ['#86d654', '#7cd04c', '#72c846', '#68bf40', '#5fb63a', '#56ac34', '#4ea22f', '#469929'];
-    const gh = Math.ceil((H - hz) / greens.length);
-    greens.forEach((c, i) => px(0, hz + i * gh, W, gh + 1, c));
-    // лёгкие полосы скошенной травы
-    for (let y = hz + 6; y < H; y += 9) pa(0, y, W, 4, '#ffffff', 0.035);
-    for (let x = 0; x < W; x++) {
-      const h = 3 + Math.sin(x * 0.07 + 0.5) * 2.4;
-      px(x, hz - h + 1, 1, h + 1, '#74cc4c');
-    }
-    for (const g of TUFTS2) {
-      const x = g.x * W, y = hz + 8 + g.y * (H - hz - 10);
-      const sw = Math.round(Math.sin(t * 1.5 + g.ph) * 0.6);
-      const c = g.l ? '#8fe05c' : '#3d8f2a';
-      px(x + sw, y, 1, 3, c); px(x + 1, y + 1, 1, 2, c); px(x - 1, y + 1, 1, 2, c);
-    }
-
-    // озеро с песчаным берегом
-    const L = lakeOf(hz);
-    for (let yy = -L.ry - 2; yy <= L.ry + 2; yy++) {
-      const half = Math.floor((L.rx + 3) * Math.sqrt(Math.max(0, 1 - Math.pow(yy / (L.ry + 2.2), 2))));
-      px(L.cx - half, L.cy + yy, half * 2 + 1, 1, '#e6d49a');
-    }
-    for (let yy = -L.ry; yy <= L.ry; yy++) {
-      const half = Math.floor(L.rx * Math.sqrt(Math.max(0, 1 - Math.pow(yy / L.ry, 2))));
-      const k = (yy + L.ry) / (2 * L.ry);
-      px(L.cx - half, L.cy + yy, half * 2 + 1, 1, mix('#59c2f6', '#2678c4', k));
-      if (yy < -L.ry + 3) {
-        for (let x = L.cx - half; x < L.cx + half; x += 3) if ((x + yy) % 2 === 0) px(x, L.cy + yy, 2, 1, '#6a9ccb');
-      }
-      for (let x = L.cx - half; x < L.cx + half; x += 7) {
-        if ((x + yy * 3 + Math.floor(t * 3)) % 9 === 0) px(x, L.cy + yy, 3, 1, '#a8e4ff');
-      }
-    }
-    for (let i = 0; i < 16; i++) {
-      const x = L.cx + Math.sin(i * 2.3) * L.rx * 0.75;
-      const y = L.cy + Math.cos(i * 3.1) * L.ry * 0.6;
-      if (Math.sin(t * 2.2 + i * 1.7) > 0.55) px(x, y, 2, 1, '#ffffff');
-    }
-    // кувшинки и камыш
-    for (const [dx, dy] of [[-14, 3], [8, 4], [18, -2], [-4, -3]]) {
-      px(L.cx + dx, L.cy + dy, 4, 2, '#3fa84a'); px(L.cx + dx + 1, L.cy + dy - 1, 2, 1, '#ff9ac1');
-    }
-    for (let i = 0; i < 9; i++) {
-      const a = i * 0.7 + 3.3;
-      const x = L.cx + Math.cos(a) * (L.rx + 1), y = L.cy + Math.sin(a) * (L.ry + 1);
-      const sw = Math.round(Math.sin(t * 1.4 + i) * 0.6);
-      px(x, y - 6, 1, 7, '#3c8d2f'); px(x + sw, y - 8, 1, 3, '#7a4a26');
-    }
-
-    // ручей из озера
-    for (let y = L.cy + L.ry; y < H; y++) {
-      const [sx, w] = streamAt(hz, y);
-      px(sx - w / 2 - 1, y, w + 2, 1, '#e6d49a');
-      px(sx - w / 2, y, w, 1, '#3b95dc');
-      if ((y + Math.floor(t * 4)) % 6 === 0) px(sx - w / 4, y, w / 2, 1, '#9be0ff');
-    }
-
-    // тропинка к деревне
-    for (let y = hz + 12; y < H; y++) {
-      const cx = pathCx(hz, y), w = pathHalf(hz, y) * 2;
-      px(cx - w / 2 - 1, y, w + 2, 1, '#a8854f');
-      px(cx - w / 2, y, w, 1, '#dcbc7a');
-      px(cx - w / 2, y, 1, 1, '#b8955a'); px(cx + w / 2 - 1, y, 1, 1, '#b8955a');
-      if (y % 6 === 0) px(cx - w / 4, y, 2, 1, '#c4a368');
-      if (y % 9 === 0) px(cx + w / 5, y, 1, 1, '#9a7a48');
-    }
-    // мостик
-    const by = Math.round(hz + (H - hz) * 0.6);
-    const [bsx, bw] = streamAt(hz, by);
-    const bx0 = Math.round(bsx - bw / 2 - 6), bw2 = Math.round(bw + 12);
-    for (let y = by - 4; y <= by + 4; y++) {
-      px(bx0, y, bw2, 1, y % 2 ? '#a8713c' : '#8a5429');
-    }
-    px(bx0, by - 5, bw2, 1, '#5c3519'); px(bx0, by + 5, bw2, 1, '#5c3519');
-    for (let i = 0; i <= 4; i++) { px(bx0 + Math.round(i * (bw2 - 1) / 4), by - 8, 1, 4, '#6b4424'); px(bx0 + Math.round(i * (bw2 - 1) / 4), by + 5, 1, 4, '#6b4424'); }
-
-    // камни
-    for (const r of ROCKS) {
-      const x = r.x * W, y = hz + 10 + r.y * (H - hz - 14);
-      px(x, y, r.s + 2, r.s, '#8a8f9c'); px(x, y, r.s + 2, 1, '#b4b9c6'); px(x + r.s, y + 1, 2, r.s - 1, '#6d7280');
-    }
-  }
-
-  function drawMill(hz, t) {
-    const x = Math.round(W * 0.86), base = hz + 20;
-    for (let i = 0; i < 26; i++) {
-      const w = 12 - Math.floor(i * 0.22);
-      px(x - w / 2, base - 26 + i, w, 1, i % 4 === 3 ? '#b98a55' : '#d9aa6d');
-      px(x + w / 2 - 2, base - 26 + i, 2, 1, '#b8854f');
-    }
-    for (let i = 0; i < 26; i += 4) for (let j = 0; j < 12; j += 4) px(x - 5 + j + (i % 8 ? 2 : 0), base - 26 + i, 1, 1, '#c79858');
-    px(x - 6, base - 3, 13, 3, '#8a8f9c'); px(x - 6, base - 3, 13, 1, '#b4b9c6');
-    for (let r = 0; r < 7; r++) px(x - 7 + r, base - 27 - r, 15 - r * 2, 1, r % 2 ? '#c9553d' : '#e0674a');
-    px(x - 1, base - 8, 3, 5, '#5a3a1e');
-    px(x - 1, base - 18, 3, 3, '#7ec8ff'); WINS.push([x - 1, base - 18, 3, 3]);
-    const cx = x, cy = base - 21, a = t * 0.9;
-    for (let k = 0; k < 4; k++) {
-      const ang = a + k * Math.PI / 2;
-      const ex = cx + Math.cos(ang) * 18, ey = cy + Math.sin(ang) * 18;
-      line(cx, cy, ex, ey, '#7a5330', 2);
-      for (let q = 5; q < 18; q += 2) {
-        const bx = cx + Math.cos(ang) * q, by = cy + Math.sin(ang) * q;
-        const nx = -Math.sin(ang), ny = Math.cos(ang);
-        px(bx + nx * 2, by + ny * 2, 2, 2, '#f3e3c0'); px(bx + nx * 4, by + ny * 4, 2, 2, '#e2cf9f');
-      }
-    }
-    px(cx - 1, cy - 1, 3, 3, '#5a3a1e');
-    // стога сена
-    for (const [dx, dy] of [[-16, 6], [-10, 8]]) {
-      disc(x + dx, base + dy - 2, 3, '#e6c54f'); px(x + dx - 3, base + dy - 1, 7, 2, '#c9a53a');
-    }
-  }
-
-  function cottage(x, y, w, h, wall, roof, roofLite, t, smoke) {
-    px(x, y - h, w, h, wall);
-    px(x + w - 3, y - h, 3, h, mix(wall, '#000000', 0.12));
-    px(x, y - 3, w, 3, '#8a8f9c'); px(x, y - 3, w, 1, '#b4b9c6');
-    px(x, y - h, 1, h, '#6b4424'); px(x + w - 1, y - h, 1, h, '#6b4424');
-    px(x, y - h + 1, w, 1, '#6b4424'); px(x, y - Math.round(h / 2), w, 1, '#6b4424');
-    for (let r = 0; ; r++) {
-      const rw = w + 6 - 2 * r;
-      if (rw < 2) break;
-      px(x - 3 + r, y - h - 1 - r, rw, 1, r % 2 ? roof : roofLite);
-      if (r % 2) for (let q = 0; q < rw; q += 3) px(x - 3 + r + q, y - h - 1 - r, 1, 1, mix(roof, '#000000', 0.18));
-    }
-    const dx = x + Math.round(w / 2) - 2;
-    px(dx, y - 8, 4, 8, '#6b3f1e'); px(dx, y - 8, 4, 1, '#4a2a10'); px(dx + 3, y - 4, 1, 1, '#ffd23f');
-    px(dx - 1, y - 1, 6, 1, '#b4b9c6');
-    const wx = x + 2, wy = y - h + 3;
-    px(wx, wy, 5, 5, '#7ec8ff'); px(wx + 2, wy, 1, 5, '#5a3a1e'); px(wx, wy + 2, 5, 1, '#5a3a1e');
-    px(wx - 1, wy + 5, 7, 1, '#7a4a26');
-    px(wx, wy + 6, 1, 1, '#ff6b8a'); px(wx + 2, wy + 6, 1, 1, '#ffd23f'); px(wx + 4, wy + 6, 1, 1, '#ffffff');
-    WINS.push([wx, wy, 5, 5]);
-    if (w > 18) { const w2 = x + w - 8; px(w2, wy, 4, 4, '#7ec8ff'); px(w2 + 1, wy, 1, 4, '#5a3a1e'); WINS.push([w2, wy, 4, 4]); }
-    px(x + w - 7, y - h - 7, 3, 6, '#a8674a'); px(x + w - 8, y - h - 8, 5, 1, '#7d4a33');
-    if (smoke) {
-      for (let i = 0; i < 5; i++) {
-        const k = (t * 0.3 + i / 5) % 1;
-        const sx = x + w - 6 + Math.sin(k * 5 + i) * 3, sy = y - h - 9 - k * 22;
-        const s = 2 + Math.round(k * 3);
-        if (k < 0.93) pa(sx, sy, s, s, '#eef3f8', 0.85 - k * 0.5);
-      }
-    }
-  }
-
-  function drawHouse(hz, t) {
-    cottage(Math.round(W * 0.43), hz + 15, 15, 9, '#f0e0b8', '#9a4a3a', '#b25a46', t, false);
-    cottage(Math.round(W * 0.56), hz + 24, 22, 13, '#ead9b0', '#c9452f', '#e0573d', t, true);
-    cottage(Math.round(W * 0.7), hz + 36, 26, 15, '#e8d2a0', '#3f6fb8', '#5a8be0', t, true);
-  }
-
-  function drawFence(hz) {
-    const y = hz + Math.round((H - hz) * 0.45);
-    for (let x = 0; x < W; x += 8) {
-      if (Math.abs(x + 4 - pathCx(hz, y)) < pathHalf(hz, y) + 6) continue;
-      const [sx, sw] = streamAt(hz, y);
-      if (Math.abs(x + 4 - sx) < sw / 2 + 8) continue;
-      px(x, y, 8, 1, '#a8713c'); px(x, y + 4, 8, 1, '#a8713c');
-      px(x + 3, y - 3, 2, 11, '#c08a4d'); px(x + 3, y - 3, 2, 1, '#e0ab68');
-    }
-  }
-
-  function tree(gx, base, s, sway, leaf) {
-    const th = Math.round(34 * s);
-    px(gx + 2, base - th, Math.round(8 * s), th, '#7a4a26');
-    px(gx + 2, base - th, 2, th, '#5c3519'); px(gx + Math.round(8 * s) - 1, base - th, 2, th, '#93603a');
-    px(gx - 1, base - 3, Math.round(12 * s), 3, '#5c3519');
-    const blobs = [[10, -44, 18], [26, -52, 14], [-2, -54, 14], [14, -64, 16], [30, -38, 11], [-4, -36, 11], [12, -46, 12]];
-    const [d, m, l, hl] = leaf;
-    for (const [bx, by, r] of blobs) disc(gx + bx * s + sway, base + by * s, Math.round(r * s), d);
-    for (const [bx, by, r] of blobs) disc(gx + (bx - 2) * s + sway, base + (by - 3) * s, Math.round((r - 4) * s), m);
-    for (const [bx, by, r] of blobs) disc(gx + (bx - 5) * s + sway, base + (by - 6) * s, Math.max(2, Math.round((r - 10) * s)), l);
-    for (let i = 0; i < 14; i++) px(gx + sway + ((i * 37) % 40) * s - 4, base + (-70 + ((i * 53) % 40)) * s, 1, 1, hl);
-  }
-
-  function drawTree(hz, t) {
-    const sway = Math.round(Math.sin(t * 0.8) * 1);
-    const base = hz + Math.round((H - hz) * 0.52);
-    tree(2, base, 1.15, sway, ['#2b7f2f', '#46a83a', '#6cc84a', '#a8e873']);
-    const lx = Math.round(W * 0.43), ly = hz + Math.round((H - hz) * 0.34);
-    px(lx, ly - 18, 2, 24, '#5a3a20'); px(lx - 1, ly + 5, 4, 2, '#3a2a1a'); px(lx - 3, ly - 20, 8, 3, '#3a2a1a');
-    px(lx - 2, ly - 17, 6, 6, '#3a2a1a');
-    px(lx - 1, ly - 16, 4, 4, (Math.sin(t * 5) > 0.2) ? '#ffe9a0' : '#ffd66b');
-    LAMPS.push([lx + 1, ly - 14]);
-    // яблоня справа
-    tree(Math.round(W * 0.8), hz + Math.round((H - hz) * 0.7), 0.85, -sway, ['#3a8f2c', '#58b440', '#7fd356', '#b9f08a']);
-    for (let i = 0; i < 7; i++) px(W * 0.8 + 4 + ((i * 29) % 30) * 0.85 - sway, hz + (H - hz) * 0.7 - 40 - ((i * 17) % 24), 2, 2, '#ff4d4d');
-    // берёзки
-    for (const [bx, bs] of [[W * 0.9, 0.7], [W * 0.95, 0.55]]) {
-      const bb = hz + Math.round((H - hz) * 0.3), h = Math.round(36 * bs);
-      px(bx, bb - h, 3, h, '#f1f1ea');
-      for (let i = 2; i < h - 6; i += 4) px(bx, bb - h + i, 2, 1, '#2b2b2b');
-      disc(bx + 1, bb - h - 4, Math.round(10 * bs), '#6cc84a'); disc(bx - 1, bb - h - 6, Math.round(6 * bs), '#9be56a');
-    }
-  }
-
-  function bush(x, y, r, c1, c2, berry) {
-    disc(x, y, r, c1); disc(x - 1, y - 1, Math.max(1, r - 2), c2);
-    if (berry) for (let i = 0; i < 4; i++) px(x - r + 1 + i * 2, y - 1 + (i % 2) * 2, 1, 1, berry);
-  }
-
-  function drawFlowers(hz, t) {
-    bush(Math.round(W * 0.32), hz + 70, 5, '#2f7d22', '#4aa83a', '#ff4d6b');
-    bush(Math.round(W * 0.62), hz + 62, 4, '#2f7d22', '#4aa83a', '#ffd23f');
-    bush(Math.round(W * 0.75), hz + 84, 6, '#2f7d22', '#4aa83a', null);
-    for (const f of FLOW2) {
-      const y = hz + (H - hz) * (0.3 + f.y * 0.68);
-      const gx = f.x * W;
-      if (Math.abs(gx - pathCx(hz, y)) < pathHalf(hz, y) + 2) continue;
-      const x = gx + Math.round(Math.sin(t * 1.6 + f.ph) * 0.7);
-      px(gx, y + 1, 1, 3, '#2f7d22');
-      px(x - 1, y, 3, 1, f.c); px(x, y - 1, 1, 3, f.c); px(x, y, 1, 1, '#ffb300');
-    }
-    for (const m of MUSH) {
-      const x = m.x * W, y = hz + (H - hz) * m.y;
-      px(x, y, 2, 2, '#f3e3c0'); px(x - 1, y - 2, 4, 2, '#d9453a'); px(x, y - 2, 1, 1, '#ffffff');
-    }
-  }
-
-  function drawNightLights(t, hz) {
-    const a = clamp((nk - 0.3) / 0.5);
-    if (a < 0.03) return;
-    const fl = 0.88 + Math.sin(t * 7) * 0.05 + Math.sin(t * 3.1) * 0.05;
-    for (const [x, y, w, h] of WINS) {
-      glow(x + w / 2, y + h / 2, 3, '#ffcf6b', a * 0.3 * fl);
-      pa(x, y, w, h, '#ffd66b', a * fl);
-      pa(x + Math.floor(w / 2), y, 1, h, '#8a5a24', a);
-      pa(x, y + Math.floor(h / 2), w, 1, '#8a5a24', a);
-    }
-    for (const [x, y] of LAMPS) {
-      glow(x, y, 5, '#ffe08a', a * 0.6 * fl);
-      pa(x - 1, y - 1, 3, 3, '#fff3b0', a);
-      pa(x - 14, y + 18, 30, 4, '#ffe08a', a * 0.1);
-    }
-    const mx = Math.round(W * 0.86), mb = hz + 20;
-    if (Math.sin(t * 2.4) > 0) { glow(mx, mb - 34, 1, '#ff4040', a * 0.6); pa(mx, mb - 34, 1, 1, '#ff7070', a); }
-    const L = lakeOf(hz);
-    for (let i = 0; i < 10; i++) {
-      const s = Math.sin(i * 2.1 + t * 2.4);
-      if (s > 0.2) pa(L.cx + Math.sin(i * 1.7) * L.rx * 0.7, L.cy + Math.cos(i * 2.9) * L.ry * 0.6, 3, 1, '#e8f4ff', a * (0.3 + s * 0.5));
-    }
-  }
-
-  function drawFireflies(t) {
-    const a = clamp((nk - 0.45) / 0.45);
-    if (a < 0.03) return;
-    for (const f of fireflies) {
-      const x = f.ax * W + Math.sin(t * f.sp + f.ph) * f.rx;
-      const y = H * f.ay * 0.97 + Math.sin(t * f.sp * 1.7 + f.ph) * f.ry;
-      const blink = Math.max(0, Math.sin(t * 1.6 + f.ph * 3));
-      const al = a * (0.25 + 0.75 * blink);
-      discA(x, y, 2, '#e8ff7a', al * 0.22);
-      pa(x, y, 1, 1, '#f6ffb0', al);
-    }
-  }
-
-  function drawFlies(t) {
-    const a = 1 - clamp(nk * 2);
-    if (a < 0.05) return;
-    for (const b of flies) {
-      const x = b.ax * W + Math.sin(t * b.sp + b.ph) * b.rx;
-      const y = b.ay * H + Math.sin(t * b.sp * 1.7 + b.ph) * b.ry;
-      const open = Math.sin(t * 9 + b.ph) > 0;
-      pa(x, y, 1, 1, '#3a2a1a', a);
-      if (open) { pa(x - 1, y - 1, 1, 2, b.c, a); pa(x + 1, y - 1, 1, 2, b.c, a); } else pa(x, y - 1, 1, 1, b.c, a);
-    }
-  }
-
-  function drawPollen(t) {
-    for (const p of pollen) {
-      const k = (t * p.sp + p.ph) % 1;
-      const x = (p.x * W + k * 26 + Math.sin(t * 1.3 + p.ph * 9) * 3) % W;
-      const y = H * (0.34 + p.y * 0.6) - k * 14 + Math.sin(t * 0.9 + p.ph * 5) * 2;
-      pa(x, y, 1, 1, nk > 0.5 ? '#9fd8ff' : p.c, Math.sin(k * Math.PI) * (nk > 0.5 ? 0.6 : 0.9));
-    }
-  }
-
-  function advance(ms) {
-    if (!trans) return;
-    const p = clamp((ms - trans.t0) / trans.dur);
-    nk = trans.from + (trans.to - trans.from) * ease(p);
-    if (p >= 1) { nk = trans.to; trans = null; }
-  }
-
-  function draw(ms) {
-    const t = ms / 1000;
-    advance(ms);
-    ctx.setTransform(FINE, 0, 0, FINE, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.clearRect(0, 0, W, H);
-    tint = false;
-    const hz = drawSky();
-    const dusk = Math.sin(Math.PI * nk);
-    drawAurora(t, hz);
-    drawStars(t, hz);
-    drawShooting(t, hz);
-    drawSun(t, hz);
-    drawMoon(t, hz);
-    drawClouds(t, dusk);
-    drawBirds(t, hz);
-    drawBats(t, hz);
-    tint = true;
-    drawFar(hz);
-    drawMeadow(hz, t);
-    drawMill(hz, t);
-    drawHouse(hz, t);
-    drawFence(hz);
-    drawTree(hz, t);
-    drawFlowers(hz, t);
-    tint = false;
-    drawHaze(hz, dusk);
-    drawNightLights(t, hz);
-    drawFireflies(t);
-    drawFlies(t);
-    drawPollen(t);
-    drawVignette();
-  }
-
-  function resize() {
-    const box = cv.parentElement.getBoundingClientRect();
-    const ratio = box.width > 0 ? box.height / box.width : 16 / 9;
-    H = Math.max(160, Math.min(480, Math.round(W * ratio)));
-    cv.width = W * FINE;
-    cv.height = H * FINE;
-    ctx.imageSmoothingEnabled = false;
-    draw(performance.now());
-  }
-
-  let last = 0;
-  function loop(ms) {
-    if (stopped) return;
-    if (!document.hidden && !window.__bgHold && ms - last > 50
-        && !document.documentElement.classList.contains('has-bgvideo')
-        && document.body.dataset.view !== 'chests'
-        && document.documentElement.dataset.theme === 'meadow') { last = ms; draw(ms); }
-    requestAnimationFrame(loop);
-  }
-
-  resize();
-  window.addEventListener('resize', resize);
-  requestAnimationFrame(loop);
-
-  const ANCHOR_WIDE = { x: 0.492, y: 0.561 };
-  const ANCHOR_TALL = { x: 0.493, y: 0.515 };
-  let photoAnchor = ANCHOR_TALL;
-  const BG_BELOW_CENTER = 0.2;
-  let anchorY = 0;
-
-  function alignBg() {
-    const stage = cv.parentElement.getBoundingClientRect();
-    const wheel = document.querySelector('#view-upgrade .wheel-wrap');
-    if (wheel) {
-      const r = wheel.getBoundingClientRect();
-      if (r.width > 0 && Math.abs(r.left + r.width / 2 - (stage.left + stage.width / 2)) < 4) {
-        anchorY = r.top + r.height / 2 - stage.top + r.height * BG_BELOW_CENTER;
-      }
-    }
-    if (!anchorY || !stage.width) return;
-    window.bgAnchorY = anchorY;
-    for (const el of [document.getElementById('bgPhoto'), document.getElementById('bgVideo')]) {
-      const isPhoto = !!el && el.id === 'bgPhoto';
-      if (!el || !el.classList.contains('on') || !(isPhoto ? window.BG_PHOTO_ALIGN : window.BG_VIDEO_ALIGN)) continue;
-      const iw = el.naturalWidth || el.videoWidth, ih = el.naturalHeight || el.videoHeight;
-      if (!iw || !ih) continue;
-      const A = isPhoto ? ANCHOR_WIDE : photoAnchor;
-      let h = Math.max(stage.width / iw * ih, anchorY / A.y, (stage.height - anchorY) / (1 - A.y));
-      let w = h / ih * iw;
-      const left = Math.min(0, Math.max(stage.width - w, stage.width / 2 - w * A.x));
-      const top = Math.min(0, Math.max(stage.height - h, anchorY - h * A.y));
-      el.style.cssText = `inset:auto;left:${left}px;top:${top}px;width:${w}px;height:${h}px;max-width:none`;
-    }
-    window.dispatchEvent(new Event('bgaligned'));
-  }
-  window.alignBg = alignBg;
-  window.addEventListener('resize', alignBg);
-  window.addEventListener('load', () => { alignBg(); setTimeout(alignBg, 400); setTimeout(alignBg, 1500); });
-
-  function setSky(mode, instant) {
-    const night = mode === 'night';
-    document.documentElement.dataset.sky = night ? 'night' : 'day';
-    const to = night ? 1 : 0;
-    if (instant || reduce) {
-      trans = null;
-      nk = to;
-      draw(performance.now());
-    } else if (to !== (trans ? trans.to : nk)) {
-      trans = { from: nk, to, t0: performance.now(), dur: 3000 };
-    }
-  }
-  window.setSky = (mode) => setSky(mode, false);
-  let sky = 'day';
-  try { sky = localStorage.getItem('sky') || 'day'; } catch (e) {}
-  setSky(sky, true);
-})();
-</script>
-<script>
-/* ===== Видео-фон: утро / ночь =====
-   Файлы кладутся в static/ (см. README, раздел «Видео-фон»). Сервер находит их по имени и отдаёт список
-   в /api/bg. Порядок: видео -> картинка Day/Night -> нарисованный canvas-фон.
-   Смена дня/ночи: «занавес» закрывает экран, новый фон полностью догружается за ним и только потом
-   занавес плавно открывается - никаких пустых кадров и дёрганых подгрузок. */
-(function bgVideo() {
-  'use strict';
-  const video = document.getElementById('bgVideo');
-  const photo = document.getElementById('bgPhoto');
-  const veil = document.getElementById('bgVeil');
-  const root = document.documentElement;
-  const done = () => { window.__bgHold = false; root.classList.remove('bg-loading'); if (veil) veil.classList.remove('on'); };
-  if (!video) { done(); return; }
-
-  window.BG_VIDEO_ALIGN = false;   // true - ставить «пенёк» ролика под колесо
-  window.BG_PHOTO_ALIGN = true;    // картинки Day/Night - как раньше, пенёк под колесо
-
-  const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const conn = navigator.connection || {};
-  if (reduce || conn.saveData) { done(); return; }
-
-  video.muted = true; video.defaultMuted = true; video.setAttribute('muted', '');
-
-  const skyNow = () => (root.dataset.sky === 'night' ? 'night' : 'day');
-  if (veil) veil.className = 'bg-veil ' + skyNow();
-
-  let manifest = null;
-  let token = 0;
-  let current = '';
-  let wanted = skyNow();
-  const sticky = {};
-  const failed = new Set();
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-
-  const isSmall = () => Math.min(window.innerWidth, window.innerHeight) <= 820
-    || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-
-  function choose(theme) {
-    const list = ((manifest || {})[theme] || []).filter((c) => !failed.has(c.url) && video.canPlayType(c.type) !== '');
-    if (!list.length) return null;
-    const keys = [...new Set(list.map((c) => c.key))];
-    if (!keys.includes(sticky[theme])) sticky[theme] = keys[Math.floor(Math.random() * keys.length)];
-    const group = list.filter((c) => c.key === sticky[theme]);
-    const small = isSmall();
-    const exact = group.filter((c) => (small ? c.mobile : c.desktop));
-    const neutral = group.filter((c) => !c.mobile && !c.desktop);
-    const generic = group.filter((c) => (small ? !c.desktop : !c.mobile));
-    const pool = exact.length ? exact : neutral.length ? neutral : generic.length ? generic : group;
-    pool.sort((a, b) => (a.type === 'video/mp4' ? 0 : 1) - (b.type === 'video/mp4' ? 0 : 1) || a.size - b.size);
-    return pool[0];
-  }
-
-  function pickImage(theme) {
-    const list = (((manifest || {}).images || {})[theme] || []).filter((c) => !failed.has(c.url));
-    if (!list.length) return null;
-    const small = isSmall();
-    list.sort((a, b) => (b.exact - a.exact)
-      || ((small ? b.mobile : b.desktop) - (small ? a.mobile : a.desktop)) || a.url.localeCompare(b.url));
-    return list[0];
-  }
-
-  // догружает видео (до первого кадра); resolve(true/false)
-  function loadVideo(clip, my) {
-    return new Promise((resolve) => {
-      if (current === clip.url && video.readyState >= 2) { resolve(true); return; }
-      let finished = false;
-      const end = (ok) => {
-        if (finished) return;
-        finished = true; clearTimeout(timer);
-        video.removeEventListener('loadeddata', onOk); video.removeEventListener('error', onErr);
-        resolve(ok);
-      };
-      const onOk = () => end(true);
-      const onErr = () => { failed.add(clip.url); end(false); };
-      const timer = setTimeout(() => { failed.add(clip.url); end(false); }, 15000);
-      video.addEventListener('loadeddata', onOk);
-      video.addEventListener('error', onErr);
-      if (clip.poster) video.poster = clip.poster; else video.removeAttribute('poster');
-      video.src = clip.url;
-      video.load();
-    });
-  }
-
-  function loadPhoto(pick) {
-    return new Promise((resolve) => {
-      if (current === pick.url && photo.complete && photo.naturalWidth) { resolve(true); return; }
-      let finished = false;
-      const end = (ok) => { if (finished) return; finished = true; clearTimeout(timer); resolve(ok); };
-      const timer = setTimeout(() => { failed.add(pick.url); end(false); }, 15000);
-      photo.onload = () => { (photo.decode ? photo.decode().catch(() => {}) : Promise.resolve()).then(() => end(true)); };
-      photo.onerror = () => { failed.add(pick.url); end(false); };
-      photo.src = pick.url;
-    });
-  }
-
-  function play() {
-    const pr = video.play();
-    if (pr && pr.catch) pr.catch(() => {
-      window.addEventListener('pointerdown', () => { video.play().catch(() => {}); }, { once: true, passive: true });
-    });
-  }
-
-  // подготовить фон для темы (за закрытым занавесом) -> 'video' | 'photo' | null
-  async function prepare(theme, my) {
-    for (let i = 0; i < 4; i += 1) {
-      if (my !== token) return 'stale';
-      const clip = choose(theme);
-      if (clip) {
-        if (await loadVideo(clip, my)) { current = clip.url; return 'video'; }
-        continue;
-      }
-      const pick = pickImage(theme);
-      if (pick) {
-        if (await loadPhoto(pick)) { current = pick.url; return 'photo'; }
-        continue;
-      }
-      return null;
-    }
-    return null;
-  }
-
-  async function transition(theme, first) {
-    wanted = theme;
-    if (!manifest) return;
-    const my = ++token;
-    if (veil) {
-      veil.classList.toggle('night', theme === 'night');
-      veil.classList.toggle('day', theme !== 'night');
-      if (!first) { veil.classList.add('on'); await wait(330); }
-    }
-    const kind = await prepare(theme, my);
-    if (kind === 'stale' || my !== token) return;
-    video.classList.toggle('on', kind === 'video');
-    photo.classList.toggle('on', kind === 'photo');
-    if (kind === 'video') play(); else { try { video.pause(); } catch (e) {} }
-    root.classList.toggle('has-bgvideo', !!kind);
-    if (window.alignBg) window.alignBg();
-    await wait(60);                 // даём кадру отрисоваться и только потом открываем занавес
-    if (my !== token) return;
-    done();
-  }
-
-  // переключатель день/ночь
-  const prevSetSky = window.setSky;
-  window.setSky = (mode) => {
-    if (prevSetSky) prevSetSky(mode);
-    transition(mode === 'night' ? 'night' : 'day', false);
-  };
-
-  // экономим батарею: пауза, пока приложение свёрнуто
-  const pauseIf = (hidden) => {
-    if (!video.classList.contains('on')) return;
-    if (hidden) { try { video.pause(); } catch (e) {} } else play();
-  };
-  document.addEventListener('visibilitychange', () => pauseIf(document.hidden));
-  try {
-    const wa = window.Telegram && window.Telegram.WebApp;
-    if (wa && wa.onEvent) { wa.onEvent('activated', () => pauseIf(false)); wa.onEvent('deactivated', () => pauseIf(true)); }
-  } catch (e) {}
-
-  let rz = 0;
-  window.addEventListener('resize', () => {
-    clearTimeout(rz);
-    rz = setTimeout(() => {
-      if (!manifest || !video.classList.contains('on')) return;
-      const c = choose(wanted);
-      if (c && c.url !== current) transition(wanted, false);
-    }, 500);
-  });
-
-  // страховка: не держим экран закрытым дольше 3 с, если манифест не пришёл
-  setTimeout(() => { if (!manifest) done(); }, 3000);
-
-  Promise.resolve(window.__bgManifest).then((m) => {
-    manifest = m && typeof m === 'object' ? m : null;
-    const imgs = (manifest && manifest.images) || {};
-    if (!manifest || (!(manifest.day || []).length && !(manifest.night || []).length
-        && !(imgs.day || []).length && !(imgs.night || []).length)) { done(); return; }
-    transition(skyNow(), true);
-  }).catch(done);
-})();
-</script>
-<script>
-(function pixelGifts() {
-  'use strict';
-  const SIZE = 64;
-  const memo = new Map();
-
-  function crush(img) {
-    const iw = img.naturalWidth, ih = img.naturalHeight;
-    if (!iw || !ih) return null;
-    const k = Math.min(1, SIZE / Math.max(iw, ih));
-    const w = Math.max(8, Math.round(iw * k)), h = Math.max(8, Math.round(ih * k));
-    let cur = img, cw = iw, ch = ih;
-    while (cw / 2 > w) {
-      const c = document.createElement('canvas');
-      cw = Math.round(cw / 2); ch = Math.round(ch / 2);
-      c.width = cw; c.height = ch;
-      c.getContext('2d').drawImage(cur, 0, 0, cw, ch);
-      cur = c;
-    }
-    const cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    const ctx = cv.getContext('2d', { willReadFrequently: true });
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(cur, 0, 0, w, h);
-    const d = ctx.getImageData(0, 0, w, h);
-    for (let i = 0; i < d.data.length; i += 4) {
-      d.data[i + 3] = d.data[i + 3] < 110 ? 0 : 255;
-      for (let c = 0; c < 3; c++) d.data[i + c] = Math.round(d.data[i + c] / 6) * 6;
-    }
-    ctx.putImageData(d, 0, 0);
-    return cv.toDataURL('image/png');
-  }
-
-  document.addEventListener('load', (e) => {
-    const img = e.target;
-    if (!(img instanceof HTMLImageElement)) return;
-    if (img._pxOut && img.src === img._pxOut) return;
-    if (!/\/gimg\//.test(img.src)) { img.removeAttribute('data-px'); return; }
-    if (document.documentElement.dataset.theme !== 'meadow') { img.removeAttribute('data-px'); return; }
-    const src = img.src;
-    try {
-      let out = memo.get(src);
-      if (!out) {
-        out = crush(img);
-        if (!out) return;
-        if (memo.size > 400) memo.clear();
-        memo.set(src, out);
-      }
-      img._pxOut = out;
-      img.setAttribute('data-px', '1');
-      img.src = out;
-    } catch (err) { /* кросс-доменная картинка: оставляем как есть */ }
-  }, true);
-})();
-</script>
+<script src="/static/village-scene.js?v=1"></script>
 <script>
 (function () {
   'use strict';
@@ -6692,35 +5983,11 @@ function initSwipeTabs() {
   }, { passive: true });
 }
 
-function viewGhost(view) {
-  const content = document.querySelector('.content');
-  const stage = document.querySelector('.stage');
-  const cr = content.getBoundingClientRect();
-  const sr = stage.getBoundingClientRect();
-  const vr = view.getBoundingClientRect();
-  const box = document.createElement('div');
-  box.className = 'view-ghost';
-  box.style.cssText = `left:${cr.left - sr.left}px;top:${cr.top - sr.top}px;width:${cr.width}px;height:${cr.height}px`;
-  const copy = view.cloneNode(true);
-  copy.removeAttribute('id');
-  copy.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
-  copy.querySelectorAll('button, input').forEach((n) => { n.tabIndex = -1; n.disabled = true; });
-  copy.style.cssText = `position:absolute;left:${vr.left - cr.left}px;top:${vr.top - cr.top}px;width:${vr.width}px;margin:0`;
-  box.appendChild(copy);
-  return { box, stage };
-}
-
-function slideViews(ghost, next, dir) {
-  const out = dir > 0 ? 'out-left' : 'out-right';
-  const inn = dir > 0 ? 'in-right' : 'in-left';
-  ghost.stage.appendChild(ghost.box);
-  ghost.box.classList.add(out);
-  next.classList.remove('in-right', 'in-left');
-  void next.offsetWidth;
-  next.classList.add(inn);
-  const done = () => { ghost.box.remove(); next.classList.remove(inn); };
-  ghost.box.addEventListener('animationend', done, { once: true });
-  setTimeout(done, VIEW_SLIDE_MS + 120);
+function slideView(next, dir) {
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (calm || !next.animate) return;
+  next.animate([{ opacity: .6, transform: `translateX(${dir * 20}px)` }, { opacity: 1, transform: 'translateX(0)' }],
+    { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' });
 }
 
 const VIEWS = ['menu', 'chests', 'leaders', 'upgrade', 'profile'];
@@ -6731,9 +5998,6 @@ let currentView = 'upgrade';
 function showView(name) {
   if (!VIEWS.includes(name)) return;
   const prevName = currentView;
-  const prevEl = $(`view-${prevName}`);
-  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const ghost = prevEl && !prevEl.hidden && prevName !== name && !calm ? viewGhost(prevEl) : null;
   document.querySelectorAll('.view-ghost').forEach((g) => g.remove());
 
   for (const v of VIEWS) $(`view-${v}`).hidden = v !== name;
@@ -6745,7 +6009,7 @@ function showView(name) {
   document.querySelector('.content').scrollTop = 0;
   applyBodyTierClass();
   document.body.dataset.view = name;
-  if (ghost) slideViews(ghost, $(`view-${name}`), VIEW_POS[name] > VIEW_POS[prevName] ? 1 : -1);
+  if (prevName !== name) slideView($(`view-${name}`), VIEW_POS[name] > VIEW_POS[prevName] ? 1 : -1);
   if (name === 'upgrade' && window.alignBg) setTimeout(window.alignBg, VIEW_SLIDE_MS + 150);
 }
 
@@ -6955,8 +6219,6 @@ let cxRound = null;
 let cxEnd = null;
 let cxBusy = false;
 let cxStamp = 0;
-let cxSource = 'ton';
-let cxPrize = null;
 let cxEmpties = 3;
 
 const cxCfg = () => (state && state.config && state.config.chests) || null;
@@ -6968,7 +6230,6 @@ function cxSetHint(text, cls = '') {
 }
 
 function cxBet() {
-  if (cxSource === 'gift') return cxPrize ? cxPrize.value_ton : 0;
   const v = parseFloat(String($('cxBetInput').value).replace(',', '.'));
   return Number.isFinite(v) ? Math.round(v * 100) / 100 : 0;
 }
@@ -7010,45 +6271,6 @@ function cxBuild() {
   }
 }
 
-function cxRenderGifts() {
-  const cfg = cxCfg();
-  const box = $('cxGiftGrid');
-  box.textContent = '';
-  const items = ((state && state.prizes) || [])
-    .filter((p) => p.status === 'owned' && p.tier !== 'bear' && p.value_ton >= cfg.min_bet && p.value_ton <= cfg.max_bet)
-    .sort((a, b) => b.value_ton - a.value_ton);
-  if (!items.length) {
-    const note = document.createElement('p');
-    note.className = 'cx-note muted';
-    note.textContent = tr('У тебя нет подарков для ставки');
-    box.appendChild(note);
-    return;
-  }
-  for (const p of items) {
-    const b = gpTile('', trName(p.name), p.value_ton, p.image || hatAsset(p.tier), !!(cxPrize && cxPrize.id === p.id), '');
-    b.dataset.gift = p.id;
-    box.appendChild(b);
-  }
-}
-
-function cxOpenGiftModal() {
-  cxRenderGifts();
-  $('cxGiftModal').hidden = false;
-}
-
-function cxSyncBetUI() {
-  const giftsOn = !!(cxCfg() && cxCfg().gift_bets);
-  $('cxGiftBtn').hidden = !giftsOn;
-  if (!giftsOn && cxSource === 'gift') { cxSource = 'ton'; cxPrize = null; }
-  const gift = cxSource === 'gift' && cxPrize;
-  const inp = $('cxBetInput');
-  inp.classList.toggle('is-gift', !!gift);
-  if (gift && document.activeElement !== inp) inp.value = String(cxPrize.value_ton);
-  $('cxGiftBtn').classList.toggle('on', !!gift);
-  const im = $('cxGiftBtnImg');
-  if (gift) { im.src = cxPrize.image || hatAsset(cxPrize.tier); im.hidden = false; } else { im.hidden = true; }
-}
-
 function cxUpdateButton() {
   const cfg = cxCfg();
   if (!cfg || !state) return;
@@ -7065,10 +6287,7 @@ function cxUpdateButton() {
   let enough = true;
   let label;
   dep.hidden = true;
-  if (cxSource === 'gift') {
-    enough = !!cxPrize;
-    label = enough ? tr('Играть подарком') : tr('Выбери подарок');
-  } else if (bet < cfg.min_bet || bet > cfg.max_bet) {
+  if (bet < cfg.min_bet || bet > cfg.max_bet) {
     enough = false;
     label = tr('Ставка {min}–{max} TON', { min: fmt(cfg.min_bet, 2), max: fmt(cfg.max_bet, 0) });
   } else if (state.balance_ton + 1e-9 < bet) {
@@ -7091,24 +6310,17 @@ function cxDraw() {
   const opened = new Set(r ? r.opened : end ? end.opened : []);
   const bad = new Set(end ? end.bad : []);
   const cells = $('cxGrid').children;
-  const visible = !$('view-chests').hidden;
   for (let i = 0; i < cells.length; i += 1) {
     const b = cells[i];
     let cls = 'cx-cell';
     let kind = 'closed';
-    let fx = '';
-    if (opened.has(i)) { cls += ' gold'; kind = 'gold'; fx = 'fx-flip'; }
-    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; kind = 'empty'; fx = end.hit === i ? 'fx-boom' : 'fx-fade'; }
-    else if (end) { cls += ' ghost'; kind = 'gold'; fx = 'fx-fade'; }
+    if (opened.has(i)) { cls += ' gold'; kind = 'gold'; }
+    else if (bad.has(i)) { cls += end.hit === i ? ' empty' : ' empty ghost'; kind = 'empty'; }
+    else if (end) { cls += ' ghost'; kind = 'gold'; }
     const was = b._kind;
     if (b._cls !== cls) {
       b._cls = cls;
       b.className = cls;
-      // анимацию запускаем только в момент самого события и только если экран виден
-      if (visible && was !== undefined && was !== kind && kind !== 'closed') {
-        b.classList.add(fx);
-        b.addEventListener('animationend', () => b.classList.remove(fx), { once: true });
-      }
     }
     if (was !== kind) { b._kind = kind; b.firstChild.src = CX_IMG[kind]; }
     const dis = !r || cxBusy || opened.has(i);
@@ -7121,13 +6333,11 @@ function cxDraw() {
   const multEl = $('cxMult');
   if (multEl.textContent !== multTxt) {
     multEl.textContent = multTxt;
-    multEl.classList.remove('pop'); void multEl.offsetWidth; multEl.classList.add('pop');
   }
   $('cxNext').textContent = nxt ? `x${fmt(nxt, 2)}` : '—';
   $('cxWin').textContent = r ? fmt(r.bet * r.mult, 2) : end && end.win ? fmt(end.payout, 2) : '—';
 
   $('cxSetup').hidden = !!r;
-  cxSyncBetUI();
   [...$('cxEmpties').children].forEach((b) => b.classList.toggle('on', Number(b.dataset.n) === cxEmpties));
   cxUpdateButton();
 }
@@ -7141,7 +6351,6 @@ function renderChests() {
     if (state.chest_round) { cxRound = state.chest_round; cxEnd = null; }
     else cxRound = null;
   }
-  if (cxPrize && !(state.prizes || []).some((p) => p.id === cxPrize.id && p.status === 'owned')) { cxPrize = null; cxSource = 'ton'; }
   cxDraw();
 }
 
@@ -7157,7 +6366,6 @@ function cxFail(e) {
   if (c === 'no_round') { cxRound = null; refresh(); cxSetHint(tr('Раунд уже закончился'), 'lose'); return; }
   if (c === 'insufficient_funds') { refresh(); openDeposit(); return; }
   if (c === 'bad_bet') { toast(tr('Ставка {min}–{max} TON', { min: fmt(e.data.min_ton, 2), max: fmt(e.data.max_ton, 0) }), true); return; }
-  if (c === 'not_found') { cxPrize = null; cxSource = 'ton'; refresh(); toast(tr('Подарок недоступен'), true); return; }
   toast(tr('Ошибка запроса'), true);
 }
 
@@ -7165,19 +6373,17 @@ async function cxStart() {
   const cfg = cxCfg();
   if (cxBusy || cxRound || !cfg || !state) return;
   const bet = cxBet();
-  if (cxSource === 'ton' && state.balance_ton + 1e-9 < bet) { openDeposit(); return; }
+  if (state.balance_ton + 1e-9 < bet) { openDeposit(); return; }
   cxBusy = true;
   cxUpdateButton();
   try {
-    const body = { empties: cxEmpties };
-    if (cxSource === 'gift') body.prize_id = cxPrize.id; else body.bet = bet;
+    const body = { empties: cxEmpties, bet };
     const res = await api('/api/chests/start', body);
     cxStamp = Date.now();
     setBalance(res.balance_ton);
     if (res.prizes) { state.prizes = res.prizes; renderPrizes(res.prizes); }
     cxRound = res.round;
     cxEnd = null;
-    if (cxSource === 'gift') { cxPrize = null; cxSource = 'ton'; }
     cxSetHint(tr('Пустых сундуков: {n}. Открывай и забирай вовремя', { n: res.round.empties }));
     haptic('impact', 'light');
   } catch (e) {
@@ -7185,21 +6391,6 @@ async function cxStart() {
   }
   cxBusy = false;
   cxDraw();
-}
-
-function cxSparkAt(i, count = 10) {
-  const el = $('cxGrid').children[i];
-  const st = document.querySelector('.stage');
-  if (!el || !st) return;
-  const r = el.getBoundingClientRect();
-  const s = st.getBoundingClientRect();
-  burstSparks(r.left + r.width / 2 - s.left, r.top + r.height / 2 - s.top, count);
-}
-
-function cxShake() {
-  const g = $('cxGrid');
-  g.classList.remove('shake'); void g.offsetWidth; g.classList.add('shake');
-  setTimeout(() => g.classList.remove('shake'), 560);
 }
 
 function cxShowWin(res) {
@@ -7210,7 +6401,7 @@ function cxShowWin(res) {
   $('cxWinGift').textContent = g ? `${trName(g.name)} · ${tr('в профиле')}` : `x${fmt(res.mult, 2)}`;
   const added = g ? res.ton_part : res.payout_ton;
   $('cxWinSum').textContent = `+${fmt(added, 2)} TON`;
-  setTimeout(() => { $('cxWinModal').hidden = false; }, 120);
+  $('cxWinModal').hidden = false;
 }
 
 function cxFinish(res) {
@@ -7234,11 +6425,10 @@ function cxFinish(res) {
     cxShowWin(res);
   } else {
     haptic('notification', 'error');
-    if (res.cell != null) cxSparkAt(res.cell, 8);
     cxSetHint(tr('Пустой сундук! Ставка сгорела'), 'lose');
     if (res.consolation && res.consolation.first) toast(bearText(), false, 4200);
   }
-  setTimeout(refresh, 1100);   // полное обновление состояния - после анимации раскрытия, а не посреди неё
+  setTimeout(refresh, 0);
 }
 
 async function cxOpen(i) {
@@ -7256,7 +6446,6 @@ async function cxOpen(i) {
     } else {
       cxRound = res.round;
       haptic('impact', 'light');
-      cxSparkAt(i, 10);
       cxSetHint(tr('Золото! Забирай или рискуй дальше'), 'win');
     }
   } catch (e) {
@@ -7297,30 +6486,16 @@ function initChests() {
     const cfg = cxCfg();
     const t = e.target.closest('button');
     if (!t || cxBusy || cxRound || !cfg) return;
-    if (t.id === 'cxGiftBtn') { haptic('impact', 'light'); cxOpenGiftModal(); return; }
-    else if (t.dataset.n) cxEmpties = Number(t.dataset.n);
-    else if (t.dataset.mul) { const b = cxBet(); cxSource = 'ton'; cxSetBet(b * Number(t.dataset.mul)); }
-    else if (t.dataset.max) { cxSource = 'ton'; cxSetBet(Math.min(state.balance_ton, cfg.max_bet)); }
+    if (t.dataset.n) cxEmpties = Number(t.dataset.n);
+    else if (t.dataset.mul) { const b = cxBet(); cxSetBet(b * Number(t.dataset.mul)); }
+    else if (t.dataset.max) { cxSetBet(Math.min(state.balance_ton, cfg.max_bet)); }
     else return;
     haptic('impact', 'light');
     cxDraw();
   });
   const input = $('cxBetInput');
-  $('cxGiftGrid').addEventListener('click', (e) => {
-    const b = e.target.closest('.gp-item');
-    if (!b) return;
-    cxPrize = (state.prizes || []).find((p) => p.id === Number(b.dataset.gift)) || null;
-    cxSource = cxPrize ? 'gift' : 'ton';
-    $('cxGiftModal').hidden = true;
-    haptic('impact', 'light');
-    cxDraw();
-  });
-  $('cxGiftClear').addEventListener('click', () => { cxSource = 'ton'; cxPrize = null; $('cxGiftModal').hidden = true; cxDraw(); });
-  $('cxGiftClose').addEventListener('click', () => { $('cxGiftModal').hidden = true; });
-  $('cxGiftModal').addEventListener('click', (e) => { if (e.target === $('cxGiftModal')) $('cxGiftModal').hidden = true; });
   input.addEventListener('input', () => {
     input.value = input.value.replace(/[^0-9.,]/g, '');
-    if (cxSource === 'gift') { cxSource = 'ton'; cxPrize = null; cxSyncBetUI(); }
     cxUpdateButton();
   });
   input.addEventListener('blur', () => { if (cxCfg() && cxBet() > 0) cxSetBet(cxBet()); cxDraw(); });
@@ -8366,20 +7541,23 @@ function openGiftAccount() {
   else window.open(url, '_blank');
 }
 
-async function refresh() {
-  let s;
-  try {
-    s = await api('/api/state');
-  } catch (e) {
-    toast(e.message === 'HTTP 401' ? tr('Откройте приложение через бота') : tr('Нет связи с сервером'), true);
-    return;
-  }
-  try {
-    renderState(s);
-  } catch (e) {
-    console.error('Ошибка отрисовки:', e);
-    toast(tr('Закрой и открой приложение заново'), true);
-  }
+let refreshPending = null;
+function refresh() {
+  if (refreshPending) return refreshPending;
+  const stamp = cxStamp;
+  refreshPending = (async () => {
+    try {
+      const s = await api('/api/state');
+      if (spinning || cxBusy || cxStamp !== stamp) return;
+      renderState(s);
+    } catch (e) {
+      console.error('State refresh failed:', e);
+      toast(e.message === 'HTTP 401' ? tr('Откройте приложение через бота') : tr('Нет связи с сервером'), true);
+    } finally {
+      refreshPending = null;
+    }
+  })();
+  return refreshPending;
 }
 
 function bind() {
@@ -8952,10 +8130,13 @@ setTier(loadSavedTier(), false);
 initTonConnect();
 refresh().then(async ()=>{window.finishMagicBoot?.();await restoreSavedGift();}).catch(()=>{window.finishMagicBoot?.(true);});
 setInterval(() => {
-  if (spinning) return;
+  if (document.hidden || tg?.isActive === false || spinning || cxBusy || cxRound) return;
   refresh();
   if (currentTier === 'gift' && Date.now() - giftCatalogAt > 120000) loadGiftCatalog(true).catch(() => {});
 }, 20000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !spinning && !cxBusy && !cxRound) refresh();
+});
 
 })();
 </script>
