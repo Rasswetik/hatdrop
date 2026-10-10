@@ -8448,6 +8448,22 @@ function bind() {
   $('giftOpenAccount').addEventListener('click', openGiftAccount);
   $('walletBtn').addEventListener('click', onWalletClick);
 
+  $('modeSlider').addEventListener('input', (e) => selectMode(Number(e.target.value)));
+  const chanceInput = $('chanceInput');
+  const applyChanceInput = () => {
+    if (spinning || !modes.length) { applyMode(); return; }
+    const raw = Number(chanceInput.value);
+    if (!Number.isFinite(raw) || chanceInput.value === '') { applyMode(); return; }
+    const want = Math.round(raw) / 100;
+    let best = 0;
+    modes.forEach((m, i) => { if (Math.abs(m.chance - want) < Math.abs(modes[best].chance - want)) best = i; });
+    selectMode(best);
+    chanceInput.value = String(Math.round(modes[best].chance * 100));
+  };
+  chanceInput.addEventListener('change', applyChanceInput);
+  chanceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chanceInput.blur(); } });
+  chanceInput.addEventListener('blur', applyChanceInput);
+
 
   $('promoForm').addEventListener('submit', activatePromo);
   $('refToggle').addEventListener('click', toggleReferral);
