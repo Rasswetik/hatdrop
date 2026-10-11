@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Панель управления</title><link rel="stylesheet" href="/static/admin.css?v=3"><script src="/static/admin-management.js?v=3" defer></script><script src="/static/admin-controls.js?v=1" defer></script><script src="/static/admin.js?v=4" defer></script></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Панель управления</title><link rel="stylesheet" href="/static/admin.css?v=3"><script src="/static/admin-management.js?v=3" defer></script><script src="/static/admin-controls.js?v=2" defer></script><script src="/static/admin-quests.js?v=1" defer></script><script src="/static/admin.js?v=5" defer></script></head>
 <body>
 <div id="accessGate" class="access-gate"><div class="access-card"><span class="brand-mark">H</span><h1>Панель управления</h1><p id="accessMessage" role="status">Проверяем доступ…</p><a class="button primary" href="/">Открыть HatDrop</a><p class="muted">Откройте панель через профиль администратора в игре.</p></div></div>
 <div id="adminApp" class="admin-app" hidden>
@@ -9,6 +9,7 @@
 <button data-tab="users"><span aria-hidden="true">♙</span>Пользователи</button>
 <button data-tab="withdrawals"><span aria-hidden="true">⇄</span>Выводы</button>
 <button data-tab="promos"><span aria-hidden="true">◇</span>Промокоды</button>
+<button data-tab="quests"><span aria-hidden="true">✦</span>Квесты</button>
 <button data-tab="market"><span aria-hidden="true">▤</span>Маркеты</button>
 <span class="nav-label">НАСТРОЙКИ</span>
 <button data-tab="bot"><span aria-hidden="true">◎</span>Telegram-бот</button>
@@ -30,6 +31,28 @@
 </section>
 <section id="admFinance" hidden><div class="finance-summary metrics" id="financeCards"></div><div class="bottom-grid"><article class="panel"><h2>Добавить доход или расход</h2><p class="muted">Хостинг, комиссии, реклама и другие операции вне игр. Пополнения игроков не являются прибылью. Выводы уже выданных выигрышей не списывайте повторно.</p><form id="financeForm" class="stack-form"><label>Тип операции<select id="financeKind"><option value="expense">Расход</option><option value="income">Доход вне игр</option></select></label><label>Сумма TON<input id="financeAmount" type="number" min="0.0001" step="0.0001" required></label><label>Комментарий<input id="financeNote" maxlength="200" placeholder="Например, комиссия за перевод" required></label><button id="financeSave" class="primary" type="submit">Записать операцию</button><p class="muted">Дата операции — сегодня, по московскому времени. Исправление ошибочной записи: добавьте обратную операцию с пояснением.</p></form></article><article class="panel"><h2>Как считается результат</h2><dl class="status-list"><div><dt>Игровой результат</dt><dd>Ставки − выигрыши</dd></div><div><dt>Итог</dt><dd>Игровой результат + доходы − расходы</dd></div></dl><p class="muted">Подарки учитываются по стоимости на момент выигрыша. Незавершённые игры войдут в статистику после окончания. Балансы и инвентарь игроков показаны отдельно: это обязательства, а не прибыль.</p><p class="muted">Это результат игр и внесённых операций, а не остаток кошелька и не полная бухгалтерская прибыль. Демо-игры учитываются отдельно.</p></article></div><article class="panel"><div class="panel-heading"><h2>Журнал операций</h2><span class="muted">Последние 100 за период</span></div><div class="table-wrap"><table><thead><tr><th>Дата (МСК)</th><th>Операция</th><th>Комментарий</th><th>Сумма TON</th></tr></thead><tbody id="financeRows"></tbody></table></div></article></section>
 {% include 'admin-sections.html' %}
+<section id="admQuests" hidden>
+  <article class="panel"><div class="panel-heading"><div><h2>Система квестов</h2><p>Создавайте задания и награды. До запуска нижняя кнопка в игре остаётся недоступной.</p></div><button id="questsReload" type="button">Обновить</button></div>
+  <label class="quest-launch"><input type="checkbox" id="questsLaunch"> Запустить квесты и разрешить получение наград</label><p class="muted">Запуск включает API заданий. Кнопка в нижнем меню пока остаётся заблокированной до отдельного обновления интерфейса.</p></article>
+  <article class="panel"><h2>Создать или изменить квест</h2>
+   <form class="stack-form" id="questForm">
+    <input type="hidden" id="questId">
+    <label>Название<input required maxlength="80" id="questTitle" placeholder="10 прокрутов рулетки"></label>
+    <label>Описание<input maxlength="240" id="questDescription" placeholder="Завершите задание и получите награду"></label>
+    <label>Тип задания<select required id="questKind"></select></label>
+    <label>Цель: количество или сумма TON<input required type="number" step="any" min="0.000001" id="questGoal" value="1"></label>
+    <label>Порог: депозит TON или шанс апгрейда (%)<input type="number" step="any" min="0" id="questThreshold" value="0"></label>
+    <label>Начало (по московскому времени)<input type="datetime-local" id="questStart"></label>
+    <label>Конец (по московскому времени)<input type="datetime-local" id="questEnd"></label>
+    <label>Личный лимит после первого действия (часов, 0 = без лимита)<input type="number" min="0" max="8760" step="1" value="0" id="questDuration"></label>
+    <label>Награда<select id="questRewardType"><option value="ton">TON на баланс</option><option value="hatcoin">HatCoin</option></select></label>
+    <label>Количество награды<input id="questRewardAmount" type="number" min="0.000001" step="any" value="0.1" required></label>
+    <label class="quest-launch"><input type="checkbox" id="questActive"> Задание активно</label>
+    <div class="adm-form"><button type="submit" class="primary" id="questSave">Сохранить квест</button><button type="button" id="questClear">Очистить форму</button></div>
+   </form>
+  </article>
+  <article class="panel"><h2>Созданные задания</h2><div id="questRows" class="quest-admin-list"></div></article>
+</section>
 <section id="admBot" hidden>
 <article class="panel"><div class="panel-heading"><h2>Telegram-бот</h2><a id="botOpenLink" class="button" hidden target="_blank" rel="noopener">Открыть бота ↗</a></div><dl class="status-list" id="botDetails"></dl><div class="adm-form"><button id="botReload">Обновить</button><button id="botSetup" class="primary">Подключить бота</button></div></article>
 <article class="panel"><h2>Добавить команду</h2><p class="muted">Например, /menu или /support. После создания настройте ответ и кнопки в редакторе ниже.</p><form id="botCommandCreateForm" class="command-create stack-form"><label>Команда<input id="botNewCommand" placeholder="/menu" maxlength="33" autocomplete="off" required></label><label>Описание в меню Telegram<input id="botNewDescription" placeholder="Открыть меню" maxlength="256" required></label><button id="botCommandCreate" type="submit" class="primary">Создать команду</button></form><div class="adm-form"><button id="botCommandsSync" type="button">Обновить меню команд в Telegram</button></div><p id="botMenuSyncState" class="muted" role="status"></p></article>
