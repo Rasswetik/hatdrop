@@ -2766,10 +2766,10 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script defer src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
+<script id="telegramSdk" async src="https://telegram.org/js/telegram-web-app.js"></script>
+<script id="tonConnectSdk" async src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
 <style id="cx-css">
 #view-chests [hidden] { display: none !important; }
 #view-chests .title { margin-top: 6px; }
@@ -2857,29 +2857,6 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 @media (hover: hover) { .cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); } }
 </style>
 <style>
-/* Opening screen — entirely inline, so it appears before external scripts load. */
-#magicBoot {position:fixed;inset:0;z-index:2147483000;background:linear-gradient(180deg,#3a9cf0 0%,#7cc6ff 55%,#bfe6ff 78%);display:flex;justify-content:center;align-items:center;color:#fff1d0;transition:opacity .38s ease,visibility .38s ease;overflow:hidden;font-family:"Press Start 2P",ui-monospace,monospace}
-#magicBoot.done {opacity:0;visibility:hidden;pointer-events:none}
-#magicBoot .mb-grass {position:absolute;left:0;right:0;bottom:0;height:24%;background:linear-gradient(180deg,#6fd35a 0,#6fd35a 14px,#3fa83f 14px,#3fa83f 100%);border-top:4px solid #2c7a2c;box-shadow:inset 0 14px 0 rgba(255,255,255,.12)}
-#magicBoot .mb-cloud {position:absolute;width:56px;height:14px;background:#fff;box-shadow:12px -12px 0 #fff,28px -12px 0 #fff,40px 0 0 #fff,-12px 0 0 #fff;opacity:.92;animation:mbDrift 26s linear infinite}
-#magicBoot .mb-cloud.c1 {top:14%;left:-90px}
-#magicBoot .mb-cloud.c2 {top:30%;left:-90px;animation-duration:38s;animation-delay:-14s;transform:scale(.8)}
-#magicBoot .mb-cloud.c3 {top:8%;left:-90px;animation-duration:46s;animation-delay:-30s;transform:scale(.6)}
-.magic-boot-inner {position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(86vw,320px);padding:22px 18px 20px;text-align:center;background:linear-gradient(180deg,#7c4a24 0%,#5e3417 100%);border:3px solid #2e1a0c;border-radius:12px;box-shadow:inset 0 0 0 2px #a8713c,inset 2px 2px 0 2px #c08a4d,0 6px 0 #2e1a0c,0 14px 16px rgba(0,0,0,.35)}
-.magic-boot-hatwrap {position:relative;width:112px;height:112px;display:grid;place-items:center;background:#3f2411;border:3px solid #2e1a0c;border-radius:10px;box-shadow:inset 2px 2px 0 rgba(0,0,0,.35),inset 0 0 0 2px #7a4a22}
-.magic-boot-hat {width:84px;height:auto;image-rendering:pixelated;filter:drop-shadow(0 0 14px rgba(255,200,80,.5));animation:mbBob 1.6s ease-in-out infinite}
-.mb-star {position:absolute;width:10px;height:10px;background:#fff6c2;clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);animation:mbTw 1.6s ease-in-out infinite}
-.mb-star.s1 {top:10px;right:12px}
-.mb-star.s2 {bottom:14px;left:10px;animation-delay:-.8s}
-.magic-boot-name {font-size:16px;line-height:1.5;letter-spacing:1px;color:#ffe39a;text-shadow:0 3px 0 #2e1a0c}
-.magic-boot-bar {position:relative;width:100%;height:18px;background:#2a1708;border:3px solid #2e1a0c;border-radius:8px;overflow:hidden;box-shadow:inset 2px 2px 0 rgba(0,0,0,.4)}
-.magic-boot-bar i {position:absolute;top:0;bottom:0;left:-40%;width:40%;background:repeating-linear-gradient(135deg,#ffcb52 0 8px,#f9b233 8px 16px);border-radius:5px;animation:mbBar 1.3s ease-in-out infinite}
-.magic-boot-sub {font-size:9px;line-height:1.5;color:#ecd5ab;letter-spacing:1px}
-@keyframes mbBob {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@keyframes mbTw {0%,100%{opacity:.2;transform:scale(.5)}50%{opacity:1;transform:scale(1.1)}}
-@keyframes mbBar {0%{left:-40%}100%{left:100%}}
-@keyframes mbDrift {from{transform:translateX(0)}to{transform:translateX(calc(100vw + 180px))}}
-@media(prefers-reduced-motion:reduce){#magicBoot *{animation:none!important}.magic-boot-bar i{left:30%}}
 #admTonConnect .tc-label{display:block;color:var(--gold);margin:12px 0 5px;font-size:10px}
 #admTonConnect .tc-input{display:block;width:100%;min-width:0;box-sizing:border-box;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);border-radius:9px;padding:12px;font:inherit;font-size:10px;outline:none}
 #admTonConnect .tc-input:focus{border-color:var(--gold)}
@@ -2944,7 +2921,7 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=6">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=7">
 <style id="mines-palette">
 /* Geometry is shared; artwork and colors follow the server-controlled event. */
 #view-chests {
@@ -2977,29 +2954,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 </style>
 </head>
 <body>
-<div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
-  <i class="mb-cloud c1"></i><i class="mb-cloud c2"></i><i class="mb-cloud c3"></i>
-  <div class="mb-grass"></div>
-  <div class="magic-boot-inner">
-    <div class="magic-boot-hatwrap"><img class="magic-boot-hat" src="images/hat.png" alt=""><i class="mb-star s1"></i><i class="mb-star s2"></i></div>
-    <div class="magic-boot-name">ШЛЯПА ДРОП</div>
-    <div class="magic-boot-bar"><i></i></div>
-    <div class="magic-boot-sub" id="magicBootText">Загружаем волшебство…</div>
-  </div>
-</div>
-<script>
-(function(){
-  window.finishMagicBoot=function(failed){
-    var layer=document.getElementById('magicBoot');
-    if(!layer||layer.classList.contains('done'))return;
-    if(failed){var t=document.getElementById('magicBootText');if(t)t.textContent='Открываем приложение…';}
-    layer.classList.add('done');
-    setTimeout(function(){if(layer&&layer.parentNode)layer.parentNode.removeChild(layer)},500);
-  };
-  setTimeout(function(){window.finishMagicBoot(true)},9000);
-})();
-</script>
-
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="ic-upgrade" viewBox="0 0 16 16">
     <path d="M7 2h2v2h2v2h2v2h-2v6H5V8H3V6h2V4h2z"></path>
@@ -4686,7 +4640,9 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 (() => {
 'use strict';
 
-const tg = window.Telegram?.WebApp;
+let tg = window.Telegram?.WebApp;
+// Telegram includes signed launch data in the URL; preserve identity if its SDK is slow.
+const telegramLaunchData = new URLSearchParams(location.hash.slice(1)).get('tgWebAppData') || '';
 const $ = (id) => document.getElementById(id);
 
 const I18N = window.I18N || { lang: 'ru', tr: (s) => s, tn: (n) => String(n), setLang() {}, langs: [] };
@@ -4719,9 +4675,9 @@ let modeIndex = 0;
 let modes = [];
 
 function initTelegram() {
+  tg = window.Telegram?.WebApp;
   if (!tg) return;
-  tg.ready();
-  tg.expand();
+  try { tg.ready?.(); tg.expand?.(); } catch {}
   try { tg.disableVerticalSwipes?.(); } catch {}
   try {
     tg.setHeaderColor?.('#0a0926');
@@ -4747,11 +4703,12 @@ function demoId() {
   } catch (e) { return 'anon'; }
 }
 
-async function api(path, body = {}) {
+async function api(path, body = {}, options = {}) {
   const res = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ initData: tg?.initData || '', demoId: demoId(), ...body }),
+    body: JSON.stringify({ initData: tg?.initData || telegramLaunchData, demoId: demoId(), ...body }),
+    ...(options.signal ? {signal:options.signal} : {}),
   });
   let data = null;
   try { data = await res.json(); } catch {}
@@ -7500,6 +7457,7 @@ function commentPayload(text) {
 }
 
 function initTonConnect() {
+  if (tonUI) return;
   if (!window.TON_CONNECT_UI) {
     $('walletBtnText').textContent = tr('Нет кошелька');
     $('walletBtn').disabled = true;
@@ -7507,9 +7465,12 @@ function initTonConnect() {
     $('depWalletBtn').hidden = true;
     return;
   }
-  tonUI = new window.TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: `${location.origin}/tonconnect-manifest.json`,
-  });
+  try {
+    tonUI = new window.TON_CONNECT_UI.TonConnectUI({manifestUrl: `${location.origin}/tonconnect-manifest.json`});
+  } catch { return; }
+  $('walletBtn').disabled = false;
+  $('depWalletBtn').hidden = false;
+  renderWallet(tonUI.wallet?.account?.address || '');
 
   tonUI.onStatusChange(async (wallet) => {
     const address = wallet?.account?.address || '';
@@ -7705,14 +7666,17 @@ function refresh() {
   if (refreshPending) return refreshPending;
   const stamp = cxStamp;
   refreshPending = (async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const s = await api('/api/state');
+      const s = await api('/api/state', {}, {signal:controller.signal});
       if (spinning || cxBusy || cxStamp !== stamp) return;
       renderState(s);
     } catch (e) {
       console.error('State refresh failed:', e);
       toast(e.message === 'HTTP 401' ? tr('Откройте приложение через бота') : tr('Нет связи с сервером'), true);
     } finally {
+      clearTimeout(timeout);
       refreshPending = null;
     }
   })();
@@ -7859,6 +7823,8 @@ function initAdmin() {
 }
 
 initTelegram();
+$('telegramSdk').addEventListener('load', () => { initTelegram(); refresh(); });
+$('tonConnectSdk').addEventListener('load', initTonConnect);
 makeStars();
 bind();
 initAdmin();
@@ -7866,7 +7832,10 @@ loadFast();
 buildWheelScale();
 setTier(loadSavedTier(), false);
 initTonConnect();
-refresh().then(async ()=>{const destination = new URLSearchParams(location.search).get("view");if (VIEWS.includes(destination)) showView(destination);window.finishMagicBoot?.();await restoreSavedGift();}).catch(()=>{window.finishMagicBoot?.(true);});
+// Navigation and controls appear immediately, independently of API/SDK readiness.
+const destination = new URLSearchParams(location.search).get('view');
+if (VIEWS.includes(destination)) showView(destination);
+refresh().then(restoreSavedGift).catch(() => {});
 setInterval(() => {
   if (document.hidden || tg?.isActive === false || spinning || cxBusy || cxRound) return;
   refresh();

@@ -1,4 +1,20 @@
 
+/* Weathered stone/slate surfaces belong to the scene, with quieter pixel edges. */
+html[data-halloween="on"] {
+ --hw-ui-panel:#526575; --hw-ui-recess:#405262; --hw-ui-control:#5e7383;
+ --hw-ui-active:#667c8c; --hw-ui-edge:#2b3d4a; --hw-ui-shine:#879aa7;
+ --hw-ui-text:#f4f4ec; --hw-ui-muted:#d3dde2; --hw-ui-accent:#ead29c;
+ --hw-ui-button:#d2b77e; --hw-ui-button-shine:#e9d7b0; --hw-ui-button-edge:#ac9361;
+ --hw-ui-range:#ad9bc8; --hw-ui-range-dark:#79678f;
+}
+html[data-halloween="on"][data-sky="night"] {
+ --hw-ui-panel:#23394d; --hw-ui-recess:#192b3d; --hw-ui-control:#2d4960;
+ --hw-ui-active:#34556f; --hw-ui-edge:#101e2c; --hw-ui-shine:#537087;
+ --hw-ui-text:#e7eef5; --hw-ui-muted:#b0c5d5; --hw-ui-accent:#e5c58f;
+ --hw-ui-button:#bca070; --hw-ui-button-shine:#deca9c; --hw-ui-button-edge:#8c764e;
+ --hw-ui-range:#a6bde0; --hw-ui-range-dark:#728aaa;
+}
+
 /* HatDrop Halloween: global, server-controlled pixel overlay.
    Everything is scoped to data-halloween so OFF restores the original styling. */
 .halloween-scene, .halloween-badge { display: none; }
@@ -16,9 +32,9 @@ html[data-halloween="on"] body.tier-black {
   --green: #8ada69;
   --green-dark: #4c8141;
   --red: #fa6460;
-  --text: #fff0d4;
-  --muted: #ceb4d7;
-  --card: #271938;
+  --text: var(--hw-ui-text);
+  --muted: var(--hw-ui-muted);
+  --card: var(--hw-ui-panel);
   --card-line: #6b407a;
   --track-bg: #251433;
   --cta-edge: #6f2b26;
@@ -67,7 +83,7 @@ html[data-halloween="on"] .bg-wide .bg-dim {
   background: linear-gradient(180deg, rgba(11,7,21,.04), rgba(13,6,25,.2) 65%, rgba(8,4,13,.4)) !important;
 }
 html[data-halloween="on"] body[data-view="profile"] .bg-dim,
-html[data-halloween="on"] body[data-view="leaders"] .bg-dim { background: rgba(16,7,28,.62) !important; }
+html[data-halloween="on"] body[data-view="leaders"] .bg-dim { background: rgba(18,32,46,.32) !important; }
 html[data-halloween="on"] .stage { z-index: 1; }
 html[data-halloween="on"] .bg-sky,
 html[data-halloween="on"] .bg-art,
@@ -80,10 +96,10 @@ html[data-halloween="on"] .halloween-badge {
   width: fit-content;
   margin: 0 auto 15px;
   padding: 7px 9px;
-  background: #32183b;
-  color: #ffc36e;
-  border: 3px solid #140c20;
-  box-shadow: 3px 3px 0 #a55836, inset 2px 2px 0 #76416e;
+  background: var(--hw-ui-control);
+  color: var(--hw-ui-accent);
+  border: 3px solid var(--hw-ui-edge);
+  box-shadow: 3px 3px 0 #a55836, inset 2px 2px 0 var(--hw-ui-shine);
   font-size: 8px;
   line-height: 1.8;
   text-align: center;
@@ -91,52 +107,52 @@ html[data-halloween="on"] .halloween-badge {
   animation: halloween-glint 4.4s steps(2, end) infinite;
 }
 html[data-halloween="on"] .title {
-  color: #ffd399;
-  text-shadow: 3px 3px 0 #6a2b48, -2px -2px 0 #21102e, 2px -2px 0 #21102e, -2px 2px 0 #21102e !important;
+  color: var(--hw-ui-accent);
+  text-shadow: 0 2px 0 var(--hw-ui-edge) !important;
 }
-html[data-halloween="on"] :is(.subtitle,.section-title,.lang-label,.empty) { color: #ffdfb4; }
+html[data-halloween="on"] :is(.subtitle,.section-title,.lang-label,.empty) { color: var(--hw-ui-text); }
 html[data-halloween="on"] :is(.topbar .wallet-btn,.topbar .balance,.topbar .coin-chip) {
-  color: #ffe3af;
-  background: #2b183a !important;
-  border: 3px solid #130b22 !important;
+  color: var(--hw-ui-text);
+  background: var(--hw-ui-panel) !important;
+  border: 2px solid var(--hw-ui-edge) !important;
   border-radius: 3px !important;
-  box-shadow: inset 2px 2px 0 #694173, 0 3px 0 #0e091b !important;
+  box-shadow: inset 0 1px 0 var(--hw-ui-shine) !important;
 }
 html[data-halloween="on"] .topbar .bal-plus { background: #ef8032; color: #210e20; border-radius: 0; }
 html[data-halloween="on"] .tabbar {
-  background: #26172f !important;
-  border: 3px solid #110b1d !important;
+  background: var(--hw-ui-recess) !important;
+  border: 2px solid var(--hw-ui-edge) !important;
   border-radius: 3px !important;
-  box-shadow: inset 0 3px 0 #64406f, 0 -4px 0 rgba(12,7,20,.7) !important;
+  box-shadow: inset 0 1px 0 var(--hw-ui-shine) !important;
 }
 html[data-halloween="on"] .tabbar::before, 
 html[data-halloween="on"] .tabbar::after { display: none !important; }
-html[data-halloween="on"] .tab { color: #d7b7cb !important; background: transparent !important; border-radius: 0 !important; }
+html[data-halloween="on"] .tab { color: var(--hw-ui-muted) !important; background: transparent !important; border-radius: 0 !important; }
 html[data-halloween="on"] .tab.active {
-  color: #ffca79 !important;
-  background: #4b2948 !important;
-  box-shadow: inset 0 -4px 0 #f27e34, inset 2px 2px 0 #865179 !important;
+  color: var(--hw-ui-accent) !important;
+  background: var(--hw-ui-active) !important;
+  box-shadow: inset 0 -2px 0 var(--hw-ui-accent) !important;
 }
-html[data-halloween="on"] :is(.menu-card,.profile-head,.lvl-row,.pstat,.ref-card,.prize-card,.lb-row,.lb-me,.hist-row,.pcard,.shell-prize,.upgrade-prize,.cx-info > div,.cx-setup,.mode-picker,.gp-item,.gift-item) {
-  background: #2b1b3b !important;
-  color: #ffead0;
-  border: 3px solid #140d23 !important;
+html[data-halloween="on"] :is(.menu-card,.profile-head,.lvl-row,.pstat,.ref-card,.prize-card,.lb-row,.lb-me,.hist-row,.pcard,.shell-prize,.upgrade-prize,.cx-info > div,.cx-setup,.gp-item,.gift-item) {
+  background: var(--hw-ui-panel) !important;
+  color: var(--hw-ui-text);
+  border: 2px solid var(--hw-ui-edge) !important;
   border-radius: 3px !important;
-  box-shadow: inset 2px 2px 0 #634073, 3px 4px 0 rgba(9,5,15,.9) !important;
+  box-shadow: inset 0 1px 0 var(--hw-ui-shine) !important;
 }
 html[data-halloween="on"] .menu-card {
-  background: #301c3e !important;
+  background: var(--hw-ui-panel) !important;
   transition: transform .12s steps(3,end), background .12s steps(3,end);
 }
-html[data-halloween="on"] .menu-card:active { transform: translate(2px,3px); background: #512641 !important; }
-html[data-halloween="on"] .menu-card .mc-title { color: #ffc26c; }
-html[data-halloween="on"] .menu-card .mc-sub { color: #eac6c9; }
+html[data-halloween="on"] .menu-card:active { transform: translate(2px,3px); background: var(--hw-ui-active) !important; }
+html[data-halloween="on"] .menu-card .mc-title { color: var(--hw-ui-accent); }
+html[data-halloween="on"] .menu-card .mc-sub { color: var(--hw-ui-muted); }
 html[data-halloween="on"] :is(.cta,.spin-btn,.fast-btn,#cxBtn,.promo-btn,.pbtn,.wd-btn,.sell-all) {
-  color: #2b1020 !important;
-  background: #f5913e !important;
-  border: 3px solid #63283b !important;
+  color: #26313a !important;
+  background: var(--hw-ui-button) !important;
+  border: 2px solid var(--hw-ui-edge) !important;
   border-radius: 3px !important;
-  box-shadow: inset 3px 3px 0 #ffd07e, inset -3px -3px 0 #be522a, 0 4px 0 #2a1024 !important;
+  box-shadow: inset 0 2px 0 var(--hw-ui-button-shine), inset 0 -2px 0 var(--hw-ui-button-edge) !important;
   text-shadow: none !important;
 }
 html[data-halloween="on"] :is(.cta,.spin-btn,.fast-btn,#cxBtn,.promo-btn,.pbtn,.wd-btn,.sell-all):disabled {
@@ -144,30 +160,30 @@ html[data-halloween="on"] :is(.cta,.spin-btn,.fast-btn,#cxBtn,.promo-btn,.pbtn,.
   box-shadow: none !important;
 }
 html[data-halloween="on"] :is(.ghost,.view-back,.gp-back,.lang-btn,.cx-chip,.mode-btn,.gp-sort button) {
-  background: #3e2448 !important;
-  border: 2px solid #160e22 !important;
-  color: #ffd59b !important;
+  background: var(--hw-ui-control) !important;
+  border: 2px solid var(--hw-ui-edge) !important;
+  color: var(--hw-ui-accent) !important;
   border-radius: 3px !important;
-  box-shadow: inset 2px 2px 0 #775080, 0 3px 0 #12091c !important;
+  box-shadow: inset 0 1px 0 var(--hw-ui-shine) !important;
 }
 html[data-halloween="on"] :is(input,select,textarea,.cx-bet) {
-  background-color: #21152d;
-  color: #ffeaca;
+  background-color: var(--hw-ui-recess);
+  color: var(--hw-ui-text);
   border-color: #8b5786;
   border-radius: 2px !important;
 }
 html[data-halloween="on"] :is(input,select,textarea):focus-visible { outline: 2px solid #ffab47; outline-offset: 2px; }
-html[data-halloween="on"] :is(.modal,.modal[hidden]) { background: rgba(10,5,19,.83); }
+html[data-halloween="on"] :is(.modal,.modal[hidden]) { background: rgba(10,21,33,.78); }
 html[data-halloween="on"] :is(.modal-card,.list-modal,.gp-card,.settings-modal) {
-  background: #2e1c3c !important;
-  color: #ffe7c3;
-  border: 4px solid #130c20 !important;
+  background: var(--hw-ui-panel) !important;
+  color: var(--hw-ui-text);
+  border: 2px solid var(--hw-ui-edge) !important;
   border-radius: 4px !important;
-  box-shadow: inset 3px 3px 0 #6b4279, inset -3px -3px 0 #1c0c2b, 0 8px 0 #0b0714 !important;
+  box-shadow: inset 0 1px 0 var(--hw-ui-shine) !important;
 }
 html[data-halloween="on"] .modal-card :is(.adm-box,.lv-row,.hist-row,.gift-item,.prize-card) {
-  background: #24162f !important;
-  border-color: #10081d !important;
+  background: var(--hw-ui-recess) !important;
+  border-color: var(--hw-ui-edge) !important;
   border-radius: 3px !important;
 }
 html[data-halloween="on"] :is(.adm-tabs button,.adm-form button,.adm-wd-toolbar button,.adm-wd-switch button) {
@@ -208,7 +224,7 @@ html[data-halloween="on"] .cx-cell { border-radius: 5px !important; }
 .halloween-switch-row input:checked + .halloween-switch-track > span { transform: translateX(24px); background: #ffe0a6; }
 .halloween-switch-row input:focus-visible + .halloween-switch-track { outline: 3px solid #ffca77; outline-offset: 3px; }
 .halloween-switch-row input:disabled + .halloween-switch-track { opacity: .55; }
-@keyframes halloween-glint { 0%,78%,100% {color:#ffc36e} 80%,88% {color:#fff1bb} }
+@keyframes halloween-glint { 0%,78%,100% {color:var(--hw-ui-accent)} 80%,88% {color:#fff1bb} }
 @media (max-width: 380px) {
   html[data-halloween="on"] .halloween-badge { font-size: 7px; }
   .halloween-switch-copy b { font-size: 8px; }
@@ -222,8 +238,8 @@ html[data-halloween="on"] .cx-cell { border-radius: 5px !important; }
 html[data-halloween="on"][data-sky="night"],
 html[data-halloween="on"][data-sky="night"] body { background:#110b20!important; }
 html[data-halloween="on"] .sky-btn {
-  background:#3c1b39!important;border-color:#180e21!important;border-radius:3px!important;
-  box-shadow:inset 2px 2px 0 #91536a,0 3px 0 #10081a!important;
+  background:var(--hw-ui-control)!important;border-color:var(--hw-ui-edge)!important;border-radius:3px!important;
+  box-shadow:inset 2px 2px 0 var(--hw-ui-shine),0 3px 0 #10081a!important;
 }
 html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
 html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
@@ -369,3 +385,74 @@ html[data-halloween="on"][data-sky="night"] .ring-rim { stroke: #5c8cbd; }
 #halloweenScene .hw-fireflies { animation:hwFireflies 6s ease-in-out infinite alternate; }
 @keyframes hwFireflies { from { transform:translate(0,0); opacity:.35; } to { transform:translate(9px,-13px); opacity:.9; } }
 html[data-halloween="on"][data-sky="day"] #halloweenScene .hw-night-detail { opacity:0; }
+
+/* Compact chance control: no large floating card around the slider. */
+html[data-halloween="on"] :is(body,body.tier-onyx,body.tier-black) {
+ --card:var(--hw-ui-panel); --card-line:var(--hw-ui-shine); --text:var(--hw-ui-text);
+ --muted:var(--hw-ui-muted); --track-bg:var(--hw-ui-recess); --gold:var(--hw-ui-accent);
+ --violet-dark:var(--hw-ui-control); --violet-soft:var(--hw-ui-range);
+}
+html[data-halloween="on"] .mode-picker {
+ width:min(88%,310px); max-width:100%; padding:0; gap:8px;
+ background:transparent!important; border:0!important; box-shadow:none!important;
+ text-shadow:0 1px 0 var(--hw-ui-edge)!important;
+}
+html[data-halloween="on"] .mode-track { padding:21px 0 19px; }
+html[data-halloween="on"] .mode-cost { top:0; font-size:13px; color:var(--hw-ui-accent); }
+html[data-halloween="on"] .mode-cost .ton-ico { width:20px; height:20px; }
+html[data-halloween="on"] :is(.mode-chance,.mode-edge) { font-size:12px; color:var(--hw-ui-text); }
+html[data-halloween="on"] #modeSlider { background:transparent!important; border:0!important; height:24px; padding:0; }
+html[data-halloween="on"] #modeSlider::-webkit-slider-runnable-track {
+ height:10px; border:2px solid var(--hw-ui-edge); border-radius:3px;
+ background:linear-gradient(to right,var(--hw-ui-range) 0,var(--hw-ui-range-dark) var(--fill,50%),var(--hw-ui-recess) var(--fill,50%),var(--hw-ui-recess) 100%);
+ box-shadow:inset 0 1px 0 var(--hw-ui-shine);
+}
+html[data-halloween="on"] #modeSlider::-webkit-slider-thumb {
+ width:24px; height:24px; margin-top:-9px; border:2px solid var(--hw-ui-edge); border-radius:3px;
+ background:var(--hw-ui-accent); box-shadow:inset 0 1px 0 var(--hw-ui-button-shine);
+}
+html[data-halloween="on"] #modeSlider::-moz-range-track {
+ height:10px; border:2px solid var(--hw-ui-edge); border-radius:3px; background:var(--hw-ui-recess);
+}
+html[data-halloween="on"] #modeSlider::-moz-range-progress { height:10px; background:var(--hw-ui-range); }
+html[data-halloween="on"] #modeSlider::-moz-range-thumb {
+ width:20px; height:20px; border:2px solid var(--hw-ui-edge); border-radius:3px; background:var(--hw-ui-accent);
+}
+html[data-halloween="on"] .chance-custom { color:var(--hw-ui-muted); font-size:9px; }
+html[data-halloween="on"] .chance-custom input { height:32px; padding:5px 4px; border:2px solid var(--hw-ui-edge); background:var(--hw-ui-recess); }
+html[data-halloween="on"] .content { text-shadow:0 1px 0 var(--hw-ui-edge); }
+html[data-halloween="on"] :is(.upgrade-prize,.menu-card .mc-title,.menu-card .mc-sub) { text-shadow:none!important; }
+html[data-halloween="on"] .upgrade-prize { padding:5px 9px; width:fit-content; max-width:100%; font-size:11px; }
+html[data-halloween="on"] :is(.weapon-menu,.settings-modal .lang-row,.gift-how,.gp-price,.up-preview) {
+ background:var(--hw-ui-panel)!important; border-color:var(--hw-ui-edge)!important;
+ box-shadow:inset 0 1px 0 var(--hw-ui-shine)!important; color:var(--hw-ui-text)!important;
+}
+html[data-halloween="on"] .weapon-menu button { background:var(--hw-ui-recess); border-color:var(--hw-ui-edge); color:var(--hw-ui-text); }
+html[data-halloween="on"] .weapon-menu button.on { background:var(--hw-ui-active); border-color:var(--hw-ui-shine); }
+html[data-halloween="on"] :is(input:not([type=range]),select,textarea) { background-color:var(--hw-ui-recess)!important; color:var(--hw-ui-text)!important; border-color:var(--hw-ui-shine)!important; }
+html[data-halloween="on"] :is(.menu-card,.profile-head,.lvl-row,.pstat,.ref-card,.prize-card,.lb-row,.lb-me,.hist-row,.pcard,.upgrade-prize,.cx-info>div,.cx-setup,.modal-card,.tabbar,.topbar .balance,.topbar .wallet-btn,.topbar .coin-chip,.fast-btn,.cta) {
+ transition:background-color .3s ease,border-color .3s ease,color .3s ease;
+}
+html[data-halloween="on"] .sky-btn { background:var(--hw-ui-control)!important; border-color:var(--hw-ui-edge)!important; box-shadow:inset 0 1px 0 var(--hw-ui-shine)!important; }
+html[data-halloween="on"] .topbar .bal-plus { background:var(--hw-ui-button); color:#26313a; }
+html[data-halloween="on"] .wheel-center { filter:none; }
+html[data-halloween="on"] .halloween-badge { animation:none; box-shadow:inset 0 1px 0 var(--hw-ui-shine); border-width:2px; }
+@media(prefers-reduced-motion:reduce) { html[data-halloween="on"] * { transition:none!important; } }
+
+html[data-halloween="on"] .tab { border-color:transparent!important; }
+html[data-halloween="on"] .tab.active { border-color:var(--hw-ui-shine)!important; }
+/* Smaller profile and modal surfaces share the same palette. */
+html[data-halloween="on"] :is(.lvl-bar,.ref-stat,.ref-link-box,.promo-input,.dep-wallet,.copy-row code,.up-sq,.up-input,.cx-win-sum,.gp-item img,.gift-item img) {
+ background:var(--hw-ui-recess)!important; border-color:var(--hw-ui-edge)!important;
+ color:var(--hw-ui-text)!important; box-shadow:inset 0 1px 0 var(--hw-ui-shine)!important;
+}
+html[data-halloween="on"] .lvl-bar i { background:var(--hw-ui-range); box-shadow:none; }
+html[data-halloween="on"] :is(.lvl-badge,.ref-chevron,.ref-copy,.sell-btn,.lang-btn.on,.up-chip,.amt.active,.gp-sort button.active,.up-tab.on) {
+ background:var(--hw-ui-button)!important; border:2px solid var(--hw-ui-edge)!important;
+ color:#26313a!important; border-radius:3px!important;
+ box-shadow:inset 0 1px 0 var(--hw-ui-button-shine)!important;
+}
+html[data-halloween="on"] :is(.promo-input,input)::placeholder { color:var(--hw-ui-muted); }
+html[data-halloween="on"] #weaponMenu button[data-weapon="skeleton"] { border-color:var(--hw-ui-shine); }
+
+html[data-halloween="on"] .modal-card h2 { color:var(--hw-ui-accent); text-shadow:0 1px 0 var(--hw-ui-edge); }
