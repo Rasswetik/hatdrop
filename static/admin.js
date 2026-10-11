@@ -87,10 +87,10 @@ function drawChart(id, series, kind) {
   const y=value=>top+(high-value)*plotH/(high-low);
   const svg=svgEl('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':kind==='line'?'График результата бота и игрового результата по дням':'График ставок и выигрышей по дням'});
   const desc=svgEl('desc',{},'Точные значения доступны в таблице «Данные по дням» и в CSV.');svg.append(desc);
-  for(let n=0;n<5;n++) {const value=low+(high-low)*n/4,py=y(value);svg.append(svgEl('line',{x1:left,x2:width-right,y1:py,y2:py,stroke:'#edf0f7','stroke-width':1}),svgEl('text',{x:left-9,y:py+4,'text-anchor':'end',fill:'#7a899f','font-size':11},Math.abs(value)>=1_000_000 ? fmt(value/1_000_000,1)+'млн' : Math.abs(value)>=1000 ? fmt(value/1000,1)+'тыс' : fmt(value,1)));}
-  if(low<0)svg.append(svgEl('line',{x1:left,x2:width-right,y1:y(0),y2:y(0),stroke:'#b8c4d9','stroke-dasharray':'4 4'}));
+  for(let n=0;n<5;n++) {const value=low+(high-low)*n/4,py=y(value);svg.append(svgEl('line',{x1:left,x2:width-right,y1:py,y2:py,stroke:'#2a364b','stroke-width':1}),svgEl('text',{x:left-9,y:py+4,'text-anchor':'end',fill:'#a1aec3','font-size':11},Math.abs(value)>=1_000_000 ? fmt(value/1_000_000,1)+'млн' : Math.abs(value)>=1000 ? fmt(value/1000,1)+'тыс' : fmt(value,1)));}
+  if(low<0)svg.append(svgEl('line',{x1:left,x2:width-right,y1:y(0),y2:y(0),stroke:'#536580','stroke-dasharray':'4 4'}));
   const ticks=[...new Set([0,Math.floor((series.length-1)/3),Math.floor((series.length-1)*2/3),series.length-1])];
-  for(const i of ticks)svg.append(svgEl('text',{x:x(i),y:height-8,'text-anchor':'middle',fill:'#7a899f','font-size':11},dateLabel(series[i].date)));
+  for(const i of ticks)svg.append(svgEl('text',{x:x(i),y:height-8,'text-anchor':'middle',fill:'#a1aec3','font-size':11},dateLabel(series[i].date)));
   if(kind==='line') {
     keys.forEach((key,j)=>{const points=series.map((d,i)=>`${x(i)},${y(d[key])}`).join(' ');if(j===0&&series.length>1){const polygon=points+` ${x(series.length-1)},${y(0)} ${x(0)},${y(0)}`;svg.append(svgEl('polygon',{points:polygon,fill:'#4669e8',opacity:'.06'}));}svg.append(svgEl('polyline',{points,fill:'none',stroke:j===0?'#4669e8':'#b6c2d8','stroke-width':j===0?2.5:1.6,'stroke-linejoin':'round','stroke-linecap':'round',...(j===1?{'stroke-dasharray':'5 5'}:{})}));if(series.length===1)svg.append(svgEl('circle',{cx:x(0),cy:y(series[0][key]),r:4,fill:j===0?'#4669e8':'#b6c2d8'}));});
   } else {
@@ -103,8 +103,45 @@ function drawChart(id, series, kind) {
   svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);svg.addEventListener('pointerleave',()=>{tip.hidden=true;cursor.setAttribute('visibility','hidden');});
   if(values.every(v=>v===0))root.append(admField('p',{className:'chart-empty',textContent:'Нет операций за выбранный период'}));
 }
+let botMessages = null, botDraft = null, botDirty = false;
+const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.'};
+function botSelectMessage() {
+  botDraft=structuredClone(botMessages.messages[$('botMessageKey').value]);botDirty=false;botMessages.currentKey=$('botMessageKey').value;
+  $('botMessageText').value=botDraft.text;renderBotButtons();renderBotPreview();$('botMessageState').textContent='';
+}
+function botChanged() {botDirty=true;$('botMessageState').textContent='Есть несохранённые изменения';renderBotPreview();}
+function botOptions(options, value) {const select=document.createElement('select');for(const [v,label] of options)select.append(admField('option',{value:v,textContent:label}));select.value=value;return select;}
+function renderBotButtons() {
+  const root=$('botButtonRows');root.replaceChildren();$('botButtonAdd').disabled=botDraft.buttons.length>=8;
+  botDraft.buttons.forEach((b,i)=>{
+    const row=admField('div',{className:'bot-button-row'});
+    const field=(title,control,wide=false)=>{const label=admField('label',{className:wide?'wide':''});label.append(document.createTextNode(title),control);row.append(label);return control;};
+    const text=field('Название',admField('input',{value:b.text,maxLength:64,required:true}));text.oninput=()=>{b.text=text.value;botChanged();};
+    const style=field('Цвет',botOptions([['default','Стандартный'],['primary','Синий'],['success','Зелёный'],['danger','Красный']],b.style));style.onchange=()=>{b.style=style.value;botChanged();};
+    const action=field('Действие',botOptions([['app','Открыть игру'],['url','Открыть ссылку']],b.action));action.onchange=()=>{b.action=action.value;b.target=b.action==='app'?'menu':'https://';renderBotButtons();botChanged();};
+    const target=field(b.action==='app'?'Раздел игры':'HTTPS-ссылка',b.action==='app'?botOptions([['menu','Меню'],['upgrade','Колесо'],['chests','Мины'],['profile','Профиль']],b.target):admField('input',{type:'url',value:b.target,required:true,maxLength:512}));target.onchange=target.oninput=()=>{b.target=target.value;botChanged();};
+    const tools=admField('div',{className:'bot-row-toolbar'});tools.append(admField('span',{textContent:'Кнопка '+(i+1)}));const actions=document.createElement('div');
+    for(const [title,offset] of [['↑',-1],['↓',1]]){const move=admField('button',{type:'button',textContent:title,disabled:i+offset<0||i+offset>=botDraft.buttons.length});move.setAttribute('aria-label',offset<0?'Поднять кнопку':'Опустить кнопку');move.onclick=()=>{[botDraft.buttons[i],botDraft.buttons[i+offset]]=[botDraft.buttons[i+offset],botDraft.buttons[i]];renderBotButtons();botChanged();};actions.append(move);}
+    const remove=admField('button',{type:'button',textContent:'Удалить',className:'danger'});remove.onclick=()=>{botDraft.buttons.splice(i,1);renderBotButtons();botChanged();};actions.append(remove);tools.append(actions);row.append(tools);root.append(row);
+  });
+}
+function renderBotPreview() {
+  if(!botDraft)return;
+  $('botPreviewText').textContent=$('botMessageText').value.replace(/\{(name|gift)\}/g,(_,key)=>key==='name'?'Александр':'Шляпа волшебника');
+  const root=$('botPreviewButtons');root.replaceChildren();for(const b of botDraft.buttons){const button=admField('button',{type:'button',textContent:b.text||'Кнопка'});button.dataset.style=b.style;root.append(button);}
+  $('botAppWarning').hidden=!botDraft.buttons.some(b=>b.action==='app')||botMessages.app_url.startsWith('https://');
+}
 async function admLoadBot() {
-  try {const data=await api('/api/admin/bot/status');const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.configured?'Токен задан':'Нет токена');status(root,'Бот',data.bot_username?'@'+data.bot_username:'Имя ещё не получено');status(root,'Секрет webhook',data.webhook_secret_configured?'Задан':'Не задан');status(root,'Маршрут webhook',data.webhook_path);$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);}catch(e){admErr(e);}
+  try {const [data,config]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages')]);const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.configured?'Бот подключён':'Не настроен');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.webhook_secret_configured?'Готов к подключению':'Нужна настройка');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
+    if(!botDirty){botMessages=config;const selected=$('botMessageKey').value;$('botMessageKey').replaceChildren();for(const key of ['welcome','help','withdraw_pending','withdraw_approved','withdraw_rejected','withdraw_completed'])$('botMessageKey').append(admField('option',{value:key,textContent:config.messages[key].label}));$('botMessageKey').value=selected||'welcome';botSelectMessage();}
+  }catch(e){admErr(e);}
+}
+function initBotEditor() {
+  $('botMessageKey').onchange=()=>{if(botDirty&&!confirm('Перейти к другому сообщению без сохранения?')){ $('botMessageKey').value=botMessages.currentKey;return;}botMessages.currentKey=$('botMessageKey').value;botSelectMessage();};
+  $('botMessageText').oninput=botChanged;
+  $('botButtonAdd').onclick=()=>{if(!botDraft||botDraft.buttons.length>=8)return;botDraft.buttons.push({text:'Играть',action:'app',target:'menu',style:'primary'});renderBotButtons();botChanged();};
+  async function save(reset=false){const key=$('botMessageKey').value;$('botMessageSave').disabled=true;$('botMessageReset').disabled=true;try{const message={text:$('botMessageText').value,buttons:botDraft.buttons};const result=await api('/api/admin/bot/messages/save',{key,...(reset?{reset:true}:{message})});botMessages.messages[key]=result.message;botSelectMessage();$('botMessageState').textContent='Сохранено';toast(reset?'Стандартное сообщение восстановлено':'Сообщение сохранено');}catch(e){toast(BOT_ERROR[e.code]||'Не удалось сохранить сообщение',true);}finally{$('botMessageSave').disabled=false;$('botMessageReset').disabled=false;}}
+  $('botMessageForm').onsubmit=e=>{e.preventDefault();save();};$('botMessageReset').onclick=()=>{if(confirm('Вернуть стандартный текст и кнопки этого сообщения?'))save(true);};
 }
 async function setupBot() {
   if(!confirm('Установить webhook Telegram на адрес текущего сервера?'))return;
@@ -122,16 +159,16 @@ async function startAdmin() {
   const ticket = new URLSearchParams(location.hash.slice(1)).get('ticket');
   if(ticket) {
     history.replaceState(null,'','/admin');
-    try {const r=await fetch('/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket})});if(!r.ok)throw new Error();location.replace('/admin');return;}catch(e){$('accessMessage').textContent='Ссылка для входа истекла. Откройте панель снова из профиля игры.';return;}
+    try {const r=await fetch('/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket})});if(!r.ok)throw new Error();location.replace('/admin');return;}catch(e){$('accessMessage').textContent='Откройте панель снова из профиля игры.';return;}
   }
   if(!document.querySelector('meta[name="admin-csrf"]').content){$('accessMessage').textContent='Войдите через профиль администратора в игре.';return;}
-  try {const data=await api('/api/admin/overview',{days:30});$('adminName').textContent=data.admin_name;overviewData=data;}catch(e){$('accessMessage').textContent='Сессия истекла. Войдите через профиль игры ещё раз.';return;}
+  try {const data=await api('/api/admin/overview',{days:30});$('adminName').textContent=data.admin_name;overviewData=data;}catch(e){$('accessMessage').textContent='Откройте панель снова из профиля игры.';return;}
   $('accessGate').hidden=true;$('adminApp').hidden=false;initAdmin();
   $('menuBtn').onclick=()=>{const open=!$('sidebar').classList.contains('open');$('sidebar').classList.toggle('open',open);$('navOverlay').hidden=!open;$('menuBtn').setAttribute('aria-expanded',String(open));if(open)$('admTabs button.on')?.focus();};
   $('navOverlay').onclick=closeNavigation;document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeNavigation();$('menuBtn').focus();}});
   $('statsPeriod').onchange=admLoadOverview;$('statsScope').onchange=admLoadOverview;$('overviewReload').onclick=admLoadOverview;$('exportStats').onclick=exportStats;
   document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>admShow(b.dataset.open));
-  $('botReload').onclick=admLoadBot;$('botSetup').onclick=setupBot;
+  initBotEditor();$('botReload').onclick=admLoadBot;$('botSetup').onclick=setupBot;
   $('logoutBtn').onclick=async()=>{try{await api('/admin/logout');location.replace('/admin');}catch(e){admErr(e);}};
   let financeRequestId=null;
   $('financeForm').onsubmit=async e=>{e.preventDefault();const amount=Number($('financeAmount').value),note=$('financeNote').value.trim();if(!Number.isFinite(amount)||amount<=0||!note)return toast('Введите сумму и комментарий',true);if(!confirm(`Записать ${$('financeKind').value==='expense'?'расход':'доход'} ${fmt(amount,4)} TON?`))return;

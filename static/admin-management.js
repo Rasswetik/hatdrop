@@ -2,8 +2,8 @@ const admin = { tab: 'overview', key: null, gifts: null, timer: 0 };
 
 function admErr(e) {
   const m = {
-    forbidden: 'Сессия закончилась или нет доступа. Откройте панель снова из игры.',
-    csrf_failed: 'Сессия закончилась. Откройте панель снова из игры.',
+    forbidden: 'Откройте панель снова из профиля игры.',
+    csrf_failed: 'Откройте панель снова из профиля игры.',
     portals_not_configured: 'Портал не настроен на сервере (PORTALS_FLOORS_URL)',
     portals_unavailable: 'Портал не отвечает',
     bad_request: 'Неверное значение',

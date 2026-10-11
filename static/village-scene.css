@@ -14,17 +14,19 @@ html[data-sky="night"] #villageScene .v-moon { transform: translateY(0); opacity
 #villageScene .v-dusk { opacity: 0; }
 #villageScene .v-dusk.to-night { animation: villageDuskNight 3s ease both; }
 #villageScene .v-dusk.to-day { animation: villageDuskDay 3s ease both; }
-#villageScene .v-clouds { animation: villageClouds 65s ease-in-out infinite alternate; }
-#villageScene .v-ripples { animation: villageWater 4s ease-in-out infinite alternate; }
+#villageScene .v-cloud-track { animation:villageCloudDrift 130s linear infinite; }
+#villageScene .v-current { animation:villageCurrent 5s linear infinite; }
+#villageScene .v-current-back { animation:villageCurrentBack 9s linear -4s infinite; }
 #villageScene .v-smoke { animation: villageSmoke 7s linear infinite; }
 #villageScene .v-blades { transform-box: fill-box; transform-origin: center; animation: villageMill 32s linear infinite; }
 #villageScene .v-stars { animation: villageStars 5s ease-in-out infinite alternate; }
 /* No animation frames are scheduled by JS. CSS animation work stops in the background. */
-#villageScene.scene-paused *, html:not([data-theme="meadow"]) #villageScene * { animation-play-state: paused !important; }
+#villageScene.scene-paused *, html:not([data-theme="meadow"]) #villageScene *, html[data-halloween="on"] #villageScene * { animation-play-state: paused !important; }
 #villageScene.scene-instant * { transition: none !important; }
 #villageScene.scene-instant .v-dusk { animation: none !important; }
-@keyframes villageClouds { to { transform: translateX(45px); } }
-@keyframes villageWater { to { transform: translateX(8px); opacity: .45; } }
+@keyframes villageCloudDrift { to { transform:translateX(1240px); } }
+@keyframes villageCurrent { to { transform:translate(0,40px); } }
+@keyframes villageCurrentBack { to { transform:translate(0,70px); } }
 @keyframes villageSmoke { from { transform: translate(0, 0); opacity: 0; } 20% { opacity: .5; } to { transform: translate(12px, -28px); opacity: 0; } }
 @keyframes villageMill { to { transform: rotate(360deg); } }
 @keyframes villageStars { to { opacity: .55; } }
@@ -39,3 +41,5 @@ html[data-sky="night"] #villageScene .v-moon { transform: translateY(0); opacity
 .cx-cell.pending { transform: none; outline: 2px solid #ffe08a; outline-offset: -3px; }
 /* Let the browser scale gift art directly instead of resampling every image in JS. */
 html[data-theme="meadow"] img[src*="/gimg/"] { image-rendering: pixelated; }
+
+html:not([data-halloween="on"])[data-sky="night"] #villageScene .v-cloud-track{opacity:.28}

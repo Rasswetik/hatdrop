@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Обычный закрытый сундук">
+<defs><linearGradient id="wood" x2="0" y2="1"><stop stop-color="#c38b46"/><stop offset="1" stop-color="#784a25"/></linearGradient><linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff1b4"/><stop offset="1" stop-color="#e4a54b"/></linearGradient></defs>
+<g stroke="#362313" stroke-width="4" stroke-linejoin="round">
+ <path d="M17 81V49l12-18h102l12 18v32z" fill="url(#wood)"/>
+ <path d="M30 48l7-8h86l7 8" fill="none" stroke="#efc27c" stroke-width="5"/>
+ <path d="M17 81h126v65H17z" fill="url(#wood)"/>
+ <path d="M17 78h126v14H17z" fill="url(#gold)"/>
+ <path d="M30 96v40m100-40v40" stroke="#efc27c" stroke-width="7"/>
+ <path d="M41 110h24m30 0h24M41 127h24m30 0h24" stroke="#885322" stroke-width="3"/>
+ <rect x="66" y="80" width="28" height="32" rx="3" fill="url(#gold)"/>
+ <path d="M80 91v12" stroke="#785226" stroke-width="5" stroke-linecap="round"/>
+ <path d="M19 146h122" stroke="#302010" stroke-width="6"/>
+</g>
+</svg>

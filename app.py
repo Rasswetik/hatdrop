@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 from math import comb
 from datetime import timedelta
+from bot_messages import DEFAULT_MESSAGES, messages_config, validate_message, message_payload, valid_url
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
@@ -895,7 +896,7 @@ def withdraw(user, body):
         "prize_id": prize["id"], "status": "pending", "created": int(time.time()),
         "updated": int(time.time()), "name": prize["name"], "image": prize.get("image", ""),
         "value_ton": prize["value"], "tier": prize["tier"]}
-    _send_tg_async(user["id"], "🎁 Заявка на вывод подарка «" + prize["name"] + "» получена. Мы сообщим о решении.")
+    _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"])
     return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": False}
 
 
@@ -928,7 +929,7 @@ def promo(user, body):
     return result
 
 
-def _send_tg_async(uid, message):
+def _send_tg_async(uid, message, reply_markup=None):
     if not BOT_TOKEN or not str(uid).startswith("tg"):
         return
     try:
@@ -937,7 +938,7 @@ def _send_tg_async(uid, message):
         return
     def job():
         try:
-            tg_api("sendMessage", chat_id=chat, text=message)
+            tg_api("sendMessage", chat_id=chat, text=message, **({"reply_markup": reply_markup} if reply_markup else {}))
         except Exception as e:
             print("Telegram notification failed:", str(e), flush=True)
     threading.Thread(target=job, daemon=True).start()
@@ -998,30 +999,32 @@ def admin_withdrawals_resolve(user, body):
     if action == "approve" and current == "pending":
         req["status"] = "approved"
         prize["status"] = "withdraw_processing"
-        msg = f"✅ Ваш подарок «{prize['name']}» найден. Заявка одобрена, ожидайте отправки."
     elif action == "reject" and current == "pending":
         req["status"] = "rejected"
         prize["status"] = "owned"
-        msg = f"❌ Заявка на подарок «{prize['name']}» отклонена. Подарок возвращён в инвентарь."
     elif action == "complete" and current == "approved":
         # Manual confirmation only; no pretend NFT transfer.
         req["status"] = "completed"
         prize["status"] = "withdrawn"
-        msg = f"🎉 Вывод подарка «{prize['name']}» отмечен как выполненный администратором."
     else:
         raise ApiError("invalid_status_transition")
     req["updated"] = int(time.time())
     req["moderator"] = user["id"]
-    _send_tg_async(req["uid"], msg)
+    _send_bot_message(req["uid"], {"approve": "withdraw_approved", "reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"])
     return {"ok": True, "request": withdrawal_record(req)}
 
 
-def _bot_reply(chat_id, text):
-    if BOT_TOKEN and chat_id:
-        try:
-            tg_api("sendMessage", chat_id=chat_id, text=text)
-        except Exception as e:
-            print("Telegram bot reply failed:", str(e), flush=True)
+def _bot_app_url():
+    return tonconnect_config()["app_url"]
+
+
+def _send_bot_message(uid, key, name=None, gift=None):
+    with lock:
+        config = messages_config(db.get("settings", {}).get("bot_messages", {}))
+        player = db.get("users", {}).get(uid, {})
+        payload = message_payload(config, key, _bot_app_url(),
+                                  name or player.get("first_name"), gift)
+    _send_tg_async(uid, payload["text"], payload.get("reply_markup"))
 
 
 @app.post("/telegram/webhook")
@@ -1037,10 +1040,9 @@ def bot_webhook():
     if not sender.get("id") or chat.get("type") != "private":
         return jsonify({"ok": True})
     text = str(message.get("text") or "").strip()
-    if text.startswith("/start"):
-        _send_tg_async(f"tg{sender['id']}", "👋 Добро пожаловать в HatDrop! Здесь вы получите уведомления о выводе подарков.")
-    elif text.startswith("/help"):
-        _send_tg_async(f"tg{sender['id']}", "Для игры откройте приложение HatDrop. Бот сообщит о статусе заявок на вывод.")
+    command = text.split(maxsplit=1)[0].split("@")[0] if text else ""
+    if command in ("/start", "/help"):
+        _send_bot_message(f"tg{sender['id']}", "welcome" if command == "/start" else "help", name=sender.get("first_name"))
     return jsonify({"ok": True})
 
 
@@ -1053,6 +1055,33 @@ def admin_bot_status(user, body):
             "webhook_path": "/telegram/webhook"}
 
 
+@route("/api/admin/bot/messages")
+def admin_bot_messages(user, body):
+    require_admin(user)
+    return {"messages": messages_config(db["settings"].get("bot_messages", {})),
+            "defaults": DEFAULT_MESSAGES, "app_url": _bot_app_url()}
+
+
+@route("/api/admin/bot/messages/save")
+def admin_bot_messages_save(user, body):
+    require_admin(user)
+    key = body.get("key")
+    if not isinstance(key, str) or key not in DEFAULT_MESSAGES:
+        raise ApiError("message_key_invalid")
+    saved = db["settings"].setdefault("bot_messages", {})
+    if body.get("reset") is True:
+        saved.pop(key, None)
+    else:
+        try:
+            value = validate_message(body.get("message"))
+        except ValueError as error:
+            raise ApiError(str(error))
+        if any(b["action"] == "app" for b in value["buttons"]) and not valid_url(_bot_app_url()):
+            raise ApiError("app_https_url_required")
+        saved[key] = value
+    return {"ok": True, "message": messages_config(saved)[key]}
+
+
 @route("/api/admin/bot/setup")
 def admin_bot_setup(user, body):
     require_admin(user)
@@ -1061,12 +1090,12 @@ def admin_bot_setup(user, body):
     secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
     if not secret:
         raise ApiError("webhook_secret_missing")
-    host = request.host_url.rstrip("/")
+    host = (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL", "RENDER_EXTERNAL_URL") or request.host_url).rstrip("/")
     if not host.startswith("https://"):
         raise ApiError("https_required")
     try:
         result = tg_api("setWebhook", url=host + "/telegram/webhook",
-                        secret_token=secret, allowed_updates='["message"]')
+                        secret_token=secret, allowed_updates=["message"])
         bot = tg_api("getMe")
         db["settings"]["bot_username"] = bot.get("username", "")
     except Exception:
@@ -1222,9 +1251,9 @@ AVATAR_FAIL_TTL = 600
 
 def tg_api(method, **params):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
-    if params:
-        url += "?" + "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=8) as resp:
+    req = urllib.request.Request(url, data=json.dumps(params, ensure_ascii=False).encode("utf-8"),
+                                 headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=8) as resp:
         data = json.load(resp)
     if not data.get("ok"):
         raise ValueError(data.get("description", "telegram error"))
@@ -2593,7 +2622,7 @@ FALLBACK_ART = {
 # TON Connect settings are persisted in the existing DB, not in a new file.
 # No private keys or seed phrases are stored here.
 def _tonconnect_site_origin():
-    return (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL") or request.host_url).rstrip("/")
+    return (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL", "RENDER_EXTERNAL_URL") or request.host_url).rstrip("/")
 
 
 def tonconnect_config():

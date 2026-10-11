@@ -154,6 +154,45 @@ class DashboardTests(unittest.TestCase):
         response=self.client.post('/api/state',json={'demoId':'separate'})
         self.assertFalse(response.json['is_admin'])
 
+    def test_bot_message_defaults_edit_reset_and_auth(self):
+        os.environ['PUBLIC_APP_URL']='https://hatdrop.example/app?source=bot'
+        self.addCleanup(lambda: os.environ.pop('PUBLIC_APP_URL',None))
+        self.assertEqual(self.post('/api/admin/bot/messages',uid=202).status_code,403)
+        defaults=self.post('/api/admin/bot/messages').json
+        self.assertEqual(defaults['messages']['welcome']['buttons'][0]['target'],'menu')
+        message={'text':'Здравствуйте, {name}!','buttons':[{'text':'Открыть меню','action':'app','target':'menu','style':'success'},{'text':'Поддержка','action':'url','target':'https://t.me/support','style':'default'}]}
+        _,headers=self.login()
+        self.assertEqual(self.client.post('/api/admin/bot/messages/save',json={'key':'welcome','message':message}).status_code,403)
+        result=self.client.post('/api/admin/bot/messages/save',json={'key':'welcome','message':message},headers=headers)
+        self.assertEqual(result.status_code,200)
+        with patch.dict(os.environ,{'TELEGRAM_WEBHOOK_SECRET':'secret'}), patch.object(backend,'_send_tg_async') as send:
+            response=self.client.post('/telegram/webhook',json={'message':{'from':{'id':202,'first_name':'Иван'},'chat':{'id':202,'type':'private'},'text':'/start referral'}},headers={'X-Telegram-Bot-Api-Secret-Token':'secret'})
+            self.assertEqual(response.status_code,200)
+            args=send.call_args.args
+            self.assertEqual(args[:2],('tg202','Здравствуйте, Иван!'))
+            buttons=args[2]['inline_keyboard']
+            self.assertEqual(buttons[0][0]['style'],'success')
+            self.assertEqual(buttons[0][0]['web_app']['url'],'https://hatdrop.example/app?source=bot&view=menu')
+            self.assertEqual(buttons[1][0]['url'],'https://t.me/support')
+            send.reset_mock()
+            self.client.post('/telegram/webhook',json={'message':{'from':{'id':202},'chat':{'type':'private'},'text':'/starter'}},headers={'X-Telegram-Bot-Api-Secret-Token':'secret'})
+            send.assert_not_called()
+        self.assertEqual(self.post('/api/admin/bot/messages/save',{'key':'welcome','reset':True}).json['message'],defaults['defaults']['welcome'])
+        self.assertEqual(self.client.post('/telegram/webhook',json={}).status_code,403)
+
+    def test_bot_message_validation_and_telegram_json(self):
+        from bot_messages import validate_message, message_payload, messages_config
+        for value in ({'text':''},{'text':'😀'*1800},{'text':'Hi','buttons':[{'text':'X','action':'url','target':'javascript:alert(1)','style':'primary'}]},{'text':'Hi','buttons':[{'text':'X','action':'app','target':'admin','style':'primary'}]}):
+            with self.assertRaises(ValueError):validate_message(value)
+        config=messages_config({'welcome':{'text':'{name} {gift}','buttons':[]}})
+        self.assertEqual(message_payload(config,'welcome','https://example.com',name='{gift}',gift='Coin')['text'],'{gift} Coin')
+        with patch.object(backend.urllib.request,'urlopen') as fetch:
+            fetch.return_value.__enter__.return_value.read.return_value=b'{"ok":true,"result":true}'
+            backend.tg_api('sendMessage',chat_id=202,text='Привет',reply_markup={'inline_keyboard':[[{'text':'Play','style':'primary','web_app':{'url':'https://example.com'}}]]})
+            req=fetch.call_args.args[0]
+            self.assertEqual(req.get_method(),'POST')
+            self.assertEqual(json.loads(req.data)['reply_markup']['inline_keyboard'][0][0]['style'],'primary')
+
 
 if __name__ == '__main__':
     unittest.main()

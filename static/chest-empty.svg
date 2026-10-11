@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Пустой сундук">
+<defs>
+ <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#b77c39" /><stop offset="1" stop-color="#714323" /></linearGradient>
+ <linearGradient id="pink" x2="0" y2="1"><stop stop-color="#ffb4df" /><stop offset="1" stop-color="#e04c95" /></linearGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff1b4" /><stop offset="1" stop-color="#e4a54b" /></linearGradient>
+</defs>
+<g stroke="#362313" stroke-width="4" stroke-linejoin="round">
+ <path d="M23 59V29l10-10h94l10 10v30z" fill="url(#wood)" />
+ <path d="M31 50V32l6-5h86l6 5v18z" fill="#d5a963" />
+ <path d="M21 57h118v71H21z" fill="#35281e" />
+</g>
+<path d="M28 91h102M34 64l14 24m75-24-14 24" fill="none" stroke="#766046" stroke-width="3" opacity=".45" /><g stroke="#362313" stroke-width="4" stroke-linejoin="round">
+ <path d="M17 102h126v44H17z" fill="url(#wood)" />
+ <path d="M17 101h126v12H17z" fill="url(#gold)" />
+ <path d="M27 115v24m106-24v24" stroke="#efc27c" stroke-width="6" />
+ <path d="M37 128h27m35 0h24" stroke="#885322" stroke-width="3" />
+ <rect x="66" y="108" width="28" height="28" rx="3" fill="url(#gold)" />
+ <path d="M80 116v11" stroke="#785226" stroke-width="5" stroke-linecap="round" />
+ <path d="M19 146h122" stroke="#302010" stroke-width="6" />
+</g>
+</svg>

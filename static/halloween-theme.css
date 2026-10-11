@@ -225,14 +225,14 @@ html[data-halloween="on"] .sky-btn {
   background:#3c1b39!important;border-color:#180e21!important;border-radius:3px!important;
   box-shadow:inset 2px 2px 0 #91536a,0 3px 0 #10081a!important;
 }
-html[data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
-html[data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
+html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
+html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
   display:inline!important;image-rendering:auto;opacity:1;
 }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-skeleton { display:none!important; }
 html[data-theme="meadow"][data-weapon="axe"] .pointer > .ptr-skeleton { display:none!important; }
 html[data-theme="meadow"] .pointer > .ptr-skeleton { display:none; }
-html[data-theme="meadow"][data-weapon="skeleton"] .pointer {
+html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer {
   filter:drop-shadow(2px 3px 0 rgba(17,9,26,.9)) drop-shadow(0 0 7px rgba(246,218,181,.55));
 }
 html[data-halloween="on"] #weaponMenu button[data-weapon="skeleton"] { border-color:#a35c80; }
@@ -263,12 +263,12 @@ html[data-halloween="on"] .wheel-center .hat { filter:drop-shadow(0 0 11px rgba(
 @keyframes scareQuiet{0%{opacity:0}20%,75%{opacity:1}100%{opacity:0}}
 
 /* Mine/chest outcomes: bright candy for safe, red skeleton for loss. No lid-flip animations. */
-#view-chests .cx-cell.gold:not(.cx-revealed) img{animation:candyReveal .38s steps(5,end) 1!important;}
-#view-chests .cx-cell.empty.hit img{animation:skeletonRattle .6s steps(6,end) 1!important;}
+html[data-halloween="on"] #view-chests .cx-cell.gold:not(.cx-revealed) img{animation:candyReveal .38s steps(5,end) 1!important;}
+html[data-halloween="on"] #view-chests .cx-cell.empty.hit img{animation:skeletonRattle .6s steps(6,end) 1!important;}
 @keyframes candyReveal{0%{transform:scale(.86)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
 @keyframes skeletonRattle{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-2px)}40%,80%{transform:translateX(2px)}}
 @media(prefers-reduced-motion:reduce){
- #view-chests .cx-cell.gold:not(.cx-revealed) img,#view-chests .cx-cell.empty.hit img{animation:none!important;}
+ html[data-halloween="on"] #view-chests .cx-cell.gold:not(.cx-revealed) img,html[data-halloween="on"] #view-chests .cx-cell.empty.hit img{animation:none!important;}
 }
 
 /* Explicit image sizes avoid a circular percentage/intrinsic-size calculation. */
@@ -285,11 +285,12 @@ html[data-theme="meadow"] #weaponMenu img { width: 30px; height: 30px; flex: 0 0
  --hw-path: #506269; --hw-window: #b97436; --hw-banner: #ef7928; --hw-ghost: #b1e5ff; --hw-grain: #7c909a; --hw-fog: #acd7ef;
 }
 html[data-sky="day"] #halloweenScene {
- --hw-lights: 0; --hw-pumpkin: #8e8984; --hw-pumpkin-light: #b5b1a5; --hw-pumpkin-dark: #696570; --hw-stem: #6a6b61; --hw-sky-top: #333439; --hw-sky-low: #858789; --hw-moon: #d5d1c4; --hw-crater: #a4a195;
- --hw-cloud: #b1b0ad; --hw-forest-far: #626668; --hw-forest: #454a4b; --hw-tree: #292e32;
- --hw-leaf: #515658; --hw-wall: #64636b; --hw-roof: #737078; --hw-stone: #959291; --hw-stone-dark: #56555e;
- --hw-bark: #37363c; --hw-bark-light: #67626b; --hw-ground: #696b68; --hw-ground-front: #4a5150;
- --hw-path: #91918a; --hw-window: #302d37; --hw-banner: #9e9690; --hw-ghost: #ddd8cc; --hw-grain: #b9b5a7; --hw-fog: #e6e0d0;
+ --hw-lights:0; --hw-pumpkin:#d99b56; --hw-pumpkin-light:#f8c379; --hw-pumpkin-dark:#b57b55; --hw-stem:#697f55;
+ --hw-sky-top:#6285b4; --hw-sky-low:#c4e0e5; --hw-moon:#ffedc4; --hw-crater:#ecd6b1;
+ --hw-cloud:#edf2e5; --hw-forest-far:#96b8b5; --hw-forest:#779a94; --hw-tree:#577975;
+ --hw-leaf:#82a59b; --hw-wall:#9296ad; --hw-roof:#827e9d; --hw-stone:#bab6c0; --hw-stone-dark:#777588;
+ --hw-bark:#595166; --hw-bark-light:#8b7d90; --hw-ground:#819d88; --hw-ground-front:#688875;
+ --hw-path:#b3b7a0; --hw-window:#526575; --hw-banner:#dba76e; --hw-ghost:#f7f0e1; --hw-grain:#b4c9a9; --hw-fog:#e2eede;
 }
 #halloweenScene { image-rendering: auto; }
 #halloweenScene .hw-light, #halloweenScene .hw-night-detail { opacity: var(--hw-lights); transition: opacity .75s ease; }
@@ -311,8 +312,8 @@ html[data-sky="day"] #halloweenScene .hw-stars { animation: none; }
 #halloweenScene .wing-left { transform-box: fill-box; transform-origin: right center; animation: hwWingLeft .18s ease-in-out infinite alternate; }
 #halloweenScene .wing-right { transform-box: fill-box; transform-origin: left center; animation: hwWingRight .18s ease-in-out infinite alternate; }
 #halloweenScene .hw-stars { animation: hwTwinkle 5.8s ease-in-out infinite alternate; }
-html[data-halloween="on"][data-sky="day"] .bg-wide .bg-dim { background: linear-gradient(180deg, rgba(12,12,20,.03), rgba(12,12,20,.16) 65%, rgba(12,12,20,.33)) !important; }
-html[data-halloween="on"] .bg-wide::after { background: linear-gradient(90deg, rgba(4,8,18,.3), transparent 24%, transparent 76%, rgba(4,8,18,.3)); }
+html[data-halloween="on"][data-sky="day"] .bg-wide .bg-dim { background: linear-gradient(180deg, rgba(36,53,79,0), rgba(36,53,79,.04) 65%, rgba(36,53,79,.13)) !important; }
+html[data-halloween="on"] .bg-wide::after { background: linear-gradient(90deg, rgba(4,8,18,.16), transparent 20%, transparent 80%, rgba(4,8,18,.16)); }
 #halloweenScene.scene-paused *, html:not([data-halloween="on"]) #halloweenScene * { animation-play-state: paused !important; }
 #halloweenScene.scene-instant * { transition: none !important; }
 @keyframes hwCloud { to { transform: translateX(34px); } }
@@ -360,3 +361,11 @@ html[data-halloween="on"] .ring-rim { stroke: #84758f; }
 html[data-halloween="on"][data-sky="night"] .ring-rim { stroke: #5c8cbd; }
 #halloweenScene > rect, #halloweenScene > path, #halloweenScene > circle,
 #halloweenScene stop, #halloweenScene .hw-lamp { transition: fill .75s ease, stop-color .75s ease; }
+
+/* Ambient motion stays in the scenery and leaves the center visually quiet. */
+#halloweenScene .hw-cloud-2 { animation-duration:57s; animation-direction:alternate-reverse; }
+#halloweenScene .hw-cloud-3 { animation-duration:46s; animation-delay:-19s; }
+#halloweenScene .hw-cloud-4 { animation-duration:63s; animation-delay:-28s; }
+#halloweenScene .hw-fireflies { animation:hwFireflies 6s ease-in-out infinite alternate; }
+@keyframes hwFireflies { from { transform:translate(0,0); opacity:.35; } to { transform:translate(9px,-13px); opacity:.9; } }
+html[data-halloween="on"][data-sky="day"] #halloweenScene .hw-night-detail { opacity:0; }
