@@ -224,6 +224,7 @@ def load_db():
     db.setdefault("promocodes", {})
     db.setdefault("withdrawals", {})
     db.setdefault("quests", {})
+    db["settings"].setdefault("quests_enabled", True)
     ensure_analytics(db)
     db["settings"].setdefault("active_market", "portals")
     db["settings"].setdefault("halloween_enabled", False)
@@ -750,6 +751,7 @@ def spin(user, body):
     else:
         bear = consolation(user)
     quest_event(db, user, "wheel_spin")
+    quest_event(db, user, "upgrade_play", chance_pct=chance * 100)
     if win:
         quest_event(db, user, "wheel_win")
         quest_event(db, user, "upgrade_win", chance_pct=chance * 100)
@@ -1357,7 +1359,9 @@ def player_quest_claim(user, body):
 @route("/api/admin/quests")
 def admin_quests(user, body):
     require_admin(user)
+    from quest_engine import QUEST_ICONS
     return {"enabled": db["settings"].get("quests_enabled") is True,
+            "icons": list(QUEST_ICONS),
             "types": [{"id": k, "label": label, "unit": unit} for k, (label, unit) in QUEST_TYPES.items()],
             "rows": quest_listed(db, user, admin=True)}
 
