@@ -1334,11 +1334,16 @@ def admin_promos_update(user, body):
     return {"ok": True}
 
 
-@route("/api/quests")
-def player_quests(user, body):
-    # Public gameplay stays locked until quests are explicitly launched.
-    enabled = db["settings"].get("quests_enabled") is True
-    return {"enabled": enabled, "rows": quest_listed(db, user) if enabled else []}
+@app.post("/api/quests")
+def player_quests():
+    """Read-only snapshot: avoid scheduling a full-database write for every opening."""
+    with lock:
+        user, _ = current_user()
+        enabled = db["settings"].get("quests_enabled", True) is True
+        rows = quest_listed(db, user) if enabled else []
+    response = jsonify({"enabled": enabled, "rows": rows, "server_time": int(time.time())})
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @route("/api/quests/claim")
@@ -1389,8 +1394,9 @@ def admin_quests_save(user, body):
         raise ApiError("quest_limit")
     try:
         new = validate_quest(body, existing)
-    except (ValueError, TypeError, OverflowError):
-        raise ApiError("bad_request")
+    except (ValueError, TypeError, OverflowError) as exc:
+        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at") else "quest"
+        raise ApiError("quest_invalid", field=field)
     now = int(time.time())
     qid = existing["id"] if existing else secrets.token_hex(8)
     # Changing measurable criteria creates a new version; progress cannot be
