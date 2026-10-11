@@ -1374,6 +1374,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
+.quest-tab{opacity:.63;cursor:not-allowed;position:relative}.quest-tab .ic{filter:drop-shadow(0 0 4px rgba(255,192,67,.4))}.quest-soon{position:absolute;bottom:0;font-size:6px;line-height:1;color:var(--gold-soft);letter-spacing:.02em}@media(max-width:380px){.quest-tab .ic{font-size:26px}.quest-soon{font-size:5px}}
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -3788,7 +3789,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=4" x="107" y="1" width="98" height="159"></image>
+            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=5" x="107" y="1" width="98" height="159"></image>
           </g>
         </svg>
 
@@ -3840,7 +3841,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=3" alt=""><span>Рука скелета</span></button>
+            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=5" alt=""><span>Рука скелета</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -3976,6 +3977,9 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
     </button>
     <button class="tab active" data-view="upgrade" aria-label="Апгрейд">
       <svg class="ic"><use href="#ic-upgrade"></use></svg><span class="tab-name">Апгрейд</span>
+    </button>
+    <button class="tab quest-tab" type="button" id="tabQuests" disabled aria-disabled="true" title="Квесты — скоро" aria-label="Квесты — скоро">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10l2 3v15H5V6l2-3Zm1 6h8m-8 4h8m-8 4h5" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="m8 3 4 4 4-4" stroke="currentColor" stroke-width="1.5"/></svg><span class="tab-name">Квесты</span><span class="quest-soon">СКОРО</span>
     </button>
     <button class="tab" data-view="profile" aria-label="Профиль">
       <svg class="ic"><use href="#ic-profile"></use></svg><span class="tab-name">Профиль</span>
@@ -7229,13 +7233,13 @@ function throwPointer(pointer, from, target) {
   return { deg: a, ms: total };
 }
 
-const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=4' };
+const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=5' };
 
 function setWeapon(name) {
   const w = WEAPONS[name] && eventSkin().weapons.includes(name) ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); localStorage.setItem('weapon:' + activeEventKey(), w); } catch (e) {}
-  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=3' : WEAPONS[w];
+  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=5' : WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
