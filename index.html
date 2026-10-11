@@ -3788,7 +3788,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=3" x="119" y="9" width="62" height="149"></image>
+            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=4" x="107" y="1" width="98" height="159"></image>
           </g>
         </svg>
 
@@ -3840,7 +3840,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=2" alt=""><span>Рука скелета</span></button>
+            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=3" alt=""><span>Рука скелета</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -7229,13 +7229,13 @@ function throwPointer(pointer, from, target) {
   return { deg: a, ms: total };
 }
 
-const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=3' };
+const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=4' };
 
 function setWeapon(name) {
   const w = WEAPONS[name] && eventSkin().weapons.includes(name) ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); localStorage.setItem('weapon:' + activeEventKey(), w); } catch (e) {}
-  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=2' : WEAPONS[w];
+  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=3' : WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
