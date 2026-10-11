@@ -14,11 +14,41 @@ QUEST_TYPES = {
     "wheel_wins": ("Выиграть в рулетку", "count"),
     "upgrade_wins_min": ("Выиграть апгрейд с шансом от (%)", "count"),
     "upgrade_wins_max": ("Выиграть апгрейд с шансом до (%)", "count"),
+    "upgrade_plays_below": ("Сыграть апгрейд с шансом ниже (%)", "count"),
+    "upgrade_plays_above": ("Сыграть апгрейд с шансом от (%)", "count"),
     "mines_plays": ("Сыграть в мины", "count"),
     "mines_gift_wins": ("Выиграть подарок в минах", "count"),
     "mines_opened": ("Открыть безопасные клетки в минах", "count"),
 }
 LIMIT = 150
+QUEST_ICONS = ("auto", "wheel", "upgrade", "mines", "gift", "deposit", "turnover", "chest", "star", "trophy", "hatcoin", "moon", "flame")
+
+def icon_for(kind):
+    if kind.startswith("deposit"): return "deposit"
+    if kind == "turnover": return "turnover"
+    if kind.startswith("wheel"): return "wheel"
+    if kind.startswith("upgrade"): return "upgrade"
+    if kind == "mines_gift_wins": return "gift"
+    return "mines"
+
+def auto_title(kind, goal, threshold):
+    count = f"{goal:g}" if isinstance(goal, float) else str(goal)
+    chance = f"{threshold:g}%"
+    return {
+        "deposit_min": f"Сделай {count} пополнений от {threshold:g} TON",
+        "deposit_total": f"Пополняй баланс на {count} TON",
+        "turnover": f"Набери оборот {count} TON",
+        "wheel_spins": f"Прокрути рулетку {count} раз",
+        "wheel_wins": f"Выиграй в рулетку {count} раз",
+        "upgrade_plays_below": f"Сделай апгрейд {count} раз с шансом ниже {chance}",
+        "upgrade_plays_above": f"Сделай апгрейд {count} раз с шансом от {chance}",
+        "upgrade_wins_min": f"Выиграй апгрейд {count} раз с шансом от {chance}",
+        "upgrade_wins_max": f"Выиграй апгрейд {count} раз с шансом до {chance}",
+        "mines_plays": f"Сыграй в мины {count} раз",
+        "mines_gift_wins": f"Выиграй подарок в минах {count} раз",
+        "mines_opened": f"Открой {count} безопасных клеток в минах",
+    }[kind]
+
 
 
 def _num(value, *, maximum=100000000):
@@ -39,8 +69,6 @@ def validate(data, current=None):
         raise ValueError("bad_request")
     title = str(data.get("title", current.get("title", ""))).strip()[:80]
     description = str(data.get("description", current.get("description", ""))).strip()[:240]
-    if not title:
-        raise ValueError("bad_request")
     goal = _num(data.get("goal", current.get("goal", 1)))
     if goal <= 0:
         raise ValueError("bad_request")
@@ -49,7 +77,7 @@ def validate(data, current=None):
             raise ValueError("bad_request")
         goal = int(goal)
     threshold = _num(data.get("threshold", current.get("threshold", 0)))
-    if kind in ("upgrade_wins_min", "upgrade_wins_max"):
+    if kind in ("upgrade_wins_min", "upgrade_wins_max", "upgrade_plays_below", "upgrade_plays_above"):
         if not 0 <= threshold <= 100:
             raise ValueError("bad_request")
     elif kind == "deposit_min":
@@ -68,8 +96,13 @@ def validate(data, current=None):
     reward_amount = _num(data.get("reward_amount", current.get("reward_amount", 0)), maximum=100000)
     if reward_amount <= 0:
         raise ValueError("bad_request")
+    icon = str(data.get("icon", current.get("icon", "auto")))
+    if icon not in QUEST_ICONS:
+        raise ValueError("bad_request")
+    if not title:
+        title = auto_title(kind, goal, threshold)
     return {
-        "title": title, "description": description, "kind": kind,
+        "title": title, "icon": icon, "description": description, "kind": kind,
         "goal": goal, "threshold": threshold,
         "start_at": start_at, "end_at": end_at, "duration_hours": hours,
         "reward_type": reward_type, "reward_amount": round(reward_amount, 6),
@@ -104,7 +137,7 @@ def listed(db, user, *, admin=False):
     for quest in definitions(db).values():
         if not admin and (not quest["active"] or quest["start_at"] and now < quest["start_at"]):
             continue
-        result.append({**quest, "progress": progress_for(user, quest, now)})
+        result.append({**quest, "resolved_icon": icon_for(quest["kind"]) if quest.get("icon", "auto") == "auto" else quest["icon"], "progress": progress_for(user, quest, now)})
     result.sort(key=lambda row: (row["end_at"] or 9999999999, row["created"]))
     return result
 
@@ -121,6 +154,10 @@ def _increment(quest, event, amount, chance_pct, gift_awarded):
         return 1 if event == "wheel_spin" else 0
     if kind == "wheel_wins":
         return 1 if event == "wheel_win" else 0
+    if kind == "upgrade_plays_below":
+        return 1 if event == "upgrade_play" and chance_pct < quest["threshold"] else 0
+    if kind == "upgrade_plays_above":
+        return 1 if event == "upgrade_play" and chance_pct >= quest["threshold"] else 0
     if kind == "upgrade_wins_min":
         return 1 if event == "upgrade_win" and chance_pct >= quest["threshold"] else 0
     if kind == "upgrade_wins_max":
