@@ -5670,7 +5670,7 @@ async function loadKostyanQuests(force=false) {
       action.disabled=claimed||expired;
       action.onclick=async()=>{if(completed){
         action.disabled=true;
-        try{await api('/api/quests/claim',{id:q.id});toast('Награда Костяна получена!');questsLastLoaded=0;await loadKostyanQuests(true);await refreshState();}catch(e){toast('Не удалось забрать награду',true);action.disabled=false;}
+        try{await api('/api/quests/claim',{id:q.id});toast('Награда Костяна получена!');questsLastLoaded=0;await loadKostyanQuests(true);renderState(await api('/api/state'));}catch(e){toast('Не удалось забрать награду',true);action.disabled=false;}
       }else{
         showView(q.kind.startsWith('mines')?'chests':q.kind.startsWith('deposit')?'profile':'upgrade');
       }};
