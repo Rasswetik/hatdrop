@@ -1027,9 +1027,71 @@ def _send_bot_message(uid, key, name=None, gift=None):
     _send_tg_async(uid, payload["text"], payload.get("reply_markup"))
 
 
+def _webhook_secret():
+    explicit = _env_first("TELEGRAM_WEBHOOK_SECRET")
+    if explicit:
+        return explicit
+    # Domain-separated 256-bit secret: identical across workers and restarts.
+    # Neither the bot token nor this secret is exposed to the client or stored in Git.
+    return hmac.new(BOT_TOKEN.encode(), b"hatdrop-telegram-webhook-v1", hashlib.sha256).hexdigest() if BOT_TOKEN else ""
+
+
+def _webhook_url(host=None):
+    origin = _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL") or host or ""
+    if not valid_url(origin):
+        raise ApiError("https_required")
+    parts = urlsplit(origin)
+    return f"{parts.scheme}://{parts.netloc}/telegram/webhook"
+
+
+def _configure_bot_webhook(host=None, only_if_needed=False):
+    if not BOT_TOKEN:
+        raise ApiError("bot_token_missing")
+    secret = _webhook_secret()
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,256}", secret):
+        raise ApiError("webhook_secret_invalid")
+    url = _webhook_url(host)
+    signature = hashlib.sha256((url + "\n" + secret).encode()).hexdigest()
+    try:
+        bot = tg_api("getMe")
+        info = tg_api("getWebhookInfo")
+        with lock:
+            saved = db["settings"].get("bot_webhook", {})
+        correct = info.get("url") == url and saved.get("signature") == signature and "message" in info.get("allowed_updates", [])
+        if not only_if_needed or not correct:
+            if tg_api("setWebhook", url=url, secret_token=secret, allowed_updates=["message"]) is not True:
+                raise ValueError("webhook rejected")
+            info = tg_api("getWebhookInfo")
+        if info.get("url") != url:
+            raise ValueError("webhook URL mismatch")
+    except Exception:
+        # Telegram errors may contain credentials in URLs; return only a safe code.
+        raise ApiError("telegram_webhook_failed")
+    with lock:
+        db["settings"]["bot_username"] = bot.get("username", "")
+        db["settings"]["bot_webhook"] = {"url": url, "signature": signature, "connected_at": int(time.time())}
+        save_db()
+    return {"ok": True, "connected": True, "bot_username": bot.get("username", ""), "webhook_url": url}
+
+
+def bot_connect_on_start():
+    # Retry startup races/network outages without delaying HTTP server startup.
+    for delay in (0, 10, 30, 60):
+        if delay:
+            time.sleep(delay)
+        try:
+            _configure_bot_webhook(only_if_needed=True)
+            print("Telegram webhook connected", flush=True)
+            return
+        except ApiError as error:
+            print("Telegram webhook connection:", error.code, flush=True)
+            if error.code in ("bot_token_missing", "webhook_secret_invalid", "https_required"):
+                return
+
+
 @app.post("/telegram/webhook")
 def bot_webhook():
-    secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+    secret = _webhook_secret()
     if not secret or not hmac.compare_digest(
             request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), secret):
         return ("Forbidden", 403)
@@ -1049,8 +1111,20 @@ def bot_webhook():
 @route("/api/admin/bot/status")
 def admin_bot_status(user, body):
     require_admin(user)
-    return {"configured": bool(BOT_TOKEN),
-            "webhook_secret_configured": bool(os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")),
+    saved = db["settings"].get("bot_webhook", {})
+    connected, error = False, ""
+    try:
+        url = _webhook_url(request.host_url)
+        if BOT_TOKEN:
+            info = tg_api("getWebhookInfo")
+            expected = hashlib.sha256((url + "\n" + _webhook_secret()).encode()).hexdigest()
+            connected = info.get("url") == url and saved.get("signature") == expected
+    except ApiError as e:
+        error = e.code
+    except Exception:
+        error = "telegram_unavailable"
+    return {"configured": bool(BOT_TOKEN), "connected": connected, "connection_error": error,
+            "webhook_secret_configured": bool(_webhook_secret()),
             "bot_username": db["settings"].get("bot_username", ""),
             "webhook_path": "/telegram/webhook"}
 
@@ -1085,22 +1159,7 @@ def admin_bot_messages_save(user, body):
 @route("/api/admin/bot/setup")
 def admin_bot_setup(user, body):
     require_admin(user)
-    if not BOT_TOKEN:
-        raise ApiError("bot_token_missing")
-    secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
-    if not secret:
-        raise ApiError("webhook_secret_missing")
-    host = (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL", "RENDER_EXTERNAL_URL") or request.host_url).rstrip("/")
-    if not host.startswith("https://"):
-        raise ApiError("https_required")
-    try:
-        result = tg_api("setWebhook", url=host + "/telegram/webhook",
-                        secret_token=secret, allowed_updates=["message"])
-        bot = tg_api("getMe")
-        db["settings"]["bot_username"] = bot.get("username", "")
-    except Exception:
-        raise ApiError("telegram_webhook_failed")
-    return {"ok": bool(result), "bot_username": db["settings"]["bot_username"]}
+    return _configure_bot_webhook(request.host_url)
 
 
 @route("/api/admin/promos")
@@ -2943,6 +3002,8 @@ threading.Thread(target=portals_loop, daemon=True).start()
 threading.Thread(target=models_prewarm_loop, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
+if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):
+    threading.Thread(target=bot_connect_on_start, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "8000")), threaded=True)

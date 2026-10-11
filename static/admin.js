@@ -132,7 +132,7 @@ function renderBotPreview() {
   $('botAppWarning').hidden=!botDraft.buttons.some(b=>b.action==='app')||botMessages.app_url.startsWith('https://');
 }
 async function admLoadBot() {
-  try {const [data,config]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages')]);const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.configured?'Бот подключён':'Не настроен');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.webhook_secret_configured?'Готов к подключению':'Нужна настройка');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
+  try {const [data,config]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages')]);const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.connected?'Подключён':data.configured?'Ожидает подключения':'Нужен токен бота');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.connected?'Включён':data.connection_error==='telegram_unavailable'?'Telegram временно недоступен':'Нажмите «Подключить бота»');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
     if(!botDirty){botMessages=config;const selected=$('botMessageKey').value;$('botMessageKey').replaceChildren();for(const key of ['welcome','help','withdraw_pending','withdraw_approved','withdraw_rejected','withdraw_completed'])$('botMessageKey').append(admField('option',{value:key,textContent:config.messages[key].label}));$('botMessageKey').value=selected||'welcome';botSelectMessage();}
   }catch(e){admErr(e);}
 }
@@ -144,9 +144,10 @@ function initBotEditor() {
   $('botMessageForm').onsubmit=e=>{e.preventDefault();save();};$('botMessageReset').onclick=()=>{if(confirm('Вернуть стандартный текст и кнопки этого сообщения?'))save(true);};
 }
 async function setupBot() {
-  if(!confirm('Установить webhook Telegram на адрес текущего сервера?'))return;
   $('botSetup').disabled=true;
-  try {await api('/api/admin/bot/setup');toast('Webhook установлен');await admLoadBot();}catch(e){toast('Не удалось настроить бот: '+(e.code||'ошибка'),true);}finally{$('botSetup').disabled=false;}
+  try {await api('/api/admin/bot/setup');toast('Бот подключён');await admLoadBot();}
+  catch(e){const messages={bot_token_missing:'На сервере не задан токен Telegram-бота.',webhook_secret_invalid:'Проверьте TELEGRAM_WEBHOOK_SECRET: только латинские буквы, цифры, дефис и подчёркивание.',https_required:'Укажите публичный HTTPS-адрес сервера.',telegram_webhook_failed:'Telegram не подтвердил подключение. Проверьте токен бота и повторите попытку.'};toast(messages[e.code]||'Не удалось подключить бота. Попробуйте ещё раз.',true);}
+  finally{$('botSetup').disabled=false;}
 }
 function exportStats() {
   if(!overviewData)return;

@@ -193,6 +193,79 @@ class DashboardTests(unittest.TestCase):
             self.assertEqual(req.get_method(),'POST')
             self.assertEqual(json.loads(req.data)['reply_markup']['inline_keyboard'][0][0]['style'],'primary')
 
+    def test_generated_webhook_secret_accepts_start_and_survives_restart(self):
+        with patch.dict(os.environ,{'TELEGRAM_WEBHOOK_SECRET':''}):
+            secret=backend._webhook_secret()
+            self.assertRegex(secret,r'^[a-f0-9]{64}$')
+            self.assertEqual(secret,backend._webhook_secret())
+            self.assertNotEqual(secret,backend.app.secret_key)
+            with patch.object(backend,'BOT_TOKEN','different-token'):
+                self.assertNotEqual(secret,backend._webhook_secret())
+            with patch.object(backend,'_send_tg_async') as send:
+                message={'message':{'from':{'id':202,'first_name':'Иван'},'chat':{'type':'private'},'text':'/start'}}
+                self.assertEqual(self.client.post('/telegram/webhook',json=message).status_code,403)
+                self.assertEqual(self.client.post('/telegram/webhook',json=message,headers={'X-Telegram-Bot-Api-Secret-Token':'wrong'}).status_code,403)
+                response=self.client.post('/telegram/webhook',json=message,headers={'X-Telegram-Bot-Api-Secret-Token':secret})
+                self.assertEqual(response.status_code,200)
+                self.assertIn('Добро пожаловать',send.call_args.args[1])
+            status=self.post('/api/admin/bot/status').json
+            self.assertTrue(status['webhook_secret_configured'])
+            self.assertNotIn(secret,json.dumps(status))
+        with patch.dict(os.environ,{'TELEGRAM_WEBHOOK_SECRET':'existing-secret'}):
+            self.assertEqual(backend._webhook_secret(),'existing-secret')
+
+    def test_connect_bot_without_secret_verify_and_idempotent_restart(self):
+        state={'url':'','allowed_updates':['message']}
+        def telegram(method,**params):
+            if method=='getMe':return {'username':'hatdrop_test_bot'}
+            if method=='getWebhookInfo':return dict(state)
+            if method=='setWebhook':
+                self.assertRegex(params['secret_token'],r'^[a-f0-9]{64}$')
+                self.assertEqual(params['allowed_updates'],['message'])
+                self.assertNotIn('drop_pending_updates',params)
+                state['url']=params['url'];return True
+            raise AssertionError(method)
+        env={'TELEGRAM_WEBHOOK_SECRET':'','RENDER_EXTERNAL_URL':'https://hatdrop.onrender.com','PUBLIC_APP_URL':'https://app.example.com/path?x=1'}
+        with patch.dict(os.environ,env),patch.object(backend,'tg_api',side_effect=telegram) as call:
+            self.assertEqual(self.post('/api/admin/bot/setup',uid=202).status_code,403)
+            result=self.post('/api/admin/bot/setup')
+            self.assertEqual(result.status_code,200)
+            self.assertEqual(result.json['webhook_url'],'https://hatdrop.onrender.com/telegram/webhook')
+            self.assertEqual(backend.db['settings']['bot_username'],'hatdrop_test_bot')
+            self.assertTrue(self.post('/api/admin/bot/status').json['connected'])
+            self.assertNotIn(backend._webhook_secret(),json.dumps(backend.db['settings']))
+            call.reset_mock();backend.bot_connect_on_start()
+            self.assertNotIn('setWebhook',[c.args[0] for c in call.call_args_list])
+            state['url']='https://old.example.com/webhook'
+            self.assertFalse(self.post('/api/admin/bot/status').json['connected'])
+            backend.bot_connect_on_start()
+            self.assertIn('setWebhook',[c.args[0] for c in call.call_args_list])
+        with patch.dict(os.environ,{'RENDER_EXTERNAL_URL':'','PUBLIC_APP_URL':'https://app.example.com/path?x=1'}):
+            self.assertEqual(backend._webhook_url(),'https://app.example.com/telegram/webhook')
+
+    def test_webhook_setup_errors_do_not_report_success_or_leak_tokens(self):
+        with patch.dict(os.environ,{'RENDER_EXTERNAL_URL':'https://hatdrop.onrender.com','TELEGRAM_WEBHOOK_SECRET':'bad secret'}):
+            self.assertEqual(self.post('/api/admin/bot/setup').json['error'],'webhook_secret_invalid')
+        with patch.dict(os.environ,{'RENDER_EXTERNAL_URL':'https://hatdrop.onrender.com','TELEGRAM_WEBHOOK_SECRET':''}),patch.object(backend,'tg_api',side_effect=ValueError('sensitive-token')):
+            result=self.post('/api/admin/bot/setup')
+            self.assertEqual(result.status_code,400)
+            self.assertEqual(result.json['error'],'telegram_webhook_failed')
+            self.assertNotIn('sensitive-token',result.get_data(as_text=True))
+            self.assertNotIn('bot_webhook',backend.db['settings'])
+        with patch.object(backend,'BOT_TOKEN',''):
+            self.assertEqual(self.post('/api/admin/bot/setup').status_code,403)
+            with self.assertRaises(backend.ApiError) as error:backend._configure_bot_webhook('https://example.com')
+            self.assertEqual(error.exception.code,'bot_token_missing')
+        with patch.dict(os.environ,{'RENDER_EXTERNAL_URL':'','PUBLIC_APP_URL':'','APP_URL':'','SITE_URL':''}):
+            with self.assertRaises(backend.ApiError) as error:backend._configure_bot_webhook('http://localhost')
+            self.assertEqual(error.exception.code,'https_required')
+
+    def test_automatic_webhook_connection_retries_transient_failure(self):
+        with patch.object(backend,'_configure_bot_webhook',side_effect=[backend.ApiError('telegram_webhook_failed'),{'ok':True}]) as connect,patch.object(backend.time,'sleep') as sleep:
+            backend.bot_connect_on_start()
+            self.assertEqual(connect.call_count,2)
+            sleep.assert_called_once_with(10)
+
 
 if __name__ == '__main__':
     unittest.main()
