@@ -1374,7 +1374,12 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
-.quest-tab{opacity:.63;cursor:not-allowed;position:relative}.quest-tab .ic{filter:drop-shadow(0 0 4px rgba(255,192,67,.4))}.quest-soon{position:absolute;bottom:0;font-size:6px;line-height:1;color:var(--gold-soft);letter-spacing:.02em}@media(max-width:380px){.quest-tab .ic{font-size:26px}.quest-soon{font-size:5px}}
+/* Kostyan's quests: applies to every visual theme, independent of Halloween toggle. */
+.quest-tab{opacity:1!important;cursor:pointer!important}.quest-tab .quest-nav-image{width:30px;height:30px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 0 #26123f)}.quest-soon{display:none!important}
+.kostyan-quests-view{gap:0;width:100%;max-width:640px;margin:0 auto;padding:0 0 30px;color:#ffedcd!important}.kostyan-header{width:calc(100% + 28px);margin:0 -14px 0;overflow:hidden;border-bottom:4px solid #693c27;box-shadow:0 5px 22px #100926a8}.kostyan-banner{width:100%;display:block;aspect-ratio:640 / 350;object-fit:cover;image-rendering:auto}.kostyan-quests-lead{width:100%;text-align:center;padding:15px 12px 16px;background:linear-gradient(180deg,#281c42e8,#17162edb);border:3px solid #9f643b;border-top:0}.kostyan-quests-lead h1{margin:0;color:#ffd28d;font-size:clamp(12px,3vw,18px);line-height:1.5;text-shadow:2px 3px #522b38}.kostyan-quests-lead p{margin:7px 0 0;font-size:9px;line-height:1.7;color:#dbcae2}.kostyan-quest-list{display:grid;gap:12px;margin-top:14px;width:100%;min-width:0}.kostyan-quest-card{padding:14px 12px;background:linear-gradient(150deg,#333052 0%,#1a1c38 64%,#17132a);border:3px solid #79527d;box-shadow:inset 2px 2px #66648d,inset -2px -2px #101126,0 4px 0 #100b22;min-width:0}.kostyan-quest-main{display:flex;align-items:center;gap:12px;min-width:0}.kostyan-quest-icon{width:64px;height:64px;object-fit:contain;flex:none;image-rendering:pixelated;background:#151730;border:2px solid #4f4c78;padding:5px}.kostyan-quest-info{flex:1;min-width:0}.kostyan-quest-info h3{margin:0 0 7px;font-size:11px;line-height:1.65;color:#ffe1a3;overflow-wrap:anywhere}.kostyan-quest-info p{margin:0;color:#b8aed0;font-size:9px;line-height:1.6;overflow-wrap:anywhere}.kostyan-quest-reward{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding:8px 10px;background:#13172e;border:2px solid #41476e;color:#ffe0a3;font-size:10px}.kostyan-quest-reward img{height:28px;width:28px;object-fit:contain;vertical-align:middle}.kostyan-quest-bottom{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;margin-top:12px}.kostyan-progress{height:17px;border:3px solid #0d122d;background:#161430;box-shadow:inset 0 0 0 1px #555479;overflow:hidden}.kostyan-progress > span{display:block;height:100%;background:linear-gradient(#ffe69e,#ffaa32);box-shadow:inset 0 -3px #bc692d;transition:width .3s}.kostyan-progress-count{text-align:center;margin-top:5px;color:#e2d6f2;font-size:10px}.kostyan-quest-action{padding:10px 12px;min-width:90px;background:linear-gradient(#426fb1,#284576);border:3px solid #11284b;color:#fff0c8;box-shadow:inset 2px 2px #77a0d6,inset -2px -2px #162443;font-size:10px}.kostyan-quest-action:disabled{opacity:.62;cursor:default}.kostyan-state{font-size:10px;color:#ffe1a3;background:#1d1936cc;padding:18px 12px;border:2px solid #634b7c;margin-top:12px;line-height:1.8;text-align:center;width:100%}.kostyan-state[hidden]{display:none}
+@media(max-width:390px){.kostyan-quest-card{padding:10px 8px}.kostyan-quest-main{gap:9px}.kostyan-quest-icon{width:48px;height:48px}.kostyan-quest-info h3{font-size:10px}.kostyan-quest-reward{font-size:9px}.kostyan-quest-action{min-width:75px;padding:9px 7px;font-size:9px}}
+
+.quest-tab{position:relative}.quest-tab .ic{filter:drop-shadow(0 0 4px rgba(255,192,67,.4))}.quest-soon{position:absolute;bottom:0;font-size:6px;line-height:1;color:var(--gold-soft);letter-spacing:.02em}@media(max-width:380px){.quest-tab .ic{font-size:26px}.quest-soon{font-size:5px}}
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -3789,7 +3794,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=5" x="107" y="1" width="98" height="159"></image>
+            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=9" x="111" y="12" width="78" height="150"></image>
           </g>
         </svg>
 
@@ -3841,7 +3846,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=5" alt=""><span>Рука скелета</span></button>
+            <button type="button" data-weapon="skeleton" hidden><img src="/static/skeleton-hand-icon.svg?v=9" alt=""><span>Рука скелета</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -3969,6 +3974,12 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
       <ol class="lb-list" id="lbList"></ol>
       <p class="empty" id="lbEmpty" hidden="">Пока никто не играл. Крути — и займёшь первое место!</p>
     </section>
+    <section class="view kostyan-quests-view" id="view-quests" hidden>
+      <header class="kostyan-header"><img src="/static/quests/kostyan-banner.svg?v=1" alt="Квесты от Костяна — скелет Костян в очках" class="kostyan-banner"></header>
+      <div class="kostyan-quests-lead"><h1>Квесты от Костяна</h1><p>Выполняй задания, получай награды и прокачивай свою удачу!</p></div>
+      <div id="questLoading" class="kostyan-state">Загружаем задания Костяна…</div>
+      <div id="questCards" class="kostyan-quest-list" aria-live="polite"></div>
+    </section>
   </main>
 
   <nav class="tabbar">
@@ -3978,8 +3989,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
     <button class="tab active" data-view="upgrade" aria-label="Апгрейд">
       <svg class="ic"><use href="#ic-upgrade"></use></svg><span class="tab-name">Апгрейд</span>
     </button>
-    <button class="tab quest-tab" type="button" id="tabQuests" disabled aria-disabled="true" title="Квесты — скоро" aria-label="Квесты — скоро">
-      <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10l2 3v15H5V6l2-3Zm1 6h8m-8 4h8m-8 4h5" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="m8 3 4 4 4-4" stroke="currentColor" stroke-width="1.5"/></svg><span class="tab-name">Квесты</span><span class="quest-soon">СКОРО</span>
+    <button class="tab quest-tab" type="button" data-view="quests" id="tabQuests" title="Квесты от Костяна" aria-label="Квесты">
+      <img class="ic quest-nav-image" src="/static/quests/chest.svg" alt=""><span class="tab-name">Квесты</span>
     </button>
     <button class="tab" data-view="profile" aria-label="Профиль">
       <svg class="ic"><use href="#ic-profile"></use></svg><span class="tab-name">Профиль</span>
@@ -6104,7 +6115,7 @@ function initSwipeTabs() {
     const dx = t.clientX - x0, dy = t.clientY - y0;
     if (Date.now() - t0 > 600 || Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
     if (spinning || cxBusy) return;
-    const main = ['menu', 'upgrade', 'profile'];
+    const main = ['menu', 'upgrade', 'quests', 'profile'];
     const sub = !main.includes(currentView);
     const i = main.indexOf(VIEW_TAB[currentView]);
     const next = sub && dx > 0 ? 'menu' : main[i + (dx < 0 ? 1 : -1)];
@@ -6121,9 +6132,9 @@ function slideView(next, dir) {
     { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' });
 }
 
-const VIEWS = ['menu', 'chests', 'leaders', 'upgrade', 'profile'];
-const VIEW_TAB = { menu: 'menu', chests: 'menu', leaders: 'menu', upgrade: 'upgrade', profile: 'profile' };
-const VIEW_POS = { menu: 0, chests: 0.5, leaders: 0.5, upgrade: 1, profile: 2 };
+const VIEWS = ['menu', 'chests', 'leaders', 'upgrade', 'quests', 'profile'];
+const VIEW_TAB = { menu: 'menu', chests: 'menu', leaders: 'menu', upgrade: 'upgrade', quests: 'quests', profile: 'profile' };
+const VIEW_POS = { menu: 0, chests: 0.5, leaders: 0.5, upgrade: 1, quests: 2, profile: 3 };
 let currentView = 'upgrade';
 
 function showView(name) {
@@ -6134,6 +6145,7 @@ function showView(name) {
   for (const v of VIEWS) $(`view-${v}`).hidden = v !== name;
   currentView = name;
   if (name === 'leaders') loadLeaderboard();
+  if (name === 'quests') loadKostyanQuests();
   lbStartTimer(name === 'leaders');
   if (name === 'chests') cxOnShow();
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === VIEW_TAB[name]));
@@ -6144,6 +6156,47 @@ function showView(name) {
   if (name === 'upgrade' && window.alignBg) setTimeout(window.alignBg, VIEW_SLIDE_MS + 150);
 }
 
+let questsLastLoaded = 0;
+let questLoadInFlight = false;
+async function loadKostyanQuests(force=false) {
+  if (questLoadInFlight || !force && Date.now()-questsLastLoaded<8000) return;
+  questLoadInFlight=true;
+  const container=$('questCards'),status=$('questLoading');
+  status.hidden=false;status.textContent='Загружаем задания Костяна…';
+  try {
+    const data=await api('/api/quests');container.replaceChildren();
+    if (!data.enabled){status.textContent='Квесты временно недоступны. Загляни позже!';return;}
+    const rows=data.rows||[];
+    if (!rows.length){status.textContent='Костян готовит новые задания. Скоро они появятся здесь!';return;}
+    status.hidden=true;
+    const mk=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;};
+    for (const q of rows){
+      const box=mk('article','kostyan-quest-card'),top=mk('div','kostyan-quest-main');
+      const img=mk('img','kostyan-quest-icon');img.src='/static/quests/'+(q.resolved_icon||'star')+'.svg';img.alt='Иконка квеста';
+      const info=mk('div','kostyan-quest-info');
+      info.append(mk('h3','',q.title),mk('p','',q.description||'Выполни задание Костяна и получи награду'));
+      top.append(img,info);box.append(top);
+      const rew=mk('div','kostyan-quest-reward'),desc=mk('span','', 'Награда'),value=mk('span','',String(q.reward_amount)+' '+(q.reward_type==='hatcoin'?'HatCoin':'TON'));
+      rew.append(desc,value);box.append(rew);
+      const bottom=mk('div','kostyan-quest-bottom'),progressWrap=mk('div',''),bar=mk('div','kostyan-progress'),fill=mk('span');
+      const ratio=Math.max(0,Math.min(100,100*q.progress.value/q.progress.goal));fill.style.width=ratio+'%';bar.append(fill);
+      progressWrap.append(bar,mk('div','kostyan-progress-count',q.progress.value+' / '+q.progress.goal));
+      const action=mk('button','kostyan-quest-action');
+      const completed=q.progress.completed,claimed=q.progress.claimed,expired=q.progress.expired;
+      action.textContent=claimed?'Получено':expired?'Истёк':completed?'Забрать':'Выполнить';
+      action.disabled=claimed||expired;
+      action.onclick=async()=>{if(completed){
+        action.disabled=true;
+        try{await api('/api/quests/claim',{id:q.id});toast('Награда Костяна получена!');questsLastLoaded=0;await loadKostyanQuests(true);await refreshState();}catch(e){toast('Не удалось забрать награду',true);action.disabled=false;}
+      }else{
+        showView(q.kind.startsWith('mines')?'chests':q.kind.startsWith('deposit')?'profile':'upgrade');
+      }};
+      bottom.append(progressWrap,action);box.append(bottom);container.append(box);
+    }
+    questsLastLoaded=Date.now();
+  } catch(error){status.hidden=false;status.textContent='Не удалось загрузить квесты. Открой раздел ещё раз.';}
+  finally{questLoadInFlight=false;}
+}
 const LB_MIN_INTERVAL = 10000;
 let lbLoadedAt = 0;
 let lbLoading = false;
@@ -7233,13 +7286,13 @@ function throwPointer(pointer, from, target) {
   return { deg: a, ms: total };
 }
 
-const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=5' };
+const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=9' };
 
 function setWeapon(name) {
   const w = WEAPONS[name] && eventSkin().weapons.includes(name) ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); localStorage.setItem('weapon:' + activeEventKey(), w); } catch (e) {}
-  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=5' : WEAPONS[w];
+  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=9' : WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
