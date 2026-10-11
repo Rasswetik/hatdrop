@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Панель управления</title><link rel="stylesheet" href="/static/admin.css?v=3"><script src="/static/admin-management.js?v=3" defer></script><script src="/static/admin-controls.js?v=2" defer></script><script src="/static/admin-quests.js?v=1" defer></script><script src="/static/admin.js?v=5" defer></script></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Панель управления</title><link rel="stylesheet" href="/static/admin.css?v=3"><script src="/static/admin-management.js?v=3" defer></script><script src="/static/admin-controls.js?v=2" defer></script><script src="/static/admin-quests.js?v=2" defer></script><script src="/static/admin.js?v=5" defer></script></head>
 <body>
 <div id="accessGate" class="access-gate"><div class="access-card"><span class="brand-mark">H</span><h1>Панель управления</h1><p id="accessMessage" role="status">Проверяем доступ…</p><a class="button primary" href="/">Открыть HatDrop</a><p class="muted">Откройте панель через профиль администратора в игре.</p></div></div>
 <div id="adminApp" class="admin-app" hidden>
@@ -37,8 +37,8 @@
   <article class="panel"><h2>Создать или изменить квест</h2>
    <form class="stack-form" id="questForm">
     <input type="hidden" id="questId">
-    <label>Название<input required maxlength="80" id="questTitle" placeholder="10 прокрутов рулетки"></label>
-    <label>Описание<input maxlength="240" id="questDescription" placeholder="Завершите задание и получите награду"></label>
+    <label>Название (необязательно — создаётся автоматически)<input maxlength="80" id="questTitle" placeholder="Автоматически по выбранному условию"></label>
+    <p class="muted" id="questNamePreview">Пример названия появится после выбора задания.</p><label>SVG-иконка задания<select id="questIcon"><option value="auto">Автоматически</option></select></label><div id="questIconPreview" class="quest-admin-icon"><img src="/static/quests/wheel.svg" width="64" height="64" alt="Иконка задания"></div><label>Описание<input maxlength="240" id="questDescription" placeholder="Завершите задание и получите награду"></label>
     <label>Тип задания<select required id="questKind"></select></label>
     <label>Цель: количество или сумма TON<input required type="number" step="any" min="0.000001" id="questGoal" value="1"></label>
     <label>Порог: депозит TON или шанс апгрейда (%)<input type="number" step="any" min="0" id="questThreshold" value="0"></label>
