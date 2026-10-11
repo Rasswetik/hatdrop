@@ -217,3 +217,77 @@ html[data-halloween="on"] .cx-cell { border-radius: 3px !important; filter: hue-
   html[data-halloween="on"] .halloween-badge { animation: none !important; }
   .halloween-switch-track, .halloween-switch-track > span { transition: none; }
 }
+
+/* Halloween scene enhancements and safe small pumpkin jumpscare. */
+html[data-halloween="on"][data-sky="night"],
+html[data-halloween="on"][data-sky="night"] body { background:#110b20!important; }
+html[data-halloween="on"] .sky-btn {
+  background:#3c1b39!important;border-color:#180e21!important;border-radius:3px!important;
+  box-shadow:inset 2px 2px 0 #91536a,0 3px 0 #10081a!important;
+}
+html[data-halloween="on"] .sky-btn::after {
+  content:"🎃";font-size:9px;position:absolute;right:-6px;bottom:-7px;
+  text-shadow:1px 1px #150a19;
+}
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
+  display:inline!important;image-rendering:pixelated;opacity:1;
+}
+html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-skeleton { display:none!important; }
+html[data-theme="meadow"][data-weapon="axe"] .pointer > .ptr-skeleton { display:none!important; }
+html[data-theme="meadow"] .pointer > .ptr-skeleton { display:none; }
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer {
+  filter:drop-shadow(2px 3px 0 rgba(17,9,26,.9)) drop-shadow(0 0 7px rgba(246,218,181,.55));
+}
+html[data-halloween="on"] #weaponMenu button[data-weapon="skeleton"] { border-color:#a35c80; }
+html[data-halloween="on"] .wheel-center .hat { filter:drop-shadow(0 0 11px rgba(252,146,69,.4)); }
+.pumpkin-scare[hidden] { display:none!important; }
+.pumpkin-scare {
+  position:fixed;left:50%;top:30%;z-index:1500;transform:translateX(-50%);
+  width:min(260px,82vw);pointer-events:none;
+  display:flex;align-items:center;flex-direction:column;gap:3px;
+  padding:14px 16px 12px;
+  background:rgba(24,9,33,.96);color:#ffce90;
+  border:4px solid #eb7834;outline:4px solid rgba(12,6,21,.8);
+  box-shadow:0 8px 0 #190b26,0 12px 28px rgba(0,0,0,.62);
+  text-align:center;
+  animation:scareBurst .95s cubic-bezier(.18,.86,.27,1) both;
+}
+.pumpkin-scare svg{display:block;width:104px;height:104px;image-rendering:pixelated;filter:drop-shadow(0 3px 0 #230d21);}
+.pumpkin-scare strong{display:block;font-size:10px;line-height:1.8;text-shadow:2px 2px #421c37;}
+.pumpkin-scare small{font-size:8px;line-height:1.4;color:#e2b4bb;}
+@keyframes scareBurst {
+  0%{opacity:0;transform:translate(-50%,28px) scale(.3) rotate(-9deg)}
+  37%{opacity:1;transform:translate(-50%,0) scale(1.09) rotate(3deg)}
+  53%{transform:translate(-50%,0) scale(.97) rotate(-2deg)}
+  74%{opacity:1;transform:translate(-50%,0) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-12px) scale(.94)}
+}
+@media (prefers-reduced-motion:reduce){.pumpkin-scare{animation:scareQuiet .95s ease both}}
+@keyframes scareQuiet{0%{opacity:0}20%,75%{opacity:1}100%{opacity:0}}
+
+/* Mine/chest outcomes: bright candy for safe, red skeleton for loss. No lid-flip animations. */
+#view-chests .cx-cell.gold {
+ background:linear-gradient(180deg,#86601e 0%,#4d2f1b 100%)!important;
+ border-color:#f4c15b!important;
+ box-shadow:inset 2px 2px 0 #ffdc91,0 0 10px rgba(248,185,73,.34),0 3px 0 #2e1a0c!important;
+}
+#view-chests .cx-cell.empty,
+#view-chests .cx-cell.empty.ghost {
+ background:linear-gradient(180deg,#752338 0%,#2c1024 100%)!important;
+ border-color:#eb5365!important;
+ box-shadow:inset 2px 2px 0 #fb8383,0 0 13px rgba(237,65,94,.37),0 3px 0 #210a18!important;
+}
+#view-chests .cx-cell.empty.ghost{opacity:.65;}
+#view-chests .cx-cell.empty.hit {
+ opacity:1!important;
+ border-color:#ff5369!important;
+ box-shadow:inset 0 0 0 2px #f7a5a6,0 0 13px rgba(247,47,67,.66),0 3px 0 #230a19!important;
+}
+#view-chests .cx-cell.gold:not(.ghost) img{animation:candyReveal .38s steps(5,end) 1!important;}
+#view-chests .cx-cell.empty.hit img{animation:skeletonRattle .6s steps(6,end) 1!important;}
+@keyframes candyReveal{0%{transform:scale(.86)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes skeletonRattle{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-2px)}40%,80%{transform:translateX(2px)}}
+@media(prefers-reduced-motion:reduce){
+ #view-chests .cx-cell.gold:not(.ghost) img,#view-chests .cx-cell.empty.hit img{animation:none!important;}
+}

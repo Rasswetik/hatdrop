@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 170" shape-rendering="crispEdges" aria-label="Костлявая рука, указывающая пальцем">
+ <g stroke="none">
+ <!-- silhouette of two forearm bones -->
+ <path d="M22 105h7v50h-3v8h-10v-11h3v-35h3zM37 105h8v52h-4v6H31v-11h3v-35h3z" fill="#2b2132"/>
+ <path d="M24 109h4v43h-5v8h-4v-8h2v-33h3zM38 109h5v43h-4v8h-5v-9h2v-32h2z" fill="#ece9d4"/>
+ <rect x="20" y="132" width="7" height="5" fill="#c2bca9"/><rect x="36" y="132" width="6" height="5" fill="#c2bca9"/>
+ <!-- pointing index finger, top is pointer tip -->
+ <path d="M25 6h12v11h2v41h9v10h5v26h-6v12h-9v10H21v-10h-8V88h-5V72h7V56h10z" fill="#281f2f"/>
+ <rect x="28" y="8" width="7" height="14" fill="#fff3d5"/>
+ <rect x="27" y="24" width="10" height="17" fill="#f5e9cc"/>
+ <rect x="28" y="41" width="9" height="18" fill="#ebe2c7"/>
+ <rect x="28" y="61" width="10" height="18" fill="#f0ead5"/>
+ <rect x="27" y="80" width="13" height="18" fill="#eee8d1"/>
+ <!-- phalange pixel joints -->
+ <rect x="27" y="21" width="11" height="4" fill="#b9b6ab"/>
+ <rect x="27" y="41" width="11" height="4" fill="#b9b6ab"/>
+ <rect x="27" y="59" width="12" height="4" fill="#b9b6ab"/>
+ <rect x="19" y="79" width="24" height="27" fill="#f2ead3"/>
+ <rect x="21" y="84" width="4" height="18" fill="#c6beac"/>
+ <rect x="30" y="82" width="3" height="24" fill="#d2c8b2"/>
+ <!-- bent middle/ring/pinky fingertips -->
+ <rect x="39" y="59" width="7" height="19" fill="#eae3c9"/>
+ <rect x="41" y="73" width="11" height="10" fill="#eae3c9"/>
+ <rect x="47" y="83" width="7" height="14" fill="#c6bfa9"/>
+ <rect x="43" y="89" width="7" height="11" fill="#f0e7d1"/>
+ <rect x="40" y="101" width="7" height="7" fill="#ddd3bd"/>
+ <!-- thumb bone curls sideways -->
+ <rect x="13" y="72" width="7" height="21" fill="#efe6d1"/>
+ <rect x="13" y="86" width="10" height="8" fill="#bfb7a7"/>
+ <rect x="15" y="94" width="10" height="12" fill="#eae1ce"/>
+ <rect x="23" y="101" width="16" height="8" fill="#c5bba8"/>
+ <!-- wrist and highlight -->
+ <rect x="24" y="111" width="15" height="8" fill="#ece5ce"/>
+ <rect x="25" y="116" width="4" height="37" fill="#fff9e6"/>
+ <rect x="39" y="117" width="3" height="34" fill="#fff9e6"/>
+ <rect x="28" y="9" width="2" height="11" fill="#fffdf0"/>
+ <rect x="17" y="79" width="3" height="11" fill="#fffbed"/>
+ <rect x="30" y="12" width="4" height="2" fill="#ffc76a" opacity=".85"/>
+ </g>
+</svg>
