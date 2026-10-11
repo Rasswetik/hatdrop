@@ -14,10 +14,12 @@ import signal
 import urllib.error
 import urllib.request
 from math import comb
+from datetime import timedelta
+from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from flask import Flask, Response, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory, render_template, session
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))  # старый JSON-файл (только для миграции)
@@ -101,6 +103,13 @@ CHEST_GIFT_BETS = os.environ.get("CHEST_GIFT_BETS", "0") == "1"
 CHEST_MIN_MULT = 1.01
 
 app = Flask(__name__, static_folder=None)
+app.secret_key = os.environ.get("ADMIN_SESSION_SECRET") or (
+    hmac.new(BOT_TOKEN.encode(), b"hatdrop-admin-cookie", hashlib.sha256).hexdigest()
+    if BOT_TOKEN else secrets.token_hex(32)
+)
+app.config.update(SESSION_COOKIE_NAME="hatdrop_admin", SESSION_COOKIE_HTTPONLY=True,
+                  SESSION_COOKIE_SAMESITE="Strict", PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+                  SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE") == "1" or os.environ.get("RENDER_EXTERNAL_URL", "").startswith("https://"))
 lock = threading.RLock()
 db = {"users": {}, "prices": {}, "settings": {}}
 
@@ -209,6 +218,7 @@ def load_db():
     db.setdefault("settings", {})
     db.setdefault("promocodes", {})
     db.setdefault("withdrawals", {})
+    ensure_analytics(db)
     db["settings"].setdefault("active_market", "portals")
     db["settings"].setdefault("halloween_enabled", False)
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
@@ -443,7 +453,17 @@ def verified_telegram_user(init_data):
 
 def current_user():
     body = request.get_json(silent=True) or {}
+    # Cookie authentication is limited to the separate admin page and its catalog.
+    if not body.get("initData") and (request.path.startswith("/api/admin/") or request.path in ("/api/gifts/catalog", "/api/gifts/models")):
+        admin_user = admin_session_user()
+        if admin_user:
+            csrf = request.headers.get("X-Admin-CSRF", "")
+            if not csrf or not hmac.compare_digest(csrf, session.get("admin_csrf", "")):
+                raise ApiError("csrf_failed", 403)
+            return admin_user, body
     tg = verified_telegram_user(body.get("initData", ""))
+    if request.path.startswith("/api/admin/") and not tg:
+        raise ApiError("forbidden", 403)
     if tg and tg.get("id"):
         uid = f"tg{tg['id']}"
     else:
@@ -627,12 +647,14 @@ def add_prize(user, tier, name, value, image=""):
     return prize
 
 
-def record_game(user, kind, cost, win, target, image, bear):
+def record_game(user, kind, cost, win, target, image, bear, payout=0):
+    ts = int(time.time())
+    record_round(db, user, kind, cost, payout, win, ts)
     user["turnover"] += cost
     user["games"] += 1
     user["history"].insert(
         0,
-        {"ts": int(time.time()), "kind": kind, "win": win, "bear": bear, "cost_ton": cost, "target": target, "image": image},
+        {"ts": ts, "kind": kind, "win": win, "bear": bear, "cost_ton": cost, "payout_ton": payout, "target": target, "image": image},
     )
     del user["history"][HISTORY_LIMIT:]
 
@@ -690,7 +712,7 @@ def spin(user, body):
         add_prize(user, target["tier"], target["name"], target["value"], target["image"])
     else:
         bear = consolation(user)
-    record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear))
+    record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear), target["value"] if win else 0)
     return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0, "consolation": bear}
 
 
@@ -784,7 +806,7 @@ def chest_cash(user, extra=None):
     label = f"Сундуки · x{mult:g} · +{payout:g}"
     if gift:
         label = f"Сундуки · x{mult:g} · {gift['name']} + {ton_part:g} TON"
-    record_game(user, "chests", r["bet"], True, label, "chests:win", False)
+    record_game(user, "chests", r["bet"], True, label, "chests:win", False, payout)
     return {
         **(extra or {}),
         "finished": True,
@@ -1311,6 +1333,88 @@ def require_admin(user):
     if not is_admin(user):
         raise ApiError("forbidden", 403)
 
+
+
+def admin_session_user():
+    if session.get("admin_exp", 0) <= time.time():
+        return None
+    user = db["users"].get(session.get("admin_uid"))
+    return user if user and is_admin(user) else None
+
+
+@route("/api/admin/session")
+def admin_session_ticket(user, body):
+    require_admin(user)
+    now = int(time.time())
+    tickets = db.setdefault("admin_tickets", {})
+    for key in list(tickets):
+        if tickets[key]["expires"] <= now:
+            del tickets[key]
+    ticket = secrets.token_urlsafe(32)
+    tickets[hashlib.sha256(ticket.encode()).hexdigest()] = {"uid": user["id"], "expires": now + 120}
+    return {"ticket": ticket, "expires": now + 120}
+
+
+@app.get("/admin")
+@app.get("/admin/")
+def admin_page():
+    user = admin_session_user()
+    response = app.make_response(render_template("admin.html", csrf=session.get("admin_csrf", "") if user else ""))
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.post("/admin/login")
+def admin_login():
+    body = request.get_json(silent=True) or {}
+    ticket = str(body.get("ticket") or "")
+    digest = hashlib.sha256(ticket.encode()).hexdigest()
+    with lock:
+        row = db.get("admin_tickets", {}).pop(digest, None)
+        user = db["users"].get(row["uid"]) if row else None
+        save_db()
+        if not row or row["expires"] <= time.time() or not user or not is_admin(user):
+            raise ApiError("forbidden", 403)
+        session.clear()
+        session.permanent = True
+        session.update(admin_uid=user["id"], admin_exp=int(time.time()) + 8 * 3600, admin_csrf=secrets.token_urlsafe(32))
+    return {"ok": True}
+
+
+@app.post("/admin/logout")
+def admin_logout():
+    csrf = request.headers.get("X-Admin-CSRF", "")
+    if not csrf or not hmac.compare_digest(csrf, session.get("admin_csrf", "")):
+        raise ApiError("csrf_failed", 403)
+    session.clear()
+    return {"ok": True}
+
+
+@route("/api/admin/overview")
+def admin_overview(user, body):
+    require_admin(user)
+    try:
+        days = int(body.get("days", 30))
+    except (ValueError, TypeError, OverflowError):
+        raise ApiError("bad_request")
+    scope = body.get("scope", "real")
+    if days not in (1, 7, 30, 90) or scope not in ("real", "demo"):
+        raise ApiError("bad_request")
+    result = overview(db, days, scope)
+    result["bot"]["configured"] = bool(BOT_TOKEN)
+    result["admin_name"] = display_name(user)
+    return result
+
+
+@route("/api/admin/finance/entry")
+def admin_finance_entry(user, body):
+    require_admin(user)
+    try:
+        entry = finance_entry(db, user, body)
+    except (ValueError, TypeError, OverflowError):
+        raise ApiError("bad_request")
+    return {"entry": {k: v for k, v in entry.items() if k not in ("admin", "request_id")}}
 
 
 @route("/api/admin/theme")
@@ -2614,6 +2718,8 @@ _COMPRESSIBLE = {"application/json", "text/html", "text/css", "application/javas
 
 @app.after_request
 def compress_response(resp):
+    if request.path.startswith(("/admin", "/api/admin/")):
+        resp.headers["Cache-Control"] = "private, no-store"
     try:
         if (resp.direct_passthrough or resp.status_code != 200 or "Content-Encoding" in resp.headers
                 or resp.mimetype not in _COMPRESSIBLE

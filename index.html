@@ -2744,30 +2744,6 @@ img[src*="/gimg/"] { object-fit: contain; }
 .subtitle[hidden] { display: none; }
 
 .pbtn[hidden] { display: none; }
-.adm-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-.adm-tabs button { flex: 1; font: inherit; font-size: 10px; padding: 9px 4px; color: var(--muted); background: var(--card); border: 2px solid var(--card-line); border-radius: 8px; cursor: pointer; }
-.adm-tabs button.on { color: var(--gold); border-color: var(--gold); }
-#admSearch { margin-bottom: 8px; }
-.adm-row { display: flex; align-items: center; gap: 8px; width: 100%; font: inherit; font-size: 10px; color: var(--text); text-align: left; background: var(--card); border: 2px solid var(--card-line); border-radius: 8px; padding: 9px 10px; margin-bottom: 6px; cursor: pointer; }
-.adm-row b { flex: 1; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-row span { color: var(--gold-soft); white-space: nowrap; }
-.adm-box { margin-bottom: 12px; font-size: 10px; line-height: 1.8; color: var(--muted); }
-.adm-box h3 { margin: 0 0 6px; font-size: 11px; font-weight: 400; color: var(--gold); }
-.adm-form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
-.adm-form input, .adm-form select { flex: 1 1 90px; min-width: 0; font: inherit; font-size: 11px; color: var(--text); background: var(--track-bg); border: 2px solid var(--card-line); border-radius: 8px; padding: 8px; }
-.adm-form button { font: inherit; font-size: 10px; color: var(--text); background: var(--violet-dark); border: 2px solid var(--card-line); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
-.adm-form button.danger { background: #7a1f2b; }
-.adm-prize { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text); margin-bottom: 6px; }
-.adm-prize img { width: 28px; height: 28px; object-fit: contain; }
-.adm-prize b { flex: 1; font-weight: 400; }
-.adm-prize em { font-style: normal; color: var(--muted); }
-.adm-market .adm-form { align-items: center; margin: 0 0 8px; }
-.adm-market .adm-name { flex: 1 1 100%; font-size: 10px; color: var(--text); }
-.adm-market .custom { color: var(--gold); }
-.adm-tabs[hidden] { display: none; }
-.adm-box { text-align: left; }
-.adm-prize button { font: inherit; font-size: 10px; color: var(--text); background: #7a1f2b; border: 2px solid var(--card-line); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
-
 /* аватарка профиля (фото из Telegram) */
 .avatar { position: relative; overflow: hidden; }
 .avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .2s; }
@@ -2786,54 +2762,6 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .chance-custom input:focus { border-color: var(--gold); }
 .chance-custom input::-webkit-outer-spin-button, .chance-custom input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .chance-custom input:disabled { opacity: .5; }
-/* Admin section chooser */
-@media (max-width:420px) {
-  .adm-wd-card {grid-template-columns:46px minmax(0,1fr);gap:8px;padding:8px}
-  .adm-wd-art {width:46px;height:46px}
-  .adm-wd-actions {grid-template-columns:repeat(2,minmax(0,1fr))}
-  .adm-wd-actions button {font-size:8px;line-height:1.4;padding:9px 4px}
-  .adm-wd-meta {overflow-wrap:anywhere;white-space:normal}
-}
-
-#admWithdrawals {min-width:0}
-.adm-wd-switch {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:6px 0 13px}
-.adm-wd-switch button {padding:11px 6px;border:2px solid var(--card-line);border-radius:11px;background:var(--card);color:var(--muted);font:inherit;font-size:10px;cursor:pointer}
-.adm-wd-switch button.on {color:var(--gold);border-color:var(--gold)}
-.adm-wd-card {display:grid;grid-template-columns:56px minmax(0,1fr);gap:10px;align-items:start;background:var(--card);border:1px solid var(--card-line);border-radius:12px;padding:10px;margin:0 0 9px;min-width:0;width:100%;box-sizing:border-box}
-.adm-wd-art {width:56px;height:56px;min-width:0;object-fit:contain;border:1px solid var(--card-line);border-radius:10px;background:var(--track-bg)}
-.adm-wd-info {min-width:0;max-width:100%;overflow-wrap:anywhere;font-size:10px;line-height:1.7}
-.adm-wd-name {display:block;font-size:11px;color:var(--text);margin-bottom:2px}
-.adm-wd-meta {display:block;font-size:9px;color:var(--muted)}
-.adm-wd-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px;min-width:0}
-.adm-wd-actions button {min-width:0;white-space:normal;overflow-wrap:anywhere;padding:9px 5px;border-radius:9px;border:1px solid var(--card-line);background:var(--violet-dark);color:var(--text);font:inherit;font-size:9px;cursor:pointer}
-.adm-wd-actions button.approve {background:var(--gold);color:#2a1a00;border-color:var(--gold-dark)}
-.adm-wd-actions button.reject {background:#733039}
-.adm-wd-chip {display:inline-block;max-width:100%;white-space:normal;padding:2px 7px;border-radius:8px;border:1px solid var(--card-line);font-size:9px;color:var(--gold)}
-.adm-wd-toolbar {display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}
-.adm-wd-toolbar button {min-height:37px;border-radius:9px;padding:8px 11px;font-size:10px;font:inherit;color:var(--text);background:var(--violet-dark);border:2px solid var(--card-line);cursor:pointer}
-#admMarketSource {width:100%;border-radius:10px;padding:12px;margin-bottom:9px;min-width:0;background:var(--track-bg);color:var(--text);border:2px solid var(--card-line);font:inherit;font-size:10px}
-#admMarketSourceHelp {font-size:9px;color:var(--muted);line-height:1.7}
-#admMarketChoose {width:100%;min-height:42px;border:2px solid var(--gold-dark);border-radius:10px;background:var(--gold);color:#2a1a00;font:inherit;font-size:10px;cursor:pointer;margin:4px 0 12px}
-
-#adminModal { overflow:hidden; overscroll-behavior:contain; touch-action:pan-y; }
-#adminModal .modal-card { width:min(100% - 20px, 460px); max-width:460px; min-width:0; max-height:calc(100dvh - 28px); overflow-x:hidden; overflow-y:auto; overscroll-behavior-x:none; -webkit-overflow-scrolling:touch; box-sizing:border-box; }
-#adminModal .modal-card > * {min-width:0; max-width:100%;}
-#adminModal .adm-box { min-width:0; max-width:100%; overflow-wrap:anywhere; padding:10px; border-radius:10px; background:var(--card); border:1px solid var(--card-line); }
-#adminModal input, #adminModal select, #adminModal button { max-width:100%; box-sizing:border-box; }
-#adminModal #admPromos > .adm-box > .gp-search { display:block; width:100%; min-width:0; margin:0 0 9px; border-radius:9px; padding:12px; font-size:10px; border:2px solid var(--card-line); background:var(--track-bg); color:var(--text); }
-#adminModal #admPromoChoose, #adminModal #admPromoCreate, #adminModal .adm-form button, .adm-promo-picker-close { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:10px 12px; font:inherit; font-size:10px; line-height:1.4; cursor:pointer; color:var(--text); background:var(--violet-dark); border:2px solid var(--card-line); border-radius:10px; box-shadow:inset 1px 1px 0 rgba(255,255,255,.14),0 2px 0 rgba(0,0,0,.2); }
-#adminModal #admPromoChoose { width:100%; margin:3px 0 10px; }
-#adminModal #admPromoCreate { width:100%; min-height:52px; color:#281500; background:var(--gold); border-color:var(--gold-dark); font-size:11px; margin-top:10px; }
-#adminModal #admPromoCreate:active, #adminModal #admPromoChoose:active { transform:translateY(1px); }
-#adminModal .adm-form { min-width:0; max-width:100%; }
-#adminModal .adm-form > button { flex:1 1 110px; min-width:0; white-space:normal; }
-#adminModal .adm-form > button.danger { background:#782d32; }
-.adm-promo-picker-close { width:100%; margin-top:10px; }
-
-.adm-tabs.adm-home {display:flex;flex-direction:column;gap:10px;margin:18px 0}
-.adm-tabs.adm-home[hidden]{display:none!important}
-.adm-tabs.adm-home button{width:100%;min-height:64px;border-radius:10px;font-size:12px}
-.adm-close{width:100%;margin-top:10px;border-radius:10px;padding:12px;color:var(--muted);background:var(--card);border:1px solid var(--card-line);cursor:pointer}
 </style>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2922,9 +2850,6 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 #view-chests { padding-bottom: 12px; }
 .view-ghost { pointer-events: none; }
 .cx-row .cx-chip { flex: 1 1 auto; }
-.adm-key { width: 100%; margin: 4px 0 10px; text-align: left; }
-.adm-key .adm-form { margin-top: 6px; }
-.adm-key .adm-status { font-size: 10px; color: var(--muted); margin: 4px 0; }
 
 /* Static cells: change the artwork as soon as the server confirms the result. */
 .cx-cell { contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -3019,7 +2944,7 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=1">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=4">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=5">
 <style id="mines-palette">
 /* Critical mine colors ship with the page, independently of cached theme CSS. */
 /* Fixed geometry and an independent state class keep all 25 cells in place. */
@@ -3441,14 +3366,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 <svg id="halloweenScene" class="halloween-scene" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
 <defs>
 
- <g id="hw-bat" fill="#130c24">
- <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
- <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
- <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
- <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
- <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
- <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
- </g>
+
  <g id="hw-pumpkin"><path d="M12 0h8v8h8v4h8v20h-4v8H8v-8H4V12h8V8z" fill="#180d20"/><path d="M14 10h18v3h5v19h-5v5H8v-5H3V14h6v-4z" fill="var(--hw-pumpkin)"/><rect x="12" y="14" width="4" height="18" fill="var(--hw-pumpkin-light)"/><rect x="26" y="14" width="5" height="18" fill="var(--hw-pumpkin-dark)"/><rect x="19" y="2" width="5" height="10" fill="var(--hw-stem)"/><g class="hw-lamp" fill="#ffe588"><path d="M10 20h7v5h-7zM25 20h7v5h-7zM18 27h6v3h-6zM12 32h20v3H12z"/></g><path d="M15 32h4v3h-4zM25 32h4v3h-4z" fill="#60262d"/></g>
  <g id="hw-grave"><path d="M6 10h7V5h20v5h7v48H0V16h6z" fill="#151021"/><path d="M9 12h6V7h16v5h6v42H4V17h5z" fill="var(--hw-stone)"/><path d="M13 15h17v2H13z" fill="#a69bae"/><rect x="13" y="25" width="17" height="4" fill="#322942"/><rect x="16" y="32" width="11" height="3" fill="#42364c"/><rect x="6" y="50" width="31" height="4" fill="var(--hw-stone-dark)"/></g>
  <g id="hw-fir"><path d="M-5 0h10v-66H-5z" fill="#2c1b33"/><path d="M-12-58h24v-10H8v-10H4v-10H-4v10h-4v10h-4zM-21-38h42v-8h-6v-10H9v-10H-9v10h-6v10h-6zM-28-12h56v-8h-6v-10h-5v-12h-34v12h-5v10h-6z" fill="var(--hw-tree)"/><rect x="-9" y="-44" width="6" height="3" fill="var(--hw-leaf)"/><rect x="7" y="-27" width="7" height="3" fill="var(--hw-leaf)"/></g>
@@ -3710,11 +3628,54 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 <g transform="translate(967 295) scale(.90)"><g class="hw-spirit hw-spirit-alt"><use href="#hw-spirit"/></g></g>
 <use href="#hw-skeletal" transform="translate(1210 303) rotate(7)"/>
 <g transform="translate(1059 389)"><path d="M0 12l4-17 9 9 11-9 5 17v29H0z" fill="#0b1020"/><path d="M26 38q30-5 24-32" fill="none" stroke="#0b1020" stroke-width="9"/><g class="hw-night-detail" fill="#91e7b9"><rect x="6" y="15" width="5" height="5"/><rect x="20" y="15" width="5" height="5"/></g></g>
-<g class="hw-bat-flight"><g transform="translate(20 76) scale(.85)"><use href="#hw-bat"/></g><g transform="translate(-120 116) scale(.64)"><use href="#hw-bat"/></g></g>
-<g class="hw-bat-flight hw-bat-alt"><g transform="translate(25 179) scale(.75)"><use href="#hw-bat"/></g></g>
-<g class="hw-witch-flight"><g transform="translate(0 116)">
-<path d="M1 18l19-36 10 35 17 7H0zM11 26h25v20H11zM18 48h28l12 20-20 8-25-19z" fill="#101422"/><path d="M10 65h82l13-8v16H10z" fill="#271d2c"/><path d="M40 52l-18 8-17-6" fill="none" stroke="#101422" stroke-width="7"/><path d="M40 75l12 10 9-9" fill="none" stroke="#101422" stroke-width="8"/><rect x="14" y="30" width="15" height="10" fill="#97baa6"/><rect x="23" y="30" width="3" height="3" fill="#17253a"/>
-</g></g>
+<g class="hw-bat-flight hw-bat-1"><g transform="translate(0 85) scale(0.9)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-2"><g transform="translate(0 148) scale(0.64)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-3"><g transform="translate(0 210) scale(0.78)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-4"><g transform="translate(0 115) scale(0.54)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-5"><g transform="translate(0 178) scale(0.85)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-6"><g transform="translate(0 240) scale(0.48)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
 <path d="M898 669h7" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
 <path d="M762 608h8" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
 <path d="M366 498h2" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
@@ -4167,7 +4128,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
             </g>
             <rect class="ptr-dot" x="147" y="147" width="6" height="6"></rect>
             <image class="ptr-axe" href="images/axe.webp" x="128.1" y="14" width="65.6" height="150"></image>
-            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=2" x="119" y="9" width="62" height="149"></image>
+            <image class="ptr-skeleton" href="/static/skeleton-pointer.svg?v=3" x="119" y="9" width="62" height="149"></image>
           </g>
         </svg>
 
@@ -4219,7 +4180,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
           <div class="weapon-menu" id="weaponMenu" hidden="">
             <button type="button" data-weapon="axe"><img src="images/axe-icon.webp" alt=""><span>Топор</span></button>
             <button type="button" data-weapon="staff"><img src="images/staff-icon.webp" alt=""><span>Посох</span></button>
-            <button type="button" data-weapon="skeleton"><img src="/static/skeleton-hand-icon.svg?v=1" alt=""><span>Рука скелета</span></button>
+            <button type="button" data-weapon="skeleton"><img src="/static/skeleton-hand-icon.svg?v=2" alt=""><span>Рука скелета</span></button>
           </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
@@ -4492,119 +4453,6 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
     <button class="ghost" id="gpClose" type="button">Закрыть</button>
   </div>
 </div>
-
-<div class="modal" id="adminModal" hidden="">
-  <div class="modal-card list-modal">
-    <div class="gp-head">
-      <button class="gp-back" id="admBack" type="button" hidden="" aria-label="Назад">&lt;</button>
-      <h2 id="admTitle">Админ-панель</h2>
-    </div>
-    <div class="adm-tabs adm-home" id="admTabs">
-      <button type="button" data-tab="users" class="on">Пользователи</button>
-      <button type="button" data-tab="market">Маркет</button>
-      <button type="button" data-tab="promos">Промокоды</button>
-      <button type="button" data-tab="withdrawals">Выводы</button>
-      <button type="button" data-tab="tonconnect">TON Connect</button>
-       <button type="button" data-tab="appearance">Оформление</button>
-    </div>
-    <div id="admUsers" hidden="">
-      <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
-      <div class="lv-list" id="admUserList"></div>
-    </div>
-    <div id="admUser" hidden=""></div>
-    <div id="admMarket" hidden="">
-      <div class="adm-box"><h3>Основной маркет · один источник цен</h3>
-        <select id="admMarketSource"><option value="portals">Portals — модели и цены</option><option value="mrkt">MRKT — модели и цены</option></select>
-        <p id="admMarketSourceHelp">Остальные маркеты не участвуют в расчёте. Старый смешанный каталог будет удалён при переключении.</p>
-        <button type="button" id="admMarketChoose">Применить маркет и очистить старые цены</button>
-      </div>
-      <div class="adm-box adm-key">
-        <h3>Ключ Portals</h3>
-        <p class="adm-status" id="admPortalsStatus">—</p>
-        <div class="adm-form">
-          <input id="admPortalsKey" type="password" placeholder="Authorization (tma …) — только ключ, адрес не нужен" autocomplete="off" spellcheck="false">
-        </div>
-        <div class="adm-form">
-          <button type="button" id="admPortalsSave">Сохранить</button>
-          <button type="button" id="admPortalsClear" class="danger">Удалить ключ</button>
-        </div>
-      </div>
-      <div class="adm-box"><h3>MRKT — запасной источник моделей</h3>
-        <p class="adm-status" id="admMrktStatus">Ключ не задан</p>
-        <input id="admMrktKey" class="gp-search" type="password" placeholder="Токен MRKT (отдельный от Portals)" autocomplete="off">
-        <div class="adm-form"><button type="button" id="admMrktSave">Сохранить MRKT</button><button type="button" id="admMrktClear" class="danger">Удалить ключ</button></div>
-      </div>
-      <div class="adm-form"><button class="ghost" id="admRefresh" type="button">Обновить Portals</button><button class="ghost" id="admMrktRefresh" type="button">Обновить MRKT</button></div>
-      <p class="muted" id="admMarketNote"></p>
-      <div class="adm-market" id="admMarketList"></div>
-    </div>
-    <div id="admPromos" hidden="">
-      <div class="adm-box"><h3>Создать промокод</h3>
-        <select id="admPromoKind" class="gp-search"><option value="balance">Баланс TON</option><option value="gift">Подарок</option></select>
-        <input id="admPromoCode" class="gp-search" placeholder="Код (пусто = случайный)" maxlength="32">
-        <input id="admPromoLimit" class="gp-search" type="number" min="1" value="1" placeholder="Количество активаций">
-        <input id="admPromoAmount" class="gp-search" type="number" step="0.01" min="0.01" placeholder="Сумма TON">
-        <div id="admPromoGiftField" hidden=""><button type="button" id="admPromoChoose">Выбрать подарок из каталога</button><p id="admPromoSelected" class="muted">Подарок не выбран</p></div>
-        <button type="button" id="admPromoCreate">Создать промокод</button>
-      </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>
-    </div>
-    <div id="admWithdrawals" hidden="">
-      <div class="adm-wd-switch" id="admWdTabs">
-        <button type="button" data-wd="active" class="on">Активные</button>
-        <button type="button" data-wd="completed">Завершённые</button>
-      </div>
-      <div class="adm-wd-toolbar">
-        <button type="button" id="admWdReload">↻ Обновить</button>
-        <button type="button" id="admWdBotOpen">↗ Открыть бота</button>
-        <button type="button" id="admWdBotSetup">Настроить webhook</button>
-      </div>
-      <p class="muted" id="admWdBotStatus">Уведомления Telegram: проверка…</p>
-      <div id="admWdList"></div>
-    </div>
-    <div id="admAppearance" hidden="">
-      <div class="adm-box halloween-admin-box">
-        <h3>🎃 Хэллоуинская тема</h3>
-        <p class="muted">Включите страшную пиксельную деревню, луну, кладбище и праздничные цвета для всех игроков. Выключение вернёт обычное оформление.</p>
-        <label class="halloween-switch-row" for="admHalloweenToggle">
-          <span class="halloween-switch-copy">
-            <b>Праздничное оформление</b>
-            <small id="admHalloweenStatus" role="status">Загрузка…</small>
-          </span>
-          <input id="admHalloweenToggle" type="checkbox" role="switch" aria-label="Включить хэллоуинскую тему">
-          <span class="halloween-switch-track" aria-hidden="true"><span></span></span>
-        </label>
-      </div>
-    </div>
-    <div id="admTonConnect" hidden="">
-      <div class="adm-box">
-        <h3>TON Connect · настройки приложения и пополнений</h3>
-        <p class="tc-info" id="tcStatus">Загружаем текущие настройки…</p>
-        <label class="tc-label" for="tcRecipient">Кошелёк получателя TON</label>
-        <input class="tc-input" id="tcRecipient" placeholder="UQ… / EQ… / 0:…" autocomplete="off" spellcheck="false"/>
-        <label class="tc-label" for="tcAppName">Название приложения</label>
-        <input class="tc-input" id="tcAppName" maxlength="64" placeholder="Magic Upgrade"/>
-        <label class="tc-label" for="tcAppUrl">Адрес сайта (HTTPS)</label>
-        <input class="tc-input" id="tcAppUrl" placeholder="https://example.com" inputmode="url"/>
-        <label class="tc-label" for="tcIconUrl">Адрес логотипа (PNG или ICO, HTTPS)</label>
-        <input class="tc-input" id="tcIconUrl" placeholder="https://example.com/images/hat.png" inputmode="url"/>
-        <img id="tcIconPreview" alt="Логотип TON Connect" src="images/hat.png"/>
-        <label class="tc-label" for="tcTerms">Ссылка на условия использования (необязательно)</label>
-        <input class="tc-input" id="tcTerms" placeholder="https://example.com/terms" inputmode="url"/>
-        <label class="tc-label" for="tcPrivacy">Ссылка на политику конфиденциальности (необязательно)</label>
-        <input class="tc-input" id="tcPrivacy" placeholder="https://example.com/privacy" inputmode="url"/>
-        <p class="tc-info">Настройки сохраняются в базе. Пароль, seed-фразы и приватные ключи здесь не нужны. Новый логотип и название кошелёк может показать при следующем подключении.</p>
-        <div class="tc-actions">
-          <button id="tcSave" type="button">Сохранить</button>
-          <button id="tcReset" type="button">Сбросить к исходным</button>
-          <button id="tcManifest" type="button">Открыть manifest</button>
-          <button id="tcReload" type="button">Обновить настройки</button>
-        </div>
-      </div>
-    </div>
-    <button class="ghost adm-close" id="admClose" type="button">✕ Закрыть панель</button>
-  </div>
-</div>
-
 
 <div class="pumpkin-scare" id="pumpkinScare" hidden role="status" aria-live="polite">
   <svg viewBox="0 0 96 96" shape-rendering="crispEdges" aria-hidden="true">
@@ -7687,13 +7535,13 @@ function throwPointer(pointer, from, target) {
   return { deg: a, ms: total };
 }
 
-const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=2' };
+const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/skeleton-pointer.svg?v=3' };
 
 function setWeapon(name) {
   const w = WEAPONS[name] ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   try { localStorage.setItem('weapon', w); } catch (e) {}
-  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=1' : WEAPONS[w];
+  $('weaponIcon').src = w === 'skeleton' ? '/static/skeleton-hand-icon.svg?v=2' : WEAPONS[w];
   document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
 }
 
@@ -8281,479 +8129,14 @@ function bind() {
   });
 }
 
-const admin = { tab: 'users', key: null, gifts: null, timer: 0 };
-
-function admErr(e) {
-  const m = {
-    forbidden: 'Нет доступа',
-    portals_not_configured: 'Портал не настроен на сервере (PORTALS_FLOORS_URL)',
-    portals_unavailable: 'Портал не отвечает',
-    bad_request: 'Неверное значение',
-  };
-  toast(m[e.code] || 'Ошибка запроса', true);
-}
-
-function admShow(tab) {
-  admin.tab = tab;
-  admin.key = null;
-  document.querySelectorAll('#admTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
-  $('admTabs').hidden = tab !== 'home';
-  $('admBack').hidden = tab === 'home';
-  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Оформление'})[tab];
-  $('admUsers').hidden = tab !== 'users';
-  $('admUser').hidden = true;
-  $('admMarket').hidden = tab !== 'market';
-  $('admPromos').hidden = tab !== 'promos';
-  $('admWithdrawals').hidden = tab !== 'withdrawals';
-  $('admTonConnect').hidden = tab !== 'tonconnect';
-  $('admAppearance').hidden = tab !== 'appearance';
-  if (tab === 'users') admLoadUsers();
-  else if (tab === 'market') admLoadMarket();
-  else if (tab === 'promos') admLoadPromos();
-  else if (tab === 'withdrawals') admLoadWithdrawals();
-  else if (tab === 'tonconnect') admLoadTonConnect();
-  else if (tab === 'appearance') admLoadAppearance();
-}
-
-async function admLoadUsers() {
-  const list = $('admUserList');
-  try {
-    const res = await api('/api/admin/users', { q: $('admSearch').value });
-    list.textContent = '';
-    if (!res.rows.length) listNote(list, 'Никого не найдено');
-    for (const u of res.rows) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'adm-row';
-      const name = document.createElement('b');
-      name.textContent = u.name;
-      const bal = document.createElement('span');
-      bal.textContent = `${fmt(u.balance_ton, 2)} TON`;
-      b.append(name, bal);
-      b.addEventListener('click', () => admOpenUser(u.key));
-      list.appendChild(b);
-    }
-  } catch (e) { admErr(e); }
-}
-
-function admBox(title) {
-  const box = document.createElement('div');
-  box.className = 'adm-box';
-  const h = document.createElement('h3');
-  h.textContent = title;
-  box.appendChild(h);
-  return box;
-}
-
-function admField(tag, attrs = {}) {
-  const el = document.createElement(tag);
-  Object.assign(el, attrs);
-  return el;
-}
-
-async function admOpenUser(key) {
-  admin.key = key;
-  $('admTabs').hidden = true;
-  $('admUsers').hidden = true;
-  $('admMarket').hidden = true;
-  $('admUser').hidden = false;
-  $('admBack').hidden = false;
-  try {
-    const [{ user }, catalog] = await Promise.all([
-      api('/api/admin/user', { key }),
-      admin.gifts ? Promise.resolve(admin.gifts) : api('/api/gifts/catalog'),
-    ]);
-    admin.gifts = catalog;
-    admRenderUser(user);
-  } catch (e) { admErr(e); admShow('users'); }
-}
-
-function admRenderUser(u) {
-  const root = $('admUser');
-  root.textContent = '';
-  $('admTitle').textContent = u.name;
-
-  const info = admBox('Профиль');
-  info.append(`ID: ${u.id}`, document.createElement('br'),
-    `Игр: ${u.games} · оборот ${fmt(u.turnover_ton, 2)} TON`);
-
-  const bal = admBox(`Баланс: ${fmt(u.balance_ton, 4)} TON`);
-  const form = admField('div', { className: 'adm-form' });
-  const amount = admField('input', { type: 'number', step: 'any', placeholder: 'Сумма, TON' });
-  const set = admField('button', { type: 'button', textContent: 'Установить' });
-  const add = admField('button', { type: 'button', textContent: '± Изменить' });
-  const send = async (mode) => {
-    const v = parseFloat(amount.value);
-    if (!Number.isFinite(v)) { toast('Введи сумму', true); return; }
-    try {
-      admRenderUser((await api('/api/admin/balance', { key: u.key, mode, amount: v })).user);
-      toast('Баланс обновлён');
-    } catch (e) { admErr(e); }
-  };
-  set.addEventListener('click', () => send('set'));
-  add.addEventListener('click', () => send('add'));
-  form.append(amount, set, add);
-  bal.appendChild(form);
-
-  const inv = admBox('Инвентарь');
-  if (!u.prizes.length) inv.append('Пусто');
-  for (const p of u.prizes) {
-    const row = admField('div', { className: 'adm-prize' });
-    const img = admField('img', { alt: '', src: p.image || hatAsset(p.tier) });
-    const name = admField('b', { textContent: trName(p.name) });
-    const val = admField('em', { textContent: `${fmt(p.value_ton, 2)} TON` });
-    const del = admField('button', { type: 'button', textContent: 'Убрать' });
-    del.className = 'danger';
-    del.addEventListener('click', async () => {
-      try {
-        admRenderUser((await api('/api/admin/prize/remove', { key: u.key, prize_id: p.id })).user);
-        toast('Подарок убран');
-      } catch (e) { admErr(e); }
-    });
-    row.append(img, name, val, del);
-    inv.appendChild(row);
-  }
-
-  const give = admBox('Выдать подарок');
-  const gform = admField('div', { className: 'adm-form' });
-  const sel = admField('select');
-  const hats = [['tier:random', 'Шляпа волшебника'], ['tier:onyx', 'Шляпа на ониксе'], ['tier:black', 'Шляпа на блэке']];
-  for (const [v, t] of hats) sel.add(new Option(t, v));
-  for (const g of admin.gifts.items) sel.add(new Option(`${g.name} · ${fmt(g.price_ton, 2)} TON`, `gift:${g.slug}`));
-  const model = admField('select');
-  const fillModels = async () => {
-    model.textContent = '';
-    model.hidden = !sel.value.startsWith('gift:');
-    if (model.hidden) return;
-    model.add(new Option('Любая модель', ''));
-    try {
-      const r = await fetchModels(sel.value.slice(5));
-      for (const m of r.models) model.add(new Option(m.model, m.model));
-    } catch (e) {}
-  };
-  sel.addEventListener('change', fillModels);
-  const giveBtn = admField('button', { type: 'button', textContent: 'Выдать' });
-  giveBtn.addEventListener('click', async () => {
-    const body = sel.value.startsWith('gift:')
-      ? { gift: sel.value.slice(5), model: model.value }
-      : { tier: sel.value.slice(5) };
-    try {
-      admRenderUser((await api('/api/admin/prize/add', { key: u.key, ...body })).user);
-      toast('Подарок выдан');
-    } catch (e) { admErr(e); }
-  });
-  gform.append(sel, model, giveBtn);
-  give.appendChild(gform);
-  fillModels();
-
-  root.append(info, bal, inv, give);
-}
-
-async function admLoadMarket(action, body) {
-  const list = $('admMarketList');
-  try {
-    const res = await api(action || '/api/admin/market', body || {});
-    admRenderMarket(res);
-    if (res.refreshing) toast('Загружаю подарки и модели с Portals…');
-    if ((res.portals_refreshing || res.mrkt_refreshing) && !$('adminModal').hidden) {
-      clearTimeout(admin.pollTimer);
-      admin.pollTimer = setTimeout(() => admLoadMarket(), 5000);
-    }
-  } catch (e) { admErr(e); }
-}
-
-function admRenderPortals(res) {
-  if (res.portals_configured === undefined) return;
-  admin.portals = res.portals_configured;
-  const parts = [
-    res.portals_key_set ? `ключ: ${res.portals_key_mask}` : 'ключ не задан',
-    `подарков: ${res.portals_gifts || 0}, моделей: ${res.portals_models || 0}`,
-  ];
-  if (res.portals_refreshing) parts.push('идёт загрузка…');
-  if (res.portals_error) parts.push(`ошибка: ${res.portals_error}`);
-  $('admPortalsStatus').textContent = parts.join(' · ');
-  $('admPortalsKey').value = '';
-  $('admMarketSource').value = res.active_market || "portals";
-  $('admMrktStatus').textContent = [res.mrkt_key_mask ? `ключ MRKT: ${res.mrkt_key_mask}` : 'ключ MRKT не задан',res.mrkt_refreshing ? 'идёт загрузка…' : '',`проверено: ${res.mrkt_checked || 0}/${res.mrkt_total || 0}`,`моделей: ${res.mrkt_models || 0}`,res.mrkt_error ? `ошибка: ${res.mrkt_error}` : ''].filter(Boolean).join(' · ');
-}
-
-async function admSavePortals(clear) {
-  const body = {};
-  if (clear) body.clear_key = true;
-  else if ($('admPortalsKey').value.trim()) body.auth = $('admPortalsKey').value.trim();
-  try {
-    const out = await api('/api/admin/portals/set', body);
-    admRenderMarket(out);
-    toast(clear ? 'Ключ удалён' : 'Сохранено');
-  } catch (e) { admErr(e); }
-}
-
-function admRenderMarket(res) {
-  admRenderPortals(res);
-  $('admMarketNote').textContent = 'Portals и MRKT обновляются отдельно. MRKT получает модели и их минимальные цены из /api/v1/gifts/models. Цены коллекций можно менять вручную.';
-  const list = $('admMarketList');
-  list.textContent = '';
-  for (const r of res.rows) {
-    const row = admField('div', { className: 'adm-form' });
-    const name = admField('span', { className: 'adm-name', textContent: r.name });
-    if (r.custom) name.classList.add('custom');
-    const input = admField('input', { type: 'number', step: 'any', min: '0', value: r.price_ton });
-    const save = admField('button', { type: 'button', textContent: 'Сохранить' });
-    save.addEventListener('click', async () => {
-      try {
-        const out = await api('/api/admin/market/set', { slug: r.slug, price: parseFloat(input.value) });
-        admin.gifts = null;
-        admRenderMarket(out);
-        toast('Цена сохранена');
-      } catch (e) { admErr(e); }
-    });
-    row.append(name, input, save);
-    list.appendChild(row);
-  }
-}
-
-let promoGift = null;
-async function admLoadPromos() {
-  try {
-    const {rows} = await api('/api/admin/promos');
-    const list = $('admPromoRows'); list.replaceChildren();
-    for (const item of rows) {
-      const row = admField('div', {className: 'adm-box'});
-      const detail = admField('p', {textContent: `${item.code} · ${item.kind === 'balance' ? item.amount + ' TON' : item.name + (item.model ? ' / ' + item.model : '')} · ${item.uses}/${item.limit} · ${item.active ? 'Активен' : 'Отключён'}`});
-      const buttons = admField('div', {className: 'adm-form'});
-      const copy = admField('button', {type: 'button', textContent: 'Копировать'});
-      copy.onclick = async () => { try { await navigator.clipboard.writeText(item.code); toast('Код скопирован'); } catch(e) { toast(item.code); } };
-      const toggle = admField('button', {type: 'button', textContent: item.active ? 'Отключить' : 'Включить'});
-      toggle.onclick = async () => { await api('/api/admin/promos/update', {code:item.code, active: !item.active}); admLoadPromos(); };
-      const del = admField('button', {type:'button', className:'danger', textContent:'Удалить'});
-      del.onclick = async () => { if (!confirm(`Удалить ${item.code}?`)) return; await api('/api/admin/promos/update', {code:item.code, delete:true}); admLoadPromos(); };
-      buttons.append(copy,toggle,del); row.append(detail,buttons); list.appendChild(row);
-    }
-    if (!rows.length) list.textContent = 'Пока нет промокодов';
-  } catch(e) { admErr(e); }
-}
-async function admChoosePromoGift() {
-  try {
-    const catalog = await api('/api/gifts/catalog');
-    const modal = document.createElement('div'); modal.className = 'modal adm-promo-picker'; modal.style.zIndex = '9999'; modal.style.overflowX='hidden';
-    const panel = admField('div', {className: 'modal-card list-modal'});
-    panel.style.maxHeight = '85dvh'; panel.style.width='min(100% - 20px, 460px)'; panel.style.maxWidth='460px'; panel.style.minWidth='0'; panel.style.overflowX='hidden'; panel.style.overflowY='auto';
-    const search = admField('input', {className: 'gp-search', placeholder:'Поиск подарка'});
-    const list = admField('div', {className:'gift-list'}); list.style.gridTemplateColumns='repeat(3,minmax(0,1fr))'; list.style.width='100%';
-    const render = () => { list.replaceChildren();
-      for (const g of catalog.items.filter(g=>g.name.toLowerCase().includes(search.value.toLowerCase()))) {
-        const b=admField('button',{type:'button',className:'gift-item'});
-        const img=admField('img',{src:g.image,alt:''});
-        const name=admField('span',{textContent:g.name}); const price=admField('span',{textContent:`${g.price_ton} TON`});
-        b.append(img,name,price); b.onclick=()=>{ promoGift=g; $('admPromoSelected').textContent=`${g.name} · ${g.price_ton} TON`; modal.remove(); };
-        list.append(b);
-      }
-    };
-    search.oninput=render; render();
-    const close=admField('button',{type:'button',className:'adm-promo-picker-close',textContent:'✕ Закрыть выбор'}); close.onclick=()=>modal.remove();
-    panel.append(search,list,close);modal.append(panel); document.body.append(modal); modal.hidden=false;
-  } catch(e) { admErr(e); }
-}
-async function admSaveMrkt(clear) {
-  try {
-    const res=await api('/api/admin/mrkt/set', clear ? {clear_key:true} : {auth:$('admMrktKey').value.trim()});
-    $('admMrktKey').value='';toast('Настройки MRKT сохранены');admLoadMarket();
-  } catch(e) { admErr(e); }
-}
-
-let adminWdTab = 'active';
-let adminWdBotUsername = '';
-
-async function admLoadWithdrawals() {
-  const root = $('admWdList');
-  if (admin.tab !== 'withdrawals') return;
-  root.textContent = 'Загружаю заявки…';
-  try {
-    const res = await api('/api/admin/withdrawals');
-    adminWdBotUsername = res.bot_username || '';
-    $('admWdBotStatus').textContent = res.bot_enabled
-      ? (adminWdBotUsername ? 'Бот: @' + adminWdBotUsername : 'Бот подключён · username не определён')
-      : 'BOT_TOKEN не задан на сервере. Уведомления отключены.';
-    document.querySelectorAll('#admWdTabs button').forEach(b => b.classList.toggle('on', b.dataset.wd === adminWdTab));
-    root.replaceChildren();
-    const active = (x) => x.status === 'pending' || x.status === 'approved';
-    const rows = (res.rows || []).filter(x => adminWdTab === 'active' ? active(x) : !active(x));
-    if (!rows.length) return listNote(root, adminWdTab === 'active' ? 'Нет активных заявок' : 'Нет завершённых заявок');
-    for (const wd of rows) {
-      const card = admField('div', {className:'adm-wd-card'});
-      const img = admField('img', {className:'adm-wd-art', alt:''});
-      img.src = wd.image || '/images/hat.webp';
-      img.loading = 'lazy';
-      const info = admField('div', {className:'adm-wd-info'});
-      const title = admField('strong', {className:'adm-wd-name', textContent: wd.name || 'Подарок'});
-      const owner = admField('span', {className:'adm-wd-meta',
-        textContent:(wd.username ? '@'+wd.username : (wd.first_name || 'Игрок')) + ' · ID ' + (wd.telegram_id || wd.user_id)});
-      const price = admField('span', {className:'adm-wd-meta',textContent: Number(wd.value_ton || 0).toFixed(2)+' TON'});
-      const state = admField('span',{className:'adm-wd-chip',textContent: ({pending:'На проверке',approved:'Одобрено, ожидает отправки',completed:'Выполнено',rejected:'Отклонено'})[wd.status] || wd.status});
-      info.append(title,owner,price,state);
-      const buttons=admField('div',{className:'adm-wd-actions'});
-      function btn(label,cls,fn){const b=admField('button',{type:'button',className:cls,textContent:label});b.onclick=fn;buttons.append(b);}
-      if(wd.status==='pending'){
-        btn('✓ Одобрить','approve',()=>admResolveWd(wd,'approve'));
-        btn('✕ Отклонить','reject',()=>admResolveWd(wd,'reject'));
-      } else if(wd.status==='approved'){
-        btn('✓ Отправлено','approve',()=>admResolveWd(wd,'complete'));
-      }
-      if (wd.telegram_id) btn('Профиль ↗','',()=>{window.open(wd.username ? 'https://t.me/'+encodeURIComponent(wd.username) : 'tg://user?id='+encodeURIComponent(wd.telegram_id),'_blank');});
-      if(buttons.childNodes.length) info.append(buttons);
-      card.append(img,info);root.append(card);
-    }
-  } catch(e){root.textContent='Не удалось загрузить заявки';admErr(e);}
-}
-
-async function admResolveWd(wd,action){
-  const confirmText=({approve:'Одобрить заявку? Это не отправляет NFT автоматически.',reject:'Отклонить заявку и вернуть подарок в инвентарь?',complete:'Подтверждаете, что NFT реально отправлен игроку?'})[action];
-  if(!window.confirm(confirmText))return;
-  try {
-    await api('/api/admin/withdrawals/resolve',{id:wd.id,action});
-    toast('Статус заявки обновлён');
-    await admLoadWithdrawals();
-  }catch(e){admErr(e);}
-}
-
-async function admSetupBot(){
-  if(!window.confirm('Установить webhook Telegram на адрес текущего HTTPS-сервера? Секрет должен быть задан в TELEGRAM_WEBHOOK_SECRET.'))return;
-  try{
-    const result=await api('/api/admin/bot/setup');
-    adminWdBotUsername=result.bot_username||'';
-    toast(result.ok ? 'Telegram webhook установлен' : 'Не удалось подключить webhook',!result.ok);
-    admLoadWithdrawals();
-  }catch(e){toast('Не удалось настроить бот: '+(e.code||'ошибка'),true);}
-}
-
-let tcManifestUrl='/tonconnect-manifest.json';
-
-async function admLoadTonConnect(){
-  const status=$('tcStatus');
-  status.textContent='Загружаем настройки TON Connect…';
-  try{
-    const data=await api('/api/admin/tonconnect');
-    const cfg=data.config || {};
-    const map={recipient_address:'tcRecipient',app_name:'tcAppName',app_url:'tcAppUrl',
-      icon_url:'tcIconUrl',terms_url:'tcTerms',privacy_url:'tcPrivacy'};
-    for(const [field,id] of Object.entries(map))$(id).value=cfg[field]||'';
-    $('tcIconPreview').src=cfg.icon_url||'images/hat.png';
-    tcManifestUrl=data.manifest_url||'/tonconnect-manifest.json';
-    status.textContent=(data.using_saved?'Настройки загружены из базы. ':'Используются значения по умолчанию. ')+
-      (data.deposit_ready?'Получатель TON указан.':'Укажите кошелёк для пополнений.');
-  }catch(e){status.textContent='Ошибка загрузки настроек';admErr(e);}
-}
-
-async function admSaveTonConnect(reset){
-  if(reset && !window.confirm('Вернуть значения TON Connect из настроек сервера?'))return;
-  const body=reset?{reset:true}:{
-    recipient_address:$('tcRecipient').value.trim(),
-    app_name:$('tcAppName').value.trim(),
-    app_url:$('tcAppUrl').value.trim(),
-    icon_url:$('tcIconUrl').value.trim(),
-    terms_url:$('tcTerms').value.trim(),
-    privacy_url:$('tcPrivacy').value.trim()
-  };
-  const btn=$('tcSave');btn.disabled=true;
-  try{
-    await api('/api/admin/tonconnect/save',body);
-    toast(reset?'Значения по умолчанию восстановлены':'TON Connect сохранён в базе');
-    await admLoadTonConnect();
-    refresh().catch(()=>{});
-  }catch(e){toast('Настройки не сохранены: '+(e.code||'ошибка'),true);}
-  finally{btn.disabled=false;}
-}
-
-
-async function admLoadAppearance() {
-  const toggle = $('admHalloweenToggle');
-  const status = $('admHalloweenStatus');
-  toggle.disabled = true;
-  status.textContent = 'Загружаем настройку…';
-  try {
-    const result = await api('/api/admin/theme');
-    toggle.checked = result.enabled === true;
-    status.textContent = result.enabled ? 'Тема включена для всех игроков' : 'Выключена · обычная тема';
-    applyHalloweenTheme(result.enabled === true);
-  } catch (error) {
-    status.textContent = 'Не удалось загрузить настройку';
-    admErr(error);
-  } finally {
-    toggle.disabled = false;
-  }
-}
-
-async function admToggleHalloween() {
-  const toggle = $('admHalloweenToggle');
-  const status = $('admHalloweenStatus');
-  const desired = toggle.checked;
-  toggle.disabled = true;
-  status.textContent = 'Сохраняем…';
-  try {
-    const result = await api('/api/admin/theme', { enabled: desired });
-    applyHalloweenTheme(result.enabled === true);
-    toggle.checked = result.enabled === true;
-    if (state) state.halloween_enabled = result.enabled === true;
-    status.textContent = result.enabled ? 'Тема включена для всех игроков' : 'Выключена · обычная тема';
-    toast(result.enabled ? 'Хэллоуинская тема включена' : 'Обычное оформление восстановлено');
-  } catch (error) {
-    toggle.checked = !desired;
-    status.textContent = 'Ошибка сохранения · попробуйте ещё раз';
-    admErr(error);
-  } finally {
-    toggle.disabled = false;
-  }
-}
-
 function initAdmin() {
-  $('adminBtn').addEventListener('click', () => {
-    haptic('impact', 'light');
-    $('adminModal').hidden = false;
-    admShow('home');
-  });
-  $('admClose').addEventListener('click', () => { $('adminModal').hidden = true; });
-  $('admHalloweenToggle').addEventListener('change', admToggleHalloween);
-  $('adminModal').addEventListener('click', (e) => { if (e.target.id === 'adminModal') $('adminModal').hidden = true; });
-  $('admBack').addEventListener('click', () => admShow(admin.tab === 'user' ? 'users' : 'home'));
-  document.querySelectorAll('#admTabs button').forEach((b) => b.addEventListener('click', () => admShow(b.dataset.tab)));
-  $('admSearch').addEventListener('input', () => {
-    clearTimeout(admin.timer);
-    admin.timer = setTimeout(admLoadUsers, 250);
-  });
-  $('admMarketChoose').addEventListener('click', async () => {
-    const source = $('admMarketSource').value;
-    if (!window.confirm('Сменить основной маркет на ' + source.toUpperCase() + '? Старые цены и дубли будут удалены.')) return;
-    try { await api('/api/admin/market/source', {source, clear_cache:true}); toast('Источник переключён. Обновление запущено'); admLoadMarket(); }
-    catch(e) { admErr(e); }
-  });
-  $('tcSave').addEventListener('click',()=>admSaveTonConnect(false));
-  $('tcReset').addEventListener('click',()=>admSaveTonConnect(true));
-  $('tcReload').addEventListener('click',admLoadTonConnect);
-  $('tcManifest').addEventListener('click',()=>window.open(tcManifestUrl,'_blank'));
-  $('tcIconUrl').addEventListener('input',()=>{$('tcIconPreview').src=$('tcIconUrl').value.trim()||'images/hat.png';});
-  $('admWdReload').addEventListener('click', admLoadWithdrawals);
-  document.querySelectorAll('#admWdTabs button').forEach(b=>b.addEventListener('click',()=>{adminWdTab=b.dataset.wd;admLoadWithdrawals();}));
-  $('admWdBotOpen').addEventListener('click',()=>{if(adminWdBotUsername)window.open('https://t.me/'+encodeURIComponent(adminWdBotUsername),'_blank');else toast('Сначала настройте бота',true);});
-  $('admWdBotSetup').addEventListener('click', admSetupBot);
-  $('admRefresh').addEventListener('click', () => admLoadMarket('/api/admin/market/refresh'));
-  $('admMrktRefresh').addEventListener('click', () => admLoadMarket('/api/admin/mrkt/refresh'));
-  $('admPortalsSave').addEventListener('click', () => admSavePortals(false));
-  $('admPortalsClear').addEventListener('click', () => admSavePortals(true));
-  $('admMrktSave').addEventListener('click', () => admSaveMrkt(false));
-  $('admMrktClear').addEventListener('click', () => admSaveMrkt(true));
-  $('admPromoKind').addEventListener('change', () => {
-    const gift=$('admPromoKind').value==='gift'; $('admPromoAmount').hidden=gift; $('admPromoGiftField').hidden=!gift;
-  });
-  $('admPromoChoose').addEventListener('click', admChoosePromoGift);
-  $('admPromoCreate').addEventListener('click', async () => {
-    const kind=$('admPromoKind').value;
-    if (kind==='gift' && !promoGift) return toast('Выбери подарок',true);
+  $('adminBtn').addEventListener('click', async () => {
+    const button = $('adminBtn'); button.disabled = true;
     try {
-      const result=await api('/api/admin/promos/create', {kind,code:$('admPromoCode').value.trim(),
-        limit: Number($('admPromoLimit').value),amount:Number($('admPromoAmount').value),
-        gift:promoGift?.slug});
-      $('admPromoCode').value='';toast(`Создан промокод ${result.code}`);admLoadPromos();
-    } catch(e) { admErr(e); }
+      const result = await api('/api/admin/session');
+      window.location.assign('/admin#ticket=' + encodeURIComponent(result.ticket));
+    } catch (error) { toast('Не удалось открыть панель: ' + (error.code || 'ошибка'), true); }
+    finally { button.disabled = false; }
   });
 }
 

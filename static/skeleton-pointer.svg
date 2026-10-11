@@ -1,12 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 240" role="img" aria-label="Указывающая рука скелета">
-<defs><linearGradient id="bone" x2="1" y2="0"><stop stop-color="#b2a4a4"/><stop offset=".35" stop-color="#fff7df"/><stop offset=".7" stop-color="#e6dcc8"/><stop offset="1" stop-color="#a99b98"/></linearGradient></defs>
-<g fill="url(#bone)" stroke="#302137" stroke-width="3" stroke-linejoin="round">
-<path d="M45 9q5-9 10 0l2 23-3 5H44l-3-5z"/><path d="M44 40h11l3 25-4 5H43l-3-5z"/><path d="M44 73h12l4 26-5 7H43l-4-6z"/>
-<path d="M40 111l7-6h13l11 14-2 33-10 15H35l-11-19 3-24z"/>
-<path d="M60 100l10-3 11 13-1 15-7 3-6-14-8-5z"/><path d="M72 128l9-3 5 13-5 16-9-2-3-12z"/><path d="M65 151l9-2 5 9-6 10-10-6z"/>
-<path d="M28 119l-9 7-5 17 7 10 9-3-2-9 9-9z"/><path d="M24 152l8-9 17 5 4 9-5 7-13-1z"/>
-<path d="M39 116l2 26m12-27 3 26m7-23-1 24" fill="none" stroke="#ab9e97" stroke-width="3"/>
-<path d="M35 169h12l4 10-8 8-11-4zM49 169h12l6 12-8 6-11-7z"/>
-<path d="M34 189l10-2 2 11-6 29-9 5-6-5 6-30z"/><path d="M53 189l9-2 5 10 5 31-7 6-8-4-2-30z"/>
-</g><path d="M46 11v19m0 14 1 18m0 15 2 20m-11 96-5 28m27-27 4 28" fill="none" stroke="#fffcee" stroke-width="3" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 224" role="img" aria-label="Костяная рука с указательным пальцем"><defs>
+<linearGradient id="ivory" x1="0" y1="0" x2="1" y2=".2"><stop stop-color="#9b8d8a"/><stop offset=".3" stop-color="#fff7e2"/><stop offset=".65" stop-color="#eee2c7"/><stop offset="1" stop-color="#bbae9b"/></linearGradient>
+<linearGradient id="knuckle" x2=".3" y2="1"><stop stop-color="#fff7e2"/><stop offset="1" stop-color="#b6a594"/></linearGradient>
+</defs><g fill="url(#ivory)" stroke="#342b40" stroke-width="1.8" stroke-linejoin="round">
+<!-- extended index: fingertip, middle and proximal phalanges -->
+<path d="M43 26 42 12Q42 3 48 3t6 9l-1 14-3 3h-4z"/>
+<path d="M43 33q5-4 10 0l1 20-3 4h-6l-3-4z"/>
+<path d="M44 62q5-4 10 0l2 24-3 5h-7l-3-5z"/>
+<!-- knuckle and four separate palm bones -->
+<path d="M44 97q7-6 12 0l3 36-4 6-7-1-3-7z"/>
+<path d="M59 105q5-4 9 0l-2 33-4 4-5-2 2-31z"/>
+<path d="M72 111q5-3 8 2l-8 27-4 5-5-3 7-24z"/>
+<path d="M82 120q5 1 4 5l-8 18-5 6-4-5 10-18z"/>
+<!-- three curled fingers show distinct articulated bones -->
+<path d="M57 97q1-7 7-7l9 2 7 11-4 7-7-2-4-9z"/>
+<path d="M71 111l6-4 7 8-1 9-6 4-7-5z"/>
+<path d="M65 128l9-4 7 6-2 6-11 4-6-5z"/>
+<path d="M73 103l7-5 7 5 5 12-5 6-6-5-2-7z"/>
+<path d="M82 126l6-5 5 9-3 7-9 3-4-6z"/>
+<path d="M76 141l8-2 5 4-2 6-8 4-6-6z"/>
+<path d="M86 117l6-3 4 11-2 8-6-2z"/>
+<path d="M91 136l4-2-1 10-4 6-5-2z"/>
+<path d="M79 155l9-6 4 4-6 8-7 1z"/>
+<!-- bent thumb rests across the palm -->
+<path d="M39 111l-7 4-12 21 2 9 8 2 5-6 1-15 8-9z"/>
+<path d="M28 151l8-9 16 1 5 6-4 7-19 2z"/>
+<path d="M57 144l12-2 7 5-2 7-16 1-4-5z"/>
+<!-- wrist: carpal bones rather than a solid mitten -->
+<g fill="url(#knuckle)"><path d="M45 145l8-2 4 7-5 8-8-4zM57 156l8-5 7 5-3 8-8 1zM35 157l9-2 8 7-5 8-10-3zM50 166l8-3 9 5-3 9-10 1zM70 158l8-3 4 8-8 8-7-5z"/></g>
+</g>
+<g fill="none" stroke="#fffcee" stroke-width="2" stroke-linecap="round" opacity=".85"><path d="M46 12v11m1 14v13m1 16 1 17m0 18 3 29m11-22-2 28m12-16-6 17m-39-3-4 6m13 9 12-1"/></g>
+<g fill="none" stroke="#8c7d7b" stroke-width="1.2" opacity=".75"><path d="M45 27h6m-5 28h6m-5 33h5m15 7 6 6m5 13 3 6m-46 32h7m19 3h7"/></g><g fill="url(#ivory)" stroke="#342b40" stroke-width="1.8" stroke-linejoin="round"><path d="M37 173q5-5 11 0l1 10-8 23-1 10-6 2-7-5 9-30z"/><path d="M59 182q1-6 7-7l8 3-1 9 4 24-4 7-7 1-4-7-1-25z"/></g><g fill="none" stroke="#fffcee" stroke-width="2" stroke-linecap="round"><path d="M39 184l-5 25m33-25 3 24"/></g></svg>

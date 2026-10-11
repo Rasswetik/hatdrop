@@ -1,0 +1,94 @@
+    <div id="admUsers" hidden="">
+      <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
+      <div class="lv-list" id="admUserList"></div>
+    </div>
+    <div id="admUser" hidden=""></div>
+    <div id="admMarket" hidden="">
+      <div class="adm-box"><h3>Основной маркет · один источник цен</h3>
+        <select id="admMarketSource"><option value="portals">Portals — модели и цены</option><option value="mrkt">MRKT — модели и цены</option></select>
+        <p id="admMarketSourceHelp">Остальные маркеты не участвуют в расчёте. Старый смешанный каталог будет удалён при переключении.</p>
+        <button type="button" id="admMarketChoose">Применить маркет и очистить старые цены</button>
+      </div>
+      <div class="adm-box adm-key">
+        <h3>Ключ Portals</h3>
+        <p class="adm-status" id="admPortalsStatus">—</p>
+        <div class="adm-form">
+          <input id="admPortalsKey" type="password" placeholder="Authorization (tma …) — только ключ, адрес не нужен" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="adm-form">
+          <button type="button" id="admPortalsSave">Сохранить</button>
+          <button type="button" id="admPortalsClear" class="danger">Удалить ключ</button>
+        </div>
+      </div>
+      <div class="adm-box"><h3>MRKT — запасной источник моделей</h3>
+        <p class="adm-status" id="admMrktStatus">Ключ не задан</p>
+        <input id="admMrktKey" class="gp-search" type="password" placeholder="Токен MRKT (отдельный от Portals)" autocomplete="off">
+        <div class="adm-form"><button type="button" id="admMrktSave">Сохранить MRKT</button><button type="button" id="admMrktClear" class="danger">Удалить ключ</button></div>
+      </div>
+      <div class="adm-form"><button class="ghost" id="admRefresh" type="button">Обновить Portals</button><button class="ghost" id="admMrktRefresh" type="button">Обновить MRKT</button></div>
+      <p class="muted" id="admMarketNote"></p>
+      <div class="adm-market" id="admMarketList"></div>
+    </div>
+    <div id="admPromos" hidden="">
+      <div class="adm-box"><h3>Создать промокод</h3>
+        <select id="admPromoKind" class="gp-search"><option value="balance">Баланс TON</option><option value="gift">Подарок</option></select>
+        <input id="admPromoCode" class="gp-search" placeholder="Код (пусто = случайный)" maxlength="32">
+        <input id="admPromoLimit" class="gp-search" type="number" min="1" value="1" placeholder="Количество активаций">
+        <input id="admPromoAmount" class="gp-search" type="number" step="0.01" min="0.01" placeholder="Сумма TON">
+        <div id="admPromoGiftField" hidden=""><button type="button" id="admPromoChoose">Выбрать подарок из каталога</button><p id="admPromoSelected" class="muted">Подарок не выбран</p></div>
+        <button type="button" id="admPromoCreate">Создать промокод</button>
+      </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>
+    </div>
+    <div id="admWithdrawals" hidden="">
+      <div class="adm-wd-switch" id="admWdTabs">
+        <button type="button" data-wd="active" class="on">Активные</button>
+        <button type="button" data-wd="completed">Завершённые</button>
+      </div>
+      <div class="adm-wd-toolbar">
+        <button type="button" id="admWdReload">↻ Обновить</button>
+        <button type="button" id="admWdBotOpen">↗ Открыть бота</button>
+        <button type="button" id="admWdBotSetup">Настроить webhook</button>
+      </div>
+      <p class="muted" id="admWdBotStatus">Уведомления Telegram: проверка…</p>
+      <div id="admWdList"></div>
+    </div>
+    <div id="admAppearance" hidden="">
+      <div class="adm-box halloween-admin-box">
+        <h3>🎃 Хэллоуинская тема</h3>
+        <p class="muted">Включите страшную пиксельную деревню, луну, кладбище и праздничные цвета для всех игроков. Выключение вернёт обычное оформление.</p>
+        <label class="halloween-switch-row" for="admHalloweenToggle">
+          <span class="halloween-switch-copy">
+            <b>Праздничное оформление</b>
+            <small id="admHalloweenStatus" role="status">Загрузка…</small>
+          </span>
+          <input id="admHalloweenToggle" type="checkbox" role="switch" aria-label="Включить хэллоуинскую тему">
+          <span class="halloween-switch-track" aria-hidden="true"><span></span></span>
+        </label>
+      </div>
+    </div>
+    <div id="admTonConnect" hidden="">
+      <div class="adm-box">
+        <h3>TON Connect · настройки приложения и пополнений</h3>
+        <p class="tc-info" id="tcStatus">Загружаем текущие настройки…</p>
+        <label class="tc-label" for="tcRecipient">Кошелёк получателя TON</label>
+        <input class="tc-input" id="tcRecipient" placeholder="UQ… / EQ… / 0:…" autocomplete="off" spellcheck="false"/>
+        <label class="tc-label" for="tcAppName">Название приложения</label>
+        <input class="tc-input" id="tcAppName" maxlength="64" placeholder="Magic Upgrade"/>
+        <label class="tc-label" for="tcAppUrl">Адрес сайта (HTTPS)</label>
+        <input class="tc-input" id="tcAppUrl" placeholder="https://example.com" inputmode="url"/>
+        <label class="tc-label" for="tcIconUrl">Адрес логотипа (PNG или ICO, HTTPS)</label>
+        <input class="tc-input" id="tcIconUrl" placeholder="https://example.com/images/hat.png" inputmode="url"/>
+        <img id="tcIconPreview" alt="Логотип TON Connect" src="images/hat.png"/>
+        <label class="tc-label" for="tcTerms">Ссылка на условия использования (необязательно)</label>
+        <input class="tc-input" id="tcTerms" placeholder="https://example.com/terms" inputmode="url"/>
+        <label class="tc-label" for="tcPrivacy">Ссылка на политику конфиденциальности (необязательно)</label>
+        <input class="tc-input" id="tcPrivacy" placeholder="https://example.com/privacy" inputmode="url"/>
+        <p class="tc-info">Настройки сохраняются в базе. Пароль, seed-фразы и приватные ключи здесь не нужны. Новый логотип и название кошелёк может показать при следующем подключении.</p>
+        <div class="tc-actions">
+          <button id="tcSave" type="button">Сохранить</button>
+          <button id="tcReset" type="button">Сбросить к исходным</button>
+          <button id="tcManifest" type="button">Открыть manifest</button>
+          <button id="tcReload" type="button">Обновить настройки</button>
+        </div>
+      </div>
+    </div>

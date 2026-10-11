@@ -22,11 +22,17 @@ html[data-sky="day"] #halloweenScene .hw-stars { animation: none; }
 #halloweenScene .hw-fog { animation: hwFog 16s ease-in-out infinite alternate; }
 #halloweenScene .hw-spirit { animation: hwSpirit 4s ease-in-out infinite alternate; }
 #halloweenScene .hw-spirit-alt { animation-duration: 5.7s; animation-delay: -2s; }
-#halloweenScene .hw-bat-flight { animation: hwBatFly 20s linear infinite; }
-#halloweenScene .hw-bat-alt { animation-duration: 27s; animation-delay: -13s; }
-#halloweenScene .wing-left { transform-box: fill-box; transform-origin: right center; animation: hwWingLeft .3s ease-in-out infinite alternate; }
-#halloweenScene .wing-right { transform-box: fill-box; transform-origin: left center; animation: hwWingRight .3s ease-in-out infinite alternate; }
-#halloweenScene .hw-witch-flight { animation: hwWitchFly 42s linear -11s infinite; }
+#halloweenScene .hw-bat-flight { animation: hwBatFly 24s linear infinite; will-change: transform; }
+#halloweenScene .hw-bat-1 { animation-delay: -6s; }
+#halloweenScene .hw-bat-2 { animation-duration: 31s; animation-delay: -17s; }
+#halloweenScene .hw-bat-3 { animation-duration: 28s; animation-delay: -23s; animation-direction: reverse; }
+#halloweenScene .hw-bat-4 { animation-duration: 38s; animation-delay: -12s; }
+#halloweenScene .hw-bat-5 { animation-duration: 26s; animation-delay: -19s; animation-direction: reverse; }
+#halloweenScene .hw-bat-6 { animation-duration: 34s; animation-delay: -4s; }
+#halloweenScene .hw-bat-body { animation: hwBatBob 1.8s ease-in-out infinite alternate; }
+#halloweenScene .hw-bat-2 .hw-bat-body, #halloweenScene .hw-bat-4 .hw-bat-body { animation-delay: -.9s; }
+#halloweenScene .wing-left { transform-box: fill-box; transform-origin: right center; animation: hwWingLeft .18s ease-in-out infinite alternate; }
+#halloweenScene .wing-right { transform-box: fill-box; transform-origin: left center; animation: hwWingRight .18s ease-in-out infinite alternate; }
 #halloweenScene .hw-stars { animation: hwTwinkle 5.8s ease-in-out infinite alternate; }
 html[data-halloween="on"][data-sky="day"] .bg-wide .bg-dim { background: linear-gradient(180deg, rgba(12,12,20,.03), rgba(12,12,20,.16) 65%, rgba(12,12,20,.33)) !important; }
 html[data-halloween="on"] .bg-wide::after { background: linear-gradient(90deg, rgba(4,8,18,.3), transparent 24%, transparent 76%, rgba(4,8,18,.3)); }
@@ -35,23 +41,16 @@ html[data-halloween="on"] .bg-wide::after { background: linear-gradient(90deg, r
 @keyframes hwCloud { to { transform: translateX(34px); } }
 @keyframes hwFog { to { transform: translateX(24px); opacity: .28; } }
 @keyframes hwSpirit { to { transform: translateY(-11px) rotate(3deg); } }
-@keyframes hwBatFly { from { transform: translate(-160px, 15px); } 50% { transform: translate(580px, -7px); } to { transform: translate(1440px, 17px); } }
+@keyframes hwBatFly { 0% { transform: translate(-180px, 10px) rotate(-3deg); } 25% { transform: translate(240px, -18px) rotate(2deg); } 50% { transform: translate(660px, 15px) rotate(-2deg); } 75% { transform: translate(1080px, -14px) rotate(3deg); } 100% { transform: translate(1500px, 9px) rotate(-3deg); } }
+@keyframes hwBatBob { to { transform: translateY(-5px); } }
 @keyframes hwWingLeft { from { transform: rotate(15deg); } to { transform: rotate(-24deg); } }
 @keyframes hwWingRight { from { transform: rotate(-15deg); } to { transform: rotate(24deg); } }
-@keyframes hwWitchFly { from { transform: translate(-160px, -8px); } 50% { transform: translate(560px, 12px); } to { transform: translate(1440px, -8px); } }
 @keyframes hwTwinkle { to { opacity: .4; } }
 
 </style>
 <defs>
 
- <g id="hw-bat" fill="#130c24">
- <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
- <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
- <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
- <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
- <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
- <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
- </g>
+
  <g id="hw-pumpkin"><path d="M12 0h8v8h8v4h8v20h-4v8H8v-8H4V12h8V8z" fill="#180d20"/><path d="M14 10h18v3h5v19h-5v5H8v-5H3V14h6v-4z" fill="var(--hw-pumpkin)"/><rect x="12" y="14" width="4" height="18" fill="var(--hw-pumpkin-light)"/><rect x="26" y="14" width="5" height="18" fill="var(--hw-pumpkin-dark)"/><rect x="19" y="2" width="5" height="10" fill="var(--hw-stem)"/><g class="hw-lamp" fill="#ffe588"><path d="M10 20h7v5h-7zM25 20h7v5h-7zM18 27h6v3h-6zM12 32h20v3H12z"/></g><path d="M15 32h4v3h-4zM25 32h4v3h-4z" fill="#60262d"/></g>
  <g id="hw-grave"><path d="M6 10h7V5h20v5h7v48H0V16h6z" fill="#151021"/><path d="M9 12h6V7h16v5h6v42H4V17h5z" fill="var(--hw-stone)"/><path d="M13 15h17v2H13z" fill="#a69bae"/><rect x="13" y="25" width="17" height="4" fill="#322942"/><rect x="16" y="32" width="11" height="3" fill="#42364c"/><rect x="6" y="50" width="31" height="4" fill="var(--hw-stone-dark)"/></g>
  <g id="hw-fir"><path d="M-5 0h10v-66H-5z" fill="#2c1b33"/><path d="M-12-58h24v-10H8v-10H4v-10H-4v10h-4v10h-4zM-21-38h42v-8h-6v-10H9v-10H-9v10h-6v10h-6zM-28-12h56v-8h-6v-10h-5v-12h-34v12h-5v10h-6z" fill="var(--hw-tree)"/><rect x="-9" y="-44" width="6" height="3" fill="var(--hw-leaf)"/><rect x="7" y="-27" width="7" height="3" fill="var(--hw-leaf)"/></g>
@@ -313,11 +312,54 @@ html[data-halloween="on"] .bg-wide::after { background: linear-gradient(90deg, r
 <g transform="translate(967 295) scale(.90)"><g class="hw-spirit hw-spirit-alt"><use href="#hw-spirit"/></g></g>
 <use href="#hw-skeletal" transform="translate(1210 303) rotate(7)"/>
 <g transform="translate(1059 389)"><path d="M0 12l4-17 9 9 11-9 5 17v29H0z" fill="#0b1020"/><path d="M26 38q30-5 24-32" fill="none" stroke="#0b1020" stroke-width="9"/><g class="hw-night-detail" fill="#91e7b9"><rect x="6" y="15" width="5" height="5"/><rect x="20" y="15" width="5" height="5"/></g></g>
-<g class="hw-bat-flight"><g transform="translate(20 76) scale(.85)"><use href="#hw-bat"/></g><g transform="translate(-120 116) scale(.64)"><use href="#hw-bat"/></g></g>
-<g class="hw-bat-flight hw-bat-alt"><g transform="translate(25 179) scale(.75)"><use href="#hw-bat"/></g></g>
-<g class="hw-witch-flight"><g transform="translate(0 116)">
-<path d="M1 18l19-36 10 35 17 7H0zM11 26h25v20H11zM18 48h28l12 20-20 8-25-19z" fill="#101422"/><path d="M10 65h82l13-8v16H10z" fill="#271d2c"/><path d="M40 52l-18 8-17-6" fill="none" stroke="#101422" stroke-width="7"/><path d="M40 75l12 10 9-9" fill="none" stroke="#101422" stroke-width="8"/><rect x="14" y="30" width="15" height="10" fill="#97baa6"/><rect x="23" y="30" width="3" height="3" fill="#17253a"/>
-</g></g>
+<g class="hw-bat-flight hw-bat-1"><g transform="translate(0 85) scale(0.9)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-2"><g transform="translate(0 148) scale(0.64)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-3"><g transform="translate(0 210) scale(0.78)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-4"><g transform="translate(0 115) scale(0.54)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-5"><g transform="translate(0 178) scale(0.85)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
+<g class="hw-bat-flight hw-bat-6"><g transform="translate(0 240) scale(0.48)"><g class="hw-bat-body">
+ <g class="wing-left"><path d="M18 13H9v-6H2v4H0v13h8v-5h5v4h7v-8z" fill="#130b22"/><path d="M15 12H8v-5H3v6H0v6h5v-4h9z" fill="#413050"/></g>
+ <g class="wing-right"><path d="M22 13h9v-6h7v4h2v13h-8v-5h-5v4h-7v-8z" fill="#130b22"/><path d="M25 12h7v-5h5v6h3v6h-5v-4h-9z" fill="#413050"/></g>
+ <path d="M15 8h4V4h4v4h4v16h-4v5h-4v-5h-4z" fill="#211328"/>
+ <path d="M14 7h5V0h4v7h5v11H14z" fill="#211328"/>
+ <rect x="16" y="12" width="3" height="3" fill="#fa725c"/><rect x="23" y="12" width="3" height="3" fill="#fa725c"/>
+ <rect x="19" y="19" width="4" height="2" fill="#f5c3a0"/>
+ </g></g></g>
 <path d="M898 669h7" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
 <path d="M762 608h8" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
 <path d="M366 498h2" stroke="var(--hw-grain)" stroke-width="2" opacity=".45"/>
