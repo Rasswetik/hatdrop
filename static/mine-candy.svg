@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Сундук с конфетами">
+<defs>
+ <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#8653b7"/><stop offset="1" stop-color="#432462"/></linearGradient>
+ <linearGradient id="pink" x2="0" y2="1"><stop stop-color="#ffb4df"/><stop offset="1" stop-color="#e04c95"/></linearGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff1b4"/><stop offset="1" stop-color="#e4a54b"/></linearGradient>
+</defs>
+<g stroke="#21112f" stroke-width="4" stroke-linejoin="round">
+ <path d="M23 59V29l10-10h94l10 10v30z" fill="url(#wood)"/>
+ <path d="M31 50V32l6-5h86l6 5v18z" fill="#b186d2"/>
+ <path d="M21 57h118v71H21z" fill="#261332"/>
+</g>
+<g stroke="#502244" stroke-width="3" stroke-linejoin="round">
+ <g class="sweet sweet-a">
+  <path d="M29 64L13 57v23l16-7m32-9 16-7v23l-16-7" fill="#f6b2dd"/>
+  <rect x="27" y="56" width="36" height="27" rx="10" fill="url(#pink)"/>
+  <path d="M39 59l-6 22m21-22-6 22" stroke="#ffe3f3" stroke-width="5"/>
+  <path d="M16 62l8 4m-8 9 8-4m50-9-8 4m8 9-8-4" stroke="#cf64a2" stroke-width="2"/>
+ </g>
+ <g class="sweet sweet-b">
+  <path d="M92 72L80 62v27l12-9m31-8 16-10v27l-16-9" fill="#e3c5ff"/>
+  <rect x="89" y="60" width="37" height="30" rx="9" fill="#9667e6"/>
+  <path d="M99 64v22m15-22v22" stroke="#dfc3ff" stroke-width="5"/>
+  <path d="M81 68l6 5m51-5-8 5" stroke="#aa80d0" stroke-width="2"/>
+ </g>
+ <g class="sweet sweet-c">
+  <path d="M73 48v51" stroke="#fff1d9" stroke-width="6"/>
+  <circle cx="73" cy="40" r="22" fill="#ffcf66"/>
+  <path d="M73 40c-10-12-23 6-9 13 17 8 33-16 14-27-8-5-18-1-21 5" fill="none" stroke="#fff6bf" stroke-width="6" stroke-linecap="round"/>
+  <path d="M61 24l7-3" stroke="#fff9df" stroke-width="3" stroke-linecap="round"/>
+ </g>
+ <path d="M43 92l-9-8-10 11 12 8z" fill="#ff926b"/>
+ <path d="M108 95l6-12 15 8-6 12z" fill="#ffde88"/>
+</g>
+<g stroke="#21112f" stroke-width="4" stroke-linejoin="round">
+ <path d="M17 102h126v44H17z" fill="url(#wood)"/>
+ <path d="M17 101h126v12H17z" fill="url(#gold)"/>
+ <path d="M27 115v24m106-24v24" stroke="#cdb0ec" stroke-width="6"/>
+ <path d="M37 128h27m35 0h24" stroke="#512b74" stroke-width="3"/>
+ <rect x="66" y="108" width="28" height="28" rx="3" fill="url(#gold)"/>
+ <path d="M80 116v11" stroke="#774077" stroke-width="5" stroke-linecap="round"/>
+ <path d="M19 146h122" stroke="#150a22" stroke-width="6"/>
+</g>
+<path d="M132 26v10m-5-5h10M26 89v8m-4-4h8" stroke="#ffeac5" stroke-width="3"/>
+<style>
+.sweet{animation:mineSweet 2.8s ease-in-out infinite alternate}.sweet-b{animation-delay:-1.2s}.sweet-c{animation-delay:-.7s}
+@keyframes mineSweet{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+@media(prefers-reduced-motion:reduce){.sweet{animation:none}}
+</style>
+</svg>
