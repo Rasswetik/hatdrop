@@ -67,7 +67,8 @@ def validate(data, current=None):
     kind = str(data.get("kind", current.get("kind", "wheel_spins")))
     if kind not in QUEST_TYPES:
         raise ValueError("bad_request")
-    title = str(data.get("title", current.get("title", ""))).strip()[:80]
+    submitted_title = str(data.get("title", "")).strip()[:80]
+    title = submitted_title if submitted_title else ("" if data.get("title") is not None or current.get("title_auto") else str(current.get("title", ""))[:80])
     description = str(data.get("description", current.get("description", ""))).strip()[:240]
     goal = _num(data.get("goal", current.get("goal", 1)))
     if goal <= 0:
@@ -76,13 +77,13 @@ def validate(data, current=None):
         if not goal.is_integer():
             raise ValueError("bad_request")
         goal = int(goal)
-    threshold = _num(data.get("threshold", current.get("threshold", 0)))
+    threshold = _num(data.get("threshold", current.get("threshold", 20 if kind.startswith("upgrade_") else 5 if kind == "deposit_min" else 0)))
     if kind in ("upgrade_wins_min", "upgrade_wins_max", "upgrade_plays_below", "upgrade_plays_above"):
-        if not 0 <= threshold <= 100:
-            raise ValueError("bad_request")
+        if not 0 < threshold <= 100:
+            raise ValueError("threshold")
     elif kind == "deposit_min":
         if threshold <= 0:
-            raise ValueError("bad_request")
+            raise ValueError("threshold")
     else:
         threshold = 0
     start_at = int(_num(data.get("start_at", current.get("start_at", 0)), maximum=4102444800))
@@ -99,14 +100,15 @@ def validate(data, current=None):
     icon = str(data.get("icon", current.get("icon", "auto")))
     if icon not in QUEST_ICONS:
         raise ValueError("bad_request")
-    if not title:
+    title_auto = not bool(title)
+    if title_auto:
         title = auto_title(kind, goal, threshold)
     return {
-        "title": title, "icon": icon, "description": description, "kind": kind,
+        "title_auto": title_auto, "title": title, "icon": icon, "description": description, "kind": kind,
         "goal": goal, "threshold": threshold,
         "start_at": start_at, "end_at": end_at, "duration_hours": hours,
         "reward_type": reward_type, "reward_amount": round(reward_amount, 6),
-        "active": data.get("active", current.get("active", False)) is True,
+        "active": data.get("active", current.get("active", True)) is True,
     }
 
 
@@ -135,9 +137,13 @@ def listed(db, user, *, admin=False):
     now = int(time.time())
     result = []
     for quest in definitions(db).values():
-        if not admin and (not quest["active"] or quest["start_at"] and now < quest["start_at"]):
+        if not isinstance(quest, dict) or not quest.get("id") or quest.get("kind") not in QUEST_TYPES:
             continue
-        result.append({**quest, "resolved_icon": icon_for(quest["kind"]) if quest.get("icon", "auto") == "auto" else quest["icon"], "progress": progress_for(user, quest, now)})
+        if not admin and (not quest.get("active", True) or quest.get("start_at", 0) and now < quest["start_at"]):
+            continue
+        row = {"start_at": 0, "end_at": 0, "created": 0, "duration_hours": 0, "threshold": 0,
+               "goal": 1, "active": True, "version": 1, **quest}
+        result.append({**row, "resolved_icon": icon_for(row["kind"]) if row.get("icon", "auto") == "auto" else row["icon"], "progress": progress_for(user, row, now)})
     result.sort(key=lambda row: (row["end_at"] or 9999999999, row["created"]))
     return result
 
@@ -175,7 +181,7 @@ def record_event(db, user, event, *, amount=0, chance_pct=0, gift_awarded=False,
     """Call after a successful, trusted server action only. Caller holds app.lock."""
     ts = int(ts or time.time())
     for q in definitions(db).values():
-        if not q.get("active") or q["start_at"] and ts < q["start_at"] or q["end_at"] and ts > q["end_at"]:
+        if not isinstance(q, dict) or q.get("kind") not in QUEST_TYPES or not q.get("active") or q.get("start_at", 0) and ts < q["start_at"] or q.get("end_at", 0) and ts > q["end_at"]:
             continue
         inc = _increment(q, event, amount, chance_pct, gift_awarded)
         if inc <= 0:
