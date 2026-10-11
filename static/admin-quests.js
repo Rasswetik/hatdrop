@@ -1,5 +1,5 @@
 'use strict';
-const questMs = value => value ? Math.round(new Date(value).getTime() / 1000) : 0;
+const questMs = value => value ? Math.round(new Date(value + ':00+03:00').getTime() / 1000) : 0;
 const questDate = ts => ts ? new Date((Number(ts) - 3*3600)*1000).toISOString().slice(0,16) : '';
 const questEditCache = new Map();
 function questFormClear() { $('questForm').reset();$('questActive').checked=true;$('questId').value='';$('questGoal').value='1';$('questThreshold').value='0';$('questRewardAmount').value='0.1';$('questDuration').value='0';$('questSave').textContent='Сохранить квест';questPreview(); }
@@ -57,8 +57,8 @@ function initQuestAdmin(){
     const data={action:id?'update':'create',id,
       title:$('questTitle').value,description:$('questDescription').value,
       icon:$('questIcon').value,kind:$('questKind').value,goal:Number($('questGoal').value),threshold:Number($('questThreshold').value),
-      start_at:questMs($('questStart').value)+($('questStart').value?3*3600:0),
-      end_at:questMs($('questEnd').value)+($('questEnd').value?3*3600:0),
+      start_at:questMs($('questStart').value),
+      end_at:questMs($('questEnd').value),
       duration_hours:Number($('questDuration').value),
       reward_type:$('questRewardType').value,reward_amount:Number($('questRewardAmount').value),active:$('questActive').checked};
     try{await api('/api/admin/quests/save',data);toast('Квест сохранён');questFormClear();await admLoadQuests();}
