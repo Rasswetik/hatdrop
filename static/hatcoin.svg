@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges">
+  <title>Шляпа Coin</title>
+  <path fill="#693c13" d="M20 2h24v4h8v6h6v8h4v24h-4v8h-6v6h-8v4H20v-4h-8v-6H6v-8H2V20h4v-8h6V6h8z"/>
+  <path fill="#f3b941" d="M20 6h24v4h8v6h4v8h2v16h-2v8h-4v6h-8v4H20v-4h-8v-6H8v-8H6V24h2v-8h4v-6h8z"/>
+  <path fill="#ffe7a0" d="M20 6h24v4H20v4h-8v10H8v16H6V24h2v-8h4v-6h8z"/>
+  <path fill="#cd8529" d="M54 24h4v16h-2v8h-4v6h-8v4H20v-4h24v-4h6v-8h4z"/>
+  <path fill="#ffd56b" d="M22 14h20v4h6v6h4v18h-4v6h-6v4H22v-4h-6v-6h-4V24h4v-6h6z"/>
+  <path fill="#352049" d="M32 13h10v5h-6v6h2v8h4v8h10v8H12v-8h10v-8h4V22h6z"/>
+  <path fill="#8753c9" d="M32 17h6v2h-6v7h2v8h4v6H26v-8h4V24h2z"/>
+  <path fill="#b98be8" d="M32 17h6v2h-6v7h-2v-4h2zM26 32h4v6h-4z"/>
+  <path fill="#f3ad42" d="M24 38h16v4H24z"/>
+  <path fill="#fff0bd" d="M30 37h6v6h-6z"/>
+  <path fill="#6a3b9a" d="M16 42h34v3H16z"/>
+  <path fill="#fff6d2" d="M15 16h4v4h-4zM46 13h3v3h-3z"/>
+</svg>

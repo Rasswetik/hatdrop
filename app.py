@@ -348,6 +348,21 @@ def ton(x):
     return round(float(x), 6)
 
 
+HATCOIN_UNITS = 1_000_000
+HATCOIN_PER_TON = Decimal("0.1")
+
+
+def hatcoin_balance(user):
+    return user.get("hatcoin_units", 0) / HATCOIN_UNITS
+
+
+def credit_hatcoin(user, stake_ton):
+    """Credit each accepted stake once; keep Coin separate from the TON balance."""
+    units = int((Decimal(str(stake_ton)) * HATCOIN_PER_TON * HATCOIN_UNITS)
+                .quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    user["hatcoin_units"] = user.get("hatcoin_units", 0) + units
+
+
 def gifts_map():
     """Only show the single verified active marketplace catalog."""
     if CATALOG:
@@ -482,6 +497,7 @@ def current_user():
             "wallet": "",
             "anon": False,
             "balance": START_BALANCE,
+            "hatcoin_units": 0,
             "turnover": 0.0,
             "games": 0,
             "bear_given": False,
@@ -493,6 +509,7 @@ def current_user():
             "seen": 0,
         }
     user = users[uid]
+    user.setdefault("hatcoin_units", 0)
     user.setdefault("chest", None)
     user["seen"] = int(time.time())
     if tg:
@@ -623,7 +640,7 @@ def full_state(user):
         "deposit": {"address": tonconnect_config()["recipient_address"], "memo": f"u{user['key']}"},
         "prizes": visible_prizes(user),
         "chest_round": chest_view(user),
-        "hatcoin": {"balance": 0, "percent": 0},
+        "hatcoin": {"balance": hatcoin_balance(user), "rate_per_ton": float(HATCOIN_PER_TON)},
         "level": level_info(user["turnover"]),
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
@@ -707,6 +724,7 @@ def spin(user, body):
     if user["balance"] + 1e-9 < cost:
         raise ApiError("insufficient_funds")
     user["balance"] = ton(user["balance"] - cost)
+    credit_hatcoin(user, cost)
     win = secrets.randbelow(1_000_000) < chance * 1_000_000
     bear = None
     if win:
@@ -714,7 +732,7 @@ def spin(user, body):
     else:
         bear = consolation(user)
     record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear), target["value"] if win else 0)
-    return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": 0, "consolation": bear}
+    return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": hatcoin_balance(user), "consolation": bear}
 
 
 def chest_view(user):
@@ -777,7 +795,8 @@ def chests_start(user, body):
         "image": image,
         "at": time.time(),
     }
-    return {"balance_ton": ton(user["balance"]), "prizes": visible_prizes(user), "round": chest_view(user)}
+    credit_hatcoin(user, bet)
+    return {"balance_ton": ton(user["balance"]), "hatcoin_balance": hatcoin_balance(user), "prizes": visible_prizes(user), "round": chest_view(user)}
 
 
 def pick_gift_for(payout):
@@ -819,6 +838,7 @@ def chest_cash(user, extra=None):
         "bad": r["bad"],
         "balance_ton": ton(user["balance"]),
         "prizes": visible_prizes(user),
+        "hatcoin_balance": hatcoin_balance(user),
     }
 
 
@@ -843,6 +863,7 @@ def chests_open(user, body):
             "balance_ton": ton(user["balance"]),
             "consolation": bear,
             "prizes": visible_prizes(user),
+            "hatcoin_balance": hatcoin_balance(user),
         }
     r["opened"].append(cell)
     if len(r["opened"]) >= CHEST_CELLS - r["empties"]:
@@ -2670,8 +2691,11 @@ SKY_SVG = (
     '<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f8fe8"/>'
     '<stop offset="1" stop-color="#d3effd"/></linearGradient></defs><rect width="10" height="10" fill="url(#s)"/></svg>'
 )
+with open(os.path.join(BASE_DIR, "static", "hatcoin.svg"), encoding="utf-8") as _coin_svg:
+    HATCOIN_SVG = _coin_svg.read()
+
 FALLBACK_ART = {
-    "ton": TON_SVG, "gram": TON_SVG, "hatcoin": TON_SVG, "hat": HAT_SVG, "cat": CAT_SVG,
+    "ton": TON_SVG, "gram": TON_SVG, "hatcoin": HATCOIN_SVG, "hat": HAT_SVG, "cat": CAT_SVG,
     "axe-icon": AXE_SVG, "staff-icon": STAFF_SVG,
     "plank-left": PLANK_SVG, "plank-mid": PLANK_SVG, "plank-right": PLANK_SVG,
     "sky": SKY_SVG, "sky-onyx": SKY_SVG, "sky-black": SKY_SVG,
