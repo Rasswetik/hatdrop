@@ -19,6 +19,7 @@ from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config
                           command_name, validate_command, messages_config,
                           validate_message, message_payload, valid_url)
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
+from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as quest_event, listed as quest_listed, claim as quest_claim
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
@@ -222,6 +223,7 @@ def load_db():
     db.setdefault("settings", {})
     db.setdefault("promocodes", {})
     db.setdefault("withdrawals", {})
+    db.setdefault("quests", {})
     ensure_analytics(db)
     db["settings"].setdefault("active_market", "portals")
     db["settings"].setdefault("halloween_enabled", False)
@@ -683,6 +685,7 @@ def add_prize(user, tier, name, value, image=""):
 def record_game(user, kind, cost, win, target, image, bear, payout=0):
     ts = int(time.time())
     record_round(db, user, kind, cost, payout, win, ts)
+    quest_event(db, user, "turnover", amount=cost, ts=ts)
     user["turnover"] += cost
     user["games"] += 1
     user["history"].insert(
@@ -746,6 +749,10 @@ def spin(user, body):
         add_prize(user, target["tier"], target["name"], target["value"], target["image"])
     else:
         bear = consolation(user)
+    quest_event(db, user, "wheel_spin")
+    if win:
+        quest_event(db, user, "wheel_win")
+        quest_event(db, user, "upgrade_win", chance_pct=chance * 100)
     record_game(user, "upgrade", cost, win, target["name"], target["image"] or f"tier:{target['tier']}", bool(bear), target["value"] if win else 0)
     return {"win": win, "balance_ton": ton(user["balance"]), "hatcoin_balance": hatcoin_balance(user), "consolation": bear}
 
@@ -799,6 +806,7 @@ def chests_start(user, body):
         if user["balance"] + 1e-9 < bet:
             raise ApiError("insufficient_funds")
         user["balance"] = ton(user["balance"] - bet)
+    quest_event(db, user, "mines_play")
     user["chest"] = {
         "bet": bet,
         "empties": empties,
@@ -841,6 +849,7 @@ def chest_cash(user, extra=None):
     label = f"Сундуки · x{mult:g} · +{payout:g}"
     if gift:
         label = f"Сундуки · x{mult:g} · {gift['name']} + {ton_part:g} TON"
+    quest_event(db, user, "mines_win", gift_awarded=bool(gift))
     record_game(user, "chests", r["bet"], True, label, "chests:win", False, payout)
     return {
         **(extra or {}),
@@ -881,6 +890,7 @@ def chests_open(user, body):
             "hatcoin_balance": hatcoin_balance(user),
         }
     r["opened"].append(cell)
+    quest_event(db, user, "mines_safe_open")
     if len(r["opened"]) >= CHEST_CELLS - r["empties"]:
         return chest_cash(user, {"safe": True, "cell": cell})
     return {"safe": True, "finished": False, "cell": cell, "round": chest_view(user)}
@@ -1320,6 +1330,72 @@ def admin_promos_update(user, body):
     else:
         codes[code]["active"] = bool(body.get("active"))
     return {"ok": True}
+
+
+@route("/api/quests")
+def player_quests(user, body):
+    # Public gameplay stays locked until quests are explicitly launched.
+    enabled = db["settings"].get("quests_enabled") is True
+    return {"enabled": enabled, "rows": quest_listed(db, user) if enabled else []}
+
+
+@route("/api/quests/claim")
+def player_quest_claim(user, body):
+    try:
+        q = quest_claim(db, user, body.get("id"), launched=db["settings"].get("quests_enabled") is True)
+    except ValueError as exc:
+        raise ApiError(str(exc))
+    amount = q["reward_amount"]
+    if q["reward_type"] == "ton":
+        user["balance"] = ton(user["balance"] + amount)
+    else:
+        user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(amount * HATCOIN_UNITS))
+    return {"ok": True, "balance_ton": ton(user["balance"]),
+            "hatcoin_balance": hatcoin_balance(user)}
+
+
+@route("/api/admin/quests")
+def admin_quests(user, body):
+    require_admin(user)
+    return {"enabled": db["settings"].get("quests_enabled") is True,
+            "types": [{"id": k, "label": label, "unit": unit} for k, (label, unit) in QUEST_TYPES.items()],
+            "rows": quest_listed(db, user, admin=True)}
+
+
+@route("/api/admin/quests/save")
+def admin_quests_save(user, body):
+    require_admin(user)
+    quests = quest_definitions(db)
+    if "enabled" in body and body.get("action") == "launch":
+        db["settings"]["quests_enabled"] = body["enabled"] is True
+        return admin_quests(user, {})
+    action = body.get("action")
+    if action == "delete":
+        qid = str(body.get("id", ""))
+        if qid not in quests:
+            raise ApiError("not_found", 404)
+        del quests[qid]
+        return admin_quests(user, {})
+    if action not in ("create", "update"):
+        raise ApiError("bad_request")
+    existing = quests.get(str(body.get("id", ""))) if action == "update" else None
+    if action == "update" and not existing:
+        raise ApiError("not_found", 404)
+    if action == "create" and len(quests) >= 150:
+        raise ApiError("quest_limit")
+    try:
+        new = validate_quest(body, existing)
+    except (ValueError, TypeError, OverflowError):
+        raise ApiError("bad_request")
+    now = int(time.time())
+    qid = existing["id"] if existing else secrets.token_hex(8)
+    # Changing measurable criteria creates a new version; progress cannot be
+    # silently applied to a different objective or threshold.
+    measure = ("kind", "goal", "threshold", "start_at", "end_at", "duration_hours")
+    changed = existing and any(new[x] != existing.get(x) for x in measure)
+    quests[qid] = {**new, "id": qid, "created": existing["created"] if existing else now,
+                   "version": existing.get("version", 1) + int(bool(changed)) if existing else 1}
+    return admin_quests(user, {})
 
 
 @route("/api/wallet")
