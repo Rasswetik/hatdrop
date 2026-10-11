@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Указывающая рука скелета">
+<defs><linearGradient id="bone" x2="1" y2="0"><stop stop-color="#b2a4a4"/><stop offset=".35" stop-color="#fff7df"/><stop offset=".7" stop-color="#e6dcc8"/><stop offset="1" stop-color="#a99b98"/></linearGradient></defs>
+<g transform="translate(30 2) scale(.60)"><g fill="url(#bone)" stroke="#302137" stroke-width="3" stroke-linejoin="round">
+<path d="M45 9q5-9 10 0l2 23-3 5H44l-3-5z"/><path d="M44 40h11l3 25-4 5H43l-3-5z"/><path d="M44 73h12l4 26-5 7H43l-4-6z"/>
+<path d="M40 111l7-6h13l11 14-2 33-10 15H35l-11-19 3-24z"/>
+<path d="M60 100l10-3 11 13-1 15-7 3-6-14-8-5z"/><path d="M72 128l9-3 5 13-5 16-9-2-3-12z"/><path d="M65 151l9-2 5 9-6 10-10-6z"/>
+<path d="M28 119l-9 7-5 17 7 10 9-3-2-9 9-9z"/><path d="M24 152l8-9 17 5 4 9-5 7-13-1z"/>
+<path d="M39 116l2 26m12-27 3 26m7-23-1 24" fill="none" stroke="#ab9e97" stroke-width="3"/>
+<path d="M35 169h12l4 10-8 8-11-4zM49 169h12l6 12-8 6-11-7z"/>
+
+</g><path d="M46 11v19m0 14 1 18m0 15 2 20" fill="none" stroke="#fffcee" stroke-width="3" stroke-linecap="round"/>
+</g></svg>

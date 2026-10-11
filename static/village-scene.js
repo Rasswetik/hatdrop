@@ -2,6 +2,7 @@
   'use strict';
   const root = document.documentElement;
   const scene = document.getElementById('villageScene');
+  const halloween = document.getElementById('halloweenScene');
   if (!scene) return;
   const dusk = scene.querySelector('.v-dusk');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -11,10 +12,19 @@
     const sky = mode === 'night' ? 'night' : 'day';
     const changed = root.dataset.sky !== sky;
     scene.classList.toggle('scene-instant', instant || motion.matches);
+    halloween?.classList.toggle('scene-instant', instant || motion.matches);
     root.dataset.sky = sky;
     const button = document.getElementById('skyBtn');
-    if (button) button.setAttribute('aria-pressed', String(sky === 'night'));
-    if (changed && !instant && !motion.matches) {
+    if (button) {
+      button.setAttribute('aria-pressed', String(sky === 'night'));
+      const label = root.dataset.halloween === 'on'
+        ? (sky === 'night' ? 'Включить утро' : 'Включить ночь и огни')
+        : 'День / ночь';
+      button.setAttribute('aria-label', label);
+      button.title = label;
+    }
+    // Halloween uses its own fog/night palettes and lamps, without a sunset overlay.
+    if (changed && !instant && !motion.matches && root.dataset.halloween !== 'on') {
       // Restart sunset/sunrise without forcing a layout read.
       dusk.classList.remove('to-night', 'to-day');
       if (duskAnimation) duskAnimation.cancel();
@@ -30,6 +40,7 @@
     const appActive = window.Telegram?.WebApp?.isActive !== false;
     const paused = document.hidden || !appActive;
     scene.classList.toggle('scene-paused', paused);
+    halloween?.classList.toggle('scene-paused', paused);
     if (duskAnimation?.playState === 'running' && paused) duskAnimation.pause();
     else if (duskAnimation?.playState === 'paused' && !paused) duskAnimation.play();
   }
