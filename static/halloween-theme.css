@@ -263,23 +263,6 @@ html[data-halloween="on"] .wheel-center .hat { filter:drop-shadow(0 0 11px rgba(
 @keyframes scareQuiet{0%{opacity:0}20%,75%{opacity:1}100%{opacity:0}}
 
 /* Mine/chest outcomes: bright candy for safe, red skeleton for loss. No lid-flip animations. */
-#view-chests .cx-cell.gold {
- background:linear-gradient(180deg,#86601e 0%,#4d2f1b 100%)!important;
- border-color:#f4c15b!important;
- box-shadow:inset 2px 2px 0 #ffdc91,0 0 10px rgba(248,185,73,.34),0 3px 0 #2e1a0c!important;
-}
-#view-chests .cx-cell.empty,
-#view-chests .cx-cell.empty.cx-revealed {
- background:linear-gradient(180deg,#752338 0%,#2c1024 100%)!important;
- border-color:#eb5365!important;
- box-shadow:inset 2px 2px 0 #fb8383,0 0 13px rgba(237,65,94,.37),0 3px 0 #210a18!important;
-}
-#view-chests .cx-cell.empty.cx-revealed{opacity:.65;}
-#view-chests .cx-cell.empty.hit {
- opacity:1!important;
- border-color:#ff5369!important;
- box-shadow:inset 0 0 0 2px #f7a5a6,0 0 13px rgba(247,47,67,.66),0 3px 0 #230a19!important;
-}
 #view-chests .cx-cell.gold:not(.cx-revealed) img{animation:candyReveal .38s steps(5,end) 1!important;}
 #view-chests .cx-cell.empty.hit img{animation:skeletonRattle .6s steps(6,end) 1!important;}
 @keyframes candyReveal{0%{transform:scale(.86)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
@@ -288,27 +271,6 @@ html[data-halloween="on"] .wheel-center .hat { filter:drop-shadow(0 0 11px rgba(
  #view-chests .cx-cell.gold:not(.cx-revealed) img,#view-chests .cx-cell.empty.hit img{animation:none!important;}
 }
 
-/* Fixed geometry and an independent state class keep all 25 cells in place. */
-#view-chests .cx-grid { aspect-ratio: 1; grid-template-rows: repeat(5, minmax(0, 1fr)); }
-#view-chests .cx-cell {
- margin: 0; padding: 3px; transform: none !important; filter: none !important;
- background: linear-gradient(180deg, #68438e, #38234f) !important;
- border: 3px solid #21132f !important;
- box-shadow: inset 2px 2px 0 #aa7bcb, 0 3px 0 #190f25 !important;
-}
-#view-chests .cx-cell.gold {
- background: linear-gradient(180deg, #7950a3, #432760) !important;
- border-color: #c89be4 !important;
- box-shadow: inset 2px 2px 0 #dcb5f2, 0 3px 0 #231333 !important;
-}
-#view-chests .cx-cell.empty { background: linear-gradient(180deg, #6a3a77, #33213f) !important; border-color: #a769b3 !important; }
-#view-chests .cx-cell.empty.hit { border-color: #fb7e9b !important; box-shadow: inset 0 0 0 1px #ffc3db, 0 3px 0 #231333 !important; }
-#view-chests .cx-cell.cx-revealed { opacity: .72; }
-#view-chests .cx-cell img { image-rendering: auto !important; }
-#view-chests .cx-info b { color: #e5b5ff; }
-#view-chests .shell-hint.win { color: #e5b5ff; }
-#view-chests .cx-chip { color: #f7e6ff; background: #65408b; border-color: #38214e; box-shadow: inset 1px 1px 0 #ae85d1, 0 2px 0 #241334; }
-#view-chests .cx-chip.on { background: #9b6fc3; border-color: #e7c2ff; color: #fff; }
 /* Explicit image sizes avoid a circular percentage/intrinsic-size calculation. */
 html[data-theme="meadow"] #weaponBtn { overflow: hidden; }
 html[data-theme="meadow"] #weaponBtn img { display: block; width: 40px; height: 40px; max-width: 80%; max-height: 80%; object-fit: contain; image-rendering: auto; transform: none; }

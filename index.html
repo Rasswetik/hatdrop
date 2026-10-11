@@ -2850,13 +2850,13 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-info > div { flex: 1; min-width: 0; padding: 6px 2px; text-align: center; font-size: 8px; line-height: 1.7; color: var(--muted); background: var(--card); border: 2px solid var(--card-line); }
 .cx-info b { display: block; font-weight: 400; font-size: 12px; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cx-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; max-width: 310px; margin: 4px auto; }
-.cx-cell { aspect-ratio: 1; display: grid; place-items: center; padding: 4px; background: linear-gradient(180deg, #6e401c 0%, #4a2a10 100%); border: 3px solid #2e1a0c; border-radius: 8px; box-shadow: inset 2px 2px 0 #a8713c, 0 3px 0 #2e1a0c; cursor: default; }
+.cx-cell { aspect-ratio: 1; display: grid; place-items: center; padding: 4px; background: linear-gradient(180deg, #68438e 0%, #38234f 100%); border: 3px solid #21132f; border-radius: 8px; box-shadow: inset 2px 2px 0 #aa7bcb, 0 3px 0 #21132f; cursor: default; }
 .cx-cell img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
 .cx-grid.live .cx-cell:not(:disabled) { cursor: pointer; }
-.cx-grid.live .cx-cell:not(:disabled):active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #a8713c, 0 0 0 #2e1a0c; }
-.cx-cell.gold { background: linear-gradient(180deg, #7a5a10 0%, #4d3608 100%); box-shadow: inset 2px 2px 0 #ffe39a, 0 0 10px rgba(255, 198, 74, .55), 0 3px 0 #2e1a0c; }
-.cx-cell.empty { background: linear-gradient(180deg, #4a2a2a 0%, #2c1818 100%); box-shadow: inset 2px 2px 0 #7a4a4a, 0 0 10px rgba(255, 93, 108, .6), 0 3px 0 #2e1a0c; }
-.cx-cell.cx-revealed { opacity: .72; animation: none; box-shadow: 0 3px 0 #2e1a0c; }
+.cx-grid.live .cx-cell:not(:disabled):active { transform: translateY(3px); box-shadow: inset 2px 2px 0 #aa7bcb, 0 0 0 #21132f; }
+.cx-cell.gold { background: linear-gradient(180deg, #7950a3 0%, #432760 100%); box-shadow: inset 2px 2px 0 #dcb5f2, 0 0 10px rgba(180, 126, 222, .4), 0 3px 0 #21132f; }
+.cx-cell.empty { background: linear-gradient(180deg, #4a2a2a 0%, #2c1818 100%); box-shadow: inset 2px 2px 0 #7a4a4a, 0 0 10px rgba(255, 93, 108, .6), 0 3px 0 #21132f; }
+.cx-cell.cx-revealed { opacity: .72; animation: none; box-shadow: 0 3px 0 #21132f; }
 @keyframes cxpop { 0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
 .cx-setup { width: 100%; }
 .cx-row { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin: 0 0 6px; }
@@ -2864,7 +2864,7 @@ img[data-px] { image-rendering: pixelated; image-rendering: crisp-edges; image-r
 .cx-bet input { flex: 1; min-width: 0; padding: 7px 8px; font-size: 12px; color: var(--text); background: var(--track-bg); border: 2px solid var(--card-line); border-radius: 7px; outline: none; }
 .cx-chip { flex: 0 0 auto; padding: 7px 9px; font: inherit; font-size: 9px; line-height: 1; color: #2a1a00; background: var(--gold); border: 2px solid var(--gold-dark); border-radius: 7px; box-shadow: inset 1px 1px 0 var(--gold-soft), 0 2px 0 #5a340a; cursor: pointer; }
 .cx-chip:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 var(--gold-soft); }
-.cx-chip.on { color: #06240f; background: var(--green); border-color: var(--green-dark); box-shadow: inset 1px 1px 0 #9dffc9, 0 2px 0 #0a3a1f; }
+.cx-chip.on { color: #fff; background: #9b6fc3; border-color: #e7c2ff; box-shadow: inset 1px 1px 0 #d9b9f1, 0 2px 0 #241334; }
 .cx-label { margin: 4px 0 6px; font-size: 9px; color: #fff1d0; text-align: left; width: 100%; text-shadow: 2px 2px 0 #24122e; }
 #cxHint { text-shadow: 2px 2px 0 #24122e; }
 .cx-giftbtn[hidden] { display: none; }
@@ -2928,7 +2928,7 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 
 /* Static cells: change the artwork as soon as the server confirms the result. */
 .cx-cell { contain: layout style; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.cx-cell.cx-revealed { opacity: .72; box-shadow: 0 3px 0 #2e1a0c; }
+.cx-cell.cx-revealed { opacity: .72; box-shadow: 0 3px 0 #21132f; }
 @media (hover: hover) { .cx-grid.live .cx-cell:not(:disabled):hover { filter: brightness(1.18); } }
 </style>
 <style>
@@ -3019,7 +3019,31 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=1">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=3">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=4">
+<style id="mines-palette">
+/* Critical mine colors ship with the page, independently of cached theme CSS. */
+/* Fixed geometry and an independent state class keep all 25 cells in place. */
+#view-chests .cx-grid { aspect-ratio: 1; grid-template-rows: repeat(5, minmax(0, 1fr)); }
+#view-chests #cxGrid .cx-cell {
+ margin: 0; padding: 3px; transform: none !important; filter: none !important;
+ background: linear-gradient(180deg, #68438e, #38234f) !important;
+ border: 3px solid #21132f !important;
+ box-shadow: inset 2px 2px 0 #aa7bcb, 0 3px 0 #190f25 !important;
+}
+#view-chests #cxGrid .cx-cell.gold {
+ background: linear-gradient(180deg, #7950a3, #432760) !important;
+ border-color: #c89be4 !important;
+ box-shadow: inset 2px 2px 0 #dcb5f2, 0 3px 0 #231333 !important;
+}
+#view-chests #cxGrid .cx-cell.empty { background: linear-gradient(180deg, #6a3a77, #33213f) !important; border-color: #a769b3 !important; }
+#view-chests #cxGrid .cx-cell.empty.hit { border-color: #fb7e9b !important; box-shadow: inset 0 0 0 1px #ffc3db, 0 3px 0 #231333 !important; }
+#view-chests #cxGrid .cx-cell.cx-revealed { opacity: .72; }
+#view-chests #cxGrid .cx-cell img { image-rendering: auto !important; filter: none !important; }
+#view-chests .cx-info b { color: #e5b5ff; }
+#view-chests .shell-hint.win { color: #e5b5ff; }
+#view-chests .cx-chip { color: #f7e6ff !important; background: #65408b !important; border-color: #38214e !important; box-shadow: inset 1px 1px 0 #ae85d1, 0 2px 0 #241334 !important; }
+#view-chests .cx-chip.on { background: #9b6fc3 !important; border-color: #e7c2ff !important; color: #fff !important; box-shadow: inset 1px 1px 0 #d9b9f1, 0 2px 0 #241334 !important; }
+</style>
 </head>
 <body>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
