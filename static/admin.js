@@ -9,7 +9,7 @@ function listNote(root, message) {root.textContent=message;}
 async function api(path, body = {}) {
   const res = await fetch(path, {method:'POST', credentials:'same-origin',headers:{'Content-Type':'application/json','X-Admin-CSRF':document.querySelector('meta[name="admin-csrf"]').content}, body:JSON.stringify(body)});
   const data = await res.json();
-  if (!res.ok) { const error=new Error(data.error || `HTTP ${res.status}`);error.code=data.error;throw error; }
+  if (!res.ok) { const error=new Error(data.error || `HTTP ${res.status}`);error.code=data.error;error.data=data;throw error; }
   return data;
 }
 async function fetchModels(slug) { return api('/api/gifts/models', {slug}); }
