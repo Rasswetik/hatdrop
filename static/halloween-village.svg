@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" role="img" aria-label="Пиксельная деревня в ночь Хэллоуина">
+<style>
+ .fire{animation:flicker 2.6s steps(3,end) infinite}
+ .eye{animation:blink 5s steps(1,end) infinite}
+ .bat1{animation:fly 13s linear infinite}
+ .bat2{animation:fly 17s linear -6s infinite}
+ .ghost{animation:float 4.2s steps(8,end) infinite}
+ .star{animation:twinkle 6s steps(2,end) infinite}
+ @keyframes flicker{0%,100%{opacity:1}25%{opacity:.75}48%{opacity:1}52%{opacity:.65}}
+ @keyframes blink{0%,95%,100%{opacity:1}96%,99%{opacity:0}}
+ @keyframes fly{0%{transform:translateX(-70px)}100%{transform:translateX(1080px)}}
+ @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+ @keyframes twinkle{0%,100%{opacity:.8}50%{opacity:.25}}
+ @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<defs>
+ <g id="bat" fill="#130c24"><path d="M0 6h8v-4h6v6h8v-6h6v4h8v-6h6v14h-8v-6h-4v10h-8v-4h-6v4h-8v-10h-4v6H0z"/><rect x="15" y="7" width="2" height="2" fill="#f36976"/><rect x="21" y="7" width="2" height="2" fill="#f36976"/></g>
+ <g id="pumpkin"><path d="M12 0h8v8h8v4h8v20h-4v8H8v-8H4V12h8V8z" fill="#180d20"/><path d="M14 10h18v3h5v19h-5v5H8v-5H3V14h6v-4z" fill="#df6f26"/><rect x="12" y="14" width="4" height="18" fill="#f99c3c"/><rect x="26" y="14" width="5" height="18" fill="#ae4b28"/><rect x="19" y="2" width="5" height="10" fill="#5f823d"/><g class="fire" fill="#ffe588"><path d="M10 20h7v5h-7zM25 20h7v5h-7zM18 27h6v3h-6zM12 32h20v3H12z"/></g><path d="M15 32h4v3h-4zM25 32h4v3h-4z" fill="#60262d"/></g>
+ <g id="grave"><path d="M6 10h7V5h20v5h7v48H0V16h6z" fill="#151021"/><path d="M9 12h6V7h16v5h6v42H4V17h5z" fill="#6a6179"/><path d="M13 15h17v2H13z" fill="#a69bae"/><rect x="13" y="25" width="17" height="4" fill="#322942"/><rect x="16" y="32" width="11" height="3" fill="#42364c"/><rect x="6" y="50" width="31" height="4" fill="#49415a"/></g>
+ <g id="fir"><path d="M-5 0h10v-66H-5z" fill="#2c1b33"/><path d="M-12-58h24v-10H8v-10H4v-10H-4v10h-4v10h-4zM-21-38h42v-8h-6v-10H9v-10H-9v10h-6v10h-6zM-28-12h56v-8h-6v-10h-5v-12h-34v12h-5v10h-6z" fill="#17152a"/><rect x="-9" y="-44" width="6" height="3" fill="#292342"/><rect x="7" y="-27" width="7" height="3" fill="#292342"/></g>
+ <g id="house">
+  <path d="M4 24h130v110H4z" fill="#130c20"/>
+  <path d="M9 30h120v99H9z" fill="#403047"/>
+  <path d="M9 107h120v22H9z" fill="#2a2135"/>
+  <path d="M-5 35v-12h15v-12h15V-1h19v-12h40v12h19v12h15v12h16v12z" fill="#110b20"/>
+  <path d="M0 30V20h20V8h20V-2h48V8h20v12h21v10z" fill="#614058"/>
+  <rect x="12" y="23" width="116" height="6" fill="#28152e"/>
+  <rect x="22" y="52" width="29" height="34" fill="#140f22"/>
+  <rect x="26" y="55" width="21" height="26" fill="#f8a74c" class="fire"/>
+  <rect x="35" y="55" width="4" height="26" fill="#3a2440"/>
+  <rect x="26" y="67" width="21" height="3" fill="#3a2440"/>
+  <rect x="83" y="52" width="29" height="34" fill="#140f22"/>
+  <rect x="87" y="55" width="21" height="26" fill="#f8a74c" class="fire"/>
+  <rect x="96" y="55" width="4" height="26" fill="#3a2440"/>
+  <rect x="87" y="67" width="21" height="3" fill="#3a2440"/>
+  <path d="M56 94h24v35H56z" fill="#160e22"/>
+  <path d="M60 98h16v30H60z" fill="#583344"/>
+  <rect x="72" y="112" width="3" height="4" fill="#ffc363"/>
+  <rect x="17" y="118" width="18" height="3" fill="#7a5069"/>
+  <rect x="97" y="118" width="22" height="3" fill="#7a5069"/>
+  <rect x="102" y="-11" width="17" height="30" fill="#271a2c"/>
+  <rect x="101" y="-16" width="19" height="6" fill="#644258"/>
+ </g>
+ <g id="cross" fill="#6c5c72"><rect x="11" y="0" width="6" height="35"/><rect x="0" y="11" width="28" height="6"/></g>
+</defs>
+<!-- pixel night sky -->
+<rect width="960" height="640" fill="#120b25"/>
+<rect y="95" width="960" height="80" fill="#1b1033"/>
+<rect y="175" width="960" height="90" fill="#251537"/>
+<rect y="265" width="960" height="100" fill="#30203e"/>
+<rect y="365" width="960" height="275" fill="#20152d"/>
+<g class="star" fill="#bb9dc9">
+ <rect x="37" y="32" width="4" height="4"/><rect x="103" y="120" width="3" height="3"/>
+ <rect x="165" y="65" width="4" height="4"/><rect x="211" y="35" width="3" height="3"/>
+ <rect x="257" y="104" width="3" height="3"/><rect x="302" y="42" width="5" height="5"/>
+ <rect x="370" y="115" width="3" height="3"/><rect x="418" y="73" width="4" height="4"/>
+ <rect x="490" y="28" width="4" height="4"/><rect x="548" y="129" width="3" height="3"/>
+ <rect x="607" y="79" width="3" height="3"/><rect x="677" y="22" width="3" height="3"/>
+ <rect x="853" y="45" width="4" height="4"/><rect x="910" y="96" width="3" height="3"/>
+ <rect x="898" y="162" width="3" height="3"/><rect x="12" y="192" width="3" height="3"/>
+</g>
+<!-- square pixel moon -->
+<g opacity=".2" fill="#f9be83">
+ <rect x="697" y="64" width="138" height="124"/><rect x="710" y="52" width="112" height="148"/>
+</g>
+<g fill="#f8d5ac">
+ <rect x="728" y="56" width="74" height="132"/><rect x="713" y="72" width="104" height="100"/>
+ <rect x="701" y="89" width="128" height="66"/>
+</g>
+<g fill="#eab98e"><rect x="730" y="97" width="25" height="21"/><rect x="778" y="137" width="20" height="20"/><rect x="760" y="70" width="16" height="14"/><rect x="708" y="133" width="18" height="16"/></g>
+<!-- bats in front of moon -->
+<g class="bat1"><use href="#bat" x="10" y="129" opacity=".9"/><use href="#bat" x="-68" y="154" transform="scale(.8)"/></g>
+<g class="bat2"><use href="#bat" x="0" y="212" transform="scale(.65)"/><use href="#bat" x="-112" y="174" transform="scale(.7)"/></g>
+<!-- distant ragged mountains -->
+<path d="M0 360v-75h35v-20h24v-18h28v-20h23v-18h24v25h18v28h31v24h26v-25h30v-27h28v-20h22v-22h30v22h24v24h26v32h27v-23h34v-35h22v-17h24v-25h22v24h18v22h22v36h42v16h21v-30h28v-26h25v-20h27v-27h24v26h20v21h28v30h33v21h32v-24h26v-26h22v-25h24v26h26v24h20v22h25v24h23v80z" fill="#251b3a"/>
+<path d="M0 392v-38h60v-16h34v-20h30v16h35v22h34v-12h31v-29h40v24h25v27h35v-20h30v-24h32v-13h28v18h27v27h38v-17h30v-29h36v23h43v22h32v-19h44v-16h38v24h43v19h42v-15h37v-17h38v20h40v13h45v-12h41v-23h40v17h37v24h42v34z" fill="#1a142a"/>
+<!-- crooked castle on a cliff -->
+<path d="M366 340h60v-81h21v-25h18v-29h19v22h18v-20h19v26h21v27h21v80h46v46H346v-23h20z" fill="#100d1d"/>
+<path d="M363 260h70v-10h-8v-16h-12v-12h-12v-20h-9v20h-12v12h-9v16h-8z" fill="#160f25"/>
+<path d="M451 219h61v-11h-9v-13h-12v-26h-8v26h-11v13h-21z" fill="#100d1b"/>
+<g class="fire" fill="#e39c57"><rect x="392" y="292" width="8" height="14"/><rect x="466" y="267" width="8" height="13"/><rect x="511" y="292" width="8" height="13"/><rect x="554" y="310" width="9" height="18"/></g>
+<path d="M437 387v-46h10v-12h12v-7h16v7h12v12h9v46" fill="#080816"/>
+<!-- graveyard ground -->
+<path d="M0 435h60v-16h48v-18h36v9h40v-10h41v18h52v-10h49v17h46v-12h43v13h43v-15h45v12h55v-14h48v17h61v-13h44v14h52v-17h55v14h49v-11h54v13h42v-13h48v15h69v212H0z" fill="#171623"/>
+<path d="M0 494h70v-12h73v-8h81v10h93v-14h86v14h74v-12h82v14h65v-10h112v13h76v-13h79v17h69v148H0z" fill="#21212d"/>
+<g opacity=".9"><use href="#fir" transform="translate(74 425) scale(2.1)"/><use href="#fir" transform="translate(164 418) scale(1.4)"/><use href="#fir" transform="translate(797 441) scale(1.7)"/><use href="#fir" transform="translate(902 456) scale(2.2)"/></g>
+<!-- haunted village -->
+<use href="#house" transform="translate(205 366) scale(.95)"/>
+<use href="#house" transform="translate(586 354) scale(1.08)"/>
+<use href="#house" transform="translate(40 434) scale(.67)"/>
+<use href="#house" transform="translate(806 438) scale(.71)"/>
+<!-- jagged pathways -->
+<path d="M277 493h22v24h20v21h27v22h18v20h26v60H204v-18h27v-27h18v-20h20v-28h18v-28h-10z" fill="#423049"/>
+<path d="M648 500h27v28h17v22h18v23h24v23h37v44H542v-18h22v-31h34v-29h20v-31h30z" fill="#3c2b43"/>
+<g fill="#70526c"><rect x="276" y="511" width="16" height="4"/><rect x="323" y="550" width="20" height="4"/><rect x="279" y="592" width="16" height="4"/><rect x="663" y="538" width="16" height="4"/><rect x="609" y="600" width="28" height="5"/></g>
+<!-- cemetery on both sides of village -->
+<use href="#grave" transform="translate(86 481) scale(1.15)"/>
+<use href="#grave" transform="translate(145 509) scale(.86)"/>
+<use href="#grave" transform="translate(376 479) scale(.87)"/>
+<use href="#grave" transform="translate(482 507) scale(1.1)"/>
+<use href="#grave" transform="translate(757 483) scale(.95)"/>
+<use href="#grave" transform="translate(868 530) scale(1.0)"/>
+<use href="#cross" transform="translate(52 509) scale(.95)"/><use href="#cross" transform="translate(423 508) scale(.95)"/><use href="#cross" transform="translate(826 528) scale(1.1)"/>
+<!-- fences -->
+<g fill="#100d1e"><rect x="16" y="559" width="190" height="9"/><rect x="16" y="580" width="190" height="7"/><rect x="16" y="541" width="9" height="60"/><rect x="44" y="545" width="9" height="58"/><rect x="75" y="541" width="9" height="62"/><rect x="107" y="546" width="9" height="57"/><rect x="139" y="542" width="9" height="62"/><rect x="170" y="546" width="9" height="57"/><rect x="197" y="543" width="9" height="60"/>
+<rect x="730" y="557" width="222" height="9"/><rect x="730" y="580" width="222" height="7"/><rect x="730" y="541" width="9" height="62"/><rect x="762" y="546" width="9" height="57"/><rect x="793" y="542" width="9" height="60"/><rect x="825" y="546" width="9" height="60"/><rect x="857" y="541" width="9" height="62"/><rect x="890" y="545" width="9" height="58"/><rect x="921" y="541" width="9" height="62"/><rect x="945" y="546" width="8" height="58"/></g>
+<!-- jack-o-lanterns -->
+<use href="#pumpkin" transform="translate(179 567) scale(1.3)"/>
+<use href="#pumpkin" transform="translate(408 572) scale(.88)"/>
+<use href="#pumpkin" transform="translate(540 539) scale(1.15)"/>
+<use href="#pumpkin" transform="translate(770 581) scale(.86)"/>
+<use href="#pumpkin" transform="translate(900 597) scale(1.2)"/>
+<!-- animated pixel ghosts -->
+<g class="ghost" opacity=".82" transform="translate(474 435)">
+ <path d="M4 7h8V1h20v6h8v34h-8v-8h-7v8h-9v-8H8v8H0V14h4z" fill="#bdadd0"/>
+ <rect x="11" y="15" width="6" height="8" fill="#2d1941"/><rect x="26" y="15" width="6" height="8" fill="#2d1941"/>
+ <rect x="18" y="26" width="6" height="6" fill="#60446b"/>
+</g>
+<g class="ghost" opacity=".54" transform="translate(744 399) scale(.65)">
+ <path d="M4 7h8V1h20v6h8v34h-8v-8h-7v8h-9v-8H8v8H0V14h4z" fill="#bdadd0"/>
+ <rect x="11" y="15" width="6" height="8" fill="#2d1941"/><rect x="26" y="15" width="6" height="8" fill="#2d1941"/>
+</g>
+<!-- drifting pixel mist + embers -->
+<g opacity=".4" fill="#7b6589"><rect x="0" y="505" width="110" height="5"/><rect x="44" y="517" width="160" height="5"/><rect x="349" y="533" width="125" height="5"/><rect x="460" y="548" width="183" height="6"/><rect x="790" y="508" width="153" height="5"/><rect x="0" y="605" width="254" height="7"/><rect x="357" y="610" width="206" height="7"/><rect x="740" y="609" width="220" height="7"/></g>
+<g class="eye" fill="#df7958"><rect x="125" y="455" width="4" height="3"/><rect x="135" y="455" width="4" height="3"/><rect x="846" y="476" width="4" height="3"/><rect x="856" y="476" width="4" height="3"/></g>
+<g fill="#34253d"><rect x="24" y="626" width="72" height="8"/><rect x="125" y="620" width="31" height="7"/><rect x="331" y="627" width="58" height="7"/><rect x="619" y="627" width="65" height="7"/><rect x="815" y="627" width="68" height="7"/></g>
+</svg>

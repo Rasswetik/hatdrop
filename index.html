@@ -3018,6 +3018,7 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=1">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=1">
 </head>
 <body>
 <div id="magicBoot" role="status" aria-live="polite" aria-label="Загрузка игры">
@@ -3412,6 +3413,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 </g>
 </g>
 </svg>
+<img class="halloween-scene" src="/static/halloween-village.svg?v=1" alt="" aria-hidden="true" decoding="async">
 <div class="bg-dim"></div>
 </div>
 
@@ -3475,6 +3477,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 
     <section class="view" id="view-menu" hidden="">
       <h1 class="title">МЕНЮ</h1>
+      <div class="halloween-badge" aria-hidden="true">✦ НОЧЬ УЖАСОВ ✦</div>
       <div class="menu-grid">
         <button class="menu-card menu-wide mc-chests" id="menuChests" type="button" hidden="">
           <span class="mc-medal"><svg class="mc-art" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
@@ -3955,6 +3958,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
       <button type="button" data-tab="promos">Промокоды</button>
       <button type="button" data-tab="withdrawals">Выводы</button>
       <button type="button" data-tab="tonconnect">TON Connect</button>
+       <button type="button" data-tab="appearance">Оформление</button>
     </div>
     <div id="admUsers" hidden="">
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
@@ -4009,6 +4013,20 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
       </div>
       <p class="muted" id="admWdBotStatus">Уведомления Telegram: проверка…</p>
       <div id="admWdList"></div>
+    </div>
+    <div id="admAppearance" hidden="">
+      <div class="adm-box halloween-admin-box">
+        <h3>🎃 Хэллоуинская тема</h3>
+        <p class="muted">Включите страшную пиксельную деревню, луну, кладбище и праздничные цвета для всех игроков. Выключение вернёт обычное оформление.</p>
+        <label class="halloween-switch-row" for="admHalloweenToggle">
+          <span class="halloween-switch-copy">
+            <b>Праздничное оформление</b>
+            <small id="admHalloweenStatus" role="status">Загрузка…</small>
+          </span>
+          <input id="admHalloweenToggle" type="checkbox" role="switch" aria-label="Включить хэллоуинскую тему">
+          <span class="halloween-switch-track" aria-hidden="true"><span></span></span>
+        </label>
+      </div>
     </div>
     <div id="admTonConnect" hidden="">
       <div class="adm-box">
@@ -5336,8 +5354,15 @@ function updateSpinButton() {
   $('spinBtn').classList.toggle('low', !enough);
 }
 
+function applyHalloweenTheme(enabled) {
+  document.documentElement.dataset.halloween = enabled === true ? "on" : "off";
+  const toggle = document.getElementById("admHalloweenToggle");
+  if (toggle && !toggle.disabled) toggle.checked = enabled === true;
+}
+
 function renderState(s) {
   state = s;
+  applyHalloweenTheme(s.halloween_enabled === true);
   if (!s.config.gift_upgrade && currentTier === 'gift' && !spinning) {
     selectedGift = null;
     setTier('random', false);
@@ -7706,18 +7731,20 @@ function admShow(tab) {
   document.querySelectorAll('#admTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
   $('admTabs').hidden = tab !== 'home';
   $('admBack').hidden = tab === 'home';
-  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect'})[tab];
+  $('admTitle').textContent = ({home:'Админ-панель', users:'Пользователи',market:'Маркет',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Оформление'})[tab];
   $('admUsers').hidden = tab !== 'users';
   $('admUser').hidden = true;
   $('admMarket').hidden = tab !== 'market';
   $('admPromos').hidden = tab !== 'promos';
   $('admWithdrawals').hidden = tab !== 'withdrawals';
   $('admTonConnect').hidden = tab !== 'tonconnect';
+  $('admAppearance').hidden = tab !== 'appearance';
   if (tab === 'users') admLoadUsers();
   else if (tab === 'market') admLoadMarket();
   else if (tab === 'promos') admLoadPromos();
   else if (tab === 'withdrawals') admLoadWithdrawals();
   else if (tab === 'tonconnect') admLoadTonConnect();
+  else if (tab === 'appearance') admLoadAppearance();
 }
 
 async function admLoadUsers() {
@@ -8069,6 +8096,47 @@ async function admSaveTonConnect(reset){
   finally{btn.disabled=false;}
 }
 
+
+async function admLoadAppearance() {
+  const toggle = $('admHalloweenToggle');
+  const status = $('admHalloweenStatus');
+  toggle.disabled = true;
+  status.textContent = 'Загружаем настройку…';
+  try {
+    const result = await api('/api/admin/theme');
+    toggle.checked = result.enabled === true;
+    status.textContent = result.enabled ? 'Тема включена для всех игроков' : 'Выключена · обычная тема';
+    applyHalloweenTheme(result.enabled === true);
+  } catch (error) {
+    status.textContent = 'Не удалось загрузить настройку';
+    admErr(error);
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
+async function admToggleHalloween() {
+  const toggle = $('admHalloweenToggle');
+  const status = $('admHalloweenStatus');
+  const desired = toggle.checked;
+  toggle.disabled = true;
+  status.textContent = 'Сохраняем…';
+  try {
+    const result = await api('/api/admin/theme', { enabled: desired });
+    applyHalloweenTheme(result.enabled === true);
+    toggle.checked = result.enabled === true;
+    if (state) state.halloween_enabled = result.enabled === true;
+    status.textContent = result.enabled ? 'Тема включена для всех игроков' : 'Выключена · обычная тема';
+    toast(result.enabled ? 'Хэллоуинская тема включена' : 'Обычное оформление восстановлено');
+  } catch (error) {
+    toggle.checked = !desired;
+    status.textContent = 'Ошибка сохранения · попробуйте ещё раз';
+    admErr(error);
+  } finally {
+    toggle.disabled = false;
+  }
+}
+
 function initAdmin() {
   $('adminBtn').addEventListener('click', () => {
     haptic('impact', 'light');
@@ -8076,6 +8144,7 @@ function initAdmin() {
     admShow('home');
   });
   $('admClose').addEventListener('click', () => { $('adminModal').hidden = true; });
+  $('admHalloweenToggle').addEventListener('change', admToggleHalloween);
   $('adminModal').addEventListener('click', (e) => { if (e.target.id === 'adminModal') $('adminModal').hidden = true; });
   $('admBack').addEventListener('click', () => admShow(admin.tab === 'user' ? 'users' : 'home'));
   document.querySelectorAll('#admTabs button').forEach((b) => b.addEventListener('click', () => admShow(b.dataset.tab)));

@@ -210,6 +210,7 @@ def load_db():
     db.setdefault("promocodes", {})
     db.setdefault("withdrawals", {})
     db["settings"].setdefault("active_market", "portals")
+    db["settings"].setdefault("halloween_enabled", False)
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
     if not DATABASE_URL and not (os.environ.get("DB_PATH") or os.environ.get("SQLITE_PATH")):
@@ -608,6 +609,7 @@ def full_state(user):
         "withdraw_locked_until": 0,
         "server_time": int(time.time()),
         "is_admin": is_admin(user),
+        "halloween_enabled": db["settings"].get("halloween_enabled") is True,
     }
 
 
@@ -1308,6 +1310,18 @@ def player(user, body):
 def require_admin(user):
     if not is_admin(user):
         raise ApiError("forbidden", 403)
+
+
+
+@route("/api/admin/theme")
+def admin_theme(user, body):
+    """Серверное включение/выключение праздничного оформления для всех игроков."""
+    require_admin(user)
+    if "enabled" in body:
+        if not isinstance(body["enabled"], bool):
+            raise ApiError("bad_request")
+        db["settings"]["halloween_enabled"] = body["enabled"]
+    return {"enabled": db["settings"].get("halloween_enabled") is True}
 
 
 def find_user(key):
