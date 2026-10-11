@@ -1459,6 +1459,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 .empty { color: var(--muted); font-size: 10px; text-align: center; margin-top: 16px; line-height: 1.8; }
 .empty[hidden] { display: none; }
 
+.quest-tab{opacity:.63;cursor:not-allowed;position:relative}.quest-tab .ic{filter:drop-shadow(0 0 4px rgba(255,192,67,.4))}.quest-soon{position:absolute;bottom:0;font-size:6px;line-height:1;color:var(--gold-soft);letter-spacing:.02em}@media(max-width:380px){.quest-tab .ic{font-size:26px}.quest-soon{font-size:5px}}
 .tabbar {
   flex: 0 0 auto;
   display: flex;
@@ -3288,6 +3289,9 @@ img[src*="/gimg/"] { object-fit: contain; }
     </button>
     <button class="tab active" data-view="upgrade" aria-label="Апгрейд">
       <svg class="ic"><use href="#ic-upgrade"></use></svg><span class="tab-name">Апгрейд</span>
+    </button>
+    <button class="tab quest-tab" type="button" id="tabQuests" disabled aria-disabled="true" title="Квесты — скоро" aria-label="Квесты — скоро">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 3h10l2 3v15H5V6l2-3Zm1 6h8m-8 4h8m-8 4h5" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="m8 3 4 4 4-4" stroke="currentColor" stroke-width="1.5"/></svg><span class="tab-name">Квесты</span><span class="quest-soon">СКОРО</span>
     </button>
     <button class="tab" data-view="profile" aria-label="Профиль">
       <svg class="ic"><use href="#ic-profile"></use></svg><span class="tab-name">Профиль</span>
