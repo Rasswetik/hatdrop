@@ -3005,6 +3005,30 @@ def tonconnect_manifest():
     return response
 
 
+@app.get("/img/<path:name>")
+def quest_image_asset(name):
+    # Public quest art can be replaced by uploading files without changing the UI.
+    if name != "costyan_que.png":
+        return ("", 404)
+    for folder in (os.path.join(BASE_DIR, "img"), os.path.join(BASE_DIR, "images"),
+                   os.path.join(BASE_DIR, "static", "img")):
+        if os.path.isfile(os.path.join(folder, name)):
+            return send_from_directory(folder, name, conditional=True)
+    # Prior banner remains visible until the requested PNG is deployed.
+    return send_from_directory(os.path.join(BASE_DIR, "static", "quests"),
+                               "kostyan-banner.svg", conditional=True)
+
+
+@app.get("/static/img/hand.png")
+def skeleton_pointer_png():
+    folder = os.path.join(BASE_DIR, "static", "img")
+    if os.path.isfile(os.path.join(folder, "hand.png")):
+        return send_from_directory(folder, "hand.png", conditional=True)
+    # Never display a broken pointer if the PNG has not yet been uploaded.
+    return send_from_directory(os.path.join(BASE_DIR, "static"),
+                               "skeleton-pointer.svg", conditional=True)
+
+
 @app.get("/images/<path:name>")
 def images(name):
     folder = os.path.join(BASE_DIR, "images")
