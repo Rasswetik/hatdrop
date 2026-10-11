@@ -2,7 +2,7 @@
 const questMs = value => value ? Math.round(new Date(value).getTime() / 1000) : 0;
 const questDate = ts => ts ? new Date((Number(ts) - 3*3600)*1000).toISOString().slice(0,16) : '';
 const questEditCache = new Map();
-function questFormClear() { $('questForm').reset();$('questId').value='';$('questGoal').value='1';$('questThreshold').value='0';$('questRewardAmount').value='0.1';$('questDuration').value='0';$('questSave').textContent='Сохранить квест';questPreview(); }
+function questFormClear() { $('questForm').reset();$('questActive').checked=true;$('questId').value='';$('questGoal').value='1';$('questThreshold').value='0';$('questRewardAmount').value='0.1';$('questDuration').value='0';$('questSave').textContent='Сохранить квест';questPreview(); }
 function questRow(q) {
   const el=document.createElement('div');el.className='quest-admin-row';
   const heading=document.createElement('b');heading.textContent=q.title+' · '+(q.active?'Включён':'Выключен');
@@ -22,7 +22,7 @@ function questRow(q) {
     $('questSave').textContent='Сохранить изменения';$('questTitle').focus();
   };
   const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Удалить';
-  del.onclick=async()=>{if(!confirm('Удалить квест «'+q.title+'»?'))return;try{await api('/api/admin/quests/save',{action:'delete',id:q.id});toast('Квест удалён');admLoadQuests();}catch(e){admErr(e);}};
+  del.onclick=async()=>{if(!confirm('Удалить квест «'+q.title+'»?'))return;del.disabled=true;try{await api('/api/admin/quests/save',{action:'delete',id:q.id});if($('questId').value===q.id)questFormClear();el.remove();toast('Квест удалён');await admLoadQuests();}catch(e){admErr(e);}finally{del.disabled=false;}};
   buttons.append(edit,del);el.append(icon,heading,details,buttons);return el;
 }
 async function admLoadQuests(){
@@ -41,6 +41,8 @@ async function admLoadQuests(){
 function questPreview(){const kind=$('questKind').value||'wheel_spins',goal=Number($('questGoal').value)||1,threshold=Number($('questThreshold').value)||0;const n={deposit_min:`Сделай ${goal} пополнений от ${threshold} TON`,deposit_total:`Пополняй баланс на ${goal} TON`,turnover:`Набери оборот ${goal} TON`,wheel_spins:`Прокрути рулетку ${goal} раз`,wheel_wins:`Выиграй в рулетку ${goal} раз`,upgrade_plays_below:`Сделай апгрейд ${goal} раз с шансом ниже ${threshold}%`,upgrade_plays_above:`Сделай апгрейд ${goal} раз с шансом от ${threshold}%`,upgrade_wins_min:`Выиграй апгрейд ${goal} раз с шансом от ${threshold}%`,upgrade_wins_max:`Выиграй апгрейд ${goal} раз с шансом до ${threshold}%`,mines_plays:`Сыграй в мины ${goal} раз`,mines_gift_wins:`Выиграй подарок в минах ${goal} раз`,mines_opened:`Открой ${goal} безопасных клеток в минах`};$('questNamePreview').textContent='Автоматическое название: '+(n[kind]||'Задание');const auto=kind.startsWith('deposit')?'deposit':kind==='turnover'?'turnover':kind.startsWith('wheel')?'wheel':kind.startsWith('upgrade')?'upgrade':kind==='mines_gift_wins'?'gift':'mines';$('questIconPreview').querySelector('img').src='/static/quests/'+($('questIcon').value==='auto'?auto:$('questIcon').value)+'.svg';}
 function initQuestAdmin(){
   ['questKind','questGoal','questThreshold','questIcon'].forEach(id=>$(id).addEventListener('input',questPreview));
+  $('questKind').addEventListener('change',()=>{$('questThreshold').value=$('questKind').value==='deposit_min'?5:$('questKind').value.startsWith('upgrade_')?20:0;questPreview();});
+  $('questActive').checked=true;
   $('questsReload').onclick=admLoadQuests;
   $('questClear').onclick=questFormClear;
   $('questsLaunch').onchange=async()=>{
@@ -60,6 +62,6 @@ function initQuestAdmin(){
       duration_hours:Number($('questDuration').value),
       reward_type:$('questRewardType').value,reward_amount:Number($('questRewardAmount').value),active:$('questActive').checked};
     try{await api('/api/admin/quests/save',data);toast('Квест сохранён');questFormClear();await admLoadQuests();}
-    catch(e){admErr(e);}finally{button.disabled=false;}
+    catch(e){if(e.code==='quest_invalid'){toast(e.data?.field==='threshold'?'Порог для выбранного задания должен быть больше нуля':'Проверьте параметры квеста',true);}else admErr(e);}finally{button.disabled=false;}
   };
 }
