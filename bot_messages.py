@@ -14,6 +14,36 @@ DEFAULT_MESSAGES = {
 }
 APP_VIEWS = ('menu', 'upgrade', 'chests', 'profile')
 BUTTON_STYLES = ('default', 'primary', 'success', 'danger')
+MAX_CUSTOM_COMMANDS = 98  # Telegram supports 100, including /start and /help.
+
+
+def command_name(value):
+    if not isinstance(value, str):
+        raise ValueError('command_name_invalid')
+    name = value.strip().removeprefix('/').lower()
+    if not re.fullmatch(r'[a-z0-9_]{1,32}', name):
+        raise ValueError('command_name_invalid')
+    if name in ('start', 'help'):
+        raise ValueError('command_reserved')
+    return name
+
+
+def validate_command(value):
+    description = value.get('description') if isinstance(value, dict) else None
+    if not isinstance(description, str) or not description.strip() or len(description.encode('utf-16-le')) // 2 > 256:
+        raise ValueError('command_description_invalid')
+    return {**validate_message(value), 'description': description.strip()}
+
+
+def commands_config(saved):
+    result = {}
+    if isinstance(saved, dict):
+        for name, value in list(saved.items())[:MAX_CUSTOM_COMMANDS]:
+            try:
+                result[command_name(name)] = validate_command(value)
+            except ValueError:
+                pass
+    return result
 
 
 def valid_url(value):

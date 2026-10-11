@@ -104,10 +104,18 @@ function drawChart(id, series, kind) {
   if(values.every(v=>v===0))root.append(admField('p',{className:'chart-empty',textContent:'Нет операций за выбранный период'}));
 }
 let botMessages = null, botDraft = null, botDirty = false;
-const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.'};
+const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.',command_name_invalid:'Команда: от 1 до 32 латинских букв, цифр или символов _.',command_description_invalid:'Введите описание команды до 256 символов.',command_reserved:'/start и /help редактируются как стандартные сообщения.',command_exists:'Эта команда уже существует. Выберите её в редакторе.',command_limit:'Можно создать до 98 дополнительных команд.'};
+function botApplyConfig(config, selected='welcome') {
+  botMessages=config;const select=$('botMessageKey');select.replaceChildren();
+  for(const [key,item] of Object.entries(config.messages))select.append(admField('option',{value:key,textContent:item.label}));
+  select.value=config.messages[selected]?selected:'welcome';botSelectMessage();
+}
+function botMenuStatus(result){$('botMenuSyncState').textContent=result.menu_synced?'Меню команд в Telegram обновлено.':'Команды сохранены. Telegram не подтвердил обновление меню — нажмите «Обновить меню команд в Telegram» повторно.';}
 function botSelectMessage() {
   botDraft=structuredClone(botMessages.messages[$('botMessageKey').value]);botDirty=false;botMessages.currentKey=$('botMessageKey').value;
   $('botMessageText').value=botDraft.text;renderBotButtons();renderBotPreview();$('botMessageState').textContent='';
+  const custom=botMessages.currentKey.startsWith('command:');$('botCommandFields').hidden=!custom;$('botCommandDescription').value=botDraft.description||'';$('botCommandDescription').required=custom;
+  $('botMessageReset').hidden=custom;$('botCommandDelete').hidden=!custom;
 }
 function botChanged() {botDirty=true;$('botMessageState').textContent='Есть несохранённые изменения';renderBotPreview();}
 function botOptions(options, value) {const select=document.createElement('select');for(const [v,label] of options)select.append(admField('option',{value:v,textContent:label}));select.value=value;return select;}
@@ -133,15 +141,26 @@ function renderBotPreview() {
 }
 async function admLoadBot() {
   try {const [data,config]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages')]);const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.connected?'Подключён':data.configured?'Ожидает подключения':'Нужен токен бота');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.connected?'Включён':data.connection_error==='telegram_unavailable'?'Telegram временно недоступен':'Нажмите «Подключить бота»');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
-    if(!botDirty){botMessages=config;const selected=$('botMessageKey').value;$('botMessageKey').replaceChildren();for(const key of ['welcome','help','withdraw_pending','withdraw_approved','withdraw_rejected','withdraw_completed'])$('botMessageKey').append(admField('option',{value:key,textContent:config.messages[key].label}));$('botMessageKey').value=selected||'welcome';botSelectMessage();}
+    if(!botDirty)botApplyConfig(config,$('botMessageKey').value);
   }catch(e){admErr(e);}
 }
 function initBotEditor() {
   $('botMessageKey').onchange=()=>{if(botDirty&&!confirm('Перейти к другому сообщению без сохранения?')){ $('botMessageKey').value=botMessages.currentKey;return;}botMessages.currentKey=$('botMessageKey').value;botSelectMessage();};
   $('botMessageText').oninput=botChanged;
+  $('botCommandDescription').oninput=botChanged;
   $('botButtonAdd').onclick=()=>{if(!botDraft||botDraft.buttons.length>=8)return;botDraft.buttons.push({text:'Играть',action:'app',target:'menu',style:'primary'});renderBotButtons();botChanged();};
-  async function save(reset=false){const key=$('botMessageKey').value;$('botMessageSave').disabled=true;$('botMessageReset').disabled=true;try{const message={text:$('botMessageText').value,buttons:botDraft.buttons};const result=await api('/api/admin/bot/messages/save',{key,...(reset?{reset:true}:{message})});botMessages.messages[key]=result.message;botSelectMessage();$('botMessageState').textContent='Сохранено';toast(reset?'Стандартное сообщение восстановлено':'Сообщение сохранено');}catch(e){toast(BOT_ERROR[e.code]||'Не удалось сохранить сообщение',true);}finally{$('botMessageSave').disabled=false;$('botMessageReset').disabled=false;}}
+  async function save(reset=false){const key=$('botMessageKey').value;$('botMessageSave').disabled=true;$('botMessageReset').disabled=true;$('botCommandDelete').disabled=true;try{const message={text:$('botMessageText').value,buttons:botDraft.buttons};if(key.startsWith('command:')){const result=await api('/api/admin/bot/commands/save',{command:key.slice(8),description:$('botCommandDescription').value,message});botApplyConfig(result,key);botMenuStatus(result);}else{const result=await api('/api/admin/bot/messages/save',{key,...(reset?{reset:true}:{message})});botMessages.messages[key]=result.message;botSelectMessage();}$('botMessageState').textContent='Сохранено';toast(reset?'Стандартное сообщение восстановлено':'Сообщение сохранено');}catch(e){toast(BOT_ERROR[e.code]||'Не удалось сохранить сообщение',true);}finally{$('botMessageSave').disabled=false;$('botMessageReset').disabled=false;$('botCommandDelete').disabled=false;}}
   $('botMessageForm').onsubmit=e=>{e.preventDefault();save();};$('botMessageReset').onclick=()=>{if(confirm('Вернуть стандартный текст и кнопки этого сообщения?'))save(true);};
+  $('botCommandCreateForm').onsubmit=async e=>{
+    e.preventDefault();if(botDirty&&!confirm('Создать новую команду без сохранения текущих изменений?'))return;
+    $('botCommandCreate').disabled=true;
+    try{const command=$('botNewCommand').value;const result=await api('/api/admin/bot/commands/save',{command,description:$('botNewDescription').value,create:true,message:{text:'🎩 Привет, {name}! Выбирайте режим в меню HatDrop.',buttons:[{text:'🎮 Играть',action:'app',target:'menu',style:'primary'}]}});botApplyConfig(result,'command:'+command.trim().replace(/^\//,'').toLowerCase());botMenuStatus(result);$('botCommandCreateForm').reset();$('botMessageText').focus();toast('Команда создана. Настройте её ответ и кнопки.');}catch(e){toast(BOT_ERROR[e.code]||'Не удалось создать команду',true);}finally{$('botCommandCreate').disabled=false;}
+  };
+  $('botCommandDelete').onclick=async()=>{
+    const key=$('botMessageKey').value;if(!key.startsWith('command:')||!confirm('Удалить команду /'+key.slice(8)+' вместе с ответом и кнопками?'))return;
+    $('botCommandDelete').disabled=true;try{const result=await api('/api/admin/bot/commands/delete',{command:key.slice(8)});botApplyConfig(result);botMenuStatus(result);toast('Команда удалена');}catch(e){toast('Не удалось удалить команду',true);}finally{$('botCommandDelete').disabled=false;}
+  };
+  $('botCommandsSync').onclick=async()=>{const button=$('botCommandsSync');button.disabled=true;try{botMenuStatus(await api('/api/admin/bot/commands/sync'));}catch(e){admErr(e);}finally{button.disabled=false;}};
 }
 async function setupBot() {
   $('botSetup').disabled=true;
@@ -169,14 +188,14 @@ async function startAdmin() {
   $('navOverlay').onclick=closeNavigation;document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeNavigation();$('menuBtn').focus();}});
   $('statsPeriod').onchange=admLoadOverview;$('statsScope').onchange=admLoadOverview;$('overviewReload').onclick=admLoadOverview;$('exportStats').onclick=exportStats;
   document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>admShow(b.dataset.open));
-  initBotEditor();$('botReload').onclick=admLoadBot;$('botSetup').onclick=setupBot;
+  initBotEditor();initAdminAccess();$('botReload').onclick=admLoadBot;$('botSetup').onclick=setupBot;
   $('logoutBtn').onclick=async()=>{try{await api('/admin/logout');location.replace('/admin');}catch(e){admErr(e);}};
   let financeRequestId=null;
   $('financeForm').onsubmit=async e=>{e.preventDefault();const amount=Number($('financeAmount').value),note=$('financeNote').value.trim();if(!Number.isFinite(amount)||amount<=0||!note)return toast('Введите сумму и комментарий',true);if(!confirm(`Записать ${$('financeKind').value==='expense'?'расход':'доход'} ${fmt(amount,4)} TON?`))return;
     $('financeSave').disabled=true;financeRequestId ||= crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()+Math.random().toString(16).slice(2);
     try{await api('/api/admin/finance/entry',{kind:$('financeKind').value,amount,note,request_id:financeRequestId});financeRequestId=null;$('financeForm').reset();toast('Операция записана');await admLoadOverview();}catch(e){admErr(e);}finally{$('financeSave').disabled=$('statsScope').value==='demo';}};
   if(typeof ResizeObserver!=='undefined') { let sizes={};const observer=new ResizeObserver(entries=>{for(const entry of entries){const id=entry.target.id,width=entry.contentRect.width;if(width>0&&sizes[id]!==width&&overviewData){sizes[id]=width;drawChart(id,overviewData.series,id==='profitChart'?'line':'bar');}}});observer.observe($('profitChart'));observer.observe($('volumeChart'));}
-  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','market','bot','tonconnect','appearance'].includes(initialTab)?initialTab:'overview');
+  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','market','bot','admins','tonconnect','appearance'].includes(initialTab)?initialTab:'overview');
   setInterval(()=>{if(!document.hidden&&['overview','finance'].includes(admin.tab))admLoadOverview();},60000);
 }
 startAdmin().catch(()=>{$('accessMessage').textContent='Не удалось загрузить панель. Обновите страницу.';});

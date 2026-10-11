@@ -522,7 +522,6 @@ button.balance:active { transform: translate(1px, 1px); }
   cursor: pointer;
 }
 .coin-chip #coinValue { overflow: hidden; text-overflow: ellipsis; }
-.coin-label { font-size: 9px; opacity: .85; }
 .coin-chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .coin-chip[hidden] { display: none; }
 .coin-ico { width: 16px; height: 16px; flex: 0 0 auto; }
@@ -3632,8 +3631,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
   <header class="topbar">
     <button class="coin-chip" id="coinChip" type="button" title="Шляпа Coin — кешбэк за ставки" aria-label="Баланс Шляпа Coin">
       <img class="coin-ico" src="images/hatcoin.png" alt="">
-      <span id="coinValue">0</span>
-      <span class="coin-label">Coin</span>
+      <span id="coinValue">0.00</span>
     </button>
     <button class="balance" id="balanceChip" type="button" aria-label="Баланс, пополнить">
       <img src="images/gram.webp" alt="" class="ton-ico">
@@ -4014,7 +4012,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
       <div class="dep-coins-head">
         <img class="coin-ico" src="images/hatcoin.png" alt="">
         <span>Шляпа Coin</span>
-        <strong id="depCoinValue">0</strong>
+        <strong id="depCoinValue">0.00</strong>
       </div>
       <p id="depCoinRate">1 TON ставок = 0,1 Шляпа Coin</p>
       <p>Начисляется за каждую ставку, независимо от результата игры.</p>
@@ -5502,8 +5500,9 @@ function renderState(s) {
 function setCoins(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return;
   if (state && state.hatcoin) state.hatcoin.balance = value;
-  $('coinValue').textContent = fmt(value, 6);
-  $('depCoinValue').textContent = fmt(value, 6);
+  const amount = (Math.floor((Math.round(value * 1e6) + 5000) / 10000) / 100).toFixed(2);
+  $('coinValue').textContent = amount;
+  $('depCoinValue').textContent = amount;
 }
 
 function renderProgress(s) {

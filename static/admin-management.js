@@ -7,6 +7,8 @@ function admErr(e) {
     portals_not_configured: 'Портал не настроен на сервере (PORTALS_FLOORS_URL)',
     portals_unavailable: 'Портал не отвечает',
     bad_request: 'Неверное значение',
+    admin_id_invalid: 'Введите числовой Telegram ID.',
+    admin_owner_protected: 'Доступ владельца нельзя удалить.',
   };
   $('panelError').textContent = m[e.code] || 'Не удалось выполнить запрос. Попробуйте ещё раз.';
   $('panelError').hidden = false;
@@ -16,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот'};
+  const titles = {overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
   $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Withdrawals','TonConnect','Appearance','Bot']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Withdrawals','TonConnect','Appearance','Bot','Admins']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -35,6 +37,7 @@ function admShow(tab) {
   else if (tab === 'tonconnect') admLoadTonConnect();
   else if (tab === 'appearance') admLoadAppearance();
   else if (tab === 'bot') admLoadBot();
+  else if (tab === 'admins') admLoadAdminAccess();
 }
 
 async function admLoadUsers() {

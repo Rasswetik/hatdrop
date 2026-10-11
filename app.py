@@ -15,7 +15,9 @@ import urllib.error
 import urllib.request
 from math import comb
 from datetime import timedelta
-from bot_messages import DEFAULT_MESSAGES, messages_config, validate_message, message_payload, valid_url
+from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config,
+                          command_name, validate_command, messages_config,
+                          validate_message, message_payload, valid_url)
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
@@ -36,7 +38,8 @@ def _env_first(*names):
 
 # Токен Telegram-бота: проверка входа, аватарки игроков
 BOT_TOKEN = _env_first("BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "TG_BOT_TOKEN")
-ADMIN_IDS = {x.strip() for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {"5257227756"}
+OWNER_ADMIN_ID = "5257227756"
+ADMIN_IDS = {x.strip().removeprefix("tg") for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {OWNER_ADMIN_ID, "6718371539"}
 # Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
 # Если задана любая из этих переменных - база живёт в PostgreSQL. Если нет - в локальном SQLite.
 DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
@@ -551,8 +554,20 @@ def level_info(turnover):
     }
 
 
+def effective_admin_ids():
+    ids = set(ADMIN_IDS)
+    for uid, enabled in db.get("settings", {}).get("admin_access", {}).items():
+        if enabled is True:
+            ids.add(uid)
+        elif enabled is False:
+            ids.discard(uid)
+    ids.add(OWNER_ADMIN_ID)
+    return ids
+
+
 def is_admin(user):
-    return user["id"] in ADMIN_IDS or user["id"].removeprefix("tg") in ADMIN_IDS
+    uid = str(user["id"])
+    return uid.startswith("tg") and uid[2:] in effective_admin_ids()
 
 
 def display_name(user):
@@ -1041,7 +1056,7 @@ def _bot_app_url():
 
 def _send_bot_message(uid, key, name=None, gift=None):
     with lock:
-        config = messages_config(db.get("settings", {}).get("bot_messages", {}))
+        config = bot_editor_config()["messages"]
         player = db.get("users", {}).get(uid, {})
         payload = message_payload(config, key, _bot_app_url(),
                                   name or player.get("first_name"), gift)
@@ -1124,8 +1139,14 @@ def bot_webhook():
         return jsonify({"ok": True})
     text = str(message.get("text") or "").strip()
     command = text.split(maxsplit=1)[0].split("@")[0] if text else ""
+    command = command.lower()
     if command in ("/start", "/help"):
         _send_bot_message(f"tg{sender['id']}", "welcome" if command == "/start" else "help", name=sender.get("first_name"))
+    elif command.startswith("/"):
+        with lock:
+            exists = command[1:] in commands_config(db["settings"].get("bot_commands", {}))
+            if exists:
+                _send_bot_message(f"tg{sender['id']}", "command:" + command[1:], name=sender.get("first_name"))
     return jsonify({"ok": True})
 
 
@@ -1153,8 +1174,70 @@ def admin_bot_status(user, body):
 @route("/api/admin/bot/messages")
 def admin_bot_messages(user, body):
     require_admin(user)
-    return {"messages": messages_config(db["settings"].get("bot_messages", {})),
-            "defaults": DEFAULT_MESSAGES, "app_url": _bot_app_url()}
+    return bot_editor_config()
+
+
+def bot_editor_config():
+    settings = db.get("settings", {})
+    commands = commands_config(settings.get("bot_commands", {}))
+    messages = messages_config(settings.get("bot_messages", {}))
+    for name, value in commands.items():
+        messages["command:" + name] = {**value, "label": "/" + name + " · " + value["description"]}
+    return {"messages": messages, "commands": commands, "defaults": DEFAULT_MESSAGES, "app_url": _bot_app_url()}
+
+
+def sync_bot_commands():
+    if not BOT_TOKEN:
+        return False
+    commands = [{"command": "start", "description": "Начать игру"}, {"command": "help", "description": "Помощь"}]
+    commands.extend({"command": name, "description": item["description"]}
+                    for name, item in commands_config(db["settings"].get("bot_commands", {})).items())
+    try:
+        return tg_api("setMyCommands", commands=commands, scope={"type": "all_private_chats"}) is True
+    except Exception:
+        return False
+
+
+@route("/api/admin/bot/commands/save")
+def admin_bot_commands_save(user, body):
+    require_admin(user)
+    try:
+        name = command_name(body.get("command"))
+        message = body.get("message")
+        value = validate_command({**message, "description": body.get("description")} if isinstance(message, dict) else None)
+    except ValueError as error:
+        raise ApiError(str(error))
+    if any(b["action"] == "app" for b in value["buttons"]) and not valid_url(_bot_app_url()):
+        raise ApiError("app_https_url_required")
+    saved = commands_config(db["settings"].get("bot_commands", {}))
+    if body.get("create") is True and name in saved:
+        raise ApiError("command_exists")
+    if name not in saved and len(saved) >= MAX_CUSTOM_COMMANDS:
+        raise ApiError("command_limit")
+    saved[name] = value
+    db["settings"]["bot_commands"] = saved
+    return {"ok": True, **bot_editor_config(), "menu_synced": sync_bot_commands()}
+
+
+@route("/api/admin/bot/commands/delete")
+def admin_bot_commands_delete(user, body):
+    require_admin(user)
+    try:
+        name = command_name(body.get("command"))
+    except ValueError as error:
+        raise ApiError(str(error))
+    saved = commands_config(db["settings"].get("bot_commands", {}))
+    if name not in saved:
+        raise ApiError("not_found", 404)
+    del saved[name]
+    db["settings"]["bot_commands"] = saved
+    return {"ok": True, **bot_editor_config(), "menu_synced": sync_bot_commands()}
+
+
+@route("/api/admin/bot/commands/sync")
+def admin_bot_commands_sync(user, body):
+    require_admin(user)
+    return {"ok": True, "menu_synced": sync_bot_commands()}
 
 
 @route("/api/admin/bot/messages/save")
@@ -1441,6 +1524,38 @@ def player(user, body):
 def require_admin(user):
     if not is_admin(user):
         raise ApiError("forbidden", 403)
+
+
+def admin_access_config(user):
+    rows = []
+    for uid in sorted(effective_admin_ids(), key=lambda value: int(value) if value.isdigit() else 0):
+        player = db["users"].get("tg" + uid, {})
+        rows.append({"telegram_id": uid, "name": player.get("first_name") or "Администратор",
+                     "username": player.get("username", ""), "owner": uid == OWNER_ADMIN_ID,
+                     "self": user["id"] == "tg" + uid})
+    return {"rows": rows}
+
+
+@route("/api/admin/admins")
+def admin_admins(user, body):
+    require_admin(user)
+    return admin_access_config(user)
+
+
+@route("/api/admin/admins/save")
+def admin_admins_save(user, body):
+    require_admin(user)
+    uid = str(body.get("telegram_id") or "").strip()
+    if not re.fullmatch(r"[1-9][0-9]{0,19}", uid) or body.get("action") not in ("add", "remove"):
+        raise ApiError("admin_id_invalid")
+    if uid == OWNER_ADMIN_ID and body["action"] == "remove":
+        raise ApiError("admin_owner_protected")
+    enabled = body["action"] == "add"
+    db["settings"].setdefault("admin_access", {})[uid] = enabled
+    changes = db["settings"].setdefault("admin_access_log", [])
+    changes.append({"telegram_id": uid, "action": body["action"], "by": user["id"], "ts": int(time.time())})
+    del changes[:-100]
+    return {"ok": True, **admin_access_config(user), "self_removed": not enabled and user["id"] == "tg" + uid}
 
 
 
