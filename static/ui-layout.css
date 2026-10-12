@@ -42,6 +42,7 @@
  aspect-ratio:1/1; height:auto; padding:16px 8px 12px; gap:12px;
  text-align:center; box-sizing:border-box; overflow:hidden;
 }
+#view-menu .menu-grid > .menu-card.menu-wide[hidden] { display:none !important; }
 #view-menu .menu-grid > .menu-card.menu-wide::before { left:0; top:0; right:0; bottom:auto; height:5px; width:auto; }
 #view-menu .menu-grid > .menu-card.menu-wide::after { opacity:.3; }
 #view-menu .menu-card .mc-medal {
