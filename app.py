@@ -196,7 +196,7 @@ def store_put(key, path, text):
                 _pg_conn = None
                 if attempt == 2:
                     print(f"DB save failed: {e}", flush=True)
-        return
+                    raise RuntimeError("PostgreSQL persistence unavailable") from e
     try:
         with _sqlite_lock:
             conn = _sqlite_conn()
@@ -210,6 +210,7 @@ def store_put(key, path, text):
                 conn.close()
     except Exception as e:
         print(f"SQLite save failed: {e}", flush=True)
+        raise RuntimeError("SQLite persistence unavailable") from e
 
 
 def load_db():
@@ -249,15 +250,18 @@ def load_db():
 # на выходе процесса (SIGTERM/atexit) состояние дописывается принудительно.
 SAVE_DELAY = float(os.environ.get("SAVE_DELAY", "2"))
 _dirty = threading.Event()
+_flush_lock = threading.Lock()
 
 
 def flush_db():
-    with lock:
-        text = json.dumps(db, ensure_ascii=False)
-    if text == _last_saved["db"]:
-        return
-    store_put("db", DB_PATH, text)
-    _last_saved["db"] = text
+    """Serialize DB writes; only mark a snapshot persisted after a successful commit."""
+    with _flush_lock:
+        with lock:
+            text = json.dumps(db, ensure_ascii=False)
+        if text == _last_saved["db"]:
+            return
+        store_put("db", DB_PATH, text)
+        _last_saved["db"] = text
 
 
 def save_db():
@@ -531,7 +535,16 @@ def api(fn):
             user, body = current_user()
             result = fn(user, body)
             save_db()
-            return jsonify(result)
+            response = jsonify(result)
+        # Quest definitions, settings and claimed rewards must be durable before
+        # returning success. Normal game updates remain on the buffered saver.
+        if request.path in ("/api/admin/quests/save", "/api/quests/claim"):
+            try:
+                flush_db()
+            except Exception as exc:
+                print(f"Quest persistence failed: {exc}", flush=True)
+                return jsonify({"error": "db_save_failed"}), 503
+        return response
 
     wrapper.__name__ = fn.__name__
     return wrapper
