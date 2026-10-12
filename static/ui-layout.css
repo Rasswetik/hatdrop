@@ -1,0 +1,100 @@
+/* HatDrop mobile layout – four reachable tabs with consistent breathing room. */
+.tabbar { box-sizing:border-box; width:100%; max-width:100%; }
+.tabbar > .tab { min-width:0; }
+@media (max-width: 700px) {
+  .tabbar, html[data-theme="meadow"] .tabbar {
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:clamp(8px,2.5vw,15px);
+    padding:9px clamp(13px,4vw,28px) calc(9px + var(--safe-bottom));
+  }
+  html[data-theme="meadow"] .tabbar {
+    background:url("/images/plank-mid.webp") center/100% 100% no-repeat;
+  }
+  html[data-theme="meadow"] .tabbar::before,
+  html[data-theme="meadow"] .tabbar::after { top:0; height:100%; width:clamp(14px,4vw,24px); aspect-ratio:auto; }
+  html[data-theme="meadow"] .tabbar::before { left:0; }
+  html[data-theme="meadow"] .tabbar::after { right:0; }
+  .tabbar .tab, html[data-theme="meadow"] .tabbar .tab {
+    width:100%; flex:none; min-width:0; min-height:52px;
+    padding:8px 4px; margin:0; border-width:2px;
+  }
+  .tabbar .tab .ic { font-size:clamp(23px,7vw,30px); }
+  html[data-halloween="on"] .tabbar {
+    gap:clamp(8px,2.5vw,15px) !important;
+    padding:9px clamp(13px,4vw,28px) calc(9px + var(--safe-bottom)) !important;
+  }
+}
+@media (max-width:350px) {
+ .tabbar .tab, html[data-theme="meadow"] .tabbar .tab { min-height:49px; padding:7px 2px; }
+}
+
+/* Menu rebuilt as a compact 2x2 grid of actual square controls.
+   Specificity overrides the legacy full-width, one-column cards. */
+#view-menu .menu-grid {
+ display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+ gap:clamp(10px,3vw,17px); width:100%; max-width:530px;
+ margin:16px auto 8px; align-items:stretch;
+}
+#view-menu .menu-grid > .menu-card.menu-wide {
+ display:flex; flex-direction:column; justify-content:center; align-items:center;
+ position:relative; width:100%; min-width:0; min-height:0;
+ aspect-ratio:1/1; height:auto; padding:16px 8px 12px; gap:12px;
+ text-align:center; box-sizing:border-box; overflow:hidden;
+}
+#view-menu .menu-grid > .menu-card.menu-wide::before { left:0; top:0; right:0; bottom:auto; height:5px; width:auto; }
+#view-menu .menu-grid > .menu-card.menu-wide::after { opacity:.3; }
+#view-menu .menu-card .mc-medal {
+ width:clamp(54px,17vw,84px); height:clamp(54px,17vw,84px);
+ margin:0; border-width:3px; border-radius:10px; flex:0 0 auto;
+ box-shadow:inset 0 0 0 3px rgba(0,0,0,.22),0 3px 0 rgba(0,0,0,.4);
+}
+#view-menu .menu-card .mc-art, #view-menu .menu-card .ic.mc-art {
+ width:clamp(35px,10vw,51px); height:clamp(35px,10vw,51px);
+ color:#ffd37d; fill:currentColor;
+}
+#view-menu .menu-card .mc-text {
+ display:flex; flex:0 1 auto; flex-direction:column; align-items:center; gap:6px;
+ width:100%; min-width:0; z-index:1;
+}
+#view-menu .menu-card .mc-title {
+ font-size:clamp(10px,2.8vw,14px); line-height:1.4; letter-spacing:0;
+ overflow-wrap:anywhere; color:#fff3c4;
+}
+#view-menu .menu-card .mc-sub { font-size:clamp(7px,1.85vw,9px); line-height:1.5; text-align:center; }
+#view-menu .menu-card .mc-chev { display:none; }
+#view-menu .menu-card.mc-upgrade { --mc:#d2a5ff; }
+#view-menu .menu-card.mc-quests { --mc:#e7bf84; }
+#view-menu .menu-card.mc-leaders { --mc:#b8a3ff; }
+#view-menu .menu-card:focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
+@media(max-width:350px){
+ #view-menu .menu-grid { gap:10px; }
+ #view-menu .menu-grid > .menu-card.menu-wide { padding:11px 5px; gap:8px; }
+ #view-menu .menu-card .mc-medal { width:52px; height:52px; }
+ #view-menu .menu-card .mc-sub { font-size:7px; }
+}
+@media(prefers-reduced-motion:reduce){
+ #view-menu .mc-art *, #view-menu .menu-card {animation:none!important;transition:none!important}
+}
+
+/* Halloween PNG artwork: cross-fade image pairs, retaining SVG as fallback. */
+.halloween-scene-png { display:none; }
+html[data-halloween="on"] .bg-wide .halloween-scene {
+ transition:opacity 1100ms ease-in-out;
+}
+html[data-halloween="on"] .bg-wide .halloween-scene-png {
+ display:block; position:absolute; inset:0; width:100%; height:100%;
+ z-index:1; object-fit:cover; object-position:center;
+ pointer-events:none; opacity:0; image-rendering:pixelated;
+ transition:opacity 1400ms ease-in-out;
+}
+html[data-halloween="on"][data-halloween-art="png"] .bg-wide .halloween-scene { opacity:0; }
+html[data-halloween="on"][data-sky="day"] .bg-wide #halloweenDayPng[data-loaded="true"],
+html[data-halloween="on"][data-sky="night"] .bg-wide #halloweenNightPng[data-loaded="true"] { opacity:1; }
+html[data-halloween="on"] .bg-wide .bg-dim { z-index:2; }
+html[data-halloween="on"] .bg-wide::after { z-index:3; }
+html[data-halloween="on"] .bg-wide .halloween-scene-png:not([data-loaded="true"]) { visibility:hidden; }
+@media(prefers-reduced-motion:reduce){
+ html[data-halloween="on"] .bg-wide .halloween-scene,
+ html[data-halloween="on"] .bg-wide .halloween-scene-png { transition:none!important; }
+}
