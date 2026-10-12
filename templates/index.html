@@ -6854,7 +6854,7 @@ function initSky() {
     e.stopPropagation();
     haptic('impact', 'light');
     const next = document.documentElement.dataset.sky === 'night' ? 'day' : 'night';
-    try { localStorage.setItem('sky', next); } catch (err) {}
+    try { localStorage.setItem(document.documentElement.dataset.halloween === 'on' ? 'halloweenSky' : 'sky', next); } catch (err) {}
     if (window.setSky) window.setSky(next);
   });
 }
