@@ -2970,6 +2970,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
+<link rel="stylesheet" href="/static/ui-layout.css?v=2">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3320,6 +3321,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 </g>
 </g>
 </svg>
+<img id="halloweenDayPng" class="halloween-scene-png" data-loaded="false" alt="" aria-hidden="true" decoding="async">
+<img id="halloweenNightPng" class="halloween-scene-png" data-loaded="false" alt="" aria-hidden="true" decoding="async">
 <svg xmlns="http://www.w3.org/2000/svg" id="halloweenScene" class="halloween-scene" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
 <defs>
 
@@ -3688,6 +3691,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           </svg></span>
           <span class="mc-text"><b class="mc-title">ЛИДЕРЫ</b><small class="mc-sub">Топ игроков недели</small></span>
           <svg class="mc-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2L11 8L5 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="menu-card menu-wide mc-upgrade" id="menuUpgrade" type="button">
+          <span class="mc-medal"><svg class="mc-art ic" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke-linejoin="round" stroke-linecap="square"><path d="M18 76 46 48l13 12 23-31" stroke="#2e1a0c" stroke-width="14"/><path d="M18 76 46 48l13 12 23-31" stroke="#c58bf7" stroke-width="8"/><path d="M63 29h20v20" stroke="#ffe49c" stroke-width="9"/><path d="M23 17h6m-3-3v6M75 77h6m-3-3v6" stroke="#ffe49c" stroke-width="5"/></g></svg></span>
+          <span class="mc-text"><b class="mc-title">АПГРЕЙД</b><small class="mc-sub">Испытай свою удачу</small></span>
+        </button>
+        <button class="menu-card menu-wide mc-quests" id="menuQuests" type="button">
+          <span class="mc-medal"><svg class="mc-art ic" viewBox="0 0 100 100" aria-hidden="true"><g stroke="#2e1a0c" stroke-width="5" stroke-linejoin="round"><path d="M18 8h52l13 15v67H18z" fill="#d6b480"/><path d="M70 8v16h13" fill="#f2ddac"/><path d="M27 34h13v13H27zM27 57h13v13H27z" fill="#744f99"/><path d="m29 37 6 6 10-13m-16 30 6 6 10-13" fill="none" stroke="#6acb89" stroke-width="5"/><path d="M52 40h20M52 62h20" stroke="#644672" stroke-width="6"/></g><path d="M7 19h6v6H7zm79 60h6v6h-6z" fill="#ffd86a"/></svg></span>
+          <span class="mc-text"><b class="mc-title">КВЕСТЫ</b><small class="mc-sub">Задания от Костяна</small></span>
         </button>
       </div>
     </section>
@@ -4184,6 +4195,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 </script>
 
 <script src="/static/village-scene.js?v=3"></script>
+<script src="/static/halloween-art.js?v=1" defer></script>
 <script>
 (function () {
   'use strict';
@@ -7813,6 +7825,8 @@ function bind() {
   $('depWalletBtn').addEventListener('click', onWalletClick);
   $('depWalletSwitch').addEventListener('click', switchWallet);
   $('menuLeaders').addEventListener('click', () => { haptic('impact', 'light'); showView('leaders'); });
+  $('menuUpgrade').addEventListener('click', () => { haptic('impact','light'); showView('upgrade'); });
+  $('menuQuests').addEventListener('click', () => { haptic('impact','light'); showView('quests'); });
   initChests();
   document.querySelectorAll('.view-back').forEach((b) => {
     b.addEventListener('click', () => {
