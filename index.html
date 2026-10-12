@@ -5479,8 +5479,8 @@ function applyHalloweenTheme(enabled) {
   if (root.dataset.halloween !== next) {
     root.dataset.halloween = next;
     syncEventAppearance();
-    let rememberedSky = 'day';
-    try { rememberedSky = localStorage.getItem('sky') || 'day'; } catch (e) {}
+    let rememberedSky = enabled ? 'night' : 'day';
+    try { rememberedSky = localStorage.getItem(enabled ? 'halloweenSky' : 'sky') || rememberedSky; } catch (e) {}
     window.setSky?.(rememberedSky);
     if (!enabled) {
       clearTimeout(pumpkinScareTimer);
@@ -7336,7 +7336,7 @@ function initSky() {
     if (document.documentElement.dataset.halloween !== 'on') {
       btn.classList.remove('flip'); void btn.offsetWidth; btn.classList.add('flip');
     }
-    try { localStorage.setItem('sky', next); } catch (err) {}
+    try { localStorage.setItem(document.documentElement.dataset.halloween === 'on' ? 'halloweenSky' : 'sky', next); } catch (err) {}
     if (window.setSky) window.setSky(next);
   });
 }
