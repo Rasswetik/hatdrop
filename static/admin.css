@@ -38,3 +38,7 @@
 .em-gift img{width:44px;height:44px;object-fit:contain}.em-gift b{font-size:12px;overflow-wrap:anywhere}
 .em-gift .em-row{grid-column:1/-1;display:flex;gap:6px;align-items:center}.em-gift input{min-height:34px;padding:6px 8px;font-size:12px;flex:1}
 .em-gift button{min-height:34px;padding:4px 10px;font-size:12px}.em-cur{font-size:20px;min-width:24px;text-align:center}
+
+.em-img{width:20px;height:20px;object-fit:contain;vertical-align:-4px;margin:0 1px}
+.em-picker{margin:-6px 0 6px}.em-picker .em-chips{margin-top:8px}.em-picker .em-chips button{min-height:36px;padding:4px 8px}
+.em-chip b img{width:22px;height:22px}

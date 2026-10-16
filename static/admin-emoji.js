@@ -27,12 +27,26 @@ async function admLoadEmoji() {
       catch (e) { emErr(e); } finally { addBtn.disabled = false; }
     };
     lib.append(emEl('div', { className: 'adm-form' }, idInput, addBtn));
+    const packInput = emEl('input', { className: 'tc-input', placeholder: 'Ссылка на набор: https://t.me/addemoji/НАЗВАНИЕ', autocomplete: 'off' });
+    const packBtn = emEl('button', { type: 'button', textContent: '+ Набор по ссылке' });
+    packBtn.onclick = async () => {
+      packBtn.disabled = true;
+      try { const r = await api('/api/admin/emojis/pack', { link: packInput.value.trim() }); toast(`Набор «${r.title}»: добавлено ${r.added}`); admLoadEmoji(); }
+      catch (e) { emErr(e); } finally { packBtn.disabled = false; }
+    };
+    const starterBtn = emEl('button', { type: 'button', textContent: 'Загрузить стартовый набор' });
+    starterBtn.onclick = async () => {
+      starterBtn.disabled = true;
+      try { const r = await api('/api/admin/emojis/starter'); toast(`Добавлено ${r.added} из ${r.total}`); admLoadEmoji(); }
+      catch (e) { emErr(e); } finally { starterBtn.disabled = false; }
+    };
+    lib.append(emEl('div', { className: 'adm-form' }, packInput, packBtn, starterBtn));
     const chips = emEl('div', { className: 'em-chips' });
     if (!data.saved.length) chips.append(emEl('span', { className: 'muted', textContent: 'Пока пусто. Telegram проверяет каждый ID перед сохранением.' }));
     for (const item of data.saved) {
       const del = emEl('button', { type: 'button', className: 'danger', textContent: '×', title: 'Удалить' });
       del.onclick = async () => { try { await api('/api/admin/emojis/remove', { id: item.id }); admLoadEmoji(); } catch (e) { emErr(e); } };
-      chips.append(emEl('span', { className: 'em-chip' }, emEl('b', { textContent: item.emoji }), emEl('code', { textContent: item.id }), del));
+      chips.append(emEl('span', { className: 'em-chip' }, emEl('b', {}, emojiImg(item.id, item.emoji)), emEl('code', { textContent: item.id }), del));
     }
     lib.append(chips);
 
@@ -46,7 +60,7 @@ async function admLoadEmoji() {
       try { await api('/api/admin/emojis/ton', { emoji_id: tonInput.value.trim() }); toast('Сохранено'); admLoadEmoji(); }
       catch (e) { emErr(e); } finally { tonSave.disabled = false; }
     };
-    ton.append(emEl('div', { className: 'adm-form' }, emEl('span', { className: 'em-cur', textContent: (data.ton && data.ton.emoji) || '💎' }), tonInput, tonSave));
+    ton.append(emEl('div', { className: 'adm-form' }, emEl('span', { className: 'em-cur' }, (data.ton && data.ton.id) ? emojiImg(data.ton.id, data.ton.emoji) : '💎'), tonInput, tonSave));
 
     // --- Подарки ---
     const gifts = emEl('div', { className: 'adm-box' }, emEl('h3', { textContent: 'Эмодзи подарков' }));
@@ -62,10 +76,10 @@ async function admLoadEmoji() {
       for (const g of res.items) {
         const input = emEl('input', { placeholder: 'ID эмодзи', value: g.emoji_id, inputMode: 'numeric', autocomplete: 'off' });
         const save = emEl('button', { type: 'button', textContent: 'OK' });
-        const cur = emEl('span', { className: 'em-cur', textContent: g.emoji || '🎁' });
+        const cur = emEl('span', { className: 'em-cur' }, g.emoji_id ? emojiImg(g.emoji_id, g.emoji) : '🎁');
         save.onclick = async () => {
           save.disabled = true;
-          try { const r = await api('/api/admin/gift-emojis/save', { gift_id: g.gift_id, emoji_id: input.value.trim() }); cur.textContent = (r.item && r.item.emoji) || '🎁'; toast('Сохранено'); }
+          try { const r = await api('/api/admin/gift-emojis/save', { gift_id: g.gift_id, emoji_id: input.value.trim() }); cur.replaceChildren(r.item && r.item.id ? emojiImg(r.item.id, r.item.emoji) : '🎁'); toast('Сохранено'); }
           catch (e) { emErr(e); } finally { save.disabled = false; }
         };
         const img = emEl('img', { alt: '', loading: 'lazy', src: g.image || '' });

@@ -1,5 +1,6 @@
 """Editable Telegram messages and their inline keyboards."""
 import re
+from html import escape
 from copy import deepcopy
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
@@ -12,6 +13,8 @@ DEFAULT_MESSAGES = {
     'withdraw_rejected': {'label': 'Вывод отклонён', 'text': '❌ Заявка на подарок «{gift}» отклонена. Подарок возвращён в инвентарь.', 'buttons': []},
     'withdraw_completed': {'label': 'Вывод выполнен', 'text': '🎉 Вывод подарка «{gift}» отмечен как выполненный администратором.', 'buttons': []},
 }
+EMOJI_ID_RE = re.compile(r'[0-9]{5,30}')
+TOKEN_RE = re.compile(r'\{(name|gift)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
 APP_VIEWS = ('menu', 'upgrade', 'chests', 'profile')
 BUTTON_STYLES = ('default', 'primary', 'success', 'danger')
 MAX_CUSTOM_COMMANDS = 98  # Telegram supports 100, including /start and /help.
@@ -81,7 +84,13 @@ def validate_message(value):
                 raise ValueError('message_button_url_invalid')
         else:
             raise ValueError('message_button_action_invalid')
-        clean.append({'text': label.strip(), 'action': action, 'target': target, 'style': style})
+        item = {'text': label.strip(), 'action': action, 'target': target, 'style': style}
+        icon = str(b.get('icon') or '').strip()
+        if icon:
+            if not EMOJI_ID_RE.fullmatch(icon):
+                raise ValueError('message_button_invalid')
+            item['icon'] = icon
+        clean.append(item)
     return {'text': text.strip(), 'buttons': clean}
 
 
@@ -101,11 +110,23 @@ def message_payload(config, key, app_url, name='друг', gift='подарок'
     item = config[key]
     replacements = {'name': str(name or 'друг')[:120], 'gift': str(gift or 'подарок')[:200]}
     # Single pass prevents placeholders in player-provided names from being expanded.
-    text = re.sub(r'\{(name|gift)\}', lambda m: replacements[m.group(1)], item['text'])
-    text = text.encode('utf-16-le')[:8192].decode('utf-16-le', errors='ignore')
+    # Текст уходит с parse_mode=HTML: всё экранируется, токены [emoji:ID:символ] становятся <tg-emoji>.
+    def repl(m):
+        if m.group(1):
+            return escape(replacements[m.group(1)], quote=False)
+        return f'<tg-emoji emoji-id="{m.group(2)}">{escape(m.group(3), quote=False)}</tg-emoji>'
+    out, pos = [], 0
+    for m in TOKEN_RE.finditer(item['text']):
+        out.append(escape(item['text'][pos:m.start()], quote=False))
+        out.append(repl(m))
+        pos = m.end()
+    out.append(escape(item['text'][pos:], quote=False))
+    text = ''.join(out)
     rows = []
     for b in item['buttons']:
         button = {'text': b['text']}
+        if b.get('icon'):
+            button['icon_custom_emoji_id'] = b['icon']
         if b['style'] != 'default':
             button['style'] = b['style']
         if b['action'] == 'app':
@@ -118,7 +139,7 @@ def message_payload(config, key, app_url, name='друг', gift='подарок'
         else:
             button['url'] = b['target']
         rows.append([button])
-    result = {'text': text}
+    result = {'text': text, 'html': True}
     if rows:
         result['reply_markup'] = {'inline_keyboard': rows}
     return result

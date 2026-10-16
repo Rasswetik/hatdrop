@@ -134,3 +134,48 @@ class RelayerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BotEmojiTests(unittest.TestCase):
+    def test_tokens_icons_and_escaping(self):
+        import bot_messages as bm
+        cfg = {"k": {"text": "A <b>{name}</b> [emoji:5368324170671202286:👍] {gift}", "buttons": [
+            {"text": "Играть", "action": "app", "target": "menu", "style": "default", "icon": "5424972470023104089"}]}}
+        p = bm.message_payload(cfg, "k", "https://app.example", name="<i>x&", gift="Шляпа")
+        self.assertTrue(p["html"])
+        self.assertEqual(p["text"], 'A &lt;b&gt;&lt;i&gt;x&amp;&lt;/b&gt; <tg-emoji emoji-id="5368324170671202286">👍</tg-emoji> Шляпа')
+        self.assertEqual(p["reply_markup"]["inline_keyboard"][0][0]["icon_custom_emoji_id"], "5424972470023104089")
+        with self.assertRaises(ValueError):
+            bm.validate_message({"text": "x", "buttons": [{"text": "a", "action": "app", "target": "menu", "style": "default", "icon": "abc"}]})
+        self.assertEqual(bm.validate_message({"text": "x", "buttons": [{"text": "a", "action": "app", "target": "menu", "style": "default", "icon": " 5424972470023104089 "}]})["buttons"][0]["icon"], "5424972470023104089")
+
+    def test_send_falls_back_without_custom_emoji(self):
+        calls = []
+        def fake(method, **kw):
+            calls.append(kw)
+            if len(calls) == 1:
+                raise ValueError("DOCUMENT_INVALID")
+            return {}
+        class Sync:
+            def __init__(s, target, daemon=None): s.t = target
+            def start(s): s.t()
+        markup = {"inline_keyboard": [[{"text": "Go", "icon_custom_emoji_id": "5424972470023104089", "url": "https://t.me/x"}]]}
+        with mock.patch.object(backend, "tg_api", fake), mock.patch.object(backend, "BOT_TOKEN", "t"), mock.patch.object(backend.threading, "Thread", Sync):
+            backend._send_tg_async("tg1", 'Hi <tg-emoji emoji-id="5368324170671202286">👍</tg-emoji>', markup, html=True)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[1]["text"], "Hi 👍")
+        self.assertNotIn("icon_custom_emoji_id", calls[1]["reply_markup"]["inline_keyboard"][0][0])
+        self.assertEqual(calls[1]["parse_mode"], "HTML")
+
+    def test_pack_import_and_thumb_requires_admin(self):
+        backend.db = {"users": {}, "prices": {}, "settings": {}, "withdrawals": {}, "promocodes": {}, "quests": {}}
+        client = backend.app.test_client()
+        client.post("/api/state", json={"initData": signed_user(202)})
+        pack = {"name": "cool", "title": "Cool", "sticker_type": "custom_emoji", "stickers": [{"custom_emoji_id": "5368324170671202286", "emoji": "👍"}, {"custom_emoji_id": "5424972470023104089", "emoji": "🔥"}]}
+        with mock.patch.object(backend, "tg_api", lambda m, **k: pack), mock.patch.object(backend, "require_admin", lambda u: None):
+            r = client.post("/api/admin/emojis/pack", json={"initData": signed_user(202), "link": "https://t.me/addemoji/cool"})
+            self.assertEqual((r.status_code, r.json["added"]), (200, 2))
+            pack["sticker_type"] = "regular"
+            self.assertEqual(client.post("/api/admin/emojis/pack", json={"initData": signed_user(202), "link": "cool"}).status_code, 400)
+        self.assertEqual(set(backend.emoji_doc()["saved"]), {"5368324170671202286", "5424972470023104089"})
+        self.assertEqual(client.get("/api/admin/emoji-thumb/5368324170671202286").status_code, 404)

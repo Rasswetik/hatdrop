@@ -1185,6 +1185,18 @@ def promo(user, body):
     return result
 
 
+EMOJI_TAG_RE = re.compile(r"<tg-emoji emoji-id=\"[0-9]+\">(.*?)</tg-emoji>", re.S)
+
+
+def _strip_custom_emoji(text, markup):
+    """Запасной вариант без premium-эмодзи: символы вместо тегов, кнопки без иконок."""
+    text = EMOJI_TAG_RE.sub(lambda m: m.group(1), text)
+    if markup:
+        markup = {"inline_keyboard": [[{k: v for k, v in b.items() if k != "icon_custom_emoji_id"} for b in row]
+                                      for row in markup.get("inline_keyboard", [])]}
+    return text, markup
+
+
 def _send_tg_async(uid, message, reply_markup=None, html=False):
     if not BOT_TOKEN or not str(uid).startswith("tg"):
         return
@@ -1192,14 +1204,23 @@ def _send_tg_async(uid, message, reply_markup=None, html=False):
         chat = int(str(uid)[2:])
     except ValueError:
         return
+
+    def post(text, markup):
+        extra = {"reply_markup": markup} if markup else {}
+        if html:
+            extra.update(parse_mode="HTML", link_preview_options={"is_disabled": True})
+        tg_api("sendMessage", chat_id=chat, text=text, **extra)
+
     def job():
         try:
-            extra = {"reply_markup": reply_markup} if reply_markup else {}
-            if html:
-                extra.update(parse_mode="HTML", link_preview_options={"is_disabled": True})
-            tg_api("sendMessage", chat_id=chat, text=message, **extra)
+            post(message, reply_markup)
         except Exception as e:
             print("Telegram notification failed:", str(e), flush=True)
+            if html and ("tg-emoji" in message or "icon_custom_emoji_id" in json.dumps(reply_markup or {})):
+                try:  # у владельца бота может не быть Premium — отправляем без custom emoji
+                    post(*_strip_custom_emoji(message, reply_markup))
+                except Exception as e2:
+                    print("Telegram fallback failed:", str(e2), flush=True)
     threading.Thread(target=job, daemon=True).start()
 
 
@@ -1283,7 +1304,7 @@ def _send_bot_message(uid, key, name=None, gift=None):
         player = db.get("users", {}).get(uid, {})
         payload = message_payload(config, key, _bot_app_url(),
                                   name or player.get("first_name"), gift)
-    _send_tg_async(uid, payload["text"], payload.get("reply_markup"))
+    _send_tg_async(uid, payload["text"], payload.get("reply_markup"), html=True)
 
 
 def _webhook_secret():
@@ -4617,6 +4638,80 @@ def admin_gift_emoji_save(body):
         if key not in gifts_map():
             raise ApiError("not_found", 404, message="Подарок не найден в каталоге.")
     return _emoji_assign(body, key)
+
+
+STARTER_EMOJIS = [
+    ("5368324170671202286", "Лайк"), ("5424972470023104089", "Огонь"), ("5438496463044752972", "Звезда"),
+    ("5172484558305625218", "Telegram Stars"), ("5206607081334906820", "Галочка"), ("5805532930662996322", "Подтверждено"),
+    ("5210952531676504517", "Крестик"), ("5240241223632954241", "Отмена"), ("5447644880824181073", "Внимание"),
+    ("5420323339723881652", "Красный"), ("5274099962655816924", "Восклицание"), ("5276032951342088188", "Взрыв"),
+    ("5224607267797606837", "Молния"), ("5456140674028019486", "Сирена"), ("5458603043203327669", "Колокольчик"),
+    ("5409048419211682843", "Доллар"), ("5406683434124859552", "Скидка"), ("5769403330761593044", "Кошелёк"),
+    ("5449683594425410231", "Рост"), ("5472169951538224541", "Ракета"), ("5962891847964562880", "Кубок"),
+    ("4996980495100150380", "Сердце"),
+]
+
+
+@admin_io("/api/admin/emojis/pack")
+def admin_emoji_pack(body):
+    raw = str(body.get("link") or "").strip()
+    m = re.search(r"(?:t\.me|telegram\.me)/addemoji/([A-Za-z0-9_]{3,64})", raw) or re.fullmatch(r"([A-Za-z0-9_]{3,64})", raw)
+    if not m:
+        raise ApiError("bad_pack", 400, message="Вставьте ссылку на набор вида https://t.me/addemoji/НАЗВАНИЕ.")
+    try:
+        pack = tg_api("getStickerSet", name=m.group(1)) or {}
+    except Exception:
+        raise ApiError("pack_not_found", 404, message="Набор не найден или недоступен.")
+    if pack.get("sticker_type") != "custom_emoji":
+        raise ApiError("bad_pack", 400, message="Это не набор premium-эмодзи (нужна ссылка t.me/addemoji/…).")
+    stickers = [s for s in (pack.get("stickers") or []) if s.get("custom_emoji_id")]
+    with lock:
+        saved = emoji_doc()["saved"]
+        for s in stickers:
+            eid = str(s["custom_emoji_id"])
+            saved[eid] = {"id": eid, "emoji": str(s.get("emoji") or "")[:32] or "⭐", "set_name": str(pack.get("name") or "")}
+    return {"ok": True, "title": str(pack.get("title") or ""), "added": len(stickers)}
+
+
+@admin_io("/api/admin/emojis/starter")
+def admin_emoji_starter(body):
+    resolved = fetch_custom_emoji_map([e[0] for e in STARTER_EMOJIS])
+    with lock:
+        saved = emoji_doc()["saved"]
+        for eid, item in resolved.items():
+            saved[eid] = {"id": eid, "emoji": item["emoji"] or "⭐", "set_name": item["set_name"]}
+    return {"ok": True, "added": len(resolved), "total": len(STARTER_EMOJIS)}
+
+
+_EMOJI_THUMBS = {}
+
+
+@app.get("/api/admin/emoji-thumb/<emoji_id>")
+def admin_emoji_thumb(emoji_id):
+    with lock:
+        allowed = bool(admin_session_user())
+    if not allowed or not EMOJI_ID_RE.match(emoji_id) or not BOT_TOKEN:
+        return ("", 404)
+    cached = _EMOJI_THUMBS.get(emoji_id)
+    if cached is None:
+        try:
+            st = (tg_api("getCustomEmojiStickers", custom_emoji_ids=[emoji_id]) or [{}])[0]
+            thumb = (st.get("thumbnail") or {}).get("file_id")
+            if not thumb and not st.get("is_animated") and not st.get("is_video"):
+                thumb = st.get("file_id")
+            if not thumb:
+                return ("", 404)
+            path = tg_api("getFile", file_id=thumb)["file_path"]
+            with urllib.request.urlopen(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=10) as r:
+                cached = (r.read(400000), r.headers.get("Content-Type") or "image/webp")
+        except Exception:
+            return ("", 404)
+        if len(_EMOJI_THUMBS) > 600:
+            _EMOJI_THUMBS.clear()
+        _EMOJI_THUMBS[emoji_id] = cached
+    resp = Response(cached[0], mimetype=cached[1])
+    resp.headers["Cache-Control"] = "private, max-age=86400"
+    return resp
 
 
 load_db()

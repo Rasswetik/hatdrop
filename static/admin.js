@@ -103,6 +103,43 @@ function drawChart(id, series, kind) {
   svg.addEventListener('pointermove',move);svg.addEventListener('pointerdown',move);svg.addEventListener('pointerleave',()=>{tip.hidden=true;cursor.setAttribute('visibility','hidden');});
   if(values.every(v=>v===0))root.append(admField('p',{className:'chart-empty',textContent:'Нет операций за выбранный период'}));
 }
+let emojiLib = [];
+function emojiImg(id, fallback) {
+  const img = admField('img', {className: 'em-img', alt: fallback || '⭐', loading: 'lazy', src: '/api/admin/emoji-thumb/' + id});
+  img.onerror = () => img.replaceWith(document.createTextNode(fallback || '⭐'));
+  return img;
+}
+function botRenderRich(root, text) {
+  root.replaceChildren();
+  let pos = 0;
+  for (const m of text.matchAll(/\[emoji:(\d{5,30}):([^\]\r\n]{1,16})\]/g)) {
+    root.append(document.createTextNode(text.slice(pos, m.index)), emojiImg(m[1], m[2]));
+    pos = m.index + m[0].length;
+  }
+  root.append(document.createTextNode(text.slice(pos)));
+}
+function renderEmojiPicker() {
+  let box = $('botEmojiPicker');
+  if (!box) {
+    box = admField('div', {id: 'botEmojiPicker', className: 'em-picker'});
+    $('botMessageText').closest('label').after(box);
+  }
+  box.replaceChildren(admField('small', {className: 'muted', textContent: 'Premium-эмодзи: нажмите, чтобы вставить в текст в позицию курсора.'}));
+  if (!emojiLib.length) { box.append(admField('small', {className: 'muted', textContent: ' Библиотека пуста — добавьте эмодзи во вкладке «Эмодзи».'})); return; }
+  const row = admField('div', {className: 'em-chips'});
+  for (const e of emojiLib) {
+    const b = admField('button', {type: 'button', title: e.id});
+    b.append(emojiImg(e.id, e.emoji));
+    b.onclick = () => {
+      const t = $('botMessageText'), token = `[emoji:${e.id}:${e.emoji}]`;
+      const a = t.selectionStart ?? t.value.length, z = t.selectionEnd ?? a;
+      t.value = t.value.slice(0, a) + token + t.value.slice(z);
+      t.focus(); t.setSelectionRange(a + token.length, a + token.length); botChanged();
+    };
+    row.append(b);
+  }
+  box.append(row);
+}
 let botMessages = null, botDraft = null, botDirty = false;
 const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.',command_name_invalid:'Команда: от 1 до 32 латинских букв, цифр или символов _.',command_description_invalid:'Введите описание команды до 256 символов.',command_reserved:'/start и /help редактируются как стандартные сообщения.',command_exists:'Эта команда уже существует. Выберите её в редакторе.',command_limit:'Можно создать до 98 дополнительных команд.'};
 function botApplyConfig(config, selected='welcome') {
@@ -126,6 +163,7 @@ function renderBotButtons() {
     const field=(title,control,wide=false)=>{const label=admField('label',{className:wide?'wide':''});label.append(document.createTextNode(title),control);row.append(label);return control;};
     const text=field('Название',admField('input',{value:b.text,maxLength:64,required:true}));text.oninput=()=>{b.text=text.value;botChanged();};
     const style=field('Цвет',botOptions([['default','Стандартный'],['primary','Синий'],['success','Зелёный'],['danger','Красный']],b.style));style.onchange=()=>{b.style=style.value;botChanged();};
+    const icon=field('Premium-эмодзи на кнопке',botOptions([['','Без иконки'],...emojiLib.map(e=>[e.id,e.emoji+' · '+e.id])],b.icon||''),true);icon.onchange=()=>{if(icon.value)b.icon=icon.value;else delete b.icon;botChanged();};
     const action=field('Действие',botOptions([['app','Открыть игру'],['url','Открыть ссылку']],b.action));action.onchange=()=>{b.action=action.value;b.target=b.action==='app'?'menu':'https://';renderBotButtons();botChanged();};
     const target=field(b.action==='app'?'Раздел игры':'HTTPS-ссылка',b.action==='app'?botOptions([['menu','Меню'],['upgrade','Колесо'],['chests','Мины'],['profile','Профиль']],b.target):admField('input',{type:'url',value:b.target,required:true,maxLength:512}));target.onchange=target.oninput=()=>{b.target=target.value;botChanged();};
     const tools=admField('div',{className:'bot-row-toolbar'});tools.append(admField('span',{textContent:'Кнопка '+(i+1)}));const actions=document.createElement('div');
@@ -135,12 +173,12 @@ function renderBotButtons() {
 }
 function renderBotPreview() {
   if(!botDraft)return;
-  $('botPreviewText').textContent=$('botMessageText').value.replace(/\{(name|gift)\}/g,(_,key)=>key==='name'?'Александр':'Шляпа волшебника');
-  const root=$('botPreviewButtons');root.replaceChildren();for(const b of botDraft.buttons){const button=admField('button',{type:'button',textContent:b.text||'Кнопка'});button.dataset.style=b.style;root.append(button);}
+  botRenderRich($('botPreviewText'),$('botMessageText').value.replace(/\{(name|gift)\}/g,(_,key)=>key==='name'?'Александр':'Шляпа волшебника'));
+  const root=$('botPreviewButtons');root.replaceChildren();for(const b of botDraft.buttons){const button=admField('button',{type:'button'});if(b.icon)button.append(emojiImg(b.icon,'⭐'));button.append(document.createTextNode(b.text||'Кнопка'));button.dataset.style=b.style;root.append(button);}
   $('botAppWarning').hidden=!botDraft.buttons.some(b=>b.action==='app')||botMessages.app_url.startsWith('https://');
 }
 async function admLoadBot() {
-  try {const [data,config]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages')]);const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.connected?'Подключён':data.configured?'Ожидает подключения':'Нужен токен бота');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.connected?'Включён':data.connection_error==='telegram_unavailable'?'Telegram временно недоступен':'Нажмите «Подключить бота»');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
+  try {const [data,config,lib]=await Promise.all([api('/api/admin/bot/status'),api('/api/admin/bot/messages'),api('/api/admin/emojis').catch(()=>({saved:[]}))]);emojiLib=lib.saved||[];renderEmojiPicker();if(botDraft)renderBotButtons();const root=$('botDetails');root.replaceChildren();status(root,'Подключение',data.connected?'Подключён':data.configured?'Ожидает подключения':'Нужен токен бота');status(root,'Бот',data.bot_username?'@'+data.bot_username:'—');status(root,'Приём сообщений',data.connected?'Включён':data.connection_error==='telegram_unavailable'?'Telegram временно недоступен':'Нажмите «Подключить бота»');$('botOpenLink').hidden=!data.bot_username;if(data.bot_username)$('botOpenLink').href='https://t.me/'+encodeURIComponent(data.bot_username);
     if(!botDirty)botApplyConfig(config,$('botMessageKey').value);
   }catch(e){admErr(e);}
 }
