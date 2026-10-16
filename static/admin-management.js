@@ -464,6 +464,13 @@ async function admLoadWithdrawals() {
       const price = admField('span', {className:'adm-wd-meta',textContent: Number(wd.value_ton || 0).toFixed(2)+' TON'});
       const state = admField('span',{className:'adm-wd-chip',textContent: ({pending:'На проверке',approved:'Одобрено, ожидает отправки',completed:'Выполнено',rejected:'Отклонено'})[wd.status] || wd.status});
       info.append(title,owner,price,state);
+      if (wd.auto) {
+        const auto = {queued:'Автовывод: в очереди у релейера', done:'Автовывод: выдан', failed:'Автовывод не удался — нужен ручной вывод', manual:'Ручная проверка'}[wd.auto] || wd.auto;
+        let line = auto;
+        if (wd.auto_error) line += ' · Ошибка: ' + wd.auto_error + (wd.attempts ? ' (попытка ' + wd.attempts + '/5)' : '');
+        else if (wd.auto_status && wd.auto === 'queued') line += ' · ' + wd.auto_status;
+        info.append(admField('span',{className:'adm-wd-meta',textContent:line}));
+      }
       const buttons=admField('div',{className:'adm-wd-actions'});
       function btn(label,cls,fn){const b=admField('button',{type:'button',className:cls,textContent:label});b.onclick=fn;buttons.append(b);}
       if(wd.status==='pending'){

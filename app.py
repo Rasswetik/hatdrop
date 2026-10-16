@@ -1157,7 +1157,8 @@ def withdraw(user, body):
         "value_ton": prize["value"], "tier": prize["tier"]}
     req = db["withdrawals"][key]
     req["auto"] = "queued" if auto_withdraw_eligible(user, prize) else "manual"
-    _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"])
+    _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"], prize=prize)
+    _notify_admins_withdrawal(user, prize, req)
     return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": req["auto"] == "queued"}
 
 
@@ -1295,7 +1296,7 @@ def admin_withdrawals_resolve(user, body):
         raise ApiError("invalid_status_transition")
     req["updated"] = int(time.time())
     req["moderator"] = user["id"]
-    _send_bot_message(req["uid"], {"approve": "withdraw_approved", "reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"])
+    _send_bot_message(req["uid"], {"approve": "withdraw_approved", "reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"], prize=prize)
     return {"ok": True, "request": withdrawal_record(req)}
 
 
@@ -1303,12 +1304,36 @@ def _bot_app_url():
     return tonconnect_config()["app_url"]
 
 
-def _send_bot_message(uid, key, name=None, gift=None):
+def _notify_admins_withdrawal(user, prize, req, error=None):
+    """Заявка на вывод (и ошибка автовывода) приходит админам в бота."""
+    who = ("@" + user["username"]) if user.get("username") else (user.get("first_name") or "Игрок")
+    if error:
+        text = (f"⚠️ <b>Автовывод не удался</b>\n{html.escape(prize['name'])} → {html.escape(who)}\n"
+                f"Ошибка релейера: <code>{html.escape(str(error)[:300])}</code>")
+    else:
+        mode = "автовывод через релейер" if req.get("auto") == "queued" else "нужна ручная проверка"
+        text = (f"🎁 <b>Новая заявка на вывод</b>\n{html.escape(prize['name'])} · {prize['value']:g} TON\n"
+                f"{html.escape(who)} · ID {html.escape(str(user['id'])[2:])}\nРежим: {mode}")
+    for aid in effective_admin_ids():
+        _send_tg_async("tg" + str(aid), text, html=True)
+
+
+def _prize_collection_key(prize):
+    tier = str((prize or {}).get("tier") or "")
+    return tier.split(":", 2)[1] if tier.startswith("gift:") and tier.count(":") >= 1 else ""
+
+
+def _send_bot_message(uid, key, name=None, gift=None, prize=None):
     with lock:
         config = bot_editor_config()["messages"]
         player = db.get("users", {}).get(uid, {})
         payload = message_payload(config, key, _bot_app_url(),
                                   name or player.get("first_name"), gift)
+        ck = _prize_collection_key(prize)
+        if ck and ck in emoji_doc()["gifts"]:  # premium-эмодзи подарка вместо обычного 🎁
+            tag = gift_emoji_html(ck)
+            if tag != "🎁":
+                payload["text"] = payload["text"].replace("🎁", tag, 1)
     _send_tg_async(uid, payload["text"], payload.get("reply_markup"), html=True)
 
 
@@ -4143,6 +4168,18 @@ def _relayer_scan(force=False):
             stats["withdrawn"] = relayer_process_withdrawals()
         except Exception as exc:
             print(f"relayer withdrawals failed: {exc}", flush=True)
+            msg = relayer_lib.explain(exc)
+            with lock:
+                for req in db.setdefault("withdrawals", {}).values():
+                    if req.get("status") == "pending" and req.get("auto") == "queued":
+                        fresh = req.get("auto_error") != msg
+                        req["auto_error"], req["auto_status"] = msg, "relayer_error"
+                        if fresh:
+                            tgt = db["users"].get(req["uid"])
+                            pz = next((p for p in (tgt or {}).get("prizes", []) if p.get("id") == req["prize_id"]), None)
+                            if tgt and pz:
+                                _notify_admins_withdrawal(tgt, pz, req, error=msg)
+                save_db()
     return stats
 
 
@@ -4235,9 +4272,10 @@ def relayer_process_withdrawals(limit=6):
             if res["status"] == "completed" and prize:
                 req.update(status="completed", auto="done", moderator="relayer", auto_slug=res.get("slug", ""), auto_error="")
                 prize["status"] = "withdrawn"
-                _send_bot_message(req["uid"], "withdraw_completed", gift=prize["name"])
+                _send_bot_message(req["uid"], "withdraw_completed", gift=prize["name"], prize=prize)
                 done += 1
                 continue
+            first_error = req.get("auto_error") != res.get("error", "")
             req["auto_error"] = res.get("error", "")
             req["auto_status"] = res["status"]
             req["attempts"] = req.get("attempts", 0) + (0 if res["status"] in ("blocked", "insufficient_stars") else 1)
@@ -4245,6 +4283,8 @@ def relayer_process_withdrawals(limit=6):
                 req["auto"] = "failed"  # дальше только ручной вывод
             else:
                 req["retry_at"] = int(time.time()) + (600 if res["status"] in ("blocked", "insufficient_stars") else 60)
+            if (first_error or req["auto"] == "failed") and target and prize:
+                _notify_admins_withdrawal(target, prize, req, error=req["auto_error"] or res["status"])
         save_db()
     return done
 
