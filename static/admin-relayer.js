@@ -14,6 +14,7 @@ async function admLoadRelayer(action, body) {
   try {
     const res = await api(action || '/api/admin/relayer/status', body || {});
     admRenderRelayer(root, res);
+    await admRenderStars(root);
     if (res.scan) toast(res.scan.baseline ? `Базовый скан: ${res.scan.saved_gifts_count} подарков запомнено` : `Обработано: ${res.scan.processed}, зачислено: ${res.scan.delivered}`);
   } catch (e) { relayerErr(e); }
 }
@@ -104,4 +105,21 @@ function admRenderRelayer(root, r) {
     log.appendChild(line);
   }
   root.appendChild(log);
+}
+
+async function admRenderStars(root) {
+  const res = await api('/api/admin/stars');
+  const box = relayerBox('Пополнение Telegram Stars');
+  const p = document.createElement('p');
+  p.className = 'muted';
+  p.textContent = res.bot_ready ? 'Счёт создаётся через бота, зачисление — после подтверждения оплаты Telegram. После оплаты вывод подарков блокируется на 21 день.' : 'Нужен BOT_TOKEN на сервере и подключённый бот (раздел «Telegram-бот»).';
+  const [l, per] = relayerField('Курс: сколько Stars за 1 TON', { type: 'number', min: '1', max: '100000', step: '1', value: res.stars.per_ton });
+  const enabled = Object.assign(document.createElement('input'), { type: 'checkbox', checked: res.stars.enabled });
+  const label = document.createElement('label');
+  label.className = 'quest-launch';
+  label.append(enabled, document.createTextNode(' Пополнение Stars включено'));
+  box.append(p, l, label, relayerButton('Сохранить', async () => {
+    try { await api('/api/admin/stars/save', { per_ton: parseInt(per.value, 10), enabled: enabled.checked }); toast('Сохранено'); } catch (e) { relayerErr(e); }
+  }));
+  root.appendChild(box);
 }

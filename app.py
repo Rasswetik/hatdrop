@@ -19,7 +19,7 @@ from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config
                           command_name, validate_command, messages_config,
                           validate_message, message_payload, valid_url)
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
-from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, listed as quest_listed, claim as quest_claim
+from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, record_verified_deposit as _quest_record_deposit, listed as quest_listed, claim as quest_claim
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
@@ -816,6 +816,7 @@ def public_config():
         "chance_max": MAX_CHANCE_PCT / 100,
         "min_deposit_ton": MIN_DEPOSIT,
         "gift_deposit": gift_deposit_config(),
+        "stars_deposit": stars_config(),
         "chests": {
             "enabled": True,
             "gift_bets": CHEST_GIFT_BETS,
@@ -846,7 +847,7 @@ def full_state(user):
         "level": level_info(user["turnover"]),
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
-        "withdraw_locked_until": 0,
+        "withdraw_locked_until": int(user.get("stars_lock_until", 0) or 0),
         "server_time": int(time.time()),
         "is_admin": is_admin(user),
         "halloween_enabled": db["settings"].get("halloween_enabled") is True,
@@ -1140,6 +1141,8 @@ def withdraw(user, body):
         raise ApiError("not_found")
     if prize["status"] != "owned":
         raise ApiError("already_requested")
+    if int(user.get("stars_lock_until", 0) or 0) > time.time():
+        raise ApiError("withdraw_locked", until=int(user["stars_lock_until"]))
     prize["status"] = "withdraw_pending"
     key = f"{user['id']}:{prize['id']}"
     db.setdefault("withdrawals", {})[key] = {"id": key, "uid": user["id"],
@@ -1307,9 +1310,9 @@ def _configure_bot_webhook(host=None, only_if_needed=False):
         info = tg_api("getWebhookInfo")
         with lock:
             saved = db["settings"].get("bot_webhook", {})
-        correct = info.get("url") == url and saved.get("signature") == signature and "message" in info.get("allowed_updates", [])
+        correct = info.get("url") == url and saved.get("signature") == signature and {"message", "pre_checkout_query"} <= set(info.get("allowed_updates", []))
         if not only_if_needed or not correct:
-            if tg_api("setWebhook", url=url, secret_token=secret, allowed_updates=["message"]) is not True:
+            if tg_api("setWebhook", url=url, secret_token=secret, allowed_updates=["message", "pre_checkout_query"]) is not True:
                 raise ValueError("webhook rejected")
             info = tg_api("getWebhookInfo")
         if info.get("url") != url:
@@ -1346,10 +1349,16 @@ def bot_webhook():
             request.headers.get("X-Telegram-Bot-Api-Secret-Token", ""), secret):
         return ("Forbidden", 403)
     payload = request.get_json(silent=True) or {}
+    if payload.get("pre_checkout_query"):
+        stars_pre_checkout(payload["pre_checkout_query"])
+        return jsonify({"ok": True})
     message = payload.get("message") or {}
     sender = message.get("from") or {}
     chat = message.get("chat") or {}
     if not sender.get("id") or chat.get("type") != "private":
+        return jsonify({"ok": True})
+    if message.get("successful_payment"):
+        stars_successful_payment(sender["id"], message["successful_payment"])
         return jsonify({"ok": True})
     text = str(message.get("text") or "").strip()
     command = text.split(maxsplit=1)[0].split("@")[0] if text else ""
@@ -3495,6 +3504,168 @@ def keepalive_loop():
             print(f"keepalive: {e}", flush=True)
         time.sleep(KEEPALIVE_SEC)
 
+
+
+# ------------------------------------------------------------ Пополнение Telegram Stars
+# Счёт XTR создаётся через бота (createInvoiceLink), оплата подтверждается pre_checkout_query и
+# successful_payment из вебхука; каждый платёж зачисляется ровно один раз (по charge_id).
+STARS_LOCK_DAYS = 21
+STARS_ORDER_TTL = 3600
+
+
+def stars_settings():
+    saved = db["settings"].get("stars")
+    saved = saved if isinstance(saved, dict) else {}
+    try:
+        per_ton = int(saved.get("per_ton", 100))
+    except (TypeError, ValueError):
+        per_ton = 100
+    return {"enabled": saved.get("enabled", True) is not False, "per_ton": min(100000, max(1, per_ton))}
+
+
+def stars_config():
+    cfg = stars_settings()
+    return {"enabled": bool(cfg["enabled"] and BOT_TOKEN), "per_ton": cfg["per_ton"], "lock_days": STARS_LOCK_DAYS,
+            "min_ton": MIN_DEPOSIT}
+
+
+def stars_pre_checkout(query):
+    ok, reason = False, "Счёт больше недействителен. Создайте новое пополнение."
+    payload = str(query.get("invoice_payload") or "")
+    uid = (query.get("from") or {}).get("id")
+    if isinstance(uid, int) and payload.startswith("stars:") and query.get("currency") == "XTR":
+        with lock:
+            order = db.get("stars_orders", {}).get(payload[6:])
+            try:
+                total = int(query.get("total_amount"))
+            except (TypeError, ValueError):
+                total = -1
+            ok = bool(order and order["uid"] == f"tg{uid}" and order["status"] == "pending"
+                      and order["stars"] == total and time.time() - order["created"] < STARS_ORDER_TTL)
+    answer = {"pre_checkout_query_id": str(query.get("id") or ""), "ok": ok}
+    if not ok:
+        answer["error_message"] = reason
+    try:
+        tg_api("answerPreCheckoutQuery", **answer)
+    except Exception as exc:
+        print(f"answerPreCheckoutQuery failed: {exc}", flush=True)
+
+
+def stars_successful_payment(telegram_id, payment):
+    """Зачислить подтверждённый платёж один раз. Возвращает True, если зачислено сейчас."""
+    payload = str(payment.get("invoice_payload") or "")
+    charge = str(payment.get("telegram_payment_charge_id") or "").strip()[:180]
+    try:
+        total = int(payment.get("total_amount"))
+    except (TypeError, ValueError):
+        return False
+    if not payload.startswith("stars:") or payment.get("currency") != "XTR" or not charge:
+        return False
+    with lock:
+        orders = db.setdefault("stars_orders", {})
+        order = orders.get(payload[6:])
+        user = db["users"].get(f"tg{telegram_id}")
+        if not order or not user or order["uid"] != user["id"] or order["stars"] != total:
+            return False
+        if order["status"] == "credited":
+            return False
+        if any(o.get("charge_id") == charge for o in orders.values()):
+            return False
+        amount = order["amount"]
+        user["balance"] = ton(user["balance"] + amount)
+        until = int(time.time()) + STARS_LOCK_DAYS * 86400
+        user["stars_lock_until"] = max(int(user.get("stars_lock_until", 0) or 0), until)
+        order.update(status="credited", charge_id=charge, credited=int(time.time()))
+        try:
+            _quest_record_deposit(db, user, amount=amount, payment_id="stars:" + charge)
+        except ValueError:
+            pass
+        credit_referral_bonus(user, amount)
+        save_db()
+        uid = user["id"]
+        lock_until = user["stars_lock_until"]
+    try:
+        flush_db()
+    except Exception as exc:
+        print(f"stars persistence failed: {exc}", flush=True)
+    day = time.strftime("%d.%m.%Y", time.gmtime(lock_until))
+    _send_tg_async(uid, f"⭐ Пополнение {amount:g} TON зачислено. Вывод подарков будет доступен с {day}.")
+    return True
+
+
+@app.post("/api/stars/deposit/create")
+def stars_deposit_create():
+    with lock:
+        user, body = current_user()
+        cfg = stars_settings()
+        if not (cfg["enabled"] and BOT_TOKEN):
+            raise ApiError("stars_disabled", 503)
+        if not str(user["id"]).startswith("tg"):
+            raise ApiError("telegram_required")
+        try:
+            amount = money(float(body.get("amount")))
+        except (TypeError, ValueError, OverflowError):
+            raise ApiError("bad_request")
+        if not (MIN_DEPOSIT <= amount <= 10000):
+            raise ApiError("bad_amount", min_ton=MIN_DEPOSIT, max_ton=10000)
+        stars = max(1, int(-(-amount * cfg["per_ton"] // 1)))
+        order_id = secrets.token_hex(10)
+        orders = db.setdefault("stars_orders", {})
+        for old in list(orders):
+            o = orders[old]
+            if o["uid"] == user["id"] and o["status"] == "pending":
+                o["status"] = "expired"
+        orders[order_id] = {"id": order_id, "uid": user["id"], "amount": amount, "stars": stars,
+                            "status": "pending", "created": int(time.time())}
+        if len(orders) > 2000:
+            for old in sorted(orders, key=lambda k: orders[k]["created"])[:len(orders) - 2000]:
+                orders.pop(old)
+        save_db()
+    try:
+        url = tg_api("createInvoiceLink", title="Пополнение HatDrop",
+                     description=f"Пополнение игрового баланса на {amount:g} TON",
+                     payload=f"stars:{order_id}", currency="XTR",
+                     prices=[{"label": f"{amount:g} TON", "amount": stars}])
+    except Exception as exc:
+        print(f"createInvoiceLink failed: {exc}", flush=True)
+        with lock:
+            db["stars_orders"][order_id]["status"] = "failed"
+        raise ApiError("invoice_failed", 502)
+    return jsonify({"ok": True, "order_id": order_id, "invoice_url": url, "stars": stars, "amount": amount,
+                    "lock_days": STARS_LOCK_DAYS})
+
+
+@route("/api/stars/deposit/status")
+def stars_deposit_status(user, body):
+    order = db.get("stars_orders", {}).get(str(body.get("order_id") or ""))
+    if not order or order["uid"] != user["id"]:
+        raise ApiError("not_found", 404)
+    return {"status": order["status"], "balance_ton": ton(user["balance"]),
+            "withdraw_locked_until": int(user.get("stars_lock_until", 0) or 0)}
+
+
+@route("/api/admin/stars/save")
+def admin_stars_save(user, body):
+    require_admin(user)
+    saved = dict(db["settings"].get("stars") or {})
+    if "enabled" in body:
+        saved["enabled"] = bool(body["enabled"])
+    if "per_ton" in body:
+        try:
+            value = int(body["per_ton"])
+        except (TypeError, ValueError):
+            raise ApiError("bad_request")
+        if not 1 <= value <= 100000:
+            raise ApiError("bad_request")
+        saved["per_ton"] = value
+    db["settings"]["stars"] = saved
+    return {"stars": stars_settings(), "bot_ready": bool(BOT_TOKEN)}
+
+
+@route("/api/admin/stars")
+def admin_stars(user, body):
+    require_admin(user)
+    return {"stars": stars_settings(), "bot_ready": bool(BOT_TOKEN)}
 
 
 # ------------------------------------------------------------ NFT-релейер (пополнение подарками)

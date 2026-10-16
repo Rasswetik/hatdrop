@@ -1672,7 +1672,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .amt.active { background: var(--violet-dark); border-color: var(--violet-soft); color: var(--gold); }
 
-#depositAmount {
+#depositAmount, #starsAmount {
   width: 100%;
   padding: 13px;
   margin-bottom: 12px;
@@ -1715,6 +1715,36 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .warn { margin-top: 10px !important; font-size: 9px !important; color: var(--gold-soft) !important; }
 
+
+.dep-methods { display: grid; gap: 10px; margin: 14px 0 12px; }
+.dep-method { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; text-align: left; font: inherit; color: var(--text); background: #150e3d; border: 3px solid var(--card-line); cursor: pointer; }
+.dep-method:active:not(:disabled) { transform: translate(1px, 2px); }
+.dep-method:disabled { opacity: .55; cursor: default; }
+.dep-m-ico { flex: none; display: grid; place-items: center; width: 52px; height: 52px; background: #0d0830; border: 2px solid var(--violet-dark); }
+.dep-m-ico img { width: 38px; height: 38px; object-fit: contain; }
+.dep-stars .dep-m-ico { background: radial-gradient(circle at 35% 25%, rgba(255, 214, 90, .28), rgba(255, 160, 40, .08)), #0d0830; }
+.dep-nft .dep-m-ico { background: radial-gradient(circle at 35% 25%, rgba(116, 208, 255, .28), rgba(99, 85, 255, .12)), #0d0830; }
+.dep-m-copy { flex: 1; min-width: 0; display: grid; gap: 5px; }
+.dep-m-copy b { font-size: 12px; color: var(--gold); }
+.dep-m-copy small { font-size: 8px; line-height: 1.6; color: var(--muted); }
+.dep-m-arrow { font-size: 22px; color: var(--muted); }
+.dep-back { display: block; margin: 0 0 10px; padding: 6px 0; font: inherit; font-size: 9px; color: var(--muted); background: none; border: 0; cursor: pointer; }
+.dep-card h2 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.dep-head-ico { width: 26px; height: 26px; object-fit: contain; }
+.dep-quote { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 10px 0; padding: 9px 10px; font-size: 9px; color: var(--muted); background: #0d0830; border: 2px solid var(--violet-dark); }
+.dep-quote b { color: var(--gold); font-size: 11px; }
+.dep-lock { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; padding: 9px 10px; text-align: left; background: rgba(255, 170, 40, .1); border: 2px solid #8a5a1c; }
+.dep-lock img { width: 28px; height: 28px; flex: none; object-fit: contain; }
+.dep-lock b { display: block; font-size: 9px; color: var(--gold); margin-bottom: 4px; }
+.dep-lock small { font-size: 8px; line-height: 1.6; color: var(--muted); }
+.dep-stars-pay { background: linear-gradient(180deg, #ffd45e 0%, #f2a31f 100%); border-color: #7a4a10; color: #3a1f00; }
+.dep-status { margin: 10px 0 0; font-size: 9px; line-height: 1.6; color: var(--gold-soft); }
+html[data-theme="meadow"] .modal-card .dep-method { color: #fff1d0; background: #4a2a14; border: 3px solid #2e1a0c; border-radius: 9px; box-shadow: inset 0 2px 0 rgba(255, 220, 160, .14); }
+html[data-theme="meadow"] .modal-card :is(.dep-m-ico, .dep-quote) { background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px; }
+html[data-theme="meadow"] .modal-card .dep-m-copy b, html[data-theme="meadow"] .modal-card .dep-quote b { color: #ffd45e; }
+html[data-theme="meadow"] .modal-card :is(.dep-m-copy small, .dep-quote, .dep-back, .dep-lock small) { color: #ecd5ab; }
+html[data-theme="meadow"] .modal-card .dep-lock { background: #3f2411; border: 3px solid #2e1a0c; border-radius: 9px; }
+html[data-theme="meadow"] .modal-card #starsAmount { color: #fff1d0; background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px; }
 .gift-dep-btn { margin-top: 8px; background: #2d6bd6; border-color: #143c86;
                 box-shadow: inset 3px 3px 0 #7fb0ff, inset -3px -3px 0 #143c86; }
 .gift-modal { max-width: 360px; }
@@ -3756,28 +3786,65 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 </div>
 
 <div class="modal" id="depositModal" hidden="">
-  <div class="modal-card">
-    <h2>Пополнение</h2>
-    <p class="muted dep-note">Пополнение только в TON. Перевод зачислится автоматически в течение минуты.</p>
-
-    <div class="dep-wallet">
-      <span class="dep-wallet-addr" id="depWalletAddr">Кошелёк не подключён</span>
-      <button class="dep-wallet-btn" id="depWalletBtn" type="button">Подключить</button>
-      <button class="dep-wallet-btn" id="depWalletSwitch" type="button" hidden="">Сменить</button>
+  <div class="modal-card dep-card" id="depositCard" data-step="methods">
+    <div class="dep-step" id="depStepMethods">
+      <h2>Пополнение</h2>
+      <p class="muted dep-note">Выберите способ пополнения</p>
+      <div class="dep-methods">
+        <button class="dep-method dep-ton" id="depChooseTon" type="button" data-method="ton">
+          <span class="dep-m-ico"><img src="/static/img/ton.png" alt="TON" draggable="false"></span>
+          <span class="dep-m-copy"><b>TON</b><small>Через TON Connect, зачисление в течение минуты</small></span>
+          <span class="dep-m-arrow">›</span>
+        </button>
+        <button class="dep-method dep-stars" id="depChooseStars" type="button" data-method="stars">
+          <span class="dep-m-ico"><img src="/static/img/star.png" alt="Stars" draggable="false"></span>
+          <span class="dep-m-copy"><b>Telegram Stars</b><small>Оплата звёздами через бота</small></span>
+          <span class="dep-m-arrow">›</span>
+        </button>
+        <button class="dep-method dep-nft" id="depChooseGift" type="button" data-method="nft">
+          <span class="dep-m-ico"><img src="/static/img/gift.png" alt="NFT" draggable="false" onerror="this.onerror=null;this.src='/static/img/gift.svg'"></span>
+          <span class="dep-m-copy"><b>NFT-подарки</b><small id="depGiftSub">Отправь подарок — получишь его в инвентаре</small></span>
+          <span class="dep-m-arrow">›</span>
+        </button>
+      </div>
+      <button class="ghost" id="depositCloseBtn">Закрыть</button>
     </div>
 
-    <div class="amount-row">
-      <button class="amt" data-amt="5">5</button>
-      <button class="amt" data-amt="10">10</button>
-      <button class="amt" data-amt="25">25</button>
-      <button class="amt" data-amt="50">50</button>
+    <div class="dep-step" id="depStepTon" hidden="">
+      <button class="dep-back" type="button" data-dep-back>← Способы пополнения</button>
+      <h2><img class="dep-head-ico" src="/static/img/ton.png" alt="" draggable="false">Пополнение TON</h2>
+      <p class="muted dep-note">Перевод зачислится автоматически в течение минуты.</p>
+      <div class="dep-wallet">
+        <span class="dep-wallet-addr" id="depWalletAddr">Кошелёк не подключён</span>
+        <button class="dep-wallet-btn" id="depWalletBtn" type="button">Подключить</button>
+        <button class="dep-wallet-btn" id="depWalletSwitch" type="button" hidden="">Сменить</button>
+      </div>
+      <div class="amount-row">
+        <button class="amt" data-amt="5" data-target="depositAmount">5</button>
+        <button class="amt" data-amt="10" data-target="depositAmount">10</button>
+        <button class="amt" data-amt="25" data-target="depositAmount">25</button>
+        <button class="amt" data-amt="50" data-target="depositAmount">50</button>
+      </div>
+      <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
+      <button class="cta" id="depositSendBtn">Отправить TON</button>
     </div>
-    <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
 
-    <button class="cta" id="depositSendBtn">Отправить TON</button>
-    <button class="cta gift-dep-btn" id="giftDepositBtn" hidden="">🎁 Пополнить подарком</button>
-
-    <button class="ghost" id="depositCloseBtn">Закрыть</button>
+    <div class="dep-step" id="depStepStars" hidden="">
+      <button class="dep-back" type="button" data-dep-back>← Способы пополнения</button>
+      <h2><img class="dep-head-ico" src="/static/img/star.png" alt="" draggable="false">Пополнение Stars</h2>
+      <p class="muted dep-note">Платёж откроется внутри Telegram. Звёзды конвертируются в TON по курсу ниже.</p>
+      <div class="amount-row">
+        <button class="amt" data-amt="1" data-target="starsAmount">1</button>
+        <button class="amt" data-amt="5" data-target="starsAmount">5</button>
+        <button class="amt" data-amt="10" data-target="starsAmount">10</button>
+        <button class="amt" data-amt="25" data-target="starsAmount">25</button>
+      </div>
+      <input type="number" id="starsAmount" min="0.1" step="0.1" value="5" inputmode="decimal" aria-label="Сумма пополнения в TON">
+      <div class="dep-quote"><span id="starsRate">1 TON = 100 Stars</span><b id="starsQuote">—</b></div>
+      <div class="dep-lock"><img src="/static/img/star.png" alt="" draggable="false"><div><b id="starsLockTitle">Вывод подарков заблокирован на 21 день</b><small>После оплаты Stars вывод призов временно недоступен — дата появится после оплаты.</small></div></div>
+      <button class="cta dep-stars-pay" id="starsPayBtn" type="button">Оплатить Stars</button>
+      <p class="dep-status" id="starsStatus" hidden=""></p>
+    </div>
   </div>
 </div>
 
@@ -5193,7 +5260,8 @@ function renderState(s) {
   buildModes(_tm);
   renderChests();
   giftCfg = s.config.gift_deposit || null;
-  $('giftDepositBtn').hidden = !(giftCfg && giftCfg.enabled && giftCfg.account);
+  starsCfg = s.config.stars_deposit || null;
+  syncDepositMethods();
   setWithdrawLock(s);
 
   $('balanceValue').textContent = fmt(s.balance_ton, 4);
@@ -7273,7 +7341,91 @@ async function sendDeposit() {
   }
 }
 
+let starsCfg = null;
+
+function setDepStep(step) {
+  for (const id of ['Methods', 'Ton', 'Stars']) $('depStep' + id).hidden = id !== step;
+  $('depositCard').dataset.step = step.toLowerCase();
+  $('starsStatus').hidden = true;
+}
+
+function syncDepositMethods() {
+  const stars = !!(starsCfg && starsCfg.enabled);
+  $('depChooseStars').disabled = !stars;
+  $('depChooseStars').querySelector('small').textContent = stars
+    ? tr('Оплата звёздами через бота')
+    : tr('Сейчас недоступно');
+  const gift = !!(giftCfg && giftCfg.enabled && giftCfg.account);
+  $('depChooseGift').disabled = !gift;
+  $('depGiftSub').textContent = gift
+    ? tr('Отправь подарок на @{account} — получишь его в инвентаре', { account: giftCfg.account })
+    : tr('Сейчас недоступно');
+  if (starsCfg) {
+    $('starsRate').textContent = tr('1 TON = {n} Stars', { n: starsCfg.per_ton });
+    $('starsLockTitle').textContent = tr('Вывод подарков заблокирован на {n} дн.', { n: starsCfg.lock_days });
+  }
+}
+
+function updateStarsQuote() {
+  const amount = parseFloat($('starsAmount').value);
+  const ok = amount > 0 && starsCfg;
+  $('starsQuote').textContent = ok ? `${Math.ceil(amount * starsCfg.per_ton)} ⭐` : '—';
+}
+
+function starsStatus(text, error) {
+  const el = $('starsStatus');
+  el.hidden = !text;
+  el.textContent = text || '';
+  el.style.color = error ? '#ff8b8b' : '';
+}
+
+function openStarsInvoice(url) {
+  return new Promise((resolve) => {
+    if (tg?.openInvoice) {
+      try { tg.openInvoice(url, (status) => resolve(status || 'closed')); return; } catch (e) {}
+    }
+    if (tg?.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank');
+    resolve('opened');
+  });
+}
+
+async function payStars() {
+  if (!starsCfg || !starsCfg.enabled) return;
+  const amount = parseFloat($('starsAmount').value);
+  if (!(amount >= starsCfg.min_ton)) { toast(tr('Минимум {sum} TON', { sum: fmt(starsCfg.min_ton, 2) }), true); return; }
+  const btn = $('starsPayBtn');
+  btn.disabled = true;
+  starsStatus('');
+  try {
+    const order = await api('/api/stars/deposit/create', { amount });
+    const result = await openStarsInvoice(order.invoice_url);
+    if (result === 'cancelled' || result === 'failed') { starsStatus(result === 'failed' ? tr('Оплата не прошла') : tr('Оплата отменена'), result === 'failed'); return; }
+    starsStatus(tr('Проверяем оплату…'));
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      let st;
+      try { st = await api('/api/stars/deposit/status', { order_id: order.order_id }); } catch (e) { continue; }
+      if (st.status === 'credited') {
+        $('depositModal').hidden = true;
+        toast(tr('Зачислено {sum} TON', { sum: fmt(order.amount, 2) }));
+        haptic('notification', 'success');
+        refresh();
+        return;
+      }
+    }
+    starsStatus(tr('Оплата ещё обрабатывается — баланс обновится автоматически'));
+    [6, 14, 30].forEach((sec) => setTimeout(refresh, sec * 1000));
+  } catch (e) {
+    const known = { stars_disabled: 'Пополнение Stars выключено', telegram_required: 'Откройте игру из Telegram', bad_amount: 'Неверная сумма', invoice_failed: 'Не удалось создать счёт' };
+    starsStatus(tr(known[e.code] || 'Не удалось создать счёт'), true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function openDeposit() {
+  setDepStep('Methods');
+  syncDepositMethods();
   $('depositModal').hidden = false;
 }
 
@@ -7469,7 +7621,12 @@ function bind() {
   initAnon();
   $('depositCloseBtn').addEventListener('click', () => { $('depositModal').hidden = true; });
   $('depositSendBtn').addEventListener('click', sendDeposit);
-  $('giftDepositBtn').addEventListener('click', openGiftDeposit);
+  $('depChooseTon').addEventListener('click', () => setDepStep('Ton'));
+  $('depChooseStars').addEventListener('click', () => { if (starsCfg && starsCfg.enabled) { setDepStep('Stars'); updateStarsQuote(); } });
+  $('depChooseGift').addEventListener('click', openGiftDeposit);
+  document.querySelectorAll('[data-dep-back]').forEach((b) => b.addEventListener('click', () => setDepStep('Methods')));
+  $('starsAmount').addEventListener('input', updateStarsQuote);
+  $('starsPayBtn').addEventListener('click', payStars);
   $('giftCloseBtn').addEventListener('click', () => { $('giftModal').hidden = true; refresh(); });
   $('giftOpenAccount').addEventListener('click', openGiftAccount);
   $('coinChip').addEventListener('click', openDeposit);
@@ -7513,9 +7670,10 @@ function bind() {
 
   document.querySelectorAll('.amt').forEach((b) => {
     b.addEventListener('click', () => {
-      document.querySelectorAll('.amt').forEach((x) => x.classList.remove('active'));
+      b.parentElement.querySelectorAll('.amt').forEach((x) => x.classList.remove('active'));
       b.classList.add('active');
-      $('depositAmount').value = b.dataset.amt;
+      $(b.dataset.target || 'depositAmount').value = b.dataset.amt;
+      if (b.dataset.target === 'starsAmount') updateStarsQuote();
     });
   });
 
