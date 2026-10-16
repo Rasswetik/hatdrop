@@ -4112,8 +4112,8 @@ def admin_io(path):
             except relayer_lib.RelayerError as exc:
                 raise ApiError("relayer_error", 409, message=str(exc))
             except Exception as exc:
-                print(f"relayer call failed: {exc}", flush=True)
-                raise ApiError("relayer_error", 409, message="Telegram не ответил или отклонил запрос. Проверьте данные и повторите.")
+                print(f"relayer call failed: {type(exc).__name__}: {exc}", flush=True)
+                raise ApiError("relayer_error", 409, message=relayer_lib.explain(exc))
             with lock:
                 save_db()
             try:
@@ -4146,7 +4146,8 @@ def relayer_status_view():
                          "user": (db["users"].get(r["uid"]) or {}).get("username") or r["uid"]}
                         for r in sorted((r for r in db.get("withdrawals", {}).values() if r.get("auto") in ("queued", "done", "failed")),
                                         key=lambda r: r.get("updated", 0), reverse=True)[:25]],
-        "auth": {"status": doc["auth"].get("status", ""), "phone": doc["auth"].get("phone", "")},
+        "auth": {"status": doc["auth"].get("status", ""), "phone": doc["auth"].get("phone", ""),
+                 "delivery": doc["auth"].get("delivery", ""), "next": doc["auth"].get("next", "")},
         "accept_percent": round(GIFT_ACCEPT_RATE * 100),
         "events": events,
     }
@@ -4220,7 +4221,19 @@ def admin_relayer_phone(body):
     if result["status"] == "authorized":
         _relayer_store(session, "online", {"status": "authorized"}, result["account"])
         return relayer_status_view_locked()
-    _relayer_store(session, "code_sent", {"status": "code_sent", "phone": phone, "phone_code_hash": result["phone_code_hash"]})
+    _relayer_store(session, "code_sent", {"status": "code_sent", "phone": phone, "phone_code_hash": result["phone_code_hash"],
+                                          "delivery": result.get("delivery", ""), "next": result.get("next", "")})
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/login/resend")
+def admin_relayer_resend(body):
+    api_id, api_hash, session, auth = _relayer_session_args()
+    if not auth.get("phone") or not auth.get("phone_code_hash"):
+        raise relayer_lib.RelayerError("Сначала запросите код входа.")
+    result, session = relayer_lib.run(relayer_lib.resend_code(api_id, api_hash, session, auth["phone"], auth["phone_code_hash"]))
+    _relayer_store(session, "code_sent", dict(auth, status="code_sent", phone_code_hash=result["phone_code_hash"] or auth["phone_code_hash"],
+                                              delivery=result.get("delivery", ""), next=result.get("next", "")))
     return relayer_status_view_locked()
 
 
@@ -4232,7 +4245,8 @@ def admin_relayer_code(body):
     api_id, api_hash, session, auth = _relayer_session_args()
     if not auth.get("phone") or not auth.get("phone_code_hash"):
         raise relayer_lib.RelayerError("Сначала запросите код входа.")
-    result, session = relayer_lib.run(relayer_lib.code_submit(api_id, api_hash, session, auth["phone"], code, auth["phone_code_hash"]))
+    password = str(body.get("password") or "")
+    result, session = relayer_lib.run(relayer_lib.code_submit(api_id, api_hash, session, auth["phone"], code, auth["phone_code_hash"], password or None))
     if result["status"] == "need_password":
         _relayer_store(session, "need_password", dict(auth, status="need_password"))
     else:

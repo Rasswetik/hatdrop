@@ -71,6 +71,48 @@ async def _finish(client):
     return session
 
 
+DELIVERY = {
+    "SentCodeTypeApp": "app", "SentCodeTypeSms": "sms", "SentCodeTypeCall": "call", "SentCodeTypeFlashCall": "call",
+    "SentCodeTypeMissedCall": "call", "SentCodeTypeFragmentSms": "fragment", "SentCodeTypeEmailCode": "email",
+    "SentCodeTypeFirebaseSms": "sms", "SentCodeTypeSmsWord": "sms", "SentCodeTypeSmsPhrase": "sms",
+}
+
+
+def _delivery(sent):
+    kind = DELIVERY.get(type(getattr(sent, "type", None)).__name__, "unknown")
+    nxt = DELIVERY.get(type(getattr(sent, "next_type", None)).__name__, "") if getattr(sent, "next_type", None) else ""
+    return {"phone_code_hash": str(getattr(sent, "phone_code_hash", "") or ""), "delivery": kind, "next": nxt}
+
+
+def explain(exc):
+    """Понятное описание ошибки Telethon/RPC для админки (секретов в тексте нет)."""
+    name = type(exc).__name__
+    table = {
+        "ApiIdInvalidError": "Неверная пара API ID / API hash. Возьмите их на my.telegram.org → API development tools.",
+        "PhoneNumberInvalidError": "Неверный номер телефона. Формат: +79990000000.",
+        "PhoneNumberBannedError": "Этот номер заблокирован в Telegram.",
+        "PhoneNumberFloodError": "Слишком много попыток для этого номера. Подождите несколько часов.",
+        "PhoneNumberUnoccupiedError": "Этот номер не зарегистрирован в Telegram.",
+        "SendCodeUnavailableError": "Все способы отправки кода исчерпаны. Подождите и запросите код позже.",
+        "PasswordHashInvalidError": "Неверный пароль двухфакторной защиты (2FA).",
+        "PhoneCodeInvalidError": "Неверный код Telegram.",
+        "PhoneCodeExpiredError": "Код Telegram истёк. Запросите новый.",
+        "PhoneCodeEmptyError": "Введите код из Telegram.",
+        "AuthKeyUnregisteredError": "Сессия аккаунта недействительна. Войдите заново.",
+        "SessionRevokedError": "Сессия отозвана в настройках Telegram. Войдите заново.",
+        "UserDeactivatedBanError": "Аккаунт заблокирован Telegram.",
+    }
+    if name in table:
+        return table[name]
+    seconds = getattr(exc, "seconds", None)
+    if name.startswith("FloodWait") or name == "FloodWaitError":
+        wait = int(seconds or 0)
+        return f"Telegram просит подождать {wait // 60 + 1} мин. перед следующей попыткой (FloodWait)."
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+        return "Сервер не может подключиться к Telegram (сеть). Повторите позже."
+    return ("Telegram: " + str(exc)).strip()[:240]
+
+
 async def phone_start(api_id, api_hash, session, phone):
     client = _client(api_id, api_hash, session)
     try:
@@ -78,13 +120,26 @@ async def phone_start(api_id, api_hash, session, phone):
         if await client.is_user_authorized():
             return {"status": "authorized", "account": account_dict(await client.get_me())}, await _finish(client)
         sent = await client.send_code_request(phone)
-        return {"status": "code_sent", "phone_code_hash": str(getattr(sent, "phone_code_hash", "") or "")}, await _finish(client)
+        return {"status": "code_sent", **_delivery(sent)}, await _finish(client)
     except BaseException:
         await _finish(client)
         raise
 
 
-async def code_submit(api_id, api_hash, session, phone, code, phone_code_hash):
+async def resend_code(api_id, api_hash, session, phone, phone_code_hash):
+    """Повторная отправка кода другим способом (Telegram → SMS → звонок)."""
+    _, functions, *_ = _imports()
+    client = _client(api_id, api_hash, session)
+    try:
+        await client.connect()
+        sent = await client(functions.auth.ResendCodeRequest(phone_number=phone, phone_code_hash=phone_code_hash))
+        return {"status": "code_sent", **_delivery(sent)}, await _finish(client)
+    except BaseException:
+        await _finish(client)
+        raise
+
+
+async def code_submit(api_id, api_hash, session, phone, code, phone_code_hash, password=None):
     _, _, _, NeedPassword, CodeInvalid, CodeExpired = _imports()
     client = _client(api_id, api_hash, session)
     try:
@@ -92,7 +147,9 @@ async def code_submit(api_id, api_hash, session, phone, code, phone_code_hash):
         try:
             await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
         except NeedPassword:
-            return {"status": "need_password"}, await _finish(client)
+            if not password:
+                return {"status": "need_password"}, await _finish(client)
+            await client.sign_in(password=password)
         except CodeInvalid:
             raise RelayerError("Неверный код Telegram.")
         except CodeExpired:

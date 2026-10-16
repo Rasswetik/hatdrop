@@ -105,11 +105,26 @@ function admRenderRelayer(root, r) {
     const login = relayerBox('Вход');
     const [lp, phone] = relayerField('Телефон', { type: 'tel', placeholder: '+79990000000', value: (r.auth && r.auth.phone) || '' });
     login.append(lp, relayerButton('Получить код', () => admLoadRelayer('/api/admin/relayer/login/phone', { phone: phone.value })));
-    const [lc, code] = relayerField('Код из Telegram', { type: 'text', inputMode: 'numeric' });
-    login.append(lc, relayerButton('Войти по коду', () => admLoadRelayer('/api/admin/relayer/login/code', { code: code.value })));
+    const sent = st.status === 'code_sent' || st.status === 'need_password';
+    if (sent && r.auth) {
+      const where = { app: 'в приложение Telegram: откройте чат «Telegram» (аккаунт +' + String(r.auth.phone || '').replace('+', '') + ') — код приходит туда, а не по SMS', sms: 'по SMS', call: 'звонком', fragment: 'через Fragment', email: 'на почту' }[r.auth.delivery] || 'в Telegram';
+      const hint = document.createElement('p');
+      hint.className = 'tc-info';
+      hint.textContent = 'Код отправлен ' + where + '.';
+      login.append(hint);
+      if (r.auth.next) login.append(relayerButton('Отправить код ещё раз (' + ({ sms: 'SMS', call: 'звонок', app: 'Telegram', email: 'почта' }[r.auth.next] || r.auth.next) + ')', () => admLoadRelayer('/api/admin/relayer/login/resend')));
+    }
+    const [lc, code] = relayerField('Код из Telegram', { type: 'text', inputMode: 'numeric', autocomplete: 'one-time-code' });
+    const [lw, pw] = relayerField('Пароль 2FA (если включена двухфакторная защита)', { type: 'password', autocomplete: 'off' });
+    login.append(lc, lw, relayerButton('Войти', () => {
+      if (st.status === 'need_password' && !code.value.trim()) return admLoadRelayer('/api/admin/relayer/login/password', { password: pw.value });
+      return admLoadRelayer('/api/admin/relayer/login/code', { code: code.value, password: pw.value });
+    }));
     if (st.status === 'need_password') {
-      const [lw, pw] = relayerField('Пароль 2FA', { type: 'password' });
-      login.append(lw, relayerButton('Войти по паролю', () => admLoadRelayer('/api/admin/relayer/login/password', { password: pw.value })));
+      const note = document.createElement('p');
+      note.className = 'tc-info';
+      note.textContent = 'Код принят. На аккаунте включена двухфакторная защита — введите пароль 2FA и нажмите «Войти».';
+      login.append(note);
     }
     root.appendChild(login);
   }

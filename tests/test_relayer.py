@@ -120,6 +120,41 @@ class RelayerTests(unittest.TestCase):
         self.assertEqual(backend.relayer_doc()["session"], "S2")
         self.assertTrue(r.json["state"]["authorized"])
 
+    def test_login_delivery_resend_2fa_and_readable_errors(self):
+        ticket = self.client.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]
+        self.client.post("/admin/login", json={"ticket": ticket})
+        with self.client.session_transaction() as session:
+            h = {"X-Admin-CSRF": session["admin_csrf"]}
+        self.client.post("/api/admin/relayer/settings", headers=h, json={"api_id": "12345", "api_hash": "b" * 32})
+        seen = {}
+        async def phone(*a):
+            return {"status": "code_sent", "phone_code_hash": "H1", "delivery": "app", "next": "sms"}, "S1"
+        async def resend(*a):
+            return {"status": "code_sent", "phone_code_hash": "H2", "delivery": "sms", "next": ""}, "S1"
+        async def code(api_id, api_hash, session, phone_, code_, hash_, password=None):
+            seen["password"], seen["hash"] = password, hash_
+            return {"status": "authorized", "account": {"username": "relay", "id": 5}}, "S2"
+        with mock.patch.object(relayer, "phone_start", phone), mock.patch.object(relayer, "resend_code", resend), mock.patch.object(relayer, "code_submit", code):
+            r = self.client.post("/api/admin/relayer/login/phone", headers=h, json={"phone": "+79990000000"})
+            self.assertEqual((r.json["auth"]["delivery"], r.json["auth"]["next"]), ("app", "sms"))
+            r = self.client.post("/api/admin/relayer/login/resend", headers=h, json={})
+            self.assertEqual(r.json["auth"]["delivery"], "sms")
+            r = self.client.post("/api/admin/relayer/login/code", headers=h, json={"code": "12 345", "password": "pw"})
+        self.assertEqual(seen, {"password": "pw", "hash": "H2"})
+        self.assertTrue(r.json["state"]["authorized"])
+
+        class ApiIdInvalidError(Exception):
+            pass
+        async def boom(*a):
+            raise ApiIdInvalidError("x")
+        with mock.patch.object(relayer, "phone_start", boom):
+            r = self.client.post("/api/admin/relayer/login/phone", headers=h, json={"phone": "+79990000000"})
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("API ID", r.json["message"])
+        class FloodWaitError(Exception):
+            seconds = 600
+        self.assertIn("11 мин", relayer.explain(FloodWaitError()))
+
     def test_crop_png_trims_transparent_border(self):
         from PIL import Image
         img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
