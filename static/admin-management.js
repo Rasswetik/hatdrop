@@ -41,7 +41,37 @@ function admShow(tab) {
   else if (tab === 'admins') admLoadAdminAccess();
 }
 
+async function admLoadGlobalRtp() {
+  const box = $('admRtp');
+  if (!box) return;
+  try {
+    const res = await api('/api/admin/rtp');
+    box.textContent = '';
+    const h = document.createElement('h3');
+    h.textContent = 'Общий RTP режимов, % (скрыт от игроков)';
+    box.appendChild(h);
+    const names = { upgrade: 'Апгрейд', chests: 'Сундуки' };
+    const inputs = {};
+    const form = admField('div', { className: 'adm-form' });
+    for (const m of res.modes) {
+      const input = admField('input', { type: 'number', step: '0.1', min: '0', max: '150', value: m.global, title: `${names[m.mode]} · по умолчанию ${m.nominal}%` });
+      inputs[m.mode] = input;
+      form.append(admField('span', { textContent: `${names[m.mode]} (баз. ${m.nominal}%)` }), input);
+    }
+    const save = admField('button', { type: 'button', textContent: 'Сохранить' });
+    save.addEventListener('click', async () => {
+      const body = {};
+      for (const m in inputs) body[m] = parseFloat(inputs[m].value);
+      try { await api('/api/admin/rtp/save', body); toast('RTP сохранён'); admLoadGlobalRtp(); }
+      catch (e) { admErr(e); }
+    });
+    form.appendChild(save);
+    box.appendChild(form);
+  } catch (e) { admErr(e); }
+}
+
 async function admLoadUsers() {
+  admLoadGlobalRtp();
   const list = $('admUserList');
   try {
     const res = await api('/api/admin/users', { q: $('admSearch').value });
@@ -103,22 +133,48 @@ function admRenderUser(u) {
   info.append(`ID: ${u.id}`, document.createElement('br'),
     `Игр: ${u.games} · оборот ${fmt(u.turnover_ton, 2)} TON`);
 
+  const rtp = admBox('RTP игрока (скрыт от игрока)');
+  const modeNames = { upgrade: 'Апгрейд', chests: 'Сундуки' };
+  const rtpInputs = {};
+  for (const m of ['upgrade', 'chests']) {
+    const info = u.rtp[m];
+    const row = admField('div', { className: 'adm-form' });
+    const label = admField('span', { textContent: `${modeNames[m]}: итого ${fmt(info.effective, 2)}% (общий ${fmt(info.global, 2)}%)` });
+    const input = admField('input', { type: 'number', step: '0.1', placeholder: 'Поправка, п.п.', value: info.adj || '' });
+    rtpInputs[m] = input;
+    row.append(label, input);
+    rtp.appendChild(row);
+  }
+  const rtpSave = admField('button', { type: 'button', textContent: 'Сохранить RTP' });
+  rtpSave.addEventListener('click', async () => {
+    const body = { key: u.key };
+    for (const m in rtpInputs) body[m] = rtpInputs[m].value === '' ? 0 : parseFloat(rtpInputs[m].value);
+    try {
+      admRenderUser((await api('/api/admin/user/rtp', body)).user);
+      toast('RTP игрока сохранён');
+    } catch (e) { admErr(e); }
+  });
+  rtp.appendChild(rtpSave);
+
   const bal = admBox(`Баланс: ${fmt(u.balance_ton, 4)} TON`);
   const form = admField('div', { className: 'adm-form' });
   const amount = admField('input', { type: 'number', step: 'any', placeholder: 'Сумма, TON' });
   const set = admField('button', { type: 'button', textContent: 'Установить' });
   const add = admField('button', { type: 'button', textContent: '± Изменить' });
+  const depositBox = admField('input', { type: 'checkbox' });
+  const depositLabel = admField('label', { textContent: ' пополнение (реф. бонус)' });
+  depositLabel.prepend(depositBox);
   const send = async (mode) => {
     const v = parseFloat(amount.value);
     if (!Number.isFinite(v)) { toast('Введи сумму', true); return; }
     try {
-      admRenderUser((await api('/api/admin/balance', { key: u.key, mode, amount: v })).user);
+      admRenderUser((await api('/api/admin/balance', { key: u.key, mode, amount: v, deposit: mode === 'add' && depositBox.checked })).user);
       toast('Баланс обновлён');
     } catch (e) { admErr(e); }
   };
   set.addEventListener('click', () => send('set'));
   add.addEventListener('click', () => send('add'));
-  form.append(amount, set, add);
+  form.append(amount, set, add, depositLabel);
   bal.appendChild(form);
 
   const inv = admBox('Инвентарь');
@@ -172,7 +228,7 @@ function admRenderUser(u) {
   give.appendChild(gform);
   fillModels();
 
-  root.append(info, bal, inv, give);
+  root.append(info, rtp, bal, inv, give);
 }
 
 async function admLoadMarket(action, body) {

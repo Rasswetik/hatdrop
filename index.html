@@ -2941,7 +2941,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
 <link rel="stylesheet" href="/static/halloween-fx.css?v=2">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=9">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=11">
 <style id="mines-palette">
 /* Geometry is shared; artwork and colors follow the server-controlled event. */
 #view-chests {
@@ -3646,7 +3646,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
       </div>
 
       <div class="profile-actions">
-        <button class="pbtn" id="levelsBtn" type="button">Топ уровней</button>
         <button class="pbtn" id="historyBtn" type="button">История</button>
         <button class="pbtn" id="adminBtn" type="button" hidden>Админ-панель</button>
       </div>
@@ -3757,16 +3756,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
 <div class="modal" id="depositModal" hidden="">
   <div class="modal-card">
     <h2>Пополнение</h2>
-    <div class="dep-coins">
-      <div class="dep-coins-head">
-        <img class="coin-ico" src="images/hatcoin.png" alt="">
-        <span>Шляпа Coin</span>
-        <strong id="depCoinValue">0.00</strong>
-      </div>
-      <p id="depCoinRate">1 TON ставок = 0,1 Шляпа Coin</p>
-      <p>Начисляется за каждую ставку, независимо от результата игры.</p>
-    </div>
-    <p class="muted">Перевод в TON зачислится автоматически в течение минуты.</p>
+    <p class="muted dep-note">Пополнение только в TON. Перевод зачислится автоматически в течение минуты.</p>
 
     <div class="dep-wallet">
       <span class="dep-wallet-addr" id="depWalletAddr">Кошелёк не подключён</span>
@@ -3782,17 +3772,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
     </div>
     <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
 
-    <button class="cta" id="depositSendBtn">Отправить</button>
+    <button class="cta" id="depositSendBtn">Отправить TON</button>
     <button class="cta gift-dep-btn" id="giftDepositBtn" hidden="">🎁 Пополнить подарком</button>
-
-    <details class="manual">
-      <summary>Перевести вручную</summary>
-      <label>Адрес</label>
-      <div class="copy-row"><code id="depAddress">—</code><button data-copy="depAddress">Копир.</button></div>
-      <label>Комментарий (обязательно!)</label>
-      <div class="copy-row"><code id="depMemo">—</code><button data-copy="depMemo">Копир.</button></div>
-      <p class="warn">Без комментария платёж не будет зачислен автоматически.</p>
-    </details>
 
     <button class="ghost" id="depositCloseBtn">Закрыть</button>
   </div>
@@ -3829,20 +3810,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
         </div>
       </div>
     <button class="ghost" id="settingsClose" type="button">Закрыть</button>
-  </div>
-</div>
-
-<div class="modal" id="levelsModal" hidden="">
-  <div class="modal-card list-modal">
-    <div class="gp-head">
-      <button class="gp-back" id="lvBack" type="button" hidden="" aria-label="Назад">&lt;</button>
-      <h2 id="lvTitle">Топ уровней</h2>
-    </div>
-    <p class="muted" id="lvNote">Награды за места в топе скоро появятся — какие именно, пока секрет.</p>
-    <div class="lv-me" id="lvMe" hidden=""></div>
-    <div class="lv-list" id="lvList"></div>
-    <div class="pcard" id="lvCard" hidden=""></div>
-    <button class="ghost" id="lvClose" type="button">Закрыть</button>
   </div>
 </div>
 
@@ -5236,8 +5203,6 @@ function renderState(s) {
   $('profileName').textContent = s.user.username ? `@${s.user.username}` : (s.user.first_name || tr('Игрок'));
   $('profileWallet').textContent = s.user.wallet ? shortAddr(s.user.wallet) : tr('Кошелёк не подключён');
 
-  $('depAddress').textContent = s.deposit.address || tr('не настроен');
-  $('depMemo').textContent = s.deposit.memo;
 
   $('adminBtn').hidden = !s.is_admin;
   syncAnon();
@@ -5252,13 +5217,11 @@ function setCoins(value) {
   if (state && state.hatcoin) state.hatcoin.balance = value;
   const amount = (Math.floor((Math.round(value * 1e6) + 5000) / 10000) / 100).toFixed(2);
   $('coinValue').textContent = amount;
-  $('depCoinValue').textContent = amount;
 }
 
 function renderProgress(s) {
   if (s.hatcoin) {
     setCoins(s.hatcoin.balance);
-    $('depCoinRate').textContent = tr('1 TON ставок = {rate} Шляпа Coin', { rate: fmt(s.hatcoin.rate_per_ton, 6) });
   }
   const lv = s.level;
   if (lv) {
@@ -5452,7 +5415,8 @@ async function withdrawReferral() {
   try {
     const res = await api('/api/referral/withdraw');
     renderReferral(res.referral);
-    toast(tr('Заявка на вывод создана'));
+    toast(tr('Реферальный баланс переведён на основной'));
+    refresh();
     haptic('notification', 'success');
   } catch (e) {
     toast(e.code === 'below_minimum'
@@ -5631,123 +5595,6 @@ function listNote(box, text) {
   box.appendChild(p);
 }
 
-function lvShowList() {
-  $('lvList').hidden = false;
-  $('lvCard').hidden = true;
-  $('lvBack').hidden = true;
-  $('lvNote').hidden = false;
-  $('lvMe').hidden = !$('lvMe').textContent;
-  $('lvTitle').textContent = tr('Топ уровней');
-}
-
-async function openLevels() {
-  $('levelsModal').hidden = false;
-  $('lvMe').textContent = '';
-  lvShowList();
-  listNote($('lvList'), tr('Загружаю…'));
-  try {
-    renderLevels(await api('/api/levels'));
-  } catch (e) {
-    listNote($('lvList'), tr('Не удалось загрузить топ'));
-  }
-}
-
-function renderLevels(res) {
-  const list = $('lvList');
-  list.textContent = '';
-  if (!res.rows.length) listNote(list, tr('Пока никто не играл'));
-  for (const row of res.rows) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = `lb-row lv-row${row.rank <= 3 ? ` top${row.rank}` : ''}${row.me ? ' me' : ''}`;
-    const rank = document.createElement('span');
-    rank.className = 'lb-rank';
-    rank.textContent = row.rank;
-    const name = document.createElement('span');
-    name.className = 'lb-name';
-    name.textContent = row.me ? tr('{name} (ты)', { name: trName(row.name) }) : trName(row.name);
-    const lvl = document.createElement('b');
-    lvl.className = 'lv-badge';
-    lvl.textContent = `LVL ${row.level}`;
-    b.append(rank, lbAvatar(row.name, row.avatar), name, lvl);
-    b.addEventListener('click', () => { haptic('impact', 'light'); openPlayer(row.key); });
-    list.appendChild(b);
-  }
-  const me = $('lvMe');
-  me.textContent = res.me.excluded ? tr('Админы в рейтинге не участвуют')
-    : res.me.rank ? tr('Твоё место: #{rank} · LVL {level}', { rank: res.me.rank, level: res.me.level })
-      : tr('Сыграй, чтобы попасть в топ');
-  me.hidden = false;
-}
-
-async function openPlayer(key) {
-  $('lvList').hidden = true;
-  $('lvNote').hidden = true;
-  $('lvMe').hidden = true;
-  $('lvBack').hidden = false;
-  const card = $('lvCard');
-  card.hidden = false;
-  listNote(card, tr('Загружаю…'));
-  try {
-    renderPlayer((await api('/api/player', { key })).player);
-  } catch (e) {
-    listNote(card, tr('Не удалось загрузить игрока'));
-  }
-}
-
-function renderPlayer(p) {
-  const card = $('lvCard');
-  card.textContent = '';
-  $('lvTitle').textContent = trName(p.name);
-
-  const head = document.createElement('div');
-  head.className = 'pcard-head';
-  const lvl = document.createElement('div');
-  lvl.className = 'lvl-badge';
-  lvl.textContent = `LVL ${p.level.level}`;
-  const bar = document.createElement('div');
-  bar.className = 'lvl-bar';
-  const fill = document.createElement('i');
-  fill.style.width = `${Math.round(p.level.progress * 100)}%`;
-  bar.appendChild(fill);
-  head.append(lbAvatar(p.name, p.avatar, 'lb-ava pcard-ava'), bar, lvl);
-
-  const tile = (label, value, note, img) => {
-    const t = document.createElement('div');
-    t.className = 'pstat';
-    const s = document.createElement('small');
-    s.textContent = label;
-    t.appendChild(s);
-    if (img) t.appendChild(img);
-    const b = document.createElement('b');
-    b.textContent = value;
-    const n = document.createElement('span');
-    n.textContent = note;
-    t.append(b, n);
-    return t;
-  };
-  const st = p.stats;
-  let bestImg = null;
-  if (st.best) {
-    bestImg = document.createElement('img');
-    bestImg.alt = '';
-    const tier = st.best.tier || 'random';
-    if (st.best.image) setGiftImg(bestImg, st.best.image, st.best.image);
-    else bestImg.src = hatAsset(tier);
-  }
-  const tiles = document.createElement('div');
-  tiles.className = 'pstats';
-  const best = tile(tr('Лучший дроп'), st.best ? `${fmt(st.best.value_ton, 2)} TON` : '—',
-    st.best ? trName(st.best.name) : tr('пока нет'), bestImg);
-  best.classList.add('pstat-best');
-  tiles.append(
-    tile(tr('Выведено'), `${fmt(st.withdrawn_ton, 2)} TON`, tn(st.withdrawn_count, 'prize')),
-    best,
-    tile(tr('Оборот'), `${fmt(st.turnover_ton, 2)} TON`, tn(st.games, 'game')),
-  );
-  card.append(head, tiles);
-}
-
 async function openHistory() {
   $('historyModal').hidden = false;
   const list = $('histList');
@@ -5799,12 +5646,9 @@ function initProfileWindows() {
   $('settingsBtn').addEventListener('click', () => { haptic('impact', 'light'); $('settingsModal').hidden = false; });
   $('settingsClose').addEventListener('click', () => { $('settingsModal').hidden = true; });
   $('settingsModal').addEventListener('click', (e) => { if (e.target.id === 'settingsModal') $('settingsModal').hidden = true; });
-  $('levelsBtn').addEventListener('click', () => { haptic('impact', 'light'); openLevels(); });
   $('historyBtn').addEventListener('click', () => { haptic('impact', 'light'); openHistory(); });
-  $('lvClose').addEventListener('click', () => { $('levelsModal').hidden = true; });
-  $('lvBack').addEventListener('click', lvShowList);
   $('histClose').addEventListener('click', () => { $('historyModal').hidden = true; });
-  for (const id of ['levelsModal', 'historyModal']) {
+  for (const id of ['historyModal']) {
     $(id).addEventListener('click', (e) => { if (e.target.id === id) $(id).hidden = true; });
   }
 }
@@ -7641,13 +7485,6 @@ function bind() {
       document.querySelectorAll('.amt').forEach((x) => x.classList.remove('active'));
       b.classList.add('active');
       $('depositAmount').value = b.dataset.amt;
-    });
-  });
-
-  document.querySelectorAll('[data-copy]').forEach((b) => {
-    b.addEventListener('click', async () => {
-      const ok = await copyText($(b.dataset.copy).textContent);
-      toast(ok ? tr('Скопировано') : tr('Не удалось скопировать'), !ok);
     });
   });
 

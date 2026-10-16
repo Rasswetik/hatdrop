@@ -456,3 +456,23 @@ html[data-halloween="on"] :is(.promo-input,input)::placeholder { color:var(--hw-
 html[data-halloween="on"] #weaponMenu button[data-weapon="skeleton"] { border-color:var(--hw-ui-shine); }
 
 html[data-halloween="on"] .modal-card h2 { color:var(--hw-ui-accent); text-shadow:0 1px 0 var(--hw-ui-edge); }
+
+/* Speed / spin-type / weapon buttons: visible pressed and toggled-on states in Halloween mode.
+   The generic Halloween button rule uses !important, so these must too. */
+html[data-halloween="on"] .fast-btn:active:not(:disabled) {
+  transform: translateY(3px) !important;
+  background: var(--hw-ui-active) !important;
+  box-shadow: inset 0 2px 0 var(--hw-ui-shine) !important;
+  filter: brightness(1.08);
+}
+html[data-halloween="on"] .fast-btn[aria-pressed="true"] {
+  transform: translateY(3px) !important;
+  color: #2a1000 !important;
+  background: linear-gradient(180deg, #ffc15a 0%, #f2842b 100%) !important;
+  border-color: #fff0c0 !important;
+  box-shadow: inset 0 2px 0 #ffe2a0, inset 0 -2px 0 #b9500f, 0 0 0 2px #3a1608, 0 0 16px 4px rgba(255, 150, 50, .85) !important;
+  animation: hwFastGlow 1.6s ease-in-out infinite alternate;
+}
+html[data-halloween="on"] .fast-btn[aria-pressed="true"] .ic-bolt { filter: drop-shadow(0 0 3px #fff3c0); }
+@keyframes hwFastGlow { from { filter: brightness(1); } to { filter: brightness(1.18); } }
+@media (prefers-reduced-motion: reduce) { html[data-halloween="on"] .fast-btn[aria-pressed="true"] { animation: none; } }

@@ -517,6 +517,50 @@ def spin_cost(value, chance):
     return max(0.01, money(value * chance / (1 - MARGIN)))
 
 
+# --- Скрытый RTP -------------------------------------------------------------
+# Игроку показываются прежние шансы/множители. Общий RTP по режиму (settings.rtp)
+# и персональная поправка игрока (user.rtp_adj, в п.п.) меняют только реальную
+# вероятность выигрыша: factor = эффективный RTP / номинальный RTP режима.
+RTP_NOMINAL = {"upgrade": round((1 - MARGIN) * 100, 2), "chests": round(CHEST_RTP * 100, 2)}
+RTP_MODES = tuple(RTP_NOMINAL)
+RTP_MIN, RTP_MAX = 0.0, 150.0
+
+
+def _rtp_number(value, lo, hi):
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError):
+        raise ApiError("bad_request")
+    if value != value or not lo <= value <= hi:
+        raise ApiError("bad_request")
+    return round(value, 2)
+
+
+def global_rtp(mode):
+    saved = db["settings"].get("rtp")
+    try:
+        value = float(saved[mode]) if isinstance(saved, dict) and mode in saved else RTP_NOMINAL[mode]
+    except (TypeError, ValueError):
+        value = RTP_NOMINAL[mode]
+    return min(RTP_MAX, max(RTP_MIN, value))
+
+
+def user_rtp_adj(user, mode):
+    adj = user.get("rtp_adj")
+    try:
+        return float(adj.get(mode, 0)) if isinstance(adj, dict) else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def effective_rtp(user, mode):
+    return min(RTP_MAX, max(RTP_MIN, global_rtp(mode) + user_rtp_adj(user, mode)))
+
+
+def rtp_factor(user, mode):
+    return effective_rtp(user, mode) / RTP_NOMINAL[mode]
+
+
 def verified_telegram_user(init_data):
     if not (BOT_TOKEN and init_data):
         return None
@@ -531,6 +575,71 @@ def verified_telegram_user(init_data):
         return json.loads(pairs.get("user", "{}"))
     except ValueError:
         raise ApiError("unauthorized", 401)
+
+
+REFERRAL_MIN_WITHDRAW = 1.0
+
+
+def telegram_start_param(init_data):
+    try:
+        return str(dict(parse_qsl(init_data or "", keep_blank_values=True)).get("start_param", ""))[:64]
+    except ValueError:
+        return ""
+
+
+def referral_percent():
+    try:
+        return min(50.0, max(0.0, float(db["settings"].get("referral_percent", 10))))
+    except (TypeError, ValueError):
+        return 10.0
+
+
+def referrer_from_param(param, new_uid):
+    if not param.startswith("ref_"):
+        return ""
+    key = param[4:]
+    owner = next((u for u in db["users"].values() if u.get("ref_created") and u["key"] == key), None)
+    return owner["id"] if owner and owner["id"] != new_uid else ""
+
+
+def bot_username():
+    name = str(db["settings"].get("bot_username") or "").strip().lstrip("@")
+    if name or not BOT_TOKEN:
+        return name
+    try:
+        name = str((tg_api("getMe") or {}).get("username") or "").strip()
+    except Exception:
+        return ""
+    if name:
+        db["settings"]["bot_username"] = name
+    return name
+
+
+def referral_view(user):
+    username = bot_username()
+    count = sum(1 for u in db["users"].values() if u.get("ref_by") == user["id"])
+    created = bool(user.get("ref_created"))
+    return {
+        "percent": referral_percent(),
+        "created": created,
+        "link": f"https://t.me/{username}?startapp=ref_{user['key']}" if created and username else "",
+        "count": count,
+        "earned_ton": ton(user.get("ref_earned", 0)),
+        "balance_ton": ton(user.get("ref_balance", 0)),
+        "min_withdraw_ton": REFERRAL_MIN_WITHDRAW,
+        "pending_ton": 0,
+    }
+
+
+def credit_referral_bonus(user, amount):
+    """Процент от подтверждённого пополнения приглашённого идёт на реферальный баланс пригласившего."""
+    owner = db["users"].get(user.get("ref_by", ""))
+    bonus = ton(amount * referral_percent() / 100)
+    if not owner or bonus <= 0:
+        return 0.0
+    owner["ref_balance"] = ton(owner.get("ref_balance", 0) + bonus)
+    owner["ref_earned"] = ton(owner.get("ref_earned", 0) + bonus)
+    return bonus
 
 
 def current_user():
@@ -574,6 +683,9 @@ def current_user():
             "promos": [],
             "seen": 0,
         }
+        referrer = referrer_from_param(telegram_start_param(body.get("initData", "")), uid) if tg else ""
+        if referrer:
+            users[uid]["ref_by"] = referrer
     user = users[uid]
     user.setdefault("hatcoin_units", 0)
     user.setdefault("chest", None)
@@ -738,6 +850,7 @@ def full_state(user):
         "server_time": int(time.time()),
         "is_admin": is_admin(user),
         "halloween_enabled": db["settings"].get("halloween_enabled") is True,
+        "referral": referral_view(user),
     }
 
 
@@ -816,7 +929,8 @@ def spin(user, body):
         raise ApiError("insufficient_funds")
     user["balance"] = ton(user["balance"] - cost)
     credit_hatcoin(user, cost)
-    win = secrets.randbelow(1_000_000) < chance * 1_000_000
+    real_chance = min(1.0, chance * rtp_factor(user, "upgrade"))
+    win = secrets.randbelow(1_000_000) < real_chance * 1_000_000
     bear = None
     if win:
         add_prize(user, target["tier"], target["name"], target["value"], target["image"])
@@ -948,6 +1062,22 @@ def chests_open(user, body):
     cell = body.get("cell")
     if isinstance(cell, bool) or not isinstance(cell, int) or not 0 <= cell < CHEST_CELLS or cell in r["opened"]:
         raise ApiError("bad_cell")
+    if not r["opened"] and not r.get("rtp_done"):
+        # Скрытый RTP: корректируем только шанс первой ячейки, множители остаются прежними,
+        # поэтому RTP меняется ровно в factor раз при любой глубине кэшаута.
+        r["rtp_done"] = True
+        factor = rtp_factor(user, "chests")
+        nominal_safe = (CHEST_CELLS - r["empties"]) / CHEST_CELLS
+        real_safe = min(1.0, nominal_safe * factor)
+        rng = secrets.SystemRandom()
+        safe = rng.random() < real_safe
+        if abs(factor - 1.0) < 1e-9:
+            pass  # номинальный RTP: раскладка уже честная, ничего не меняем
+        elif safe and cell in r["bad"]:
+            free = [c for c in range(CHEST_CELLS) if c not in r["bad"] and c != cell]
+            r["bad"][r["bad"].index(cell)] = rng.choice(free)
+        elif not safe and cell not in r["bad"]:
+            r["bad"][rng.randrange(len(r["bad"]))] = cell
     if cell in r["bad"]:
         user["chest"] = None
         bear = consolation(user)
@@ -1544,12 +1674,20 @@ def gifts_mine(user, body):
 
 @route("/api/referral/create")
 def referral_create(user, body):
-    raise ApiError("referral_unavailable")
+    if not bot_username():
+        raise ApiError("referral_unavailable")
+    user["ref_created"] = True
+    return {"referral": referral_view(user)}
 
 
 @route("/api/referral/withdraw")
 def referral_withdraw(user, body):
-    raise ApiError("below_minimum")
+    amount = ton(user.get("ref_balance", 0))
+    if amount + 1e-9 < REFERRAL_MIN_WITHDRAW:
+        raise ApiError("below_minimum")
+    user["ref_balance"] = 0.0
+    user["balance"] = ton(user["balance"] + amount)
+    return {"referral": referral_view(user), "balance_ton": ton(user["balance"])}
 
 
 def ranking():
@@ -1834,6 +1972,8 @@ def admin_user_detail(u):
         **admin_user_row(u),
         "wallet": u["wallet"],
         "turnover_ton": ton(u["turnover"]),
+        "rtp": {m: {"global": global_rtp(m), "adj": user_rtp_adj(u, m),
+                    "effective": effective_rtp(u, m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES},
         "prizes": [
             {"id": p["id"], "name": p["name"], "status": p["status"], "value_ton": p["value"], "tier": p["tier"], "image": p.get("image", "")}
             for p in reversed(u["prizes"])
@@ -1861,6 +2001,43 @@ def admin_user(user, body):
     return {"user": admin_user_detail(find_user(body.get("key")))}
 
 
+def rtp_overview():
+    return {"modes": [{"mode": m, "global": global_rtp(m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES]}
+
+
+@route("/api/admin/rtp")
+def admin_rtp(user, body):
+    require_admin(user)
+    return rtp_overview()
+
+
+@route("/api/admin/rtp/save")
+def admin_rtp_save(user, body):
+    require_admin(user)
+    saved = dict(db["settings"].get("rtp") or {})
+    for mode in RTP_MODES:
+        if mode in body:
+            saved[mode] = _rtp_number(body[mode], RTP_MIN, RTP_MAX)
+    db["settings"]["rtp"] = saved
+    return rtp_overview()
+
+
+@route("/api/admin/user/rtp")
+def admin_user_rtp(user, body):
+    require_admin(user)
+    target = find_user(body.get("key"))
+    adj = dict(target.get("rtp_adj") or {})
+    for mode in RTP_MODES:
+        if mode in body:
+            value = _rtp_number(body[mode], -RTP_MAX, RTP_MAX)
+            if value:
+                adj[mode] = value
+            else:
+                adj.pop(mode, None)
+    target["rtp_adj"] = adj
+    return {"user": admin_user_detail(target)}
+
+
 @route("/api/admin/balance")
 def admin_balance(user, body):
     require_admin(user)
@@ -1875,6 +2052,8 @@ def admin_balance(user, body):
         target["balance"] = ton(amount)
     elif body.get("mode") == "add":
         target["balance"] = ton(max(0.0, target["balance"] + amount))
+        if body.get("deposit") is True and amount > 0:
+            credit_referral_bonus(target, amount)
     else:
         raise ApiError("bad_request")
     return {"user": admin_user_detail(target)}
