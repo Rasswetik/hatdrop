@@ -4308,16 +4308,38 @@ def crypto_request(method, payload=None, cfg=None):
     if not cfg["token"]:
         raise ApiError("crypto_not_configured", 503)
     host = "https://testnet-pay.crypt.bot" if cfg["testnet"] else "https://pay.crypt.bot"
-    req = urllib.request.Request(f"{host}/api/{method}", data=json.dumps(payload or {}).encode(),
-                                 headers={"Content-Type": "application/json", "Crypto-Pay-API-Token": cfg["token"]}, method="POST")
+    req = urllib.request.Request(
+        f"{host}/api/{method}", data=json.dumps(payload or {}).encode(),
+        headers={"Content-Type": "application/json", "Accept": "application/json",
+                 "User-Agent": "Mozilla/5.0 (compatible; HatDrop/1.0)",  # Cloudflare режет "Python-urllib"
+                 "Crypto-Pay-API-Token": cfg["token"]}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.load(resp)
-    except Exception:
-        # В тексте ошибки могут быть заголовки с токеном — наружу не отдаём.
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = json.load(resp)
+        except urllib.error.HTTPError as exc:
+            # 400/401 от Crypto Pay приходят с JSON-телом — это отказ (неверный токен/параметры), а не недоступность.
+            try:
+                data = json.load(exc)
+            except Exception:
+                print(f"cryptobot {method}: HTTP {exc.code}", flush=True)
+                raise ApiError("crypto_unavailable", 502)
+            if not isinstance(data, dict):
+                raise ApiError("crypto_unavailable", 502)
+            err = data.get("error")
+            err = err.get("name") if isinstance(err, dict) else err
+            print(f"cryptobot {method}: HTTP {exc.code} {err}", flush=True)
+            raise ApiError("crypto_rejected", 502, reason=str(err or "")[:80])
+    except ApiError:
+        raise
+    except Exception as exc:
+        # В тексте ошибки могут быть заголовки с токеном — наружу не отдаём, пишем только тип.
+        print(f"cryptobot {method}: {type(exc).__name__}", flush=True)
         raise ApiError("crypto_unavailable", 502)
     if not isinstance(data, dict) or not data.get("ok"):
-        raise ApiError("crypto_rejected", 502)
+        err = data.get("error") if isinstance(data, dict) else ""
+        err = err.get("name") if isinstance(err, dict) else err
+        raise ApiError("crypto_rejected", 502, reason=str(err or "")[:80])
     return data["result"]
 
 

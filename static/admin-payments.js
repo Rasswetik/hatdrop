@@ -1,7 +1,8 @@
 'use strict';
 function payErr(e) {
   const map = { crypto_unavailable: 'CryptoBot не отвечает', crypto_rejected: 'CryptoBot отклонил токен', crypto_token_missing: 'Укажите токен Crypto Pay', bad_request: 'Неверное значение' };
-  const text = map[e.code];
+  let text = map[e.code];
+  if (text && e.data && e.data.reason) text += ' (' + e.data.reason + ')';
   if (text) { $('panelError').textContent = text; $('panelError').hidden = false; toast(text, true); } else admErr(e);
 }
 

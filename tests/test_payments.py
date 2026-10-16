@@ -158,3 +158,37 @@ class MarketAutoAndAutoWithdrawTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CryptoRequestTransportTests(unittest.TestCase):
+    cfg = {"token": "123:AAsecret", "testnet": False}
+
+    def call(self, effect):
+        with mock.patch("urllib.request.urlopen", side_effect=effect) as m:
+            try:
+                backend.crypto_request("getMe", {}, self.cfg)
+            except backend.ApiError as exc:
+                return exc, m
+        return None, m
+
+    def test_sends_browser_user_agent_and_token(self):
+        import io, json as _json
+        class R(io.BytesIO):
+            def __enter__(s): return s
+            def __exit__(s, *a): pass
+        with mock.patch("urllib.request.urlopen", return_value=R(_json.dumps({"ok": True, "result": {"name": "x"}}).encode())) as m:
+            self.assertEqual(backend.crypto_request("getMe", {}, self.cfg), {"name": "x"})
+        req = m.call_args[0][0]
+        self.assertNotIn("urllib", req.get_header("User-agent"))
+        self.assertEqual(req.get_header("Crypto-pay-api-token"), "123:AAsecret")
+
+    def test_http_401_is_rejected_with_reason_not_unavailable(self):
+        import io, urllib.error
+        err = urllib.error.HTTPError("u", 401, "x", {}, io.BytesIO(b'{"ok":false,"error":{"code":401,"name":"UNAUTHORIZED"}}'))
+        exc, _ = self.call(err)
+        self.assertEqual(exc.code, "crypto_rejected")
+        self.assertEqual(exc.extra["reason"], "UNAUTHORIZED")
+
+    def test_network_error_is_unavailable(self):
+        exc, _ = self.call(OSError("boom"))
+        self.assertEqual(exc.code, "crypto_unavailable")
