@@ -38,14 +38,14 @@ class RelayerTests(unittest.TestCase):
         self.assertEqual(stats["delivered"], 1)
         self.assertEqual(self.user["prizes"], [])  # nothing goes to the inventory
         view = backend.relayer_status_view()
-        self.assertEqual((view["stats"]["total"], view["stats"]["today"]["count"], view["stats"]["senders"]), ({"count": 1, "ton": 85.0}, 1, 1))
+        self.assertEqual((view["stats"]["total"], view["stats"]["today"]["count"], view["stats"]["senders"]), ({"count": 1, "ton": 100.0}, 1, 1))
         self.assertEqual(view["stats"]["top"][0]["id"], "202")
         self.assertEqual(view["stats"]["gifts_value_ton"], 100.0 * 2)  # two saved gifts on the account, floor 100 each
         self.assertEqual(view["refresh_seconds"], backend.RELAYER_SCAN_SECONDS)
-        self.assertEqual(self.user["balance"], self.start + 85.0)  # collection floor 100 * 0.85, model ignored
+        self.assertEqual(self.user["balance"], self.start + 100.0)  # collection floor 100, no deduction, model ignored
         text, markup = sent[0][0][1], sent[0][0][2]
         self.assertIn('href="https://t.me/nft/PlushPepe-8"', text)
-        self.assertIn("85 TON", text)
+        self.assertIn("100 TON", text)
         self.assertIn('<tg-emoji emoji-id="5368324170671202286">', text)
         self.assertIn('<tg-emoji emoji-id="5424972470023104089">', text)
         self.assertTrue(sent[0][1]["html"])
@@ -55,9 +55,9 @@ class RelayerTests(unittest.TestCase):
         self.scan([])
         g = gift("tg:3", model="Mystery")
         self.assertEqual(self.scan([g])["delivered"], 1)
-        self.assertEqual(self.user["balance"], self.start + 85.0)
+        self.assertEqual(self.user["balance"], self.start + 100.0)
         self.assertEqual(self.scan([g])["processed"], 0)
-        self.assertEqual(self.user["balance"], self.start + 85.0)
+        self.assertEqual(self.user["balance"], self.start + 100.0)
 
     def test_admin_emojis(self):
         self.user["is_admin"] = True
@@ -103,9 +103,9 @@ class RelayerTests(unittest.TestCase):
         self.scan([])
         self.assertTrue(backend.relayer_ready())
         cfg = backend.public_config()["gift_deposit"]
-        self.assertEqual((cfg["enabled"], cfg["account"], cfg["share"]), (True, "relay", 0.85))
+        self.assertEqual((cfg["enabled"], cfg["account"], cfg["share"]), (True, "relay", 1.0))
         gifts = self.client.post("/api/gifts/mine", json={"initData": signed_user(202)}).json["gifts"]
-        self.assertEqual(gifts[0]["credit_ton"], 85.0)
+        self.assertEqual(gifts[0]["credit_ton"], 100.0)
 
     def test_login_flow_routes_store_session(self):
         ticket = self.client.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]

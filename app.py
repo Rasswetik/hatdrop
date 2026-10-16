@@ -3780,7 +3780,7 @@ def admin_stars(user, body):
 # отправителя картинкой (PNG, обрезанной). Продать можно по этой же цене (без доп. комиссии).
 import relayer as relayer_lib
 
-GIFT_ACCEPT_RATE = 0.85
+GIFT_ACCEPT_RATE = 1.0
 RELAYER_SCAN_SECONDS = max(5, int(os.environ.get("RELAYER_SCAN_SECONDS", "20") or 20))
 RELAYER_EVENTS_LIMIT = 500
 NFT_IMG_CACHE = {}

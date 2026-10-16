@@ -2990,11 +2990,25 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
  --cx-loss-a:#74433a; --cx-loss-b:#402720; --cx-loss-edge:#af7c65; --cx-hit:#df9273;
  --cx-chip:#7b512d; --cx-chip-active:#d2a454; --cx-chip-text:#fff1d0; --cx-active-text:#39210c; --cx-title:#ffdf91;
 }
+/* Луговая тема: активная вкладка в тёплом золоте дерева, а не в фиолетовом, как в базовой теме */
+html[data-theme="meadow"] .tab.active {
+  color: #3a2008;
+  background: linear-gradient(180deg, #f1c35d 0%, #d9a23e 55%, #b9802a 100%);
+  border-color: #4a2a10;
+  box-shadow: inset 0 2px 0 #ffe29a, inset 2px 0 0 #f6d27f, inset -2px 0 0 #9a661f, inset 0 -2px 0 #8a5a1a, 0 5px 0 #4a2a10, 0 7px 6px rgba(0, 0, 0, .35);
+}
+html[data-theme="meadow"] .tab.active:active { box-shadow: inset 0 2px 0 #f6d27f, inset 2px 0 0 #e8b955, inset -2px 0 0 #9a661f, 0 1px 0 #4a2a10; }
+html:not([data-theme="meadow"]):not([data-halloween="on"]) #view-chests {
+ --cx-a:#5b4a6e; --cx-b:#32263f; --cx-edge:#1b1228; --cx-shine:#8e7aa6;
+ --cx-safe-a:#8d6c3a; --cx-safe-b:#5a4021; --cx-safe-edge:#e7c477; --cx-safe-shine:#f5dca0;
+ --cx-loss-a:#62404f; --cx-loss-b:#32202b; --cx-loss-edge:#a9768b; --cx-hit:#ff8fa3;
+ --cx-chip:#4d3d6b; --cx-chip-active:#d2a454; --cx-chip-text:#f2e9ff; --cx-active-text:#2d1c08; --cx-title:#ffdf91;
+}
 html[data-halloween="on"] #view-chests {
- --cx-a:#68438e; --cx-b:#38234f; --cx-edge:#21132f; --cx-shine:#aa7bcb;
- --cx-safe-a:#7950a3; --cx-safe-b:#432760; --cx-safe-edge:#c89be4; --cx-safe-shine:#dcb5f2;
- --cx-loss-a:#6a3a77; --cx-loss-b:#33213f; --cx-loss-edge:#a769b3; --cx-hit:#fb7e9b;
- --cx-chip:#65408b; --cx-chip-active:#9b6fc3; --cx-chip-text:#f7e6ff; --cx-active-text:#fff; --cx-title:#e5b5ff;
+ --cx-a:#4a6275; --cx-b:#2b3f50; --cx-edge:#101e2c; --cx-shine:#7f96a8;
+ --cx-safe-a:#8a6a3a; --cx-safe-b:#58401f; --cx-safe-edge:#e5c58f; --cx-safe-shine:#f0dca8;
+ --cx-loss-a:#5c3d3f; --cx-loss-b:#2e2023; --cx-loss-edge:#a57474; --cx-hit:#ff8d7c;
+ --cx-chip:#3b556b; --cx-chip-active:#bca070; --cx-chip-text:#e7eef5; --cx-active-text:#2b2111; --cx-title:#e5c58f;
 }
 #view-chests .cx-grid { aspect-ratio:1; grid-template-rows:repeat(5,minmax(0,1fr)); }
 #view-chests #cxGrid .cx-cell { margin:0; padding:3px; transform:none!important; filter:none!important;
@@ -3008,11 +3022,16 @@ html[data-halloween="on"] #view-chests {
 #view-chests #cxGrid .cx-cell img { image-rendering:auto!important; filter:none!important; }
 #view-chests .cx-info b,#view-chests .shell-hint.win { color:var(--cx-title); }
 #view-chests .cx-chip { color:var(--cx-chip-text)!important; background:var(--cx-chip)!important; border-color:var(--cx-edge)!important; box-shadow:inset 1px 1px 0 var(--cx-shine),0 2px 0 var(--cx-edge)!important; }
+#view-chests .cx-chip.on, #view-chests .cx-chip.active, #view-chests .cx-chip[aria-pressed="true"] { background:var(--cx-chip-active)!important; color:var(--cx-active-text)!important; }
+#view-chests .cx-info > div { background:var(--card); border-color:var(--card-line); border-radius:8px; }
+#view-leaders .section-title { display:inline-block; align-self:flex-start; padding:6px 12px; background:var(--card); border:2px solid var(--card-line); border-radius:8px; }
+#view-leaders .empty { padding:14px 12px; background:var(--card); border:2px solid var(--card-line); border-radius:10px; text-align:center; color:var(--text); }
+#view-chests .cx-label { align-self:flex-start; color:var(--text); }
 #view-chests .cx-chip.on { background:var(--cx-chip-active)!important; border-color:var(--cx-safe-edge)!important; color:var(--cx-active-text)!important; box-shadow:inset 1px 1px 0 var(--cx-safe-shine),0 2px 0 var(--cx-edge)!important; }
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=4">
+<link rel="stylesheet" href="/static/ui-layout.css?v=5">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -6123,7 +6142,7 @@ const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
 // A skin owns its artwork and available weapons. The server chooses the active event.
 const EVENT_SKINS = {
   default: { weapons:['axe','staff'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
-  halloween: { weapons:['axe','staff','skeleton'], mines:{closed:'/static/mine-closed.svg?v=1',gold:'/static/mine-candy.svg?v=1',empty:'/static/mine-skeleton.svg?v=1'} },
+  halloween: { weapons:['axe','staff','skeleton'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
 function eventSkin() { return EVENT_SKINS[activeEventKey()]; }
@@ -7524,8 +7543,8 @@ async function openGiftDeposit() {
   $('giftHow').hidden = true;
   giftPicked = null;
   $('giftIntro').textContent =
-    tr('Отправь NFT-подарок на @{account} — он сразу обменяется на TON по минимальной цене (флору) коллекции на Portals минус {percent}%. Модель и фон не учитываются. TON придут на баланс, бот пришлёт уведомление.',
-      { account: giftCfg.account, percent: Math.round((1 - giftCfg.share) * 100) });
+    tr('Отправь NFT-подарок на @{account} — он сразу обменяется на TON по флору коллекции на Portals.',
+      { account: giftCfg.account });
   const list = $('giftList');
   list.replaceChildren();
   const loading = document.createElement('p');

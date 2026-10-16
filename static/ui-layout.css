@@ -96,3 +96,8 @@ html[data-halloween="on"] .bg-wide .halloween-scene-png:not([data-loaded="true"]
  html[data-halloween="on"] .bg-wide .halloween-scene,
  html[data-halloween="on"] .bg-wide .halloween-scene-png { transition:none!important; }
 }
+
+/* Акценты карточек меню следуют оформлению */
+html[data-theme="meadow"] #view-menu .menu-card.mc-leaders { --mc:#9cc65f; }
+html[data-halloween="on"] #view-menu .menu-card.mc-leaders { --mc:#9db8cc; }
+html[data-halloween="on"] #view-menu .menu-card.mc-chests { --mc:#e5c58f; }
