@@ -1594,6 +1594,8 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .lb-sum { font-size: 9px; font-weight: 400; color: var(--gold); white-space: nowrap; }
 .lb-mini { flex: 0 0 auto; width: 26px; height: 26px; object-fit: contain; }
+.lb-prize-mini { width: 34px; height: 34px; padding: 2px; border-radius: 8px; background: rgba(255, 255, 255, .08); border: 1px solid var(--card-line); }
+.lb-row .lb-sum { margin-left: auto; }
 .lb-row.top1 { border-color: var(--gold); }
 .lb-row.top2 { border-color: #aeb7cc; }
 .lb-row.top3 { border-color: #c4854a; }
@@ -3031,7 +3033,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=5">
+<link rel="stylesheet" href="/static/ui-layout.css?v=6">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3758,7 +3760,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
       <button class="view-back" type="button" data-back="menu" aria-label="Меню">&lt;</button>
       <h1 class="title">ТОП ИГРОКОВ</h1>
       <p class="subtitle" id="lbSubAll">по обороту за всё время</p>
-      <p class="subtitle" id="lbSubSeason" hidden="">по объёму игры · сезон с <span id="lbSince">—</span></p>
+      <p class="subtitle" id="lbSubSeason" hidden=""><b id="lbSeasonName"></b><span id="lbSeasonSep"> · </span>по объёму игры · сезон с <span id="lbSince">—</span></p>
       <div class="lb-timer" id="lbTimer"></div>
       
       <div class="lb-me" id="lbMe"></div>
@@ -6070,6 +6072,8 @@ function renderLeaderboard(data) {
   lbSkew = data.now * 1000 - Date.now();
   lbFinished = !!data.finished;
   lbEndless = !!data.endless || !!data.alltime;
+  $('lbSeasonName').textContent = data.season || '';
+  $('lbSeasonSep').hidden = !data.season;
   $('lbSubAll').hidden = !data.alltime;
   $('lbSubSeason').hidden = !!data.alltime;
   lbStartTimer(!$('view-leaders').hidden);
@@ -6116,6 +6120,16 @@ function renderLeaderboard(data) {
     sum.textContent = fmtTon(row.total_ton);
 
     li.append(rank, lbAvatar(row.name, row.avatar), name, sum);
+    if (row.prize) {
+      const prize = document.createElement('img');
+      prize.className = 'lb-mini lb-prize-mini';
+      prize.alt = '';
+      prize.loading = 'lazy';
+      prize.src = row.prize.image;
+      prize.title = `${row.prize.name} · ${fmtTon(row.prize.value_ton)}`;
+      prize.onerror = () => prize.remove();
+      li.appendChild(prize);
+    }
     list.appendChild(li);
   }
   $('lbEmpty').hidden = data.rows.length > 0;

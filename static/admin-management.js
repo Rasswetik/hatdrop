@@ -18,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
+  const titles = {season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
   $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji','Season']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -43,6 +43,7 @@ function admShow(tab) {
   else if (tab === 'rtp') admLoadGlobalRtp();
   else if (tab === 'payments') admLoadPayments();
   else if (tab === 'emoji') admLoadEmoji();
+  else if (tab === 'season') admLoadSeason();
 }
 
 async function admLoadGlobalRtp() {
@@ -276,7 +277,49 @@ function admRenderUser(u) {
   give.appendChild(gform);
   fillModels();
 
-  root.append(info, ...(lockBox ? [lockBox] : []), rtp, bal, inv, give);
+  const pq = admBox('Личные квесты');
+  pq.id = 'admPersonalQuests';
+  admRenderPersonalQuests(pq, u.key);
+  root.append(info, ...(lockBox ? [lockBox] : []), rtp, bal, inv, give, pq);
+}
+
+async function admRenderPersonalQuests(box, key, data) {
+  const el = (tag, props, ...kids) => { const n = Object.assign(document.createElement(tag), props || {}); n.append(...kids); return n; };
+  try { data = data || await api('/api/admin/user/quests', { key }); } catch (e) { admErr(e); return; }
+  box.querySelectorAll('.pq-row,.pq-form,.pq-note').forEach((n) => n.remove());
+  box.append(el('p', { className: 'muted pq-note', textContent: 'Квест видит и выполняет только этот игрок, награда начисляется как у обычных квестов. Игрок получит уведомление от бота.' }));
+  if (!data.rows.length) box.append(el('p', { className: 'muted pq-note', textContent: 'Личных квестов пока нет.' }));
+  const units = Object.fromEntries(data.types.map((t) => [t.id, t.unit]));
+  for (const q of data.rows) {
+    const pr = q.progress;
+    const del = el('button', { type: 'button', className: 'danger', textContent: 'Удалить' });
+    del.onclick = async () => { if (!confirm('Удалить личный квест?')) return; try { admRenderPersonalQuests(box, key, await api('/api/admin/user/quests/save', { key, action: 'delete', id: q.id })); } catch (e) { admErr(e); } };
+    const state = pr.claimed ? 'награда получена' : pr.completed ? 'выполнен, не забран' : pr.expired ? 'истёк' : 'в процессе';
+    box.append(el('div', { className: 'adm-prize pq-row' },
+      el('b', { textContent: q.title }),
+      el('em', { textContent: `${fmt(pr.value, 2)} / ${fmt(q.goal, 2)} · ${q.reward_amount} ${q.reward_type === 'ton' ? 'TON' : 'HatCoin'} · ${state}` }), del));
+  }
+  const kind = el('select');
+  for (const t of data.types) kind.add(new Option(t.label, t.id));
+  const goal = el('input', { type: 'number', min: '0', step: 'any', value: '1', placeholder: 'Цель' });
+  const threshold = el('input', { type: 'number', min: '0', step: 'any', placeholder: 'Порог (шанс % / сумма TON)', hidden: true });
+  const title = el('input', { placeholder: 'Название (пусто — авто)', maxLength: 80 });
+  const reward = el('input', { type: 'number', min: '0', step: 'any', value: '0.1', placeholder: 'Награда' });
+  const rtype = el('select');
+  rtype.add(new Option('TON', 'ton')); rtype.add(new Option('HatCoin', 'hatcoin'));
+  const hours = el('input', { type: 'number', min: '0', step: '1', value: '0', placeholder: 'Часов на выполнение (0 — без лимита)' });
+  kind.onchange = () => { threshold.hidden = !/^(upgrade_|deposit_min)/.test(kind.value); if (!threshold.hidden && !threshold.value) threshold.value = kind.value === 'deposit_min' ? '5' : '20'; };
+  const add = el('button', { type: 'button', className: 'primary', textContent: 'Добавить квест' });
+  add.onclick = async () => {
+    add.disabled = true;
+    try {
+      admRenderPersonalQuests(box, key, await api('/api/admin/user/quests/save', {
+        key, action: 'create', kind: kind.value, goal: parseFloat(goal.value) || 0, threshold: parseFloat(threshold.value) || 0,
+        title: title.value, reward_type: rtype.value, reward_amount: parseFloat(reward.value) || 0, duration_hours: parseFloat(hours.value) || 0 }));
+      toast('Личный квест добавлен');
+    } catch (e) { toast(e.code === 'quest_invalid' ? 'Проверьте цель, порог и награду' : e.code === 'quest_limit' ? 'Слишком много личных квестов' : 'Ошибка', true); } finally { add.disabled = false; }
+  };
+  box.append(el('div', { className: 'adm-form pq-form' }, kind, goal, threshold), el('div', { className: 'adm-form pq-form' }, title), el('div', { className: 'adm-form pq-form' }, reward, rtype, hours), el('div', { className: 'adm-form pq-form' }, add));
 }
 
 async function admLoadMarket(action, body) {

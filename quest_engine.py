@@ -139,6 +139,9 @@ def listed(db, user, *, admin=False):
     for quest in definitions(db).values():
         if not isinstance(quest, dict) or not quest.get("id") or quest.get("kind") not in QUEST_TYPES:
             continue
+        owner = quest.get("uid")
+        if owner and (admin or owner != user["id"]):
+            continue  # личный квест виден только владельцу (в общем списке админа его нет)
         if not admin and (not quest.get("active", True) or quest.get("start_at", 0) and now < quest["start_at"]):
             continue
         row = {"start_at": 0, "end_at": 0, "created": 0, "duration_hours": 0, "threshold": 0,
@@ -146,6 +149,18 @@ def listed(db, user, *, admin=False):
         result.append({**row, "resolved_icon": icon_for(row["kind"]) if row.get("icon", "auto") == "auto" else row["icon"], "progress": progress_for(user, row, now)})
     result.sort(key=lambda row: (row["end_at"] or 9999999999, row["created"]))
     return result
+
+
+def personal_rows(db, user):
+    """Личные квесты одного игрока (для панели админа): определение + прогресс."""
+    now = int(time.time())
+    rows = []
+    for quest in definitions(db).values():
+        if isinstance(quest, dict) and quest.get("uid") == user["id"] and quest.get("kind") in QUEST_TYPES:
+            row = {"start_at": 0, "end_at": 0, "created": 0, "duration_hours": 0, "threshold": 0, "goal": 1, "active": True, "version": 1, **quest}
+            rows.append({**row, "progress": progress_for(user, row, now)})
+    rows.sort(key=lambda r: r["created"], reverse=True)
+    return rows
 
 
 def _increment(quest, event, amount, chance_pct, gift_awarded):
@@ -182,6 +197,8 @@ def record_event(db, user, event, *, amount=0, chance_pct=0, gift_awarded=False,
     ts = int(ts or time.time())
     completed = []
     for q in definitions(db).values():
+        if q.get("uid") and q["uid"] != user["id"] if isinstance(q, dict) else False:
+            continue
         if not isinstance(q, dict) or q.get("kind") not in QUEST_TYPES or not q.get("active") or q.get("start_at", 0) and ts < q["start_at"] or q.get("end_at", 0) and ts > q["end_at"]:
             continue
         inc = _increment(q, event, amount, chance_pct, gift_awarded)
@@ -224,9 +241,11 @@ def record_verified_deposit(db, user, *, amount, payment_id, ts=None):
 
 def claim(db, user, quest_id, *, launched=False):
     """Validate claim under app.lock; mark as claimed before crediting reward."""
-    if not launched:
-        raise ValueError("quests_not_launched")
     q = definitions(db).get(str(quest_id))
+    if q and q.get("uid") and q["uid"] != user["id"]:
+        raise ValueError("not_found")
+    if not launched and not (q and q.get("uid")):
+        raise ValueError("quests_not_launched")  # личные квесты не зависят от общего запуска
     if not q or not q.get("active", True):
         raise ValueError("not_found")
     info = progress_for(user, q)

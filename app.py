@@ -15,11 +15,12 @@ import urllib.error
 import urllib.request
 from math import comb
 from datetime import timedelta
+import season as season_lib
 from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config,
                           command_name, validate_command, messages_config,
                           validate_message, message_payload, valid_url)
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
-from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, record_verified_deposit as _quest_record_deposit, listed as quest_listed, claim as quest_claim
+from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, record_verified_deposit as _quest_record_deposit, listed as quest_listed, personal_rows as personal_quest_rows, claim as quest_claim
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
@@ -706,14 +707,14 @@ def api(fn):
             response = jsonify(result)
         # Quest definitions, settings and claimed rewards must be durable before
         # returning success. Normal game updates remain on the buffered saver.
-        if request.path in ("/api/admin/quests/save", "/api/quests/claim") or g.get("quest_milestone"):
+        if request.path in ("/api/admin/quests/save", "/api/admin/user/quests/save", "/api/quests/claim") or g.get("quest_milestone"):
             try:
-                if request.path == "/api/admin/quests/save":
+                if request.path in ("/api/admin/quests/save", "/api/admin/user/quests/save"):
                     flush_quests()
                 flush_db()
             except Exception as exc:
                 print(f"Quest persistence failed: {exc}", flush=True)
-                if request.path in ("/api/admin/quests/save", "/api/quests/claim"):
+                if request.path in ("/api/admin/quests/save", "/api/admin/user/quests/save", "/api/quests/claim"):
                     return jsonify({"error": "db_save_failed"}), 503
         return response
 
@@ -875,6 +876,9 @@ def record_game(user, kind, cost, win, target, image, bear, payout=0):
     record_round(db, user, kind, cost, payout, win, ts)
     quest_event(db, user, "turnover", amount=cost, ts=ts)
     user["turnover"] += cost
+    cur = season_current()
+    if cur and not cur.get("finished") and cur["start"] <= ts < cur["end"]:
+        user["season_turnover"] = {cur["id"]: ton(season_score(user, cur) + cost)}
     user["games"] += 1
     user["history"].insert(
         0,
@@ -1579,8 +1583,10 @@ def player_quests():
     with lock:
         user, _ = current_user()
         enabled = db["settings"].get("quests_enabled", True) is True
-        rows = quest_listed(db, user) if enabled else []
-    response = jsonify({"enabled": enabled, "rows": rows, "server_time": int(time.time())})
+        rows = quest_listed(db, user)
+        if not enabled:
+            rows = [r for r in rows if r.get("uid")]  # общий запуск выключен — остаются только личные квесты
+    response = jsonify({"enabled": enabled or bool(rows), "rows": rows, "server_time": int(time.time())})
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -1629,7 +1635,7 @@ def admin_quests_save(user, body):
     existing = quests.get(str(body.get("id", ""))) if action == "update" else None
     if action == "update" and not existing:
         raise ApiError("not_found", 404)
-    if action == "create" and len(quests) >= 150:
+    if action == "create" and sum(1 for q in quests.values() if not q.get("uid")) >= 150:
         raise ApiError("quest_limit")
     try:
         new = validate_quest(body, existing)
@@ -1645,6 +1651,51 @@ def admin_quests_save(user, body):
     quests[qid] = {**new, "id": qid, "created": existing["created"] if existing else now,
                    "version": existing.get("version", 1) + int(bool(changed)) if existing else 1}
     return admin_quests(user, {})
+
+
+PERSONAL_QUEST_LIMIT = 20
+
+
+def _personal_view(target):
+    return {"rows": personal_quest_rows(db, target), "types": [{"id": k, "label": label, "unit": unit} for k, (label, unit) in QUEST_TYPES.items()]}
+
+
+@route("/api/admin/user/quests")
+def admin_user_quests(user, body):
+    require_admin(user)
+    return _personal_view(find_user(body.get("key")))
+
+
+@route("/api/admin/user/quests/save")
+def admin_user_quests_save(user, body):
+    """Личный квест игрока: создаётся, правится и удаляется из карточки пользователя."""
+    require_admin(user)
+    target = find_user(body.get("key"))
+    quests = quest_definitions(db)
+    action = body.get("action")
+    if action == "delete":
+        qid = str(body.get("id", ""))
+        if not quests.get(qid) or quests[qid].get("uid") != target["id"]:
+            raise ApiError("not_found", 404)
+        del quests[qid]
+        return _personal_view(target)
+    if action != "create":
+        raise ApiError("bad_request")
+    if sum(1 for q in quests.values() if q.get("uid") == target["id"]) >= PERSONAL_QUEST_LIMIT:
+        raise ApiError("quest_limit")
+    try:
+        new = validate_quest({**body, "active": True}, None)
+    except (ValueError, TypeError, OverflowError) as exc:
+        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at") else "quest"
+        raise ApiError("quest_invalid", field=field)
+    qid = secrets.token_hex(8)
+    quests[qid] = {**new, "id": qid, "uid": target["id"], "created": int(time.time()), "version": 1}
+    if str(target["id"]).startswith("tg"):
+        url = _bot_app_url()
+        markup = {"inline_keyboard": [[{"text": "Открыть приложение", "web_app": {"url": url}}]]} if valid_url(url) else None
+        reward = f"{new['reward_amount']:g} " + ("TON" if new["reward_type"] == "ton" else "HatCoin")
+        _send_tg_async(target["id"], f"🎯 У вас новый личный квест: <b>{html.escape(new['title'])}</b>\nНаграда: <b>{reward}</b>", markup, html=True)
+    return _personal_view(target)
 
 
 @route("/api/wallet")
@@ -1803,23 +1854,45 @@ def avatar_image(key):
 
 @route("/api/leaderboard")
 def leaderboard(user, body):
+    now = int(time.time())
+    cur = season_current()
+    if cur and not cur.get("finished") and now >= cur["end"]:
+        season_finish(cur)
+    if cur:
+        prizes = {k: season_public_prize(v) for k, v in cur.get("prizes", {}).items()}
+        if cur.get("finished"):
+            rows = [{**r, "me": r["uid"] == user["id"]} for r in cur.get("final_rows", [])]
+            place = next((r["rank"] for r in rows if r["me"]), 0)
+            mine = next((r["total_ton"] for r in rows if r["me"]), 0)
+        else:
+            ranked = season_ranking(cur)
+            rows = [{"rank": i + 1, "name": display_name(u), "avatar": avatar(u), "total_ton": ton(season_score(u, cur)), "me": u["id"] == user["id"]}
+                    for i, u in enumerate(ranked[:50])]
+            place = next((i + 1 for i, u in enumerate(ranked) if u["id"] == user["id"]), 0)
+            mine = ton(season_score(user, cur))
+        for r in rows:
+            r.pop("uid", None)
+            r["prize"] = prizes.get(str(r["rank"]))
+        return {"since": cur["start"], "ends": cur["end"], "now": now, "finished": bool(cur.get("finished")), "endless": False,
+                "alltime": False, "season": cur["name"], "rows": rows,
+                "me": {"excluded": False, "rank": place, "total_ton": mine}, "prizes": prizes}
     rows = ranking()
-    since = min([h["ts"] for u in rows for h in u["history"]] or [int(time.time())])
+    since = min([h["ts"] for u in rows for h in u["history"]] or [now])
     out = [
-        {"rank": i + 1, "name": display_name(u), "avatar": avatar(u), "total_ton": ton(u["turnover"]), "me": u["id"] == user["id"]}
+        {"rank": i + 1, "name": display_name(u), "avatar": avatar(u), "total_ton": ton(u["turnover"]), "me": u["id"] == user["id"], "prize": None}
         for i, u in enumerate(rows[:50])
     ]
     place = next((i + 1 for i, u in enumerate(rows) if u["id"] == user["id"]), 0)
     return {
         "since": since,
-        "ends": int(time.time()),
-        "now": int(time.time()),
+        "ends": now,
+        "now": now,
         "finished": False,
         "endless": True,
         "alltime": True,
         "rows": out,
         "me": {"excluded": False, "rank": place, "total_ton": ton(user["turnover"])},
-        "prizes": [],
+        "prizes": {},
     }
 
 
@@ -4885,6 +4958,248 @@ def admin_emoji_thumb(emoji_id):
     return resp
 
 
+# ------------------------------------------------------------ Сезоны лидерборда
+NFT_PRIZE_RATE = 0.85  # NFT-награда по ссылке заводится в инвентарь по цене Portals минус 15 %
+
+
+def season_doc():
+    doc = db.setdefault("season", {})
+    doc.setdefault("history", [])
+    return doc
+
+
+def season_current():
+    return season_doc().get("current")
+
+
+def season_active(now=None):
+    cur = season_current()
+    now = int(now or time.time())
+    return bool(cur and not cur.get("finished") and cur["start"] <= now < cur["end"])
+
+
+def season_score(user, cur):
+    return float((user.get("season_turnover") or {}).get(cur["id"], 0) or 0)
+
+
+def season_ranking(cur):
+    rows = [u for u in db["users"].values() if season_score(u, cur) > 0]
+    rows.sort(key=lambda u: season_score(u, cur), reverse=True)
+    return rows
+
+
+def nft_model_price(title, slug, model):
+    """Цена Portals: модель, если известна, иначе флор коллекции. 0 — цены нет."""
+    collection = nft_collection(title, slug)
+    if not collection:
+        return 0.0, "", ""
+    try:
+        if model:
+            for m in gift_models(collection):
+                if _norm(m["model"]) == _norm(model):
+                    return ton(m["price_ton"]), collection, "model"
+        return ton(gift_floor(collection)), collection, "floor"
+    except ApiError:
+        return 0.0, collection, ""
+
+
+def season_fetch_nft_page(slug):
+    req = urllib.request.Request(f"https://t.me/nft/{slug}", headers={"User-Agent": "Mozilla/5.0 (compatible; HatDrop/1.0)", "Accept": "text/html"})
+    with urllib.request.urlopen(req, timeout=8) as resp:
+        return resp.read(1_500_000).decode("utf-8", "replace")
+
+
+def season_resolve_prize(spec):
+    """Проверить и дополнить награду (цена, картинка). Сетевой вызов — без lock для NFT."""
+    kind = str((spec or {}).get("kind") or "")
+    if kind == "gift":
+        key = str(spec.get("gift") or "")
+        model = str(spec.get("model") or "")
+        with lock:
+            if key not in gifts_map():
+                raise ApiError("bad_request", 400, message="Подарок не найден в каталоге.")
+            target = resolve_target({"gift": key, "model": model}, "gift")
+        return {"kind": "gift", "gift": key, "model": model, "name": target["name"], "image": target["image"],
+                "value": money(target["value"]), "link": ""}
+    if kind == "nft":
+        try:
+            slug = season_lib.nft_slug(spec.get("url"))
+        except ValueError as exc:
+            raise ApiError("bad_request", 400, message=str(exc))
+        try:
+            info = season_lib.parse_nft_page(season_fetch_nft_page(slug))
+        except Exception:
+            raise ApiError("nft_unreachable", 409, message="Не удалось открыть страницу подарка в Telegram. Проверьте ссылку.")
+        title = season_lib.collection_title(slug)
+        with lock:
+            price, collection, basis = nft_model_price(title, slug, info.get("model", ""))
+        if price <= 0:
+            raise ApiError("no_price", 409, message="Не удалось определить цену подарка на Portals. Каталог не загружен или коллекции нет.")
+        number = re.search(r"-(\d+)$", slug).group(1)
+        name = info.get("title") or f"{title} #{number}"
+        return {"kind": "nft", "slug": slug, "url": f"https://t.me/nft/{slug}", "link": f"https://t.me/nft/{slug}", "name": name[:140],
+                "model": info.get("model", ""), "backdrop": info.get("backdrop", ""), "basis": basis,
+                "image": f"/nft-img/{slug.lower()}.png", "portal_ton": price, "value": money(price * NFT_PRIZE_RATE)}
+    raise ApiError("bad_request", 400, message="Выберите тип награды.")
+
+
+def season_public_prize(spec):
+    return {"kind": spec["kind"], "name": spec["name"], "image": spec["image"], "value_ton": spec["value"], "link": spec.get("link", "")}
+
+
+def season_award(user, spec):
+    if spec["kind"] == "gift":
+        target = resolve_target({"gift": spec["gift"], "model": spec.get("model", "")}, "gift")
+        prize = add_prize(user, target["tier"], target["name"], target["value"], target["image"])
+        prize["source"] = "season"
+    else:
+        prize = add_prize(user, f"nft:{spec['slug']}", spec["name"], spec["value"], spec["image"])
+        prize.update(sell_rate=1.0, source="season", nft_slug=spec["slug"], portal_ton=spec.get("portal_ton", 0))
+    return prize
+
+
+def season_finish(cur, award=True):
+    """Закрыть сезон и выдать награды. Вызывать под lock."""
+    if cur.get("finished"):
+        return
+    ranked = season_ranking(cur)
+    winners, final_rows = [], []
+    for i, u in enumerate(ranked[:50]):
+        final_rows.append({"rank": i + 1, "uid": u["id"], "name": display_name(u), "avatar": avatar(u), "total_ton": ton(season_score(u, cur))})
+    if award:
+        for place, spec in sorted(cur.get("prizes", {}).items(), key=lambda kv: int(kv[0])):
+            idx = int(place) - 1
+            if idx >= len(ranked):
+                continue
+            u = ranked[idx]
+            try:
+                season_award(u, spec)
+            except Exception as exc:
+                print(f"season award failed ({place}): {exc}", flush=True)
+                continue
+            winners.append({"place": int(place), "uid": u["id"], "name": display_name(u), "prize": spec["name"], "value_ton": spec["value"]})
+            text = f"🏆 Сезон «{html.escape(cur['name'])}» завершён! Вы заняли <b>{place} место</b>. Награда: "
+            text += (f'<a href="{spec["link"]}">{html.escape(spec["name"])}</a>' if spec.get("link") else f"<b>{html.escape(spec['name'])}</b>")
+            text += " — уже в вашем инвентаре."
+            url = _bot_app_url()
+            markup = {"inline_keyboard": [[{"text": "Открыть приложение", "web_app": {"url": url}}]]} if valid_url(url) else None
+            _send_tg_async(u["id"], text, markup, html=True)
+    cur.update(finished=True, finished_at=int(time.time()), final_rows=final_rows, winners=winners)
+    hist = season_doc()["history"]
+    hist.insert(0, {"id": cur["id"], "name": cur["name"], "start": cur["start"], "end": cur["end"], "winners": winners})
+    del hist[20:]
+    save_db()
+
+
+def season_tick():
+    with lock:
+        cur = season_current()
+        if cur and not cur.get("finished") and time.time() >= cur["end"]:
+            season_finish(cur)
+            return True
+    return False
+
+
+def season_loop():
+    time.sleep(8)
+    while True:
+        try:
+            if season_tick():
+                flush_db()
+        except BaseException as exc:
+            print(f"season tick failed: {type(exc).__name__}: {exc}", flush=True)
+        time.sleep(20)
+
+
+def season_admin_view():
+    cur = season_current()
+    out = {"current": None, "history": season_doc()["history"][:10], "max_places": season_lib.MAX_PLACES, "now": int(time.time())}
+    if cur:
+        out["current"] = {
+            "id": cur["id"], "name": cur["name"], "start": cur["start"], "end": cur["end"], "finished": bool(cur.get("finished")),
+            "prizes": cur.get("prizes", {}), "winners": cur.get("winners", []),
+            "players": len(season_ranking(cur)) if not cur.get("finished") else len(cur.get("final_rows", [])),
+            "top": [{"rank": i + 1, "name": display_name(u), "total_ton": ton(season_score(u, cur))} for i, u in enumerate(season_ranking(cur)[:10])] if not cur.get("finished") else cur.get("final_rows", [])[:10],
+        }
+    return out
+
+
+@route("/api/admin/season")
+def admin_season(user, body):
+    require_admin(user)
+    return season_admin_view()
+
+
+@admin_io("/api/admin/season/resolve")
+def admin_season_resolve(body):
+    spec = season_resolve_prize(body)
+    return {"prize": spec}
+
+
+def _season_prizes_from(body):
+    prizes = {}
+    raw = body.get("prizes") if isinstance(body.get("prizes"), dict) else {}
+    for place, spec in raw.items():
+        try:
+            key = season_lib.place_key(place)
+        except ValueError:
+            raise ApiError("bad_request", 400, message="Неверное место награды.")
+        if spec and spec.get("kind"):
+            prizes[key] = season_resolve_prize(spec)
+    return prizes
+
+
+@admin_io("/api/admin/season/start")
+def admin_season_start(body):
+    try:
+        seconds = season_lib.duration_seconds(body)
+    except ValueError:
+        raise ApiError("bad_request", 400, message="Укажите длительность сезона (дни и/или часы, до 90 дней).")
+    prizes = _season_prizes_from(body)
+    with lock:
+        cur = season_current()
+        if cur and not cur.get("finished"):
+            raise ApiError("season_active", 409, message="Сезон уже идёт. Завершите его или дождитесь конца.")
+        now = int(time.time())
+        db["season"]["current"] = {"id": "s" + secrets.token_hex(4), "name": season_lib.clean_name(body.get("name")),
+                                   "start": now, "end": now + seconds, "prizes": prizes, "finished": False}
+        return season_admin_view()
+
+
+@admin_io("/api/admin/season/prizes")
+def admin_season_prizes(body):
+    prizes = _season_prizes_from(body)
+    with lock:
+        cur = season_current()
+        if not cur or cur.get("finished"):
+            raise ApiError("no_season", 409, message="Нет активного сезона.")
+        cur["prizes"] = prizes
+        if body.get("name"):
+            cur["name"] = season_lib.clean_name(body.get("name"), cur["name"])
+        return season_admin_view()
+
+
+@route("/api/admin/season/finish")
+def admin_season_finish(user, body):
+    require_admin(user)
+    cur = season_current()
+    if not cur or cur.get("finished"):
+        raise ApiError("no_season", 409, message="Нет активного сезона.")
+    season_finish(cur, award=body.get("award") is not False)
+    return season_admin_view()
+
+
+@route("/api/admin/season/clear")
+def admin_season_clear(user, body):
+    require_admin(user)
+    cur = season_current()
+    if cur and not cur.get("finished"):
+        raise ApiError("season_active", 409, message="Сначала завершите сезон.")
+    season_doc().pop("current", None)
+    save_db()
+    return season_admin_view()
+
+
 load_db()
 load_catalog()
 apply_tier_values()
@@ -4893,6 +5208,7 @@ threading.Thread(target=_saver_loop, daemon=True).start()
 threading.Thread(target=portals_loop, daemon=True).start()
 threading.Thread(target=models_prewarm_loop, daemon=True).start()
 threading.Thread(target=relayer_loop, daemon=True).start()
+threading.Thread(target=season_loop, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
 if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):

@@ -101,3 +101,16 @@ html[data-halloween="on"] .bg-wide .halloween-scene-png:not([data-loaded="true"]
 html[data-theme="meadow"] #view-menu .menu-card.mc-leaders { --mc:#9cc65f; }
 html[data-halloween="on"] #view-menu .menu-card.mc-leaders { --mc:#9db8cc; }
 html[data-halloween="on"] #view-menu .menu-card.mc-chests { --mc:#e5c58f; }
+
+/* Карточки меню: без бесконечных анимаций (мигающие блики, хлопающая крышка, прыгающие монеты) —
+   спокойная картинка и аккуратный отклик на нажатие. */
+#view-menu .mc-art *, #view-menu .mc-chev, #view-menu .menu-card .mc-glow { animation:none!important; }
+#view-menu .mc-tw, #view-menu .mc-shine { opacity:.85; transform:none; }
+#view-menu .menu-card.menu-wide::after { display:none; }
+#view-menu .menu-card { transition:transform .12s ease-out, filter .12s ease-out; will-change:auto; }
+#view-menu .menu-card:active { transform:translateY(2px); filter:brightness(.96); }
+@media (hover:hover) {
+  #view-menu .menu-card:hover { transform:translateY(-2px); filter:brightness(1.05); }
+  #view-menu .menu-card:hover .mc-chev { transform:translateX(3px); }
+}
+#view-menu .menu-card .mc-chev { transition:transform .15s ease-out; }

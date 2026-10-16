@@ -43,3 +43,10 @@
 .em-picker{margin:-6px 0 6px}.em-picker .em-chips{margin-top:8px}.em-picker .em-chips button{min-height:36px;padding:4px 8px}
 .em-chip b img{width:22px;height:22px}
 .relayer-qr{margin:14px 0}.relayer-qr-canvas{background:#fff;padding:12px;border-radius:12px;display:inline-block;color:#111;max-width:100%}
+
+#admSeason{display:grid;gap:20px}#admSeason>.adm-box{margin:0}
+.se-places{display:grid;gap:10px;margin:14px 0}
+.se-place{display:grid;grid-template-columns:90px minmax(150px,200px) minmax(0,1fr);gap:10px;align-items:start;padding:12px;border:1px solid var(--line);border-radius:10px;background:#101827}
+.se-place .se-body{display:grid;gap:8px;min-width:0}.se-place .se-preview{grid-column:2/-1;font-size:12px;min-height:0}
+.se-place .se-preview:empty{display:none}.se-place select{width:100%}
+@media(max-width:700px){.se-place{grid-template-columns:1fr}.se-place .se-preview{grid-column:1}}
