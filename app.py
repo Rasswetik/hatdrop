@@ -786,7 +786,7 @@ def prize_view(p):
     out = {"id": p["id"], "status": p["status"], "tier": p["tier"], "name": p["name"], "image": p.get("image", ""),
            "value_ton": money(p["value"])}
     if p["status"] in ("owned", "withdraw_pending"):
-        out["sell_ton"] = money(p["value"] * SELL_SHARE)
+        out["sell_ton"] = money(p["value"] * p.get("sell_rate", SELL_SHARE))
     return out
 
 
@@ -815,7 +815,7 @@ def public_config():
         "chance_min": MIN_CHANCE_PCT / 100,
         "chance_max": MAX_CHANCE_PCT / 100,
         "min_deposit_ton": MIN_DEPOSIT,
-        "gift_deposit": {"enabled": False, "account": "", "share": 0, "hold_days": 0},
+        "gift_deposit": gift_deposit_config(),
         "chests": {
             "enabled": True,
             "gift_bets": CHEST_GIFT_BETS,
@@ -1115,7 +1115,7 @@ def sell(user, body):
     prize = next((p for p in user["prizes"] if p["id"] == body.get("prize_id")), None)
     if not prize or prize["status"] != "owned":
         raise ApiError("not_sellable")
-    payout = money(prize["value"] * SELL_SHARE)
+    payout = money(prize["value"] * prize.get("sell_rate", SELL_SHARE))
     prize["status"] = "sold"
     user["balance"] = ton(user["balance"] + payout)
     return {"payout_ton": payout, "balance_ton": ton(user["balance"]), "prizes": visible_prizes(user)}
@@ -1127,7 +1127,7 @@ def sell_all(user, body):
     for prize in user["prizes"]:
         if prize["status"] == "owned":
             prize["status"] = "sold"
-            total += money(prize["value"] * SELL_SHARE)
+            total += money(prize["value"] * prize.get("sell_rate", SELL_SHARE))
             count += 1
     user["balance"] = ton(user["balance"] + total)
     return {"count": count, "payout_ton": money(total), "balance_ton": ton(user["balance"]), "prizes": visible_prizes(user)}
@@ -1669,7 +1669,10 @@ def gifts_models():
 
 @route("/api/gifts/mine")
 def gifts_mine(user, body):
-    raise ApiError("disabled")
+    """Каталог принимаемых NFT-подарков с ценой зачисления (Portals минус 15%)."""
+    if not relayer_ready():
+        raise ApiError("disabled")
+    return {"market_ok": True, "gifts": relayer_catalog()}
 
 
 @route("/api/referral/create")
@@ -3493,6 +3496,365 @@ def keepalive_loop():
         time.sleep(KEEPALIVE_SEC)
 
 
+
+# ------------------------------------------------------------ NFT-релейер (пополнение подарками)
+# Админ привязывает Telegram-аккаунт (Telethon). Игрок дарит NFT этому аккаунту, сканер видит
+# новый подарок в «сохранённых», берёт цену Portals, вычитает 15% и кладёт подарок в инвентарь
+# отправителя картинкой (PNG, обрезанной). Продать можно по этой же цене (без доп. комиссии).
+import relayer as relayer_lib
+
+GIFT_ACCEPT_RATE = 0.85
+RELAYER_SCAN_SECONDS = max(5, int(os.environ.get("RELAYER_SCAN_SECONDS", "12") or 12))
+RELAYER_EVENTS_LIMIT = 500
+NFT_IMG_CACHE = {}
+NFT_IMG_CACHE_MAX = 200
+
+
+def relayer_doc():
+    doc = db.setdefault("relayer", {})
+    doc.setdefault("enabled", True)
+    for key in ("state", "auth", "events"):
+        if not isinstance(doc.get(key), dict):
+            doc[key] = {}
+    return doc
+
+
+def relayer_creds():
+    doc = relayer_doc()
+    api_id = str(os.environ.get("TELEGRAM_API_ID") or doc.get("api_id") or "").strip()
+    api_hash = str(os.environ.get("TELEGRAM_API_HASH") or doc.get("api_hash") or "").strip()
+    return api_id, api_hash
+
+
+def relayer_ready():
+    doc = relayer_doc()
+    api_id, api_hash = relayer_creds()
+    return bool(doc.get("enabled") and api_id and api_hash and doc["state"].get("authorized"))
+
+
+def relayer_account():
+    return str((relayer_doc()["state"].get("account") or {}).get("username") or "")
+
+
+def gift_deposit_config():
+    ready = relayer_ready() and bool(relayer_account())
+    return {"enabled": ready, "account": relayer_account() if ready else "", "share": GIFT_ACCEPT_RATE, "hold_days": 0}
+
+
+def _norm(value):
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").casefold())
+
+
+def nft_collection(title, slug):
+    wanted = {_norm(title), _norm(re.sub(r"-\d+$", "", str(slug or "")))} - {""}
+    for key, entry in gifts_map().items():
+        if wanted & {_norm(entry.get("name")), _norm(key)}:
+            return key
+    return ""
+
+
+def nft_portal_price(title, slug, model=""):
+    """Цена Portals: точная модель, иначе пол коллекции. 0 — цены нет."""
+    collection = nft_collection(title, slug)
+    if not collection:
+        return 0.0, ""
+    try:
+        if model:
+            for m in gift_models(collection):
+                if _norm(m["model"]) == _norm(model):
+                    return ton(m["price_ton"]), collection
+        return ton(gift_floor(collection)), collection
+    except ApiError:
+        return 0.0, collection
+
+
+def relayer_catalog():
+    items = []
+    for key, entry in gifts_map().items():
+        try:
+            price = money(gift_floor(key) * GIFT_ACCEPT_RATE)
+        except ApiError:
+            continue
+        if price > 0:
+            items.append({"title": entry.get("name", key), "model": "", "backdrop": "", "image": gift_image(key),
+                          "credit_ton": price, "auto": True, "reason": ""})
+    items.sort(key=lambda x: (x["credit_ton"], x["title"].casefold()))
+    return items
+
+
+def relayer_credit(info, baseline=False):
+    """Зачислить один подарок. Вызывать под lock. Возвращает статус."""
+    doc = relayer_doc()
+    events = doc["events"]
+    if info["key"] in events:
+        return "duplicate"
+    event = {"key": info["key"], "sender_id": info["sender_id"], "title": info["title"], "number": info["number"],
+             "slug": info["slug"], "model": info["model"], "at": int(time.time())}
+
+    def finish(status, **extra):
+        event.update(status=status, **extra)
+        events[info["key"]] = event
+        for old in sorted(events, key=lambda k: events[k].get("at", 0))[:max(0, len(events) - RELAYER_EVENTS_LIMIT)]:
+            events.pop(old, None)
+        return status
+
+    if baseline:
+        return finish("baseline")
+    if not info["slug"]:
+        return finish("skipped")  # обычные (не улучшенные) подарки не принимаются
+    user = db["users"].get(f"tg{info['sender_id']}") if info["sender_id"] else None
+    if not user:
+        return finish("unknown_user")
+    portal, _ = nft_portal_price(info["title"], info["slug"], info["model"])
+    if portal <= 0:
+        return "pending_price"  # каталог ещё не загружен: повторим на следующем скане
+    value = money(portal * GIFT_ACCEPT_RATE)
+    if value <= 0:
+        return finish("no_price")
+    name = f"{info['title']} #{info['number']}" if info["number"] else info["title"]
+    prize = add_prize(user, f"nft:{info['slug']}", name, value, f"/nft-img/{re.sub(r'[^A-Za-z0-9_-]+', '', info['slug'])}.png")
+    prize.update(sell_rate=1.0, source="gift_deposit", portal_ton=portal, nft_slug=info["slug"])
+    finish("delivered", uid=user["id"], price_ton=value, portal_ton=portal, prize_id=prize["id"])
+    _send_tg_async(user["id"], f"🎁 Подарок {name} зачислен в инвентарь: {value:g} TON")
+    return "delivered"
+
+
+def relayer_apply_scan(result):
+    """Применить результат fetch_gifts. Под lock. Возвращает статистику."""
+    doc = relayer_doc()
+    state = doc["state"]
+    if result.get("status") != "online":
+        state.update(authorized=False, status=result.get("status", "error"))
+        return {"ok": False, "status": state["status"], "processed": 0}
+    baseline = not state.get("baseline_ready")
+    processed = delivered = 0
+    for info in result["gifts"]:
+        status = relayer_credit(info, baseline=baseline)
+        processed += 0 if status in ("duplicate", "pending_price") else 1
+        delivered += 1 if status == "delivered" else 0
+    state.update(authorized=True, status="online", account=result.get("account") or state.get("account", {}),
+                 baseline_ready=True, last_scan=int(time.time()), saved_gifts_count=len(result["gifts"]), error="")
+    save_db()
+    return {"ok": True, "status": "online", "processed": processed, "delivered": delivered,
+            "baseline": baseline, "saved_gifts_count": len(result["gifts"])}
+
+
+def relayer_scan(force=False):
+    """Сетевой скан без глобального lock. Сессию Telethon сохраняем в БД."""
+    with lock:
+        doc = relayer_doc()
+        if not (doc.get("enabled") or force):
+            return {"ok": False, "status": "disabled", "processed": 0}
+        api_id, api_hash = relayer_creds()
+        session = doc.get("session", "")
+    if not (api_id and api_hash):
+        return {"ok": False, "status": "not_configured", "processed": 0}
+    result, session2 = relayer_lib.run(relayer_lib.fetch_gifts(api_id, api_hash, session))
+    with lock:
+        if session2 and session2 != relayer_doc().get("session"):
+            relayer_doc()["session"] = session2
+        return relayer_apply_scan(result)
+
+
+def relayer_loop():
+    time.sleep(5)
+    while True:
+        try:
+            if relayer_lib.available():
+                with lock:
+                    run = bool(relayer_doc().get("enabled") and all(relayer_creds()) and relayer_doc().get("session"))
+                if run:
+                    relayer_scan()
+        except Exception as exc:
+            print(f"relayer scan failed: {exc}", flush=True)
+            with lock:
+                relayer_doc()["state"]["error"] = str(exc)[:180]
+        time.sleep(RELAYER_SCAN_SECONDS)
+
+
+def admin_io(path):
+    """Админ-маршрут с сетевым вводом-выводом: проверка прав под lock, сам вызов — без него."""
+    def deco(fn):
+        def view():
+            with lock:
+                user, body = current_user()
+                require_admin(user)
+            try:
+                result = fn(body)
+            except ApiError:
+                raise
+            except relayer_lib.RelayerError as exc:
+                raise ApiError("relayer_error", 409, message=str(exc))
+            except Exception as exc:
+                print(f"relayer call failed: {exc}", flush=True)
+                raise ApiError("relayer_error", 409, message="Telegram не ответил или отклонил запрос. Проверьте данные и повторите.")
+            with lock:
+                save_db()
+            try:
+                flush_db()
+            except Exception as exc:
+                print(f"relayer persistence failed: {exc}", flush=True)
+            return jsonify(result)
+        view.__name__ = fn.__name__
+        app.add_url_rule(path, fn.__name__, view, methods=["POST"])
+        return fn
+    return deco
+
+
+def relayer_status_view():
+    doc = relayer_doc()
+    api_id, api_hash = relayer_creds()
+    events = sorted(doc["events"].values(), key=lambda e: e.get("at", 0), reverse=True)[:25]
+    return {
+        "available": relayer_lib.available(),
+        "enabled": bool(doc.get("enabled")),
+        "api_id": api_id,
+        "api_hash_set": bool(api_hash),
+        "api_hash_mask": mask_key(api_hash),
+        "state": {k: doc["state"].get(k) for k in ("authorized", "status", "account", "last_scan", "saved_gifts_count", "error", "baseline_ready")},
+        "auth": {"status": doc["auth"].get("status", ""), "phone": doc["auth"].get("phone", "")},
+        "accept_percent": round(GIFT_ACCEPT_RATE * 100),
+        "events": events,
+    }
+
+
+@route("/api/admin/relayer/status")
+def admin_relayer_status(user, body):
+    require_admin(user)
+    return relayer_status_view()
+
+
+@route("/api/admin/relayer/settings")
+def admin_relayer_settings(user, body):
+    require_admin(user)
+    doc = relayer_doc()
+    if "enabled" in body:
+        doc["enabled"] = bool(body["enabled"])
+    api_id = str(body.get("api_id", doc.get("api_id", "")) or "").strip()
+    if api_id and not api_id.isdigit():
+        raise ApiError("bad_request")
+    doc["api_id"] = api_id
+    api_hash = str(body.get("api_hash") or "").strip()
+    if api_hash:
+        if not re.fullmatch(r"[0-9a-fA-F]{16,64}", api_hash):
+            raise ApiError("bad_request")
+        doc["api_hash"] = api_hash
+    return relayer_status_view()
+
+
+def _relayer_session_args():
+    with lock:
+        doc = relayer_doc()
+        api_id, api_hash = relayer_creds()
+        return api_id, api_hash, doc.get("session", ""), dict(doc["auth"])
+
+
+def _relayer_store(session, status=None, auth=None, account=None):
+    with lock:
+        doc = relayer_doc()
+        if session:
+            doc["session"] = session
+        if auth is not None:
+            doc["auth"] = auth
+        if status:
+            doc["state"].update(status=status, authorized=status == "authorized" or status == "online")
+        if account:
+            doc["state"]["account"] = account
+
+
+@admin_io("/api/admin/relayer/login/phone")
+def admin_relayer_phone(body):
+    phone = re.sub(r"[^0-9+]", "", str(body.get("phone") or ""))
+    if not re.fullmatch(r"\+?[0-9]{8,16}", phone):
+        raise ApiError("bad_phone")
+    api_id, api_hash, session, _ = _relayer_session_args()
+    result, session = relayer_lib.run(relayer_lib.phone_start(api_id, api_hash, session, phone))
+    if result["status"] == "authorized":
+        _relayer_store(session, "online", {"status": "authorized"}, result["account"])
+        return relayer_status_view_locked()
+    _relayer_store(session, "code_sent", {"status": "code_sent", "phone": phone, "phone_code_hash": result["phone_code_hash"]})
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/login/code")
+def admin_relayer_code(body):
+    code = re.sub(r"\D", "", str(body.get("code") or ""))
+    if not 3 <= len(code) <= 8:
+        raise ApiError("bad_code")
+    api_id, api_hash, session, auth = _relayer_session_args()
+    if not auth.get("phone") or not auth.get("phone_code_hash"):
+        raise relayer_lib.RelayerError("Сначала запросите код входа.")
+    result, session = relayer_lib.run(relayer_lib.code_submit(api_id, api_hash, session, auth["phone"], code, auth["phone_code_hash"]))
+    if result["status"] == "need_password":
+        _relayer_store(session, "need_password", dict(auth, status="need_password"))
+    else:
+        _relayer_store(session, "online", {"status": "authorized"}, result["account"])
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/login/password")
+def admin_relayer_password(body):
+    password = str(body.get("password") or "")
+    if not password:
+        raise ApiError("bad_request")
+    api_id, api_hash, session, _ = _relayer_session_args()
+    result, session = relayer_lib.run(relayer_lib.password_submit(api_id, api_hash, session, password))
+    _relayer_store(session, "online", {"status": "authorized"}, result["account"])
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/logout")
+def admin_relayer_logout(body):
+    api_id, api_hash, session, _ = _relayer_session_args()
+    if session:
+        try:
+            relayer_lib.run(relayer_lib.logout(api_id, api_hash, session))
+        except Exception as exc:
+            print(f"relayer logout failed: {exc}", flush=True)
+    with lock:
+        doc = relayer_doc()
+        doc.pop("session", None)
+        doc["auth"] = {"status": "logged_out"}
+        doc["state"].update(authorized=False, status="logged_out", account={}, baseline_ready=False)
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/scan")
+def admin_relayer_scan(body):
+    stats = relayer_scan(force=True)
+    return {**relayer_status_view_locked(), "scan": stats}
+
+
+def relayer_status_view_locked():
+    with lock:
+        return relayer_status_view()
+
+
+@app.get("/nft-img/<slug>.png")
+def nft_image(slug):
+    """Картинка NFT-подарка: Fragment .webp -> обрезанный PNG (кэшируется)."""
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "", slug)[:80].lower()
+    if not slug:
+        return ("", 404)
+    data = NFT_IMG_CACHE.get(slug)
+    if data is None:
+        try:
+            req = urllib.request.Request(f"https://nft.fragment.com/gift/{slug}.webp", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                raw = resp.read(4_000_000)
+            data = relayer_lib.crop_png(raw)
+        except Exception as exc:
+            print(f"nft image {slug}: {exc}", flush=True)
+            from flask import redirect
+            return redirect(f"https://nft.fragment.com/gift/{slug}.webp", 302)
+        if len(NFT_IMG_CACHE) >= NFT_IMG_CACHE_MAX:
+            NFT_IMG_CACHE.pop(next(iter(NFT_IMG_CACHE)))
+        NFT_IMG_CACHE[slug] = data
+    resp = app.response_class(data, mimetype="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 load_db()
 load_catalog()
 apply_tier_values()
@@ -3500,6 +3862,7 @@ _install_exit_hooks()
 threading.Thread(target=_saver_loop, daemon=True).start()
 threading.Thread(target=portals_loop, daemon=True).start()
 threading.Thread(target=models_prewarm_loop, daemon=True).start()
+threading.Thread(target=relayer_loop, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
 if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):
