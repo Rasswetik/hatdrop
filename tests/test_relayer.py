@@ -275,3 +275,33 @@ class BotEmojiTests(unittest.TestCase):
             self.assertEqual(client.post("/api/admin/emojis/pack", json={"initData": signed_user(202), "link": "cool"}).status_code, 400)
         self.assertEqual(set(backend.emoji_doc()["saved"]), {"5368324170671202286", "5424972470023104089"})
         self.assertEqual(client.get("/api/admin/emoji-thumb/5368324170671202286").status_code, 404)
+
+
+class WithdrawMatchTests(unittest.TestCase):
+    def items(self):
+        mk = lambda slug, title, model, can=0, stars=0: (None, {"slug": slug, "title": title, "model": model, "can_transfer_at": can, "transfer_stars": stars})
+        import time as t
+        return [mk("PlushPepe-1", "Plush Pepe", "Cozy", can=int(t.time()) + 999), mk("PlushPepe-2", "Plush Pepe", "Cozy (1.5%)", stars=25),
+                mk("PlushPepe-3", "Plush Pepe", "Rare", stars=0), mk("Hat-1", "Hat", "Cap")]
+
+    def test_model_must_match_and_rarity_suffix_ignored(self):
+        _, info = relayer.match_job(self.items(), {"slug": "", "collection": "Plush Pepe", "model": "Cozy"})
+        self.assertEqual(info["slug"], "PlushPepe-2")  # unlocked one wins over the locked Cozy
+        self.assertEqual(relayer.match_job(self.items(), {"slug": "", "collection": "Plush Pepe", "model": "Missing"}), (None, None))
+
+    def test_random_gift_takes_any_prefers_free_unlocked(self):
+        _, info = relayer.match_job(self.items(), {"slug": "", "collection": "Plush Pepe", "model": ""})
+        self.assertEqual(info["slug"], "PlushPepe-3")
+        self.assertEqual(relayer.match_job(self.items(), {"slug": "Hat-1", "collection": "", "model": ""})[1]["slug"], "Hat-1")
+
+    def test_kick_runs_scan_only_when_stale(self):
+        backend.db = {"users": {}, "settings": {}, "relayer": {"enabled": True, "session": "S", "api_id": "1", "api_hash": "h", "state": {"last_scan": 0}}}
+        calls = []
+        class Sync:
+            def __init__(s, target, daemon=None): s.t = target
+            def start(s): s.t()
+        with mock.patch.object(backend, "relayer_scan", lambda *a, **k: calls.append(1)), mock.patch.object(backend.relayer_lib, "available", lambda: True), mock.patch.object(backend.threading, "Thread", Sync):
+            backend.relayer_kick()
+            backend.relayer_doc()["state"]["last_scan"] = int(__import__("time").time())
+            backend.relayer_kick()
+        self.assertEqual(calls, [1])

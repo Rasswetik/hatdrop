@@ -901,6 +901,7 @@ def resolve_target(body, tier):
 
 @route("/api/state")
 def state(user, body):
+    relayer_kick()
     return full_state(user)
 
 
@@ -3780,7 +3781,7 @@ def admin_stars(user, body):
 import relayer as relayer_lib
 
 GIFT_ACCEPT_RATE = 0.85
-RELAYER_SCAN_SECONDS = max(5, int(os.environ.get("RELAYER_SCAN_SECONDS", "12") or 12))
+RELAYER_SCAN_SECONDS = max(5, int(os.environ.get("RELAYER_SCAN_SECONDS", "20") or 20))
 RELAYER_EVENTS_LIMIT = 500
 NFT_IMG_CACHE = {}
 NFT_IMG_CACHE_MAX = 200
@@ -3975,8 +3976,35 @@ def relayer_apply_scan(result):
             "baseline": baseline, "saved_gifts_count": len(result["gifts"])}
 
 
+RELAYER_SCAN_MUTEX = threading.Lock()
+
+
 def relayer_scan(force=False):
-    """Сетевой скан без глобального lock. Сессию Telethon сохраняем в БД."""
+    """Сетевой скан без глобального lock. Сессию Telethon сохраняем в БД. Один скан за раз."""
+    if not RELAYER_SCAN_MUTEX.acquire(timeout=60 if force else 0):
+        return {"ok": False, "status": "busy", "processed": 0}
+    try:
+        return _relayer_scan(force)
+    finally:
+        RELAYER_SCAN_MUTEX.release()
+
+
+def relayer_kick():
+    """Если фоновый цикл завис/спал (последний скан старше 3 периодов) — запустить скан по входящему запросу."""
+    try:
+        if RELAYER_SCAN_MUTEX.locked() or not relayer_lib.available():
+            return
+        doc = relayer_doc()
+        if not (doc.get("enabled") and doc.get("session") and all(relayer_creds())):
+            return
+        if time.time() - int(doc["state"].get("last_scan") or 0) < RELAYER_SCAN_SECONDS * 3:
+            return
+        threading.Thread(target=lambda: relayer_scan(), daemon=True).start()
+    except Exception as exc:
+        print(f"relayer kick failed: {exc}", flush=True)
+
+
+def _relayer_scan(force=False):
     with lock:
         doc = relayer_doc()
         if not (doc.get("enabled") or force):
@@ -4007,10 +4035,13 @@ def relayer_loop():
                     run = bool(relayer_doc().get("enabled") and all(relayer_creds()) and relayer_doc().get("session"))
                 if run:
                     relayer_scan()
-        except Exception as exc:
-            print(f"relayer scan failed: {exc}", flush=True)
-            with lock:
-                relayer_doc()["state"]["error"] = str(exc)[:180]
+        except BaseException as exc:  # поток не должен умирать: ошибка видна в админке, цикл продолжается
+            print(f"relayer scan failed: {type(exc).__name__}: {exc}", flush=True)
+            try:
+                with lock:
+                    relayer_doc()["state"]["error"] = relayer_lib.explain(exc) if isinstance(exc, Exception) else str(exc)[:180]
+            except Exception:
+                pass
         time.sleep(RELAYER_SCAN_SECONDS)
 
 

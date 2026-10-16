@@ -369,10 +369,22 @@ def crop_png(data, pad=0.04, size=512):
     return out.getvalue()
 
 
+def _model_key(value):
+    """Название модели без редкости в скобках: «Cozy (1.5%)» == «Cozy»."""
+    text = re.sub(r"\s*\([^)]*\)\s*$", "", str(value or ""))
+    return re.sub(r"[^a-z0-9]+", "", text.casefold())
+
+
 def match_job(items, job):
-    """items: [(entry, info)]; job: {slug, collection, model}. Первый подходящий подарок или (None, None)."""
+    """items: [(entry, info)]; job: {slug, collection, model}.
+
+    Точный slug — только он. Иначе коллекция + модель: если модель задана, нужен подарок именно этой модели
+    (другую не отдаём); если модели нет (случайный подарок) — подойдёт любой подарок коллекции, сначала тот,
+    что можно передать сразу и дешевле. Нет подходящего — (None, None)."""
     def norm(v):
         return re.sub(r"[^a-z0-9]+", "", str(v or "").casefold())
+    now = time.time()
+    found = []
     for entry, info in items:
         slug = info.get("slug") or ""
         if not slug:
@@ -385,10 +397,14 @@ def match_job(items, job):
         want = norm(job.get("collection"))
         if want and want not in (norm(info.get("title")), base):
             continue
-        if job.get("model") and norm(info.get("model")) != norm(job["model"]):
+        if job.get("model") and _model_key(info.get("model")) != _model_key(job["model"]):
             continue
-        return entry, info
-    return None, None
+        locked = 1 if int(info.get("can_transfer_at") or 0) > now else 0
+        found.append((locked, int(info.get("transfer_stars") or 0), len(found), entry, info))
+    if not found:
+        return None, None
+    best = min(found, key=lambda x: x[:3])
+    return best[3], best[4]
 
 
 async def _transfer(client, entry_info_, target):
