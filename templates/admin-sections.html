@@ -1,14 +1,15 @@
     <div id="admUsers" hidden="">
-      <div class="adm-box" id="admRtp"></div>
       <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
       <div class="lv-list" id="admUserList"></div>
     </div>
     <div id="admUser" hidden=""></div>
+    <div id="admRtp" hidden=""></div>
+    <div id="admPayments" hidden=""></div>
     <div id="admRelayer" hidden=""></div>
     <div id="admMarket" hidden="">
       <div class="adm-box"><h3>Основной маркет · один источник цен</h3>
         <select id="admMarketSource"><option value="portals">Portals — модели и цены</option><option value="mrkt">MRKT — модели и цены</option></select>
-        <p id="admMarketSourceHelp">Остальные маркеты не участвуют в расчёте. Старый смешанный каталог будет удалён при переключении.</p>
+        <p id="admMarketSourceHelp" hidden>Остальные маркеты не участвуют в расчёте. Старый смешанный каталог будет удалён при переключении.</p>
         <button type="button" id="admMarketChoose">Применить маркет и очистить старые цены</button>
       </div>
       <div class="adm-box adm-key">
@@ -27,8 +28,9 @@
         <input id="admMrktKey" class="gp-search" type="password" placeholder="Токен MRKT (отдельный от Portals)" autocomplete="off">
         <div class="adm-form"><button type="button" id="admMrktSave">Сохранить MRKT</button><button type="button" id="admMrktClear" class="danger">Удалить ключ</button></div>
       </div>
+      <div class="adm-box" id="admMarketAuto"></div>
       <div class="adm-form"><button class="ghost" id="admRefresh" type="button">Обновить Portals</button><button class="ghost" id="admMrktRefresh" type="button">Обновить MRKT</button></div>
-      <p class="muted" id="admMarketNote"></p>
+      <p class="muted" id="admMarketNote" hidden></p>
       <div class="adm-market" id="admMarketList"></div>
     </div>
     <div id="admPromos" hidden="">
@@ -57,7 +59,7 @@
     <div id="admAppearance" hidden="">
       <div class="adm-box halloween-admin-box">
         <h3>🎃 Хэллоуинская тема</h3>
-        <p class="muted">Включите страшную пиксельную деревню, луну, кладбище и праздничные цвета для всех игроков. Выключение вернёт обычное оформление.</p>
+        
         <label class="halloween-switch-row" for="admHalloweenToggle">
           <span class="halloween-switch-copy">
             <b>Праздничное оформление</b>
@@ -85,7 +87,7 @@
         <input class="tc-input" id="tcTerms" placeholder="https://example.com/terms" inputmode="url"/>
         <label class="tc-label" for="tcPrivacy">Ссылка на политику конфиденциальности (необязательно)</label>
         <input class="tc-input" id="tcPrivacy" placeholder="https://example.com/privacy" inputmode="url"/>
-        <p class="tc-info">Настройки сохраняются в базе. Пароль, seed-фразы и приватные ключи здесь не нужны. Новый логотип и название кошелёк может показать при следующем подключении.</p>
+        
         <div class="tc-actions">
           <button id="tcSave" type="button">Сохранить</button>
           <button id="tcReset" type="button">Сбросить к исходным</button>

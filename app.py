@@ -817,6 +817,7 @@ def public_config():
         "min_deposit_ton": MIN_DEPOSIT,
         "gift_deposit": gift_deposit_config(),
         "stars_deposit": stars_config(),
+        "crypto_deposit": crypto_public(),
         "chests": {
             "enabled": True,
             "gift_bets": CHEST_GIFT_BETS,
@@ -1149,8 +1150,10 @@ def withdraw(user, body):
         "prize_id": prize["id"], "status": "pending", "created": int(time.time()),
         "updated": int(time.time()), "name": prize["name"], "image": prize.get("image", ""),
         "value_ton": prize["value"], "tier": prize["tier"]}
+    req = db["withdrawals"][key]
+    req["auto"] = "queued" if auto_withdraw_eligible(user, prize) else "manual"
     _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"])
-    return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": False}
+    return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": req["auto"] == "queued"}
 
 
 @route("/api/promo")
@@ -1984,6 +1987,7 @@ def admin_user_detail(u):
         **admin_user_row(u),
         "wallet": u["wallet"],
         "turnover_ton": ton(u["turnover"]),
+        "stars_lock_until": int(u.get("stars_lock_until", 0) or 0),
         "rtp": {m: {"global": global_rtp(m), "adj": user_rtp_adj(u, m),
                     "effective": effective_rtp(u, m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES},
         "prizes": [
@@ -2014,7 +2018,10 @@ def admin_user(user, body):
 
 
 def rtp_overview():
-    return {"modes": [{"mode": m, "global": global_rtp(m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES]}
+    adjusted = [{"key": u["key"], "name": display_name({**u, "anon": False}), "adj": {m: user_rtp_adj(u, m) for m in RTP_MODES}}
+                for u in db["users"].values() if any(user_rtp_adj(u, m) for m in RTP_MODES)]
+    return {"modes": [{"mode": m, "global": global_rtp(m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES],
+            "adjusted": adjusted[:200]}
 
 
 @route("/api/admin/rtp")
@@ -2820,14 +2827,71 @@ def start_portals_refresh():
         threading.Thread(target=run, daemon=True).start()
 
 
+MARKET_AUTO_STATE = {"last": 0.0}
+
+
+def market_auto():
+    saved = db["settings"].get("market_auto")
+    saved = saved if isinstance(saved, dict) else {}
+    try:
+        minutes = max(1, int(saved.get("minutes", 30)))
+    except (TypeError, ValueError):
+        minutes = 30
+    return {"enabled": saved.get("enabled", True) is not False, "minutes": minutes}
+
+
+def market_auto_view():
+    cfg = market_auto()
+    nxt = int(MARKET_AUTO_STATE["last"] + cfg["minutes"] * 60) if cfg["enabled"] and MARKET_AUTO_STATE["last"] else 0
+    return {**cfg, "last_run": int(MARKET_AUTO_STATE["last"]), "next_run": nxt}
+
+
+def market_auto_tick(now=None):
+    """Запускает обновление активного маркета, когда прошёл заданный период. Возвращает True, если запустил."""
+    now = time.time() if now is None else now
+    with lock:
+        cfg = market_auto()
+        if not cfg["enabled"] or now - MARKET_AUTO_STATE["last"] < cfg["minutes"] * 60:
+            return False
+        MARKET_AUTO_STATE["last"] = now
+        source = db["settings"].get("active_market")
+    if source == "mrkt":
+        start_mrkt_refresh()
+    else:
+        start_portals_refresh()
+    return True
+
+
 def portals_loop():
     time.sleep(5)
+    try:
+        with lock:
+            MARKET_AUTO_STATE["last"] = time.time()
+        portals_refresh_worker()
+    except Exception as e:
+        print(f"portals loop: {e}", flush=True)
     while True:
+        time.sleep(15)
         try:
-            portals_refresh_worker()
+            market_auto_tick()
         except Exception as e:
-            print(f"portals loop: {e}", flush=True)
-        time.sleep(1800)
+            print(f"market auto: {e}", flush=True)
+
+
+@route("/api/admin/market/auto")
+def admin_market_auto(user, body):
+    require_admin(user)
+    if "enabled" in body or "minutes" in body:
+        cur = market_auto()
+        enabled = bool(body.get("enabled", cur["enabled"]))
+        try:
+            minutes = int(body.get("minutes", cur["minutes"]))
+        except (TypeError, ValueError):
+            raise ApiError("bad_request")
+        if minutes < 1 or minutes > 10_000_000:
+            raise ApiError("bad_request")
+        db["settings"]["market_auto"] = {"enabled": enabled, "minutes": minutes}
+    return market_auto_view()
 
 
 @route("/api/admin/market")
@@ -3662,6 +3726,14 @@ def admin_stars_save(user, body):
     return {"stars": stars_settings(), "bot_ready": bool(BOT_TOKEN)}
 
 
+@route("/api/admin/user/stars-unlock")
+def admin_user_stars_unlock(user, body):
+    require_admin(user)
+    target = find_user(body.get("key"))
+    target.pop("stars_lock_until", None)
+    return {"user": admin_user_detail(target)}
+
+
 @route("/api/admin/stars")
 def admin_stars(user, body):
     require_admin(user)
@@ -3805,6 +3877,10 @@ def relayer_apply_scan(result):
         delivered += 1 if status == "delivered" else 0
     state.update(authorized=True, status="online", account=result.get("account") or state.get("account", {}),
                  baseline_ready=True, last_scan=int(time.time()), saved_gifts_count=len(result["gifts"]), error="")
+    if result.get("stars_balance") is not None:
+        state["stars_balance"] = int(result["stars_balance"])
+    doc["gifts"] = [{k: g.get(k, "") for k in ("slug", "title", "number", "model", "backdrop", "sender_id", "transfer_stars", "can_transfer_at")}
+                    for g in result["gifts"][:300]]
     save_db()
     return {"ok": True, "status": "online", "processed": processed, "delivered": delivered,
             "baseline": baseline, "saved_gifts_count": len(result["gifts"])}
@@ -3824,7 +3900,13 @@ def relayer_scan(force=False):
     with lock:
         if session2 and session2 != relayer_doc().get("session"):
             relayer_doc()["session"] = session2
-        return relayer_apply_scan(result)
+        stats = relayer_apply_scan(result)
+    if stats.get("ok"):
+        try:
+            stats["withdrawn"] = relayer_process_withdrawals()
+        except Exception as exc:
+            print(f"relayer withdrawals failed: {exc}", flush=True)
+    return stats
 
 
 def relayer_loop():
@@ -3841,6 +3923,90 @@ def relayer_loop():
             with lock:
                 relayer_doc()["state"]["error"] = str(exc)[:180]
         time.sleep(RELAYER_SCAN_SECONDS)
+
+
+def relayer_auto():
+    saved = relayer_doc().get("auto")
+    saved = saved if isinstance(saved, dict) else {}
+    try:
+        limit = float(saved.get("limit_ton", 10))
+    except (TypeError, ValueError):
+        limit = 10.0
+    return {"enabled": saved.get("enabled", True) is not False,
+            "limit_enabled": saved.get("limit_enabled", True) is not False, "limit_ton": limit if limit > 0 else 10.0}
+
+
+def prize_withdraw_target(prize):
+    """Что искать на релейере для вывода приза: точный slug либо коллекция+модель. None — автовывод невозможен."""
+    if prize.get("nft_slug"):
+        return {"slug": prize["nft_slug"], "collection": "", "model": ""}
+    tier = str(prize.get("tier") or "")
+    if tier.startswith("gift:"):
+        _, key, model = (tier.split(":", 2) + ["", ""])[:3]
+        entry = gifts_map().get(key)
+        if entry:
+            return {"slug": "", "collection": entry.get("name", key), "model": model}
+    return None
+
+
+def auto_withdraw_eligible(user, prize):
+    if not relayer_ready() or not str(user["id"]).startswith("tg"):
+        return False
+    auto = relayer_auto()
+    if not auto["enabled"] or (auto["limit_enabled"] and prize["value"] > auto["limit_ton"] + 1e-9):
+        return False
+    return prize_withdraw_target(prize) is not None
+
+
+def relayer_process_withdrawals(limit=6):
+    """Передать с релейера подарки по поставленным в очередь заявкам. Возвращает число выполненных."""
+    with lock:
+        if not relayer_ready():
+            return 0
+        now, jobs = time.time(), []
+        api_id, api_hash = relayer_creds()
+        session = relayer_doc().get("session", "")
+        for req in db.setdefault("withdrawals", {}).values():
+            if req.get("status") != "pending" or req.get("auto") != "queued" or req.get("retry_at", 0) > now:
+                continue
+            target = db["users"].get(req["uid"])
+            prize = next((p for p in (target or {}).get("prizes", []) if p.get("id") == req["prize_id"]), None)
+            traits = prize_withdraw_target(prize) if prize and prize.get("status") == "withdraw_pending" else None
+            if not traits:
+                req["auto"] = "manual"
+                continue
+            jobs.append({"id": req["id"], "tg_id": int(str(target["id"])[2:]), "username": target.get("username", ""), **traits})
+            if len(jobs) >= limit:
+                break
+    if not jobs:
+        return 0
+    results, session2 = relayer_lib.run(relayer_lib.transfer_jobs(api_id, api_hash, session, jobs))
+    done = 0
+    with lock:
+        if session2:
+            relayer_doc()["session"] = session2
+        for res in results:
+            req = db["withdrawals"].get(res["id"])
+            if not req or req.get("status") != "pending":
+                continue
+            target = db["users"].get(req["uid"])
+            prize = next((p for p in (target or {}).get("prizes", []) if p.get("id") == req["prize_id"]), None)
+            req["updated"] = int(time.time())
+            if res["status"] == "completed" and prize:
+                req.update(status="completed", auto="done", moderator="relayer", auto_slug=res.get("slug", ""), auto_error="")
+                prize["status"] = "withdrawn"
+                _send_bot_message(req["uid"], "withdraw_completed", gift=prize["name"])
+                done += 1
+                continue
+            req["auto_error"] = res.get("error", "")
+            req["auto_status"] = res["status"]
+            req["attempts"] = req.get("attempts", 0) + (0 if res["status"] in ("blocked", "insufficient_stars") else 1)
+            if req["attempts"] >= 5 or res["status"] == "recipient_unavailable":
+                req["auto"] = "failed"  # дальше только ручной вывод
+            else:
+                req["retry_at"] = int(time.time()) + (600 if res["status"] in ("blocked", "insufficient_stars") else 60)
+        save_db()
+    return done
 
 
 def admin_io(path):
@@ -3882,7 +4048,15 @@ def relayer_status_view():
         "api_id": api_id,
         "api_hash_set": bool(api_hash),
         "api_hash_mask": mask_key(api_hash),
-        "state": {k: doc["state"].get(k) for k in ("authorized", "status", "account", "last_scan", "saved_gifts_count", "error", "baseline_ready")},
+        "state": {k: doc["state"].get(k) for k in ("authorized", "status", "account", "last_scan", "saved_gifts_count", "error", "baseline_ready", "stars_balance")},
+        "auto": relayer_auto(),
+        "gifts": doc.get("gifts", []),
+        "withdrawals": [{"id": r["id"], "name": r.get("name", ""), "image": r.get("image", ""), "value_ton": r.get("value_ton", 0),
+                         "status": r.get("status"), "auto": r.get("auto", ""), "auto_error": r.get("auto_error", ""),
+                         "updated": r.get("updated", 0), "uid": r["uid"],
+                         "user": (db["users"].get(r["uid"]) or {}).get("username") or r["uid"]}
+                        for r in sorted((r for r in db.get("withdrawals", {}).values() if r.get("auto") in ("queued", "done", "failed")),
+                                        key=lambda r: r.get("updated", 0), reverse=True)[:25]],
         "auth": {"status": doc["auth"].get("status", ""), "phone": doc["auth"].get("phone", "")},
         "accept_percent": round(GIFT_ACCEPT_RATE * 100),
         "events": events,
@@ -3905,6 +4079,20 @@ def admin_relayer_settings(user, body):
     if api_id and not api_id.isdigit():
         raise ApiError("bad_request")
     doc["api_id"] = api_id
+    auto = dict(doc.get("auto") or {})
+    if "auto_enabled" in body:
+        auto["enabled"] = bool(body["auto_enabled"])
+    if "auto_limit_enabled" in body:
+        auto["limit_enabled"] = bool(body["auto_limit_enabled"])
+    if "auto_limit_ton" in body:
+        try:
+            limit = float(body["auto_limit_ton"])
+        except (TypeError, ValueError):
+            raise ApiError("bad_request")
+        if not 0 < limit <= 1_000_000:
+            raise ApiError("bad_request")
+        auto["limit_ton"] = round(limit, 4)
+    doc["auto"] = auto
     api_hash = str(body.get("api_hash") or "").strip()
     if api_hash:
         if not re.fullmatch(r"[0-9a-fA-F]{16,64}", api_hash):
@@ -4024,6 +4212,228 @@ def nft_image(slug):
     resp = app.response_class(data, mimetype="image/png")
     resp.headers["Cache-Control"] = "public, max-age=86400"
     return resp
+
+
+# ------------------------------------------------------------ Пополнение через CryptoBot (Crypto Pay API)
+# Счёт TON создаётся через Crypto Pay; оплата подтверждается вебхуком (подпись HMAC) либо ручной проверкой
+# по getInvoices. Каждый счёт зачисляется ровно один раз.
+CRYPTO_MIN, CRYPTO_MAX = 0.1, 10000.0
+CRYPTO_TTL = 1800
+
+
+def crypto_cfg():
+    saved = db["settings"].get("crypto_pay")
+    saved = dict(saved) if isinstance(saved, dict) else {}
+    env = str(os.environ.get("CRYPTO_PAY_API_TOKEN") or "").strip()
+    token = env or str(saved.get("token") or "").strip()
+    return {"token": token, "env_token": bool(env), "testnet": bool(saved.get("testnet", False)),
+            "enabled": bool(saved.get("enabled", False)) and bool(token),
+            "app_name": str(saved.get("app_name") or ""), "app_id": saved.get("app_id")}
+
+
+def crypto_public():
+    return {"enabled": bool(crypto_cfg()["enabled"] and BOT_TOKEN), "min_ton": CRYPTO_MIN, "max_ton": CRYPTO_MAX}
+
+
+def crypto_request(method, payload=None, cfg=None):
+    cfg = cfg or crypto_cfg()
+    if not cfg["token"]:
+        raise ApiError("crypto_not_configured", 503)
+    host = "https://testnet-pay.crypt.bot" if cfg["testnet"] else "https://pay.crypt.bot"
+    req = urllib.request.Request(f"{host}/api/{method}", data=json.dumps(payload or {}).encode(),
+                                 headers={"Content-Type": "application/json", "Crypto-Pay-API-Token": cfg["token"]}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.load(resp)
+    except Exception:
+        # В тексте ошибки могут быть заголовки с токеном — наружу не отдаём.
+        raise ApiError("crypto_unavailable", 502)
+    if not isinstance(data, dict) or not data.get("ok"):
+        raise ApiError("crypto_rejected", 502)
+    return data["result"]
+
+
+def crypto_webhook_secret(cfg):
+    return hmac.new(cfg["token"].encode(), b"hatdrop-crypto-webhook-v1", hashlib.sha256).hexdigest()
+
+
+def crypto_credit_invoice(invoice):
+    """Зачислить оплаченный счёт один раз. Возвращает True, если зачислено сейчас."""
+    if not isinstance(invoice, dict) or invoice.get("status") != "paid":
+        return False
+    invoice_id = str(invoice.get("invoice_id") or "")
+    with lock:
+        orders = db.setdefault("crypto_orders", {})
+        order = next((o for o in orders.values() if o.get("invoice_id") == invoice_id and invoice_id), None)
+        if order is None:
+            order = next((o for o in orders.values() if not o.get("invoice_id") and hmac.compare_digest(o["payload"], str(invoice.get("payload") or ""))), None)
+        if order is None:
+            raise ApiError("unknown_invoice", 409)
+        try:
+            amount = float(invoice.get("amount"))
+        except (TypeError, ValueError):
+            raise ApiError("bad_invoice", 409)
+        if (abs(amount - order["amount"]) > 1e-9 or invoice.get("asset") != "TON" or invoice.get("currency_type", "crypto") != "crypto"
+                or not hmac.compare_digest(order["payload"], str(invoice.get("payload") or ""))):
+            raise ApiError("bad_invoice", 409)
+        if order["status"] == "credited":
+            return False
+        user = db["users"].get(order["uid"])
+        if not user:
+            raise ApiError("unknown_invoice", 409)
+        order.update(status="credited", invoice_id=invoice_id, credited=int(time.time()), testnet=crypto_cfg()["testnet"])
+        if not order["testnet"]:
+            user["balance"] = ton(user["balance"] + order["amount"])
+            try:
+                _quest_record_deposit(db, user, amount=order["amount"], payment_id="crypto:" + order["id"])
+            except ValueError:
+                pass
+            credit_referral_bonus(user, order["amount"])
+        save_db()
+        uid, credited_amount = user["id"], order["amount"]
+    try:
+        flush_db()
+    except Exception as exc:
+        print(f"crypto persistence failed: {exc}", flush=True)
+    _send_tg_async(uid, f"💎 Пополнение через CryptoBot зачислено: {credited_amount:g} TON")
+    return True
+
+
+@app.post("/api/cryptobot/deposit/create")
+def crypto_deposit_create():
+    with lock:
+        user, body = current_user()
+        cfg = crypto_cfg()
+        if not (cfg["enabled"] and BOT_TOKEN):
+            raise ApiError("crypto_disabled", 503)
+        if not str(user["id"]).startswith("tg"):
+            raise ApiError("telegram_required")
+        try:
+            amount = money(float(body.get("amount")))
+        except (TypeError, ValueError, OverflowError):
+            raise ApiError("bad_request")
+        if not CRYPTO_MIN <= amount <= CRYPTO_MAX:
+            raise ApiError("bad_amount", min_ton=CRYPTO_MIN, max_ton=CRYPTO_MAX)
+        orders = db.setdefault("crypto_orders", {})
+        now = int(time.time())
+        for o in orders.values():
+            if o["uid"] == user["id"] and o["status"] == "active" and o["expires"] > now and abs(o["amount"] - amount) < 1e-9 and o.get("url"):
+                return jsonify({"ok": True, "order_id": o["id"], "invoice_url": o["url"], "amount": amount, "reused": True})
+        if sum(1 for o in orders.values() if o["uid"] == user["id"] and now - o["created"] < 300) >= 5:
+            raise ApiError("too_many_requests", 429)
+        order_id, payload = secrets.token_hex(10), secrets.token_urlsafe(24)
+        orders[order_id] = {"id": order_id, "uid": user["id"], "amount": amount, "payload": payload, "invoice_id": "", "url": "",
+                            "status": "creating", "created": now, "expires": now + CRYPTO_TTL}
+        if len(orders) > 2000:
+            for old in sorted(orders, key=lambda k: orders[k]["created"])[:len(orders) - 2000]:
+                orders.pop(old)
+        save_db()
+        bot_name = db["settings"].get("bot_username", "")
+        uid = user["id"]
+    data = {"currency_type": "crypto", "asset": "TON", "amount": f"{amount:.2f}", "payload": payload,
+            "description": f"HatDrop · пополнение {amount:g} TON", "allow_comments": False, "allow_anonymous": False,
+            "expires_in": CRYPTO_TTL}
+    if bot_name:
+        data.update(paid_btn_name="openBot", paid_btn_url="https://t.me/" + bot_name)
+    try:
+        invoice = crypto_request("createInvoice", data, cfg)
+        url = str(invoice.get("bot_invoice_url") or invoice.get("pay_url") or "")
+        if not url.startswith(("https://t.me/", "https://pay.crypt.bot/", "https://testnet-pay.crypt.bot/")):
+            raise ApiError("crypto_rejected", 502)
+    except ApiError:
+        with lock:
+            db["crypto_orders"][order_id]["status"] = "failed"
+        raise
+    with lock:
+        db["crypto_orders"][order_id].update(invoice_id=str(int(invoice["invoice_id"])), url=url, status="active")
+        save_db()
+    if invoice.get("status") == "paid":
+        crypto_credit_invoice(invoice)
+    return jsonify({"ok": True, "order_id": order_id, "invoice_url": url, "amount": amount})
+
+
+@app.post("/api/cryptobot/deposit/verify")
+def crypto_deposit_verify():
+    with lock:
+        user, body = current_user()
+        order = db.get("crypto_orders", {}).get(str(body.get("order_id") or ""))
+        if not order or order["uid"] != user["id"]:
+            raise ApiError("not_found", 404)
+        if order["status"] == "credited":
+            return jsonify({"status": "credited", "balance_ton": ton(user["balance"])})
+        if not order["invoice_id"]:
+            raise ApiError("not_ready", 409)
+        invoice_id, cfg = order["invoice_id"], crypto_cfg()
+    result = crypto_request("getInvoices", {"invoice_ids": invoice_id}, cfg)
+    items = result.get("items", []) if isinstance(result, dict) else result
+    invoice = next((x for x in items if str(x.get("invoice_id")) == invoice_id), None)
+    if invoice:
+        crypto_credit_invoice(invoice)
+        if invoice.get("status") == "expired":
+            with lock:
+                if order["status"] == "active":
+                    order["status"] = "expired"
+    with lock:
+        return jsonify({"status": order["status"], "balance_ton": ton(user["balance"])})
+
+
+@app.post("/api/cryptobot/webhook/<secret>")
+def crypto_webhook(secret):
+    cfg = crypto_cfg()
+    if not cfg["token"]:
+        return ("", 404)
+    body = request.get_data(cache=True)
+    expected = hmac.new(hashlib.sha256(cfg["token"].encode()).digest(), body, hashlib.sha256).hexdigest()
+    if (len(body) > 65536 or not hmac.compare_digest(secret, crypto_webhook_secret(cfg))
+            or not hmac.compare_digest(request.headers.get("crypto-pay-api-signature", ""), expected)):
+        return jsonify({"error": "bad_signature"}), 403
+    data = request.get_json(silent=True) or {}
+    if data.get("update_type") != "invoice_paid":
+        return jsonify({"ok": True, "ignored": True})
+    try:
+        credited = crypto_credit_invoice(data.get("payload"))
+    except ApiError as e:
+        return jsonify({"error": e.code}), 409
+    return jsonify({"ok": True, "credited": credited})
+
+
+def crypto_admin_view():
+    cfg = crypto_cfg()
+    out = {"configured": bool(cfg["token"]), "enabled": cfg["enabled"], "testnet": cfg["testnet"],
+           "env_token": cfg["env_token"], "app_name": cfg["app_name"], "bot_ready": bool(BOT_TOKEN)}
+    if cfg["token"]:
+        out["webhook_url"] = request.url_root.rstrip("/") + "/api/cryptobot/webhook/" + crypto_webhook_secret(cfg)
+    return out
+
+
+@route("/api/admin/cryptobot")
+def admin_cryptobot(user, body):
+    require_admin(user)
+    return crypto_admin_view()
+
+
+@admin_io("/api/admin/cryptobot/save")
+def admin_cryptobot_save(body):
+    with lock:
+        cfg = crypto_cfg()
+        saved = dict(db["settings"].get("crypto_pay") or {})
+    token = str(body.get("token") or "").strip()
+    if len(token) > 500 or "\n" in token or "\r" in token:
+        raise ApiError("bad_request")
+    proposed = {"token": cfg["token"] if cfg["env_token"] or not token else token,
+                "testnet": bool(body.get("testnet", cfg["testnet"])), "enabled": bool(body.get("enabled", cfg["enabled"]))}
+    if proposed["enabled"] and not proposed["token"]:
+        raise ApiError("crypto_token_missing")
+    if proposed["token"]:
+        identity = crypto_request("getMe", {}, proposed)
+        proposed.update(app_id=identity.get("app_id"), app_name=str(identity.get("name") or "")[:100])
+    with lock:
+        if not cfg["env_token"]:
+            saved["token"] = proposed["token"]
+        saved.update(testnet=proposed["testnet"], enabled=proposed["enabled"],
+                     app_id=proposed.get("app_id"), app_name=proposed.get("app_name", ""))
+        db["settings"]["crypto_pay"] = saved
+        return crypto_admin_view()
 
 
 load_db()

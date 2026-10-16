@@ -18,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер'};
+  const titles = {overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
   $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -31,7 +31,7 @@ function admShow(tab) {
   history.replaceState(null, '', '/admin#' + tab);
   if (tab === 'overview' || tab === 'finance') admLoadOverview();
   else if (tab === 'users') admLoadUsers();
-  else if (tab === 'market') admLoadMarket();
+  else if (tab === 'market') { admLoadMarket(); admLoadMarketAuto(); }
   else if (tab === 'promos') admLoadPromos();
   else if (tab === 'quests') admLoadQuests();
   else if (tab === 'withdrawals') admLoadWithdrawals();
@@ -40,26 +40,25 @@ function admShow(tab) {
   else if (tab === 'bot') admLoadBot();
   else if (tab === 'admins') admLoadAdminAccess();
   else if (tab === 'relayer') admLoadRelayer();
+  else if (tab === 'rtp') admLoadGlobalRtp();
+  else if (tab === 'payments') admLoadPayments();
 }
 
 async function admLoadGlobalRtp() {
   const box = $('admRtp');
-  if (!box) return;
   try {
     const res = await api('/api/admin/rtp');
     box.textContent = '';
-    const h = document.createElement('h3');
-    h.textContent = 'Общий RTP режимов, % (скрыт от игроков)';
-    box.appendChild(h);
     const names = { upgrade: 'Апгрейд', chests: 'Сундуки' };
+    const main = admBox('Общий RTP, %');
     const inputs = {};
     const form = admField('div', { className: 'adm-form' });
     for (const m of res.modes) {
-      const input = admField('input', { type: 'number', step: '0.1', min: '0', max: '150', value: m.global, title: `${names[m.mode]} · по умолчанию ${m.nominal}%` });
+      const input = admField('input', { type: 'number', step: '0.1', min: '0', max: '150', value: m.global, title: `По умолчанию ${m.nominal}%` });
       inputs[m.mode] = input;
-      form.append(admField('span', { textContent: `${names[m.mode]} (баз. ${m.nominal}%)` }), input);
+      form.append(admField('span', { textContent: `${names[m.mode]} · база ${m.nominal}%` }), input);
     }
-    const save = admField('button', { type: 'button', textContent: 'Сохранить' });
+    const save = admField('button', { type: 'button', className: 'primary', textContent: 'Сохранить' });
     save.addEventListener('click', async () => {
       const body = {};
       for (const m in inputs) body[m] = parseFloat(inputs[m].value);
@@ -67,12 +66,48 @@ async function admLoadGlobalRtp() {
       catch (e) { admErr(e); }
     });
     form.appendChild(save);
-    box.appendChild(form);
+    main.appendChild(form);
+    box.appendChild(main);
+    const adj = admBox('Персональные поправки');
+    if (!res.adjusted.length) adj.append('Нет');
+    for (const row of res.adjusted) {
+      const b = admField('button', { type: 'button', className: 'adm-row' });
+      const fmtAdj = (v) => (v > 0 ? '+' : '') + fmt(v, 2);
+      b.append(admField('b', { textContent: row.name }), admField('span', { textContent: `Апгрейд ${fmtAdj(row.adj.upgrade)} · Сундуки ${fmtAdj(row.adj.chests)}` }));
+      b.addEventListener('click', () => admOpenUser(row.key));
+      adj.appendChild(b);
+    }
+    box.appendChild(adj);
+  } catch (e) { admErr(e); }
+}
+
+async function admLoadMarketAuto() {
+  const box = $('admMarketAuto');
+  try {
+    const res = await api('/api/admin/market/auto');
+    box.textContent = '';
+    const h = document.createElement('h3');
+    h.textContent = 'Автообновление цен';
+    const form = admField('div', { className: 'adm-form' });
+    const on = admField('input', { type: 'checkbox', checked: res.enabled });
+    const onLabel = admField('label', { className: 'quest-launch' });
+    onLabel.append(on, document.createTextNode(' Включено'));
+    const minutes = admField('input', { type: 'number', min: '1', step: '1', value: res.minutes, placeholder: 'Минут' });
+    const save = admField('button', { type: 'button', className: 'primary', textContent: 'Сохранить' });
+    save.addEventListener('click', async () => {
+      try { await api('/api/admin/market/auto', { enabled: on.checked, minutes: parseInt(minutes.value, 10) }); toast('Сохранено'); admLoadMarketAuto(); }
+      catch (e) { admErr(e); }
+    });
+    form.append(onLabel, admField('span', { textContent: 'каждые' }), minutes, admField('span', { textContent: 'мин' }), save);
+    const info = document.createElement('p');
+    info.className = 'adm-status';
+    const when = (t) => new Date(t * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    info.textContent = res.enabled ? `Последнее: ${res.last_run ? when(res.last_run) : '—'} · следующее: ${res.next_run ? when(res.next_run) : '—'}` : 'Выключено';
+    box.append(h, form, info);
   } catch (e) { admErr(e); }
 }
 
 async function admLoadUsers() {
-  admLoadGlobalRtp();
   const list = $('admUserList');
   try {
     const res = await api('/api/admin/users', { q: $('admSearch').value });
@@ -157,6 +192,17 @@ function admRenderUser(u) {
   });
   rtp.appendChild(rtpSave);
 
+  let lockBox = null;
+  if (u.stars_lock_until * 1000 > Date.now()) {
+    const lock = admBox(`Вывод заблокирован до ${new Date(u.stars_lock_until * 1000).toLocaleDateString('ru-RU')} (Stars)`);
+    const unlock = admField('button', { type: 'button', textContent: 'Снять блокировку' });
+    unlock.addEventListener('click', async () => {
+      try { admRenderUser((await api('/api/admin/user/stars-unlock', { key: u.key })).user); toast('Блокировка снята'); } catch (e) { admErr(e); }
+    });
+    lock.appendChild(unlock);
+    lockBox = lock;
+  }
+
   const bal = admBox(`Баланс: ${fmt(u.balance_ton, 4)} TON`);
   const form = admField('div', { className: 'adm-form' });
   const amount = admField('input', { type: 'number', step: 'any', placeholder: 'Сумма, TON' });
@@ -229,7 +275,7 @@ function admRenderUser(u) {
   give.appendChild(gform);
   fillModels();
 
-  root.append(info, rtp, bal, inv, give);
+  root.append(info, ...(lockBox ? [lockBox] : []), rtp, bal, inv, give);
 }
 
 async function admLoadMarket(action, body) {

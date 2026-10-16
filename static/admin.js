@@ -39,7 +39,7 @@ async function admLoadOverview() {
 }
 function renderOverview(data) {
   const t=data.totals,u=data.users,w=data.withdrawals;
-  $('statsUpdated').textContent='Обновлено '+new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}).format(new Date(data.now*1000))+' МСК';
+  $('statsUpdated').textContent='Обновлено '+new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}).format(new Date(data.now*1000));
   $('summaryCards').replaceChildren();
   metric($('summaryCards'),'Результат бота',t.net,'Игры + доходы − расходы','TON',true,true);
   metric($('summaryCards'),'Ставки',t.stakes,fmt(t.games,0)+' завершённых игр','TON');
@@ -170,7 +170,7 @@ async function setupBot() {
 }
 function exportStats() {
   if(!overviewData)return;
-  const header=['Дата МСК','Игры','Ставки TON','Выигрыши TON','Игровой результат TON','Доходы TON','Расходы TON','Итог TON'];
+  const header=['Дата','Игры','Ставки TON','Выигрыши TON','Игровой результат TON','Доходы TON','Расходы TON','Итог TON'];
   const rows=overviewData.series.map(d=>[d.date,d.games,d.stakes,d.payouts,d.gross,d.income,d.expense,d.net]);
   const csv='\uFEFF'+[header,...rows].map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\r\n');
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=admField('a',{href:url,download:`hatdrop-${overviewData.scope}-${overviewData.series[0].date}-${overviewData.series.at(-1).date}.csv`});document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -195,7 +195,7 @@ async function startAdmin() {
     $('financeSave').disabled=true;financeRequestId ||= crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()+Math.random().toString(16).slice(2);
     try{await api('/api/admin/finance/entry',{kind:$('financeKind').value,amount,note,request_id:financeRequestId});financeRequestId=null;$('financeForm').reset();toast('Операция записана');await admLoadOverview();}catch(e){admErr(e);}finally{$('financeSave').disabled=$('statsScope').value==='demo';}};
   if(typeof ResizeObserver!=='undefined') { let sizes={};const observer=new ResizeObserver(entries=>{for(const entry of entries){const id=entry.target.id,width=entry.contentRect.width;if(width>0&&sizes[id]!==width&&overviewData){sizes[id]=width;drawChart(id,overviewData.series,id==='profitChart'?'line':'bar');}}});observer.observe($('profitChart'));observer.observe($('volumeChart'));}
-  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer'].includes(initialTab)?initialTab:'overview');
+  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer','rtp','payments'].includes(initialTab)?initialTab:'overview');
   setInterval(()=>{if(!document.hidden&&['overview','finance'].includes(admin.tab))admLoadOverview();},60000);
 }
 startAdmin().catch(()=>{$('accessMessage').textContent='Не удалось загрузить панель. Обновите страницу.';});

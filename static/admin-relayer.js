@@ -1,6 +1,7 @@
 'use strict';
 const RELAYER_STATUS = { online: 'Подключён', code_sent: 'Ждём код из Telegram', need_password: 'Нужен пароль 2FA', logged_out: 'Не подключён', login_required: 'Нужен вход', disabled: 'Выключен' };
 const RELAYER_EVENT = { delivered: 'Зачислен', baseline: 'Был до подключения', unknown_user: 'Отправитель не в игре', skipped: 'Обычный подарок', no_price: 'Нет цены' };
+const RELAYER_AUTO = { queued: 'В очереди', done: 'Выдан', failed: 'Нужен ручной вывод' };
 
 function relayerErr(e) {
   const msg = e.data && e.data.message;
@@ -14,17 +15,14 @@ async function admLoadRelayer(action, body) {
   try {
     const res = await api(action || '/api/admin/relayer/status', body || {});
     admRenderRelayer(root, res);
-    await admRenderStars(root);
-    if (res.scan) toast(res.scan.baseline ? `Базовый скан: ${res.scan.saved_gifts_count} подарков запомнено` : `Обработано: ${res.scan.processed}, зачислено: ${res.scan.delivered}`);
+    if (res.scan) toast(res.scan.baseline ? `Запомнено подарков: ${res.scan.saved_gifts_count}` : `Подарков: ${res.scan.saved_gifts_count} · зачислено: ${res.scan.delivered}`);
   } catch (e) { relayerErr(e); }
 }
 
 function relayerBox(title) {
   const box = document.createElement('div');
   box.className = 'adm-box';
-  const h = document.createElement('h3');
-  h.textContent = title;
-  box.appendChild(h);
+  if (title) { const h = document.createElement('h3'); h.textContent = title; box.appendChild(h); }
   return box;
 }
 
@@ -37,6 +35,14 @@ function relayerField(label, attrs) {
   return [wrap, input];
 }
 
+function relayerCheck(label, checked) {
+  const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked });
+  const wrap = document.createElement('label');
+  wrap.className = 'quest-launch';
+  wrap.append(input, document.createTextNode(' ' + label));
+  return [wrap, input];
+}
+
 function relayerButton(text, handler, cls) {
   const b = Object.assign(document.createElement('button'), { type: 'button', textContent: text });
   if (cls) b.className = cls;
@@ -44,44 +50,59 @@ function relayerButton(text, handler, cls) {
   return b;
 }
 
+function relayerRows(box, rows) {
+  const dl = document.createElement('dl');
+  dl.className = 'status-list';
+  for (const [k, v] of rows) {
+    const d = document.createElement('div');
+    const dt = Object.assign(document.createElement('dt'), { textContent: k });
+    const dd = Object.assign(document.createElement('dd'), { textContent: v });
+    d.append(dt, dd);
+    dl.appendChild(d);
+  }
+  box.appendChild(dl);
+}
+
+function relayerGiftLine(img, name, meta) {
+  const line = document.createElement('div');
+  line.className = 'adm-prize';
+  line.append(
+    Object.assign(document.createElement('img'), { alt: '', loading: 'lazy', src: img || '/images/hat.webp' }),
+    Object.assign(document.createElement('b'), { textContent: name }),
+    Object.assign(document.createElement('em'), { textContent: meta }));
+  return line;
+}
+
 function admRenderRelayer(root, r) {
   root.textContent = '';
   const st = r.state || {};
   const acc = st.account || {};
+  const when = (t) => (t ? new Date(t * 1000).toLocaleString('ru-RU') : '—');
 
-  const info = relayerBox('Привязка Telegram-аккаунта');
-  const p = document.createElement('p');
-  p.className = 'muted';
-  p.textContent = `Игрок дарит NFT этому аккаунту → подарок попадает в инвентарь картинкой по цене Portals −${r.accept_percent}%, продать можно по этой цене.`;
-  const dl = document.createElement('dl');
-  dl.className = 'status-list';
-  const row = (k, v) => { const d = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; d.append(dt, dd); dl.appendChild(d); };
-  row('Статус', RELAYER_STATUS[st.status] || (st.authorized ? 'Подключён' : 'Не подключён'));
-  row('Аккаунт', acc.username ? '@' + acc.username : (acc.name || '—'));
-  row('Подарков в аккаунте', st.saved_gifts_count ?? '—');
-  row('Последний скан', st.last_scan ? new Date(st.last_scan * 1000).toLocaleString('ru-RU') : '—');
-  if (st.error) row('Ошибка', st.error);
-  if (!r.available) row('Telethon', 'не установлен на сервере');
-  info.append(p, dl);
+  const info = relayerBox('Аккаунт релейера');
+  relayerRows(info, [
+    ['Статус', RELAYER_STATUS[st.status] || (st.authorized ? 'Подключён' : 'Не подключён')],
+    ['Имя', acc.name || '—'],
+    ['Username', acc.username ? '@' + acc.username : '—'],
+    ['Telegram ID', acc.id || '—'],
+    ['Телефон', acc.phone ? '+' + String(acc.phone).replace(/^\+/, '') : '—'],
+    ['Stars на балансе', st.stars_balance ?? '—'],
+    ['Подарков на аккаунте', st.saved_gifts_count ?? '—'],
+    ['Последняя проверка', when(st.last_scan)],
+    ...(st.error ? [['Ошибка', st.error]] : []),
+    ...(r.available ? [] : [['Telethon', 'не установлен на сервере']]),
+  ]);
+  if (st.authorized) {
+    const row = document.createElement('div');
+    row.className = 'adm-form';
+    row.append(relayerButton('Загрузить подарки', () => admLoadRelayer('/api/admin/relayer/scan')),
+      relayerButton('Выйти из аккаунта', async () => { if (confirm('Отвязать аккаунт?')) await admLoadRelayer('/api/admin/relayer/logout'); }, 'danger'));
+    info.appendChild(row);
+  }
   root.appendChild(info);
 
-  const cfg = relayerBox('API Telegram');
-  const [l1, idInput] = relayerField('API ID (my.telegram.org)', { type: 'text', inputMode: 'numeric', value: r.api_id || '' });
-  const [l2, hashInput] = relayerField('API hash', { type: 'password', placeholder: r.api_hash_set ? r.api_hash_mask + ' (задан)' : '' });
-  const enabled = Object.assign(document.createElement('input'), { type: 'checkbox', checked: r.enabled });
-  const enLabel = document.createElement('label');
-  enLabel.className = 'quest-launch';
-  enLabel.append(enabled, document.createTextNode(' Принимать подарки (сканер включён)'));
-  cfg.append(l1, l2, enLabel, relayerButton('Сохранить', async () => {
-    try { admRenderRelayer(root, await api('/api/admin/relayer/settings', { api_id: idInput.value, api_hash: hashInput.value, enabled: enabled.checked })); toast('Сохранено'); } catch (e) { relayerErr(e); }
-  }));
-  root.appendChild(cfg);
-
-  const login = relayerBox('Вход в аккаунт');
-  if (st.authorized) {
-    login.append(relayerButton('Проверить сейчас', () => admLoadRelayer('/api/admin/relayer/scan')),
-      relayerButton('Выйти из аккаунта', async () => { if (confirm('Отвязать аккаунт?')) await admLoadRelayer('/api/admin/relayer/logout'); }, 'danger'));
-  } else {
+  if (!st.authorized) {
+    const login = relayerBox('Вход');
     const [lp, phone] = relayerField('Телефон', { type: 'tel', placeholder: '+79990000000', value: (r.auth && r.auth.phone) || '' });
     login.append(lp, relayerButton('Получить код', () => admLoadRelayer('/api/admin/relayer/login/phone', { phone: phone.value })));
     const [lc, code] = relayerField('Код из Telegram', { type: 'text', inputMode: 'numeric' });
@@ -90,36 +111,47 @@ function admRenderRelayer(root, r) {
       const [lw, pw] = relayerField('Пароль 2FA', { type: 'password' });
       login.append(lw, relayerButton('Войти по паролю', () => admLoadRelayer('/api/admin/relayer/login/password', { password: pw.value })));
     }
+    root.appendChild(login);
   }
-  root.appendChild(login);
 
-  const log = relayerBox('Последние подарки');
+  const cfg = relayerBox('Настройки');
+  const [l1, idInput] = relayerField('API ID', { type: 'text', inputMode: 'numeric', value: r.api_id || '' });
+  const [l2, hashInput] = relayerField('API hash', { type: 'password', placeholder: r.api_hash_set ? r.api_hash_mask + ' (задан)' : '' });
+  const [enWrap, enabled] = relayerCheck('Принимать подарки', r.enabled);
+  const [autoWrap, autoOn] = relayerCheck('Автовывод подарков с релейера', r.auto.enabled);
+  const [limWrap, limOn] = relayerCheck('Лимит автовывода', r.auto.limit_enabled);
+  const [l3, limit] = relayerField('Лимит, TON (дороже — только ручной вывод)', { type: 'number', min: '0.01', step: '0.01', value: r.auto.limit_ton });
+  cfg.append(l1, l2, enWrap, autoWrap, limWrap, l3, relayerButton('Сохранить', async () => {
+    try {
+      admRenderRelayer(root, await api('/api/admin/relayer/settings', {
+        api_id: idInput.value, api_hash: hashInput.value, enabled: enabled.checked,
+        auto_enabled: autoOn.checked, auto_limit_enabled: limOn.checked, auto_limit_ton: parseFloat(limit.value) || 10 }));
+      toast('Сохранено');
+    } catch (e) { relayerErr(e); }
+  }));
+  root.appendChild(cfg);
+
+  const gifts = relayerBox(`Подарки на релейере · ${r.gifts.length}`);
+  if (!r.gifts.length) gifts.append('Пусто — нажмите «Загрузить подарки»');
+  for (const g of r.gifts) {
+    const locked = g.can_transfer_at * 1000 > Date.now();
+    gifts.appendChild(relayerGiftLine(g.slug ? `/nft-img/${g.slug.toLowerCase()}.png` : '', `${g.title}${g.number ? ' #' + g.number : ''}`,
+      [g.model, g.backdrop, locked ? 'передача с ' + new Date(g.can_transfer_at * 1000).toLocaleDateString('ru-RU') : '', g.transfer_stars ? g.transfer_stars + ' ⭐' : ''].filter(Boolean).join(' · ')));
+  }
+  root.appendChild(gifts);
+
+  const wd = relayerBox('Последние выводы');
+  if (!r.withdrawals.length) wd.append('Пока пусто');
+  for (const w of r.withdrawals) {
+    wd.appendChild(relayerGiftLine(w.image, w.name, `${RELAYER_AUTO[w.auto] || w.auto} · ${fmt(w.value_ton, 2)} TON · @${w.user} · ${when(w.updated)}${w.auto_error ? ' · ' + w.auto_error : ''}`));
+  }
+  root.appendChild(wd);
+
+  const log = relayerBox('Последние пополнения подарками');
   if (!r.events.length) log.append('Пока пусто');
   for (const ev of r.events) {
-    const line = document.createElement('div');
-    line.className = 'adm-prize';
-    const img = Object.assign(document.createElement('img'), { alt: '', src: ev.slug ? `/nft-img/${ev.slug.toLowerCase()}.png` : '/images/hat.webp' });
-    const name = Object.assign(document.createElement('b'), { textContent: `${ev.title}${ev.number ? ' #' + ev.number : ''}` });
-    const val = Object.assign(document.createElement('em'), { textContent: `${RELAYER_EVENT[ev.status] || ev.status}${ev.price_ton ? ' · ' + fmt(ev.price_ton, 2) + ' TON' : ''} · ID ${ev.sender_id}` });
-    line.append(img, name, val);
-    log.appendChild(line);
+    log.appendChild(relayerGiftLine(ev.slug ? `/nft-img/${ev.slug.toLowerCase()}.png` : '', `${ev.title}${ev.number ? ' #' + ev.number : ''}`,
+      `${RELAYER_EVENT[ev.status] || ev.status}${ev.price_ton ? ' · ' + fmt(ev.price_ton, 2) + ' TON' : ''} · ID ${ev.sender_id}`));
   }
   root.appendChild(log);
-}
-
-async function admRenderStars(root) {
-  const res = await api('/api/admin/stars');
-  const box = relayerBox('Пополнение Telegram Stars');
-  const p = document.createElement('p');
-  p.className = 'muted';
-  p.textContent = res.bot_ready ? 'Счёт создаётся через бота, зачисление — после подтверждения оплаты Telegram. После оплаты вывод подарков блокируется на 21 день.' : 'Нужен BOT_TOKEN на сервере и подключённый бот (раздел «Telegram-бот»).';
-  const [l, per] = relayerField('Курс: сколько Stars за 1 TON', { type: 'number', min: '1', max: '100000', step: '1', value: res.stars.per_ton });
-  const enabled = Object.assign(document.createElement('input'), { type: 'checkbox', checked: res.stars.enabled });
-  const label = document.createElement('label');
-  label.className = 'quest-launch';
-  label.append(enabled, document.createTextNode(' Пополнение Stars включено'));
-  box.append(p, l, label, relayerButton('Сохранить', async () => {
-    try { await api('/api/admin/stars/save', { per_ton: parseInt(per.value, 10), enabled: enabled.checked }); toast('Сохранено'); } catch (e) { relayerErr(e); }
-  }));
-  root.appendChild(box);
 }

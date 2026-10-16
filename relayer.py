@@ -8,6 +8,7 @@ import asyncio
 import inspect
 import io
 import re
+import time
 
 
 class RelayerError(RuntimeError):
@@ -180,8 +181,24 @@ def entry_info(entry):
     saved_id = str(getattr(entry, "saved_id", "") or getattr(entry, "msg_id", "") or getattr(entry, "id", "") or "")
     sender = _peer_id(getattr(entry, "from_id", None) or getattr(entry, "sender_id", None))
     key = saved_id or slug or f"{getattr(gift, 'id', '')}:{sender}:{getattr(entry, 'date', '')}"
+    try:
+        transfer_stars = max(0, int(getattr(entry, "transfer_stars", 0) or getattr(gift, "transfer_stars", 0) or 0))
+    except (TypeError, ValueError):
+        transfer_stars = 0
+    can_at = getattr(entry, "can_transfer_at", None) or getattr(gift, "can_transfer_at", None)
+    if hasattr(can_at, "timestamp"):
+        try:
+            can_at = int(can_at.timestamp())
+        except Exception:
+            can_at = 0
+    try:
+        can_at = max(0, int(can_at or 0))
+    except (TypeError, ValueError):
+        can_at = 0
     return {
         "key": "tg:" + str(key),
+        "transfer_stars": transfer_stars,
+        "can_transfer_at": can_at,
         "sender_id": sender,
         "slug": slug,
         "title": title or "Telegram NFT",
@@ -189,6 +206,34 @@ def entry_info(entry):
         "model": _attribute(gift, "model"),
         "backdrop": _attribute(gift, "backdrop"),
     }
+
+
+def _stars_value(value):
+    for name in ("amount", "stars", "value"):
+        if hasattr(value, name):
+            return _stars_value(getattr(value, name))
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+async def _stars_balance(client):
+    _, functions, *_ = _imports()
+    payments = getattr(functions, "payments", None)
+    cls = getattr(payments, "GetStarsStatusRequest", None) if payments else None
+    if cls is None:
+        return 0
+    peer = await client.get_input_entity("me")
+    kwargs = {}
+    for name, param in inspect.signature(cls.__init__).parameters.items():
+        if name == "self":
+            continue
+        if name == "peer":
+            kwargs[name] = peer
+        elif param.default is inspect._empty:
+            kwargs[name] = False
+    return _stars_value(getattr(await client(cls(**kwargs)), "balance", 0))
 
 
 async def fetch_gifts(api_id, api_hash, session):
@@ -199,7 +244,11 @@ async def fetch_gifts(api_id, api_hash, session):
             return {"status": "login_required"}, await _finish(client)
         me = account_dict(await client.get_me())
         gifts = [entry_info(e) for e in await _saved_gifts(client)]
-        return {"status": "online", "account": me, "gifts": gifts}, await _finish(client)
+        try:
+            stars = await _stars_balance(client)
+        except Exception:
+            stars = None
+        return {"status": "online", "account": me, "gifts": gifts, "stars_balance": stars}, await _finish(client)
     except BaseException:
         await _finish(client)
         raise
@@ -222,3 +271,91 @@ def crop_png(data, pad=0.04, size=512):
     out = io.BytesIO()
     canvas.save(out, "PNG", optimize=True)
     return out.getvalue()
+
+
+def match_job(items, job):
+    """items: [(entry, info)]; job: {slug, collection, model}. Первый подходящий подарок или (None, None)."""
+    def norm(v):
+        return re.sub(r"[^a-z0-9]+", "", str(v or "").casefold())
+    for entry, info in items:
+        slug = info.get("slug") or ""
+        if not slug:
+            continue
+        if job.get("slug"):
+            if slug.casefold() == job["slug"].casefold():
+                return entry, info
+            continue
+        base = norm(re.sub(r"-\d+$", "", slug))
+        want = norm(job.get("collection"))
+        if want and want not in (norm(info.get("title")), base):
+            continue
+        if job.get("model") and norm(info.get("model")) != norm(job["model"]):
+            continue
+        return entry, info
+    return None, None
+
+
+async def _transfer(client, entry_info_, target):
+    from telethon import types
+    _, functions, *_ = _imports()
+    can_at = int(entry_info_.get("can_transfer_at") or 0)
+    if can_at and can_at > time.time():
+        raise RelayerError(f"NFT пока нельзя передать: Telegram transfer lock ещё {int(can_at - time.time())} сек.")
+    saved_cls = getattr(types, "InputSavedStarGiftSlug", None)
+    if saved_cls is None:
+        raise RelayerError("Текущая версия Telethon не поддерживает InputSavedStarGiftSlug.")
+    try:
+        peer = await client.get_input_entity("@" + target["username"] if target.get("username") else int(target["tg_id"]))
+    except Exception as exc:
+        raise RelayerError("Не удалось определить Telegram-получателя.") from exc
+    stargift = saved_cls(slug=entry_info_["slug"])
+    price = int(entry_info_.get("transfer_stars") or 0)
+    if price:
+        if await _stars_balance(client) < price:
+            raise RelayerError("Недостаточно Stars на релейере.")
+        invoice = types.InputInvoiceStarGiftTransfer(stargift=stargift, to_id=peer)
+        form = await client(functions.payments.GetPaymentFormRequest(invoice=invoice))
+        await client(functions.payments.SendStarsFormRequest(form_id=form.form_id, invoice=invoice))
+    else:
+        await client(functions.payments.TransferStarGiftRequest(stargift=stargift, to_id=peer))
+    return price
+
+
+def classify_error(message):
+    low = message.casefold()
+    if "stars" in low:
+        return "insufficient_stars"
+    if "lock" in low or "пока нельзя" in low:
+        return "blocked"
+    if "получател" in low:
+        return "recipient_unavailable"
+    return "error"
+
+
+async def transfer_jobs(api_id, api_hash, session, jobs):
+    """Передаёт подарки с релейера получателям. jobs: [{id, tg_id, username, slug, collection, model}]."""
+    client = _client(api_id, api_hash, session)
+    results = []
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            raise RelayerError("Релейер не авторизован.")
+        entries = await _saved_gifts(client)
+        items = [(e, entry_info(e)) for e in entries]
+        for job in jobs:
+            entry, info = match_job(items, job)
+            if not info:
+                results.append({"id": job["id"], "status": "not_found", "error": "Подарок не найден на релейере."})
+                continue
+            try:
+                paid = await _transfer(client, info, job)
+            except Exception as exc:
+                msg = str(exc)[:300]
+                results.append({"id": job["id"], "status": classify_error(msg), "error": msg, "slug": info["slug"]})
+                continue
+            items = [(e, i) for e, i in items if i["slug"] != info["slug"]]
+            results.append({"id": job["id"], "status": "completed", "slug": info["slug"], "transfer_stars": paid})
+        return results, await _finish(client)
+    except BaseException:
+        await _finish(client)
+        raise

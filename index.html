@@ -1672,7 +1672,7 @@ html[data-lang="zh"] .pwallet { font-size: 12px; }
 }
 .amt.active { background: var(--violet-dark); border-color: var(--violet-soft); color: var(--gold); }
 
-#depositAmount, #starsAmount {
+#depositAmount, #starsAmount, #cryptoAmount {
   width: 100%;
   padding: 13px;
   margin-bottom: 12px;
@@ -1745,6 +1745,15 @@ html[data-theme="meadow"] .modal-card .dep-m-copy b, html[data-theme="meadow"] .
 html[data-theme="meadow"] .modal-card :is(.dep-m-copy small, .dep-quote, .dep-back, .dep-lock small) { color: #ecd5ab; }
 html[data-theme="meadow"] .modal-card .dep-lock { background: #3f2411; border: 3px solid #2e1a0c; border-radius: 9px; }
 html[data-theme="meadow"] .modal-card #starsAmount { color: #fff1d0; background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px; }
+
+.dep-crypto .dep-m-ico { background: radial-gradient(circle at 35% 25%, rgba(70, 170, 255, .28), rgba(40, 110, 220, .1)), #0d0830; }
+.dep-crypto-pay { background: linear-gradient(180deg, #5fb4ff 0%, #2b82e0 100%); border-color: #143c86; color: #fff; }
+.dep-card .cta:disabled { opacity: .6; }
+#depositModal .modal-card { max-width: min(380px, calc(100vw - 20px)); }
+@media (max-width: 360px) { .dep-method { gap: 9px; padding: 9px; } .dep-m-ico { width: 44px; height: 44px; } .dep-m-ico img { width: 32px; height: 32px; } .dep-m-copy small { font-size: 7px; } }
+@media (max-height: 620px) { .dep-methods { gap: 7px; margin: 8px 0; } .dep-method { padding: 8px; } }
+html[data-theme="meadow"] .modal-card #cryptoAmount { color: #fff1d0; background: #2a1708; border: 3px solid #2e1a0c; border-radius: 8px; }
+body.tier-onyx .dep-method, body.tier-black .dep-method { background: rgba(255, 255, 255, .05); }
 .gift-dep-btn { margin-top: 8px; background: #2d6bd6; border-color: #143c86;
                 box-shadow: inset 3px 3px 0 #7fb0ff, inset -3px -3px 0 #143c86; }
 .gift-modal { max-width: 360px; }
@@ -2972,7 +2981,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
 <link rel="stylesheet" href="/static/halloween-fx.css?v=2">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=11">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=12">
 <style id="mines-palette">
 /* Geometry is shared; artwork and colors follow the server-controlled event. */
 #view-chests {
@@ -3796,6 +3805,11 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           <span class="dep-m-copy"><b>TON</b><small>Через TON Connect, зачисление в течение минуты</small></span>
           <span class="dep-m-arrow">›</span>
         </button>
+        <button class="dep-method dep-crypto" id="depChooseCrypto" type="button" data-method="crypto" hidden="">
+          <span class="dep-m-ico"><img src="/static/img/cryptobot.png" alt="CryptoBot" draggable="false"></span>
+          <span class="dep-m-copy"><b>CryptoBot</b><small>Оплата TON в Telegram через @CryptoBot</small></span>
+          <span class="dep-m-arrow">›</span>
+        </button>
         <button class="dep-method dep-stars" id="depChooseStars" type="button" data-method="stars">
           <span class="dep-m-ico"><img src="/static/img/star.png" alt="Stars" draggable="false"></span>
           <span class="dep-m-copy"><b>Telegram Stars</b><small>Оплата звёздами через бота</small></span>
@@ -3827,6 +3841,21 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
       </div>
       <input type="number" id="depositAmount" min="0.1" step="0.1" value="10" inputmode="decimal">
       <button class="cta" id="depositSendBtn">Отправить TON</button>
+    </div>
+
+    <div class="dep-step" id="depStepCrypto" hidden="">
+      <button class="dep-back" type="button" data-dep-back>← Способы пополнения</button>
+      <h2><img class="dep-head-ico" src="/static/img/cryptobot.png" alt="" draggable="false">Пополнение CryptoBot</h2>
+      <div class="amount-row">
+        <button class="amt" data-amt="1" data-target="cryptoAmount">1</button>
+        <button class="amt" data-amt="5" data-target="cryptoAmount">5</button>
+        <button class="amt" data-amt="10" data-target="cryptoAmount">10</button>
+        <button class="amt" data-amt="25" data-target="cryptoAmount">25</button>
+      </div>
+      <input type="number" id="cryptoAmount" min="0.1" step="0.1" value="5" inputmode="decimal" aria-label="Сумма пополнения в TON">
+      <button class="cta dep-crypto-pay" id="cryptoPayBtn" type="button">Создать счёт</button>
+      <button class="ghost" id="cryptoCheckBtn" type="button" hidden="">Проверить оплату</button>
+      <p class="dep-status" id="cryptoStatus" hidden=""></p>
     </div>
 
     <div class="dep-step" id="depStepStars" hidden="">
@@ -5261,6 +5290,7 @@ function renderState(s) {
   renderChests();
   giftCfg = s.config.gift_deposit || null;
   starsCfg = s.config.stars_deposit || null;
+  cryptoCfg = s.config.crypto_deposit || null;
   syncDepositMethods();
   setWithdrawLock(s);
 
@@ -7342,14 +7372,17 @@ async function sendDeposit() {
 }
 
 let starsCfg = null;
+let cryptoCfg = null;
+let cryptoOrder = null;
 
 function setDepStep(step) {
-  for (const id of ['Methods', 'Ton', 'Stars']) $('depStep' + id).hidden = id !== step;
+  for (const id of ['Methods', 'Ton', 'Crypto', 'Stars']) $('depStep' + id).hidden = id !== step;
   $('depositCard').dataset.step = step.toLowerCase();
   $('starsStatus').hidden = true;
 }
 
 function syncDepositMethods() {
+  $('depChooseCrypto').hidden = !(cryptoCfg && cryptoCfg.enabled);
   const stars = !!(starsCfg && starsCfg.enabled);
   $('depChooseStars').disabled = !stars;
   $('depChooseStars').querySelector('small').textContent = stars
@@ -7418,6 +7451,58 @@ async function payStars() {
   } catch (e) {
     const known = { stars_disabled: 'Пополнение Stars выключено', telegram_required: 'Откройте игру из Telegram', bad_amount: 'Неверная сумма', invoice_failed: 'Не удалось создать счёт' };
     starsStatus(tr(known[e.code] || 'Не удалось создать счёт'), true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function cryptoStatus(text, error) {
+  const el = $('cryptoStatus');
+  el.hidden = !text;
+  el.textContent = text || '';
+  el.style.color = error ? '#ff8b8b' : '';
+}
+
+async function checkCrypto(quiet) {
+  if (!cryptoOrder) return false;
+  try {
+    const st = await api('/api/cryptobot/deposit/verify', { order_id: cryptoOrder.order_id });
+    if (st.status === 'credited') {
+      const amount = cryptoOrder.amount;
+      cryptoOrder = null;
+      $('depositModal').hidden = true;
+      toast(tr('Зачислено {sum} TON', { sum: fmt(amount, 2) }));
+      haptic('notification', 'success');
+      refresh();
+      return true;
+    }
+    if (st.status === 'expired') { cryptoOrder = null; $('cryptoCheckBtn').hidden = true; cryptoStatus(tr('Счёт истёк. Создайте новый.'), true); }
+    else if (!quiet) cryptoStatus(tr('Оплата пока не найдена'));
+  } catch (e) { if (!quiet) cryptoStatus(tr('Не удалось проверить оплату'), true); }
+  return false;
+}
+
+async function payCrypto() {
+  if (!cryptoCfg || !cryptoCfg.enabled) return;
+  const amount = parseFloat($('cryptoAmount').value);
+  if (!(amount >= cryptoCfg.min_ton)) { toast(tr('Минимум {sum} TON', { sum: fmt(cryptoCfg.min_ton, 2) }), true); return; }
+  const btn = $('cryptoPayBtn');
+  btn.disabled = true;
+  cryptoStatus('');
+  try {
+    cryptoOrder = await api('/api/cryptobot/deposit/create', { amount });
+    if (tg?.openTelegramLink && /^https:\/\/t\.me\//.test(cryptoOrder.invoice_url)) tg.openTelegramLink(cryptoOrder.invoice_url);
+    else window.open(cryptoOrder.invoice_url, '_blank');
+    $('cryptoCheckBtn').hidden = false;
+    cryptoStatus(tr('Оплатите счёт в CryptoBot — баланс обновится автоматически'));
+    for (let i = 0; i < 45 && cryptoOrder; i++) {
+      await new Promise((r) => setTimeout(r, 4000));
+      if ($('depositModal').hidden) break;
+      if (await checkCrypto(true)) return;
+    }
+  } catch (e) {
+    const known = { crypto_disabled: 'Пополнение через CryptoBot выключено', telegram_required: 'Откройте игру из Telegram', bad_amount: 'Неверная сумма', too_many_requests: 'Слишком много счетов, подождите' };
+    cryptoStatus(tr(known[e.code] || 'Не удалось создать счёт'), true);
   } finally {
     btn.disabled = false;
   }
@@ -7627,6 +7712,9 @@ function bind() {
   document.querySelectorAll('[data-dep-back]').forEach((b) => b.addEventListener('click', () => setDepStep('Methods')));
   $('starsAmount').addEventListener('input', updateStarsQuote);
   $('starsPayBtn').addEventListener('click', payStars);
+  $('depChooseCrypto').addEventListener('click', () => setDepStep('Crypto'));
+  $('cryptoPayBtn').addEventListener('click', payCrypto);
+  $('cryptoCheckBtn').addEventListener('click', () => checkCrypto(false));
   $('giftCloseBtn').addEventListener('click', () => { $('giftModal').hidden = true; refresh(); });
   $('giftOpenAccount').addEventListener('click', openGiftAccount);
   $('coinChip').addEventListener('click', openDeposit);

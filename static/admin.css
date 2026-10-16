@@ -15,3 +15,15 @@
 
 /* Quests admin editor: responsive controls and accessible progress management */
 .quest-launch{display:flex!important;flex-direction:row!important;gap:12px!important;align-items:center;line-height:1.5;color:#d5dff0!important}.quest-launch input{width:19px!important;height:19px;flex:none;accent-color:#7a93fd}.quest-admin-list{display:grid;gap:10px;margin-top:14px}.quest-admin-row{border:1px solid #344157;background:#101827;border-radius:10px;padding:15px;display:grid;gap:10px;min-width:0}.quest-admin-row b{font-size:14px;color:#edf2ff}.quest-admin-row small{color:#9caac0;line-height:1.7;overflow-wrap:anywhere}.quest-admin-row .adm-form{display:flex;gap:8px;flex-wrap:wrap}.quest-admin-row button{min-width:92px}#questForm input,#questForm select{width:100%;max-width:100%}#questForm .adm-form{display:flex;gap:12px;flex-wrap:wrap}@media(max-width:560px){#admQuests .panel{padding:15px}.quest-admin-row{padding:12px}#questForm .adm-form button{width:100%}}
+#admRelayer,#admPayments,#admRtp{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start}
+#admRelayer>.adm-box,#admPayments>.adm-box,#admRtp>.adm-box{margin:0}
+#admRelayer>.adm-box:first-child,#admRelayer>.adm-box:nth-last-child(-n+3){grid-column:1/-1}
+.adm-box .tc-input{width:100%;max-width:none}
+.adm-box>button,.adm-box>.adm-form+button{margin-top:12px}
+.adm-box .tc-label{margin-top:14px}
+.adm-box .adm-form button.primary,.adm-box>button.primary{background:#4669e8;border-color:#4669e8;color:#fff}
+.adm-box .status-list{margin-bottom:12px}
+.adm-box .adm-prize{border-radius:8px}
+.adm-prize em{flex:1 1 100%;font-size:11px}
+@media(min-width:1000px){.adm-prize em{flex:0 1 auto;margin-left:auto;text-align:right}}
+.adm-status{color:var(--muted);font-size:12px;margin:12px 0 0}
