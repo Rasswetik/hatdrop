@@ -10,11 +10,25 @@ function relayerErr(e) {
   if (text) { $('panelError').textContent = text; $('panelError').hidden = false; toast(text, true); } else admErr(e);
 }
 
+let relayerPoll = null;
+function relayerLoadQrLib() {
+  if (window.QRCode) return Promise.resolve();
+  if (!window.__qrLib) window.__qrLib = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';
+    s.onload = resolve; s.onerror = () => reject(new Error('qr lib'));
+    document.head.append(s);
+  });
+  return window.__qrLib;
+}
+
 async function admLoadRelayer(action, body) {
   const root = $('admRelayer');
   try {
+    clearTimeout(relayerPoll);
     const res = await api(action || '/api/admin/relayer/status', body || {});
     admRenderRelayer(root, res);
+    if (['qr_starting', 'qr_wait'].includes(res.state && res.state.status) && admin.tab === 'relayer') relayerPoll = setTimeout(() => admLoadRelayer(), 2500);
     if (res.scan) toast(res.scan.baseline ? `Запомнено подарков: ${res.scan.saved_gifts_count}` : `Подарков: ${res.scan.saved_gifts_count} · зачислено: ${res.scan.delivered}`);
   } catch (e) { relayerErr(e); }
 }
@@ -125,6 +139,30 @@ function admRenderRelayer(root, r) {
       note.className = 'tc-info';
       note.textContent = 'Код принят. На аккаунте включена двухфакторная защита — введите пароль 2FA и нажмите «Войти».';
       login.append(note);
+    }
+    login.append(relayerButton('Войти по QR-коду', () => admLoadRelayer('/api/admin/relayer/login/qr')));
+    if (['qr_starting', 'qr_wait'].includes(st.status)) {
+      const qrBox = document.createElement('div');
+      qrBox.className = 'relayer-qr';
+      const qrNote = document.createElement('p');
+      qrNote.className = 'tc-info';
+      qrNote.textContent = st.status === 'qr_starting' ? 'Готовим QR…' : 'Telegram на телефоне → Настройки → Устройства → Подключить устройство → отсканируйте код. QR обновляется сам.';
+      qrBox.append(qrNote);
+      const url = r.auth && r.auth.qr_url;
+      if (url) {
+        const canvas = document.createElement('div');
+        canvas.className = 'relayer-qr-canvas';
+        qrBox.append(canvas);
+        relayerLoadQrLib().then(() => new QRCode(canvas, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M }))
+          .catch(() => { canvas.textContent = url; canvas.style.wordBreak = 'break-all'; });
+      }
+      login.append(qrBox);
+    }
+    if (st.status === 'qr_expired') {
+      const exp = document.createElement('p');
+      exp.className = 'tc-info';
+      exp.textContent = 'QR-код истёк. Нажмите «Войти по QR-коду» ещё раз.';
+      login.append(exp);
     }
     const sessBox = document.createElement('details');
     const sum = document.createElement('summary');

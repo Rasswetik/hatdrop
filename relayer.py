@@ -126,6 +126,32 @@ async def phone_start(api_id, api_hash, session, phone):
         raise
 
 
+async def qr_login_flow(api_id, api_hash, on_url, total=150):
+    """Вход по QR: on_url(url) вызывается при каждом новом токене и возвращает False, если попытку заменили."""
+    _, _, _, NeedPassword, *_ = _imports()
+    client = _client(api_id, api_hash, "")
+    try:
+        await client.connect()
+        qr = await client.qr_login()
+        deadline = time.time() + total
+        while True:
+            if not on_url(str(qr.url)):
+                return {"status": "cancelled"}, ""
+            try:
+                await qr.wait(timeout=25)
+                break
+            except NeedPassword:
+                return {"status": "need_password"}, await _finish(client)
+            except (asyncio.TimeoutError, TimeoutError):
+                if time.time() > deadline:
+                    return {"status": "expired"}, await _finish(client)
+                await qr.recreate()
+        return {"status": "authorized", "account": account_dict(await client.get_me())}, await _finish(client)
+    except BaseException:
+        await _finish(client)
+        raise
+
+
 async def session_check(api_id, api_hash, session):
     """Проверить готовую StringSession (созданную локально) и получить аккаунт."""
     client = _client(api_id, api_hash, session)

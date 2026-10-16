@@ -42,3 +42,4 @@
 .em-img{width:20px;height:20px;object-fit:contain;vertical-align:-4px;margin:0 1px}
 .em-picker{margin:-6px 0 6px}.em-picker .em-chips{margin-top:8px}.em-picker .em-chips button{min-height:36px;padding:4px 8px}
 .em-chip b img{width:22px;height:22px}
+.relayer-qr{margin:14px 0}.relayer-qr-canvas{background:#fff;padding:12px;border-radius:12px;display:inline-block;color:#111;max-width:100%}

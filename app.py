@@ -4147,7 +4147,8 @@ def relayer_status_view():
                         for r in sorted((r for r in db.get("withdrawals", {}).values() if r.get("auto") in ("queued", "done", "failed")),
                                         key=lambda r: r.get("updated", 0), reverse=True)[:25]],
         "auth": {"status": doc["auth"].get("status", ""), "phone": doc["auth"].get("phone", ""),
-                 "delivery": doc["auth"].get("delivery", ""), "next": doc["auth"].get("next", "")},
+                 "delivery": doc["auth"].get("delivery", ""), "next": doc["auth"].get("next", ""),
+                 "qr_url": doc["auth"].get("qr_url", "") if doc["auth"].get("status") == "qr_wait" else ""},
         "accept_percent": round(GIFT_ACCEPT_RATE * 100),
         "events": events,
     }
@@ -4226,6 +4227,67 @@ def admin_relayer_phone(body):
         return relayer_status_view_locked()
     _relayer_store(session, "code_sent", {"status": "code_sent", "phone": phone, "phone_code_hash": result["phone_code_hash"],
                                           "delivery": result.get("delivery", ""), "next": result.get("next", "")})
+    return relayer_status_view_locked()
+
+
+def _relayer_qr_worker(attempt_id, api_id, api_hash):
+    def on_url(url):
+        with lock:
+            doc = relayer_doc()
+            if doc["auth"].get("attempt_id") != attempt_id:
+                return False
+            doc["auth"] = {"status": "qr_wait", "attempt_id": attempt_id, "qr_url": url}
+            doc["state"].update(status="qr_wait", authorized=False, error="")
+            save_db()
+        return True
+    try:
+        result, session = relayer_lib.run(relayer_lib.qr_login_flow(api_id, api_hash, on_url))
+        status = result["status"]
+        if status == "cancelled":
+            return
+        with lock:
+            if relayer_doc()["auth"].get("attempt_id") != attempt_id:
+                return
+        if status == "authorized":
+            _relayer_store(session, "online", {"status": "authorized"}, result["account"])
+        elif status == "need_password":
+            _relayer_store(session, "need_password", {"status": "need_password", "attempt_id": attempt_id})
+        else:
+            _relayer_store(None, "login_required", {"status": "qr_expired", "attempt_id": attempt_id})
+    except Exception as exc:
+        print(f"relayer qr failed: {type(exc).__name__}: {exc}", flush=True)
+        with lock:
+            doc = relayer_doc()
+            if doc["auth"].get("attempt_id") == attempt_id:
+                doc["auth"] = {"status": "qr_error", "attempt_id": attempt_id}
+                doc["state"].update(status="login_error", authorized=False, error=relayer_lib.explain(exc))
+    with lock:
+        save_db()
+    try:
+        flush_db()
+    except Exception as exc:
+        print(f"relayer qr persistence failed: {exc}", flush=True)
+
+
+@admin_io("/api/admin/relayer/login/qr")
+def admin_relayer_qr(body):
+    api_id, api_hash, _, _ = _relayer_session_args()
+    if not (api_id and api_hash):
+        raise relayer_lib.RelayerError("Сначала сохраните API ID и API hash Telegram.")
+    relayer_lib._imports()
+    attempt_id = secrets.token_hex(8)
+    with lock:
+        doc = relayer_doc()
+        doc["auth"] = {"status": "qr_starting", "attempt_id": attempt_id}
+        doc["state"].update(status="qr_starting", authorized=False, error="")
+        save_db()
+    threading.Thread(target=_relayer_qr_worker, args=(attempt_id, api_id, api_hash), daemon=True).start()
+    deadline = time.time() + 6
+    while time.time() < deadline:
+        with lock:
+            if relayer_doc()["auth"].get("status") != "qr_starting":
+                break
+        time.sleep(0.15)
     return relayer_status_view_locked()
 
 

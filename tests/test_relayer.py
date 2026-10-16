@@ -170,6 +170,52 @@ class RelayerTests(unittest.TestCase):
         self.assertTrue(r.json["state"]["authorized"])
         self.assertEqual(backend.relayer_doc()["session"], string)
 
+    def test_login_by_qr(self):
+        import time as _t
+        ticket = self.client.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]
+        self.client.post("/admin/login", json={"ticket": ticket})
+        with self.client.session_transaction() as session:
+            h = {"X-Admin-CSRF": session["admin_csrf"]}
+        self.client.post("/api/admin/relayer/settings", headers=h, json={"api_id": "12345", "api_hash": "b" * 32})
+        async def flow(api_id, api_hash, on_url, total=150):
+            on_url("tg://login?token=AAA")
+            await __import__("asyncio").sleep(0.3)
+            return {"status": "authorized", "account": {"username": "relay", "id": 5}}, "SQ"
+        with mock.patch.object(relayer, "qr_login_flow", flow), mock.patch.object(relayer, "_imports", lambda: None):
+            r = self.client.post("/api/admin/relayer/login/qr", headers=h, json={})
+            self.assertEqual((r.json["state"]["status"], r.json["auth"]["qr_url"]), ("qr_wait", "tg://login?token=AAA"))
+            for _ in range(40):
+                r = self.client.post("/api/admin/relayer/status", headers=h, json={})
+                if r.json["state"]["authorized"]:
+                    break
+                _t.sleep(0.1)
+        self.assertTrue(r.json["state"]["authorized"])
+        self.assertEqual(backend.relayer_doc()["session"], "SQ")
+
+    def test_qr_need_password_then_2fa(self):
+        import time as _t
+        ticket = self.client.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]
+        self.client.post("/admin/login", json={"ticket": ticket})
+        with self.client.session_transaction() as session:
+            h = {"X-Admin-CSRF": session["admin_csrf"]}
+        self.client.post("/api/admin/relayer/settings", headers=h, json={"api_id": "12345", "api_hash": "b" * 32})
+        async def flow(api_id, api_hash, on_url, total=150):
+            on_url("tg://login?token=BBB")
+            return {"status": "need_password"}, "SP"
+        async def pw(api_id, api_hash, session, password):
+            return {"status": "authorized", "account": {"username": "relay", "id": 5}}, session
+        with mock.patch.object(relayer, "qr_login_flow", flow), mock.patch.object(relayer, "password_submit", pw), mock.patch.object(relayer, "_imports", lambda: None):
+            self.client.post("/api/admin/relayer/login/qr", headers=h, json={})
+            for _ in range(40):
+                r = self.client.post("/api/admin/relayer/status", headers=h, json={})
+                if r.json["state"]["status"] == "need_password":
+                    break
+                _t.sleep(0.1)
+            self.assertEqual(r.json["state"]["status"], "need_password")
+            r = self.client.post("/api/admin/relayer/login/password", headers=h, json={"password": "x"})
+        self.assertTrue(r.json["state"]["authorized"])
+        self.assertEqual(backend.relayer_doc()["session"], "SP")
+
     def test_crop_png_trims_transparent_border(self):
         from PIL import Image
         img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
