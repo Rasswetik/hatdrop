@@ -244,10 +244,17 @@ class BotEmojiTests(unittest.TestCase):
             {"text": "Играть", "action": "app", "target": "menu", "style": "default", "icon": "5424972470023104089"}]}}
         p = bm.message_payload(cfg, "k", "https://app.example", name="<i>x&", gift="Шляпа")
         self.assertTrue(p["html"])
-        self.assertEqual(p["text"], 'A &lt;b&gt;&lt;i&gt;x&amp;&lt;/b&gt; <tg-emoji emoji-id="5368324170671202286">👍</tg-emoji> Шляпа')
+        self.assertEqual(p["text"], 'A <b>&lt;i&gt;x&amp;</b> <tg-emoji emoji-id="5368324170671202286">👍</tg-emoji> Шляпа')
         self.assertEqual(p["reply_markup"]["inline_keyboard"][0][0]["icon_custom_emoji_id"], "5424972470023104089")
         with self.assertRaises(ValueError):
             bm.validate_message({"text": "x", "buttons": [{"text": "a", "action": "app", "target": "menu", "style": "default", "icon": "abc"}]})
+        # стили: разрешены только закрытые парные теги из белого списка, чужие теги экранируются
+        self.assertTrue(bm.validate_message({"text": "<b>a</b> <i>b</i> <code>c</code>", "buttons": []}))
+        for bad in ("<b>a", "<b><i>a</b></i>", "a</b>"):
+            with self.assertRaises(ValueError):
+                bm.validate_message({"text": bad, "buttons": []})
+        cfg2 = {"k": {"text": "<script>x</script> <u>y</u>", "buttons": []}}
+        self.assertEqual(bm.message_payload(cfg2, "k", "")["text"], "&lt;script&gt;x&lt;/script&gt; <u>y</u>")
         self.assertEqual(bm.validate_message({"text": "x", "buttons": [{"text": "a", "action": "app", "target": "menu", "style": "default", "icon": " 5424972470023104089 "}]})["buttons"][0]["icon"], "5424972470023104089")
 
     def test_send_falls_back_without_custom_emoji(self):

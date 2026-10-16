@@ -109,14 +109,25 @@ function emojiImg(id, fallback) {
   img.onerror = () => img.replaceWith(document.createTextNode(fallback || '⭐'));
   return img;
 }
+const BOT_STYLE_TAGS = {b: 'b', i: 'i', u: 'u', s: 's', code: 'code', pre: 'pre', 'tg-spoiler': 'span', blockquote: 'blockquote'};
 function botRenderRich(root, text) {
   root.replaceChildren();
-  let pos = 0;
-  for (const m of text.matchAll(/\[emoji:(\d{5,30}):([^\]\r\n]{1,16})\]/g)) {
-    root.append(document.createTextNode(text.slice(pos, m.index)), emojiImg(m[1], m[2]));
-    pos = m.index + m[0].length;
+  let node = root;
+  const stack = [];
+  for (const part of text.split(/(<\/?(?:b|i|u|s|code|pre|tg-spoiler|blockquote)>|\[emoji:\d{5,30}:[^\]\r\n]{1,16}\])/g)) {
+    if (!part) continue;
+    let m = part.match(/^<(\/?)(b|i|u|s|code|pre|tg-spoiler|blockquote)>$/);
+    if (m) {
+      if (!m[1]) {
+        const el = document.createElement(BOT_STYLE_TAGS[m[2]]);
+        if (m[2] === 'tg-spoiler') el.className = 'tg-spoiler';
+        node.append(el); stack.push(el); node = el;
+      } else if (stack.length) { stack.pop(); node = stack[stack.length - 1] || root; }
+      continue;
+    }
+    m = part.match(/^\[emoji:(\d{5,30}):([^\]\r\n]{1,16})\]$/);
+    node.append(m ? emojiImg(m[1], m[2]) : document.createTextNode(part));
   }
-  root.append(document.createTextNode(text.slice(pos)));
 }
 function renderEmojiPicker() {
   let box = $('botEmojiPicker');
@@ -131,6 +142,29 @@ function renderEmojiPicker() {
     t.focus(); t.setSelectionRange(a + token.length, a + token.length); botChanged();
   };
   box.replaceChildren();
+  const fmtBar = admField('div', {className: 'em-bar em-fmt'});
+  const wrap = (tag) => {
+    const t = $('botMessageText'), a = t.selectionStart ?? 0, z = t.selectionEnd ?? a;
+    const open = `<${tag}>`, close = `</${tag}>`, sel = t.value.slice(a, z);
+    t.value = t.value.slice(0, a) + open + sel + close + t.value.slice(z);
+    t.focus(); t.setSelectionRange(a + open.length, a + open.length + sel.length); botChanged();
+  };
+  for (const [tag, label, title, css] of [['b', 'Ж', 'Жирный (Ctrl+B)', 'font-weight:700'], ['i', 'К', 'Курсив (Ctrl+I)', 'font-style:italic'], ['u', 'Ч', 'Подчёркнутый (Ctrl+U)', 'text-decoration:underline'], ['s', 'S', 'Зачёркнутый', 'text-decoration:line-through'], ['code', 'Моно', 'Моноширинный (копируется по нажатию)', 'font-family:monospace'], ['pre', '{ }', 'Блок кода', 'font-family:monospace'], ['tg-spoiler', 'Спойлер', 'Скрытый текст', ''], ['blockquote', '❝ Цитата', 'Цитата', '']]) {
+    const b = admField('button', {type: 'button', className: 'em-fmt-btn', textContent: label, title});
+    if (css) b.style.cssText = css;
+    b.onclick = () => wrap(tag);
+    fmtBar.append(b);
+  }
+  const ta = $('botMessageText');
+  if (!ta.dataset.fmtKeys) {
+    ta.dataset.fmtKeys = '1';
+    ta.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      const tag = {b: 'b', i: 'i', u: 'u'}[e.key.toLowerCase()];
+      if (tag) { e.preventDefault(); wrap(tag); }
+    });
+  }
+  box.append(fmtBar);
   const bar = admField('div', {className: 'em-bar'});
   const toggle = admField('button', {type: 'button', className: 'em-toggle', textContent: '😀 Premium-эмодзи'});
   bar.append(toggle);
@@ -181,7 +215,7 @@ function renderEmojiPicker() {
   fill();
 }
 let botMessages = null, botDraft = null, botDirty = false;
-const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.',command_name_invalid:'Команда: от 1 до 32 латинских букв, цифр или символов _.',command_description_invalid:'Введите описание команды до 256 символов.',command_reserved:'/start и /help редактируются как стандартные сообщения.',command_exists:'Эта команда уже существует. Выберите её в редакторе.',command_limit:'Можно создать до 98 дополнительных команд.'};
+const BOT_ERROR = {message_format_invalid:'Теги стилей должны закрываться: <b>…</b>, <i>…</i> и т.д., без пересечений.',message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.',command_name_invalid:'Команда: от 1 до 32 латинских букв, цифр или символов _.',command_description_invalid:'Введите описание команды до 256 символов.',command_reserved:'/start и /help редактируются как стандартные сообщения.',command_exists:'Эта команда уже существует. Выберите её в редакторе.',command_limit:'Можно создать до 98 дополнительных команд.'};
 function botApplyConfig(config, selected='welcome') {
   botMessages=config;const select=$('botMessageKey');select.replaceChildren();
   for(const [key,item] of Object.entries(config.messages))select.append(admField('option',{value:key,textContent:item.label}));
@@ -213,7 +247,7 @@ function renderBotButtons() {
 }
 function renderBotPreview() {
   if(!botDraft)return;
-  botRenderRich($('botPreviewText'),$('botMessageText').value.replace(/\{(name|gift)\}/g,(_,key)=>key==='name'?'Александр':'Шляпа волшебника'));
+  botRenderRich($('botPreviewText'),$('botMessageText').value.replace(/\{(name|gift|gift_emoji|value|user|id|mode|error)\}/g,(_,key)=>({name:'Александр',gift:'Шляпа волшебника',gift_emoji:'🎁',value:'3.89',user:'@username',id:'123456789',mode:'автовывод через релейер',error:'FLOOD_WAIT 30'})[key]));
   const root=$('botPreviewButtons');root.replaceChildren();for(const b of botDraft.buttons){const button=admField('button',{type:'button'});if(b.icon)button.append(emojiImg(b.icon,'⭐'));button.append(document.createTextNode(b.text||'Кнопка'));button.dataset.style=b.style;root.append(button);}
   $('botAppWarning').hidden=!botDraft.buttons.some(b=>b.action==='app')||botMessages.app_url.startsWith('https://');
 }

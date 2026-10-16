@@ -56,3 +56,7 @@
 .em-set{margin:10px 0 4px;font-size:12px;opacity:.7}.em-cells{display:flex;flex-wrap:wrap;gap:4px}
 .em-cells button{width:44px;height:44px;min-height:44px;padding:4px;border-radius:10px;background:transparent;border:1px solid transparent}
 .em-cells button:hover{background:#18233a;border-color:var(--line)}.em-cells img{width:32px;height:32px}
+
+.em-fmt-btn{min-width:38px}.tg-spoiler{background:#58637a;color:transparent;border-radius:4px}.tg-spoiler:hover{color:inherit}
+#botPreviewText blockquote{margin:4px 0;padding-left:8px;border-left:3px solid #6ab3f3}
+#botPreviewText code,#botPreviewText pre{font-family:monospace;background:#0003;border-radius:4px;padding:0 3px}

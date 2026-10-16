@@ -8,14 +8,40 @@ PLAY = {'text': '🎮 Играть', 'action': 'app', 'target': 'menu', 'style':
 DEFAULT_MESSAGES = {
     'welcome': {'label': 'Приветствие /start', 'text': '👋 Привет, {name}! Добро пожаловать в HatDrop.\n\nВыбирайте режим, открывайте сундуки и собирайте подарки. Нажмите «Играть», чтобы открыть меню.', 'buttons': [PLAY]},
     'help': {'label': 'Помощь /help', 'text': '🎩 HatDrop\n\nНажмите «Играть», чтобы выбрать режим. Ваши подарки и заявки на вывод доступны в профиле.', 'buttons': [PLAY]},
+    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} Новая заявка на вывод\n{gift} · {value} TON\n{user} · ID {id}\nРежим: {mode}', 'buttons': []},
+    'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ Автовывод не удался\n{gift_emoji} {gift} → {user}\nОшибка релейера: {error}', 'buttons': []},
+    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} <b>Новая заявка на вывод</b>\n{gift} · {value} TON\n{user} · ID <code>{id}</code>\nРежим: {mode}', 'buttons': []},
+    'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ <b>Автовывод не удался</b>\n{gift_emoji} {gift} → {user}\nОшибка релейера: <code>{error}</code>', 'buttons': []},
     'withdraw_pending': {'label': 'Заявка на вывод создана', 'text': '📨 Заявка на вывод {gift_emoji} {gift} принята. Подарок передаётся автоматически — пришлём уведомление.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'withdraw_completed': {'label': 'Вывод выполнен (подарок отправлен)', 'text': '✅ Заявка на вывод: {gift_emoji} {gift} успешно отправлен! Проверьте свои подарки в Telegram.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'withdraw_not_found': {'label': 'Подарок не найден на релейере', 'text': '⚠️ {gift_emoji} {gift} не найден на релейере. Ожидайте ручной выдачи — администратор отправит подарок вручную.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'withdraw_approved': {'label': 'Вывод одобрен (ручной)', 'text': '✅ {gift_emoji} {gift} найден. Заявка одобрена, ожидайте отправки.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'withdraw_rejected': {'label': 'Вывод отклонён', 'text': '❌ Ваша заявка на вывод {gift_emoji} {gift} отклонена. Подарок вернулся в инвентарь.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
 }
+FORMAT_TAGS = ('b', 'i', 'u', 's', 'code', 'pre', 'tg-spoiler', 'blockquote')
+FORMAT_RE = re.compile(r'<(/?)(' + '|'.join(FORMAT_TAGS) + r')>')
+FORMAT_ESCAPED_RE = re.compile(r'&lt;(/?)(' + '|'.join(FORMAT_TAGS) + r')&gt;')
+
+
+def check_format(text):
+    """Теги стилей (<b>, <i>, <u>, <s>, <code>, <pre>, <tg-spoiler>, <blockquote>) должны закрываться в правильном порядке."""
+    stack = []
+    for m in FORMAT_RE.finditer(text):
+        if not m.group(1):
+            stack.append(m.group(2))
+        elif not stack or stack.pop() != m.group(2):
+            raise ValueError('message_format_invalid')
+    if stack:
+        raise ValueError('message_format_invalid')
+
+
+def safe_text(segment):
+    """Экранирует текст, но оставляет разрешённые теги стилей."""
+    return FORMAT_ESCAPED_RE.sub(lambda m: f'<{m.group(1)}{m.group(2)}>', escape(segment, quote=False))
+
+
 EMOJI_ID_RE = re.compile(r'[0-9]{5,30}')
-TOKEN_RE = re.compile(r'\{(name|gift|gift_emoji)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
+TOKEN_RE = re.compile(r'\{(name|gift|gift_emoji|value|user|id|mode|error)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
 APP_VIEWS = ('menu', 'upgrade', 'chests', 'profile')
 BUTTON_STYLES = ('default', 'primary', 'success', 'danger')
 MAX_CUSTOM_COMMANDS = 98  # Telegram supports 100, including /start and /help.
@@ -67,6 +93,7 @@ def validate_message(value):
     # Leave room for substituted names and gift titles within Telegram's 4096 limit.
     if not isinstance(text, str) or not text.strip() or len(text.encode('utf-16-le')) // 2 > 3500:
         raise ValueError('message_text_invalid')
+    check_format(text)
     buttons = value.get('buttons', [])
     if not isinstance(buttons, list) or len(buttons) > 8:
         raise ValueError('message_buttons_invalid')
@@ -107,9 +134,12 @@ def messages_config(saved):
     return result
 
 
-def message_payload(config, key, app_url, name='друг', gift='подарок', gift_emoji=''):
+def message_payload(config, key, app_url, name='друг', gift='подарок', gift_emoji='', extra=None):
     item = config[key]
-    replacements = {'name': str(name or 'друг')[:120], 'gift': str(gift or 'подарок')[:200]}
+    replacements = {'name': str(name or 'друг')[:120], 'gift': str(gift or 'подарок')[:200],
+                    **{k: str(v)[:300] for k, v in (extra or {}).items()}}
+    for k in ('value', 'user', 'id', 'mode', 'error'):
+        replacements.setdefault(k, '')
     # Single pass prevents placeholders in player-provided names from being expanded.
     # Текст уходит с parse_mode=HTML: всё экранируется, токены [emoji:ID:символ] становятся <tg-emoji>.
     def repl(m):
@@ -120,10 +150,10 @@ def message_payload(config, key, app_url, name='друг', gift='подарок'
         return f'<tg-emoji emoji-id="{m.group(2)}">{escape(m.group(3), quote=False)}</tg-emoji>'
     out, pos = [], 0
     for m in TOKEN_RE.finditer(item['text']):
-        out.append(escape(item['text'][pos:m.start()], quote=False))
+        out.append(safe_text(item['text'][pos:m.start()]))
         out.append(repl(m))
         pos = m.end()
-    out.append(escape(item['text'][pos:], quote=False))
+    out.append(safe_text(item['text'][pos:]))
     text = ''.join(out)
     rows = []
     for b in item['buttons']:
