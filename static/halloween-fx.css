@@ -1,0 +1,59 @@
+/* Animated layer above the Halloween background pictures (static/halloween/night.png, day.png).
+   Same 1280x720 "cover" geometry as the pictures, so glows sit exactly on the artwork. */
+.halloween-fx { display: none; }
+html[data-halloween="on"][data-halloween-art="png"] .bg-wide .halloween-fx {
+  display: block; position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 1; pointer-events: none; overflow: hidden;
+}
+html[data-sky="night"] .halloween-fx .fx-day, html[data-sky="day"] .halloween-fx .fx-night { display: none; }
+.halloween-fx .fx-bat, .halloween-fx #fxBat { fill: #090512; }
+html[data-sky="day"] .halloween-fx .fx-bat { fill: #1b1b1f; }
+.halloween-fx .fx-star { fill: #fff6d8; animation: fxTwinkle 4s ease-in-out infinite alternate; }
+.halloween-fx .fx-st-1 { animation-duration: 5.5s; animation-delay: -2s; }
+.halloween-fx .fx-st-2 { animation-duration: 3.2s; animation-delay: -1s; }
+.halloween-fx .fx-moonglow { animation: fxMoon 6s ease-in-out infinite alternate; }
+.halloween-fx .fx-pk { animation: fxFlick 3s ease-in-out infinite; }
+.halloween-fx .fx-lant { animation: fxSwing 4.5s ease-in-out infinite alternate; }
+.halloween-fx .fx-ghost { animation: fxGhost 3.6s ease-in-out infinite alternate; }
+.halloween-fx .fx-cat { animation: fxBlink 7s infinite; }
+.halloween-fx .fx-fly { animation: fxFlyA 9s ease-in-out infinite alternate; }
+.halloween-fx .fx-fly-b { animation-name: fxFlyB; animation-duration: 12s; }
+.halloween-fx .fx-fly-c { animation-name: fxFlyC; animation-duration: 14s; }
+.halloween-fx .fx-mote { opacity: .55; }
+.halloween-fx .fx-ember { fill: #ffb347; animation: fxEmber 5s ease-out infinite; }
+.halloween-fx .fx-fog { animation: fxFog 80s linear infinite; }
+.halloween-fx .fx-fog-2 { animation-duration: 58s; animation-direction: reverse; }
+.halloween-fx .fx-fog-3 { animation-duration: 42s; }
+html[data-sky="day"] .halloween-fx .fx-fog { opacity: .8; }
+.halloween-fx .fx-batfly { animation: fxBat 40s linear infinite; will-change: transform; }
+.halloween-fx .fx-wl, .halloween-fx .fx-wr { transform-box: fill-box; }
+.halloween-fx .fx-wl { transform-origin: 100% 60%; animation: fxFlapL .22s ease-in-out infinite alternate; }
+.halloween-fx .fx-wr { transform-origin: 0 60%; animation: fxFlapR .22s ease-in-out infinite alternate; }
+.halloween-fx .fx-witchfly { animation: fxWitch 46s linear infinite; animation-delay: -20s; will-change: transform; }
+.halloween-fx .fx-leaf { animation: fxLeaf 20s linear infinite; }
+.halloween-fx .fx-leafsway { transform-box: fill-box; transform-origin: center; animation: fxLeafSway 3.2s ease-in-out infinite alternate; }
+.halloween-fx .fx-lf-a { fill: #e0701c; } .halloween-fx .fx-lf-b { fill: #a8420f; } .halloween-fx .fx-lf-c { fill: #e8a82e; }
+html[data-sky="day"] .halloween-fx .fx-lf-a { fill: #8d8d92; } html[data-sky="day"] .halloween-fx .fx-lf-b { fill: #5c5c62; } html[data-sky="day"] .halloween-fx .fx-lf-c { fill: #b4b4ba; }
+html[data-sky="day"] .halloween-fx #fxWitch * { stroke: #1b1b1f; } 
+@keyframes fxTwinkle { from { opacity: 1; } to { opacity: .2; } }
+@keyframes fxMoon { from { opacity: .65; transform: scale(.97); } to { opacity: 1; transform: scale(1.04); } }
+@keyframes fxFlick { 0%, 100% { opacity: 1; } 20% { opacity: .7; } 38% { opacity: .95; } 57% { opacity: .62; } 78% { opacity: .9; } }
+@keyframes fxSwing { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@keyframes fxGhost { from { opacity: .35; transform: translateY(6px); } to { opacity: 1; transform: translateY(-10px); } }
+@keyframes fxBlink { 0%, 93%, 100% { opacity: 1; } 95% { opacity: 0; } }
+@keyframes fxFlyA { 0% { transform: translate(0, 0); opacity: .25; } 40% { opacity: 1; } 100% { transform: translate(28px, -36px); opacity: .45; } }
+@keyframes fxFlyB { 0% { transform: translate(0, 0); opacity: .9; } 50% { opacity: .3; } 100% { transform: translate(-32px, -24px); opacity: .85; } }
+@keyframes fxFlyC { 0% { transform: translate(0, 0); opacity: .3; } 60% { opacity: 1; } 100% { transform: translate(20px, 30px); opacity: .5; } }
+@keyframes fxEmber { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(12px, -80px); opacity: 0; } }
+@keyframes fxFog { to { transform: translateX(-1280px); } }
+@keyframes fxBat { 0% { transform: translateX(-120px); } 100% { transform: translateX(1400px); } }
+@keyframes fxFlapL { from { transform: rotate(18deg) scaleY(1); } to { transform: rotate(-26deg) scaleY(.7); } }
+@keyframes fxFlapR { from { transform: rotate(-18deg) scaleY(1); } to { transform: rotate(26deg) scaleY(.7); } }
+@keyframes fxWitch { 0% { transform: translate(-160px, 40px); } 50% { transform: translate(640px, -30px); } 100% { transform: translate(1440px, 50px); } }
+@keyframes fxLeaf { from { transform: translate(0, 0); } to { transform: translate(-110px, 790px); } }
+@keyframes fxLeafSway { from { transform: rotate(-40deg) translateX(-12px); } to { transform: rotate(50deg) translateX(16px); } }
+.halloween-fx.scene-paused * { animation-play-state: paused !important; }
+@media (prefers-reduced-motion: reduce) {
+  .halloween-fx * { animation: none !important; }
+  .halloween-fx .fx-batfly, .halloween-fx .fx-witchfly, .halloween-fx .fx-leaf { display: none; }
+}

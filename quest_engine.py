@@ -180,6 +180,7 @@ def _increment(quest, event, amount, chance_pct, gift_awarded):
 def record_event(db, user, event, *, amount=0, chance_pct=0, gift_awarded=False, ts=None):
     """Call after a successful, trusted server action only. Caller holds app.lock."""
     ts = int(ts or time.time())
+    completed = []
     for q in definitions(db).values():
         if not isinstance(q, dict) or q.get("kind") not in QUEST_TYPES or not q.get("active") or q.get("start_at", 0) and ts < q["start_at"] or q.get("end_at", 0) and ts > q["end_at"]:
             continue
@@ -195,8 +196,12 @@ def record_event(db, user, event, *, amount=0, chance_pct=0, gift_awarded=False,
         if p.get("started_at") and q["duration_hours"] and ts > p["started_at"] + q["duration_hours"] * 3600:
             continue
         p.setdefault("started_at", ts)
-        p["value"] = round(min(q["goal"], p.get("value", 0) + inc), 6)
+        before = p.get("value", 0)
+        p["value"] = round(min(q["goal"], before + inc), 6)
         p["updated_at"] = ts
+        if before < q["goal"] <= p["value"]:
+            completed.append(q["id"])
+    return completed
 
 
 def record_verified_deposit(db, user, *, amount, payment_id, ts=None):
@@ -222,10 +227,12 @@ def claim(db, user, quest_id, *, launched=False):
     if not launched:
         raise ValueError("quests_not_launched")
     q = definitions(db).get(str(quest_id))
-    if not q or not q["active"]:
+    if not q or not q.get("active", True):
         raise ValueError("not_found")
     info = progress_for(user, q)
-    if info["expired"] or not info["completed"] or info["claimed"]:
+    # A quest that was finished in time stays claimable forever: the deadline only
+    # stops further progress, it must never take away an earned reward.
+    if not info["completed"] or info["claimed"]:
         raise ValueError("quest_not_claimable")
     p = user.setdefault("quest_progress", {}).setdefault(q["id"], {})
     p["claimed"] = True

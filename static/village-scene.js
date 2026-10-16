@@ -2,7 +2,7 @@
   'use strict';
   const root = document.documentElement;
   const scene = document.getElementById('villageScene');
-  const halloween = document.getElementById('halloweenScene');
+  const halloween = document.getElementById('halloweenFx');
   if (!scene) return;
   const dusk = scene.querySelector('.v-dusk');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');

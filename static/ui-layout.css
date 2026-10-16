@@ -29,53 +29,50 @@
  .tabbar .tab, html[data-theme="meadow"] .tabbar .tab { min-height:49px; padding:7px 2px; }
 }
 
-/* Menu rebuilt as a compact 2x2 grid of actual square controls.
-   Specificity overrides the legacy full-width, one-column cards. */
+/* Menu: two wide action cards (chests, leaders), one per row. */
 #view-menu .menu-grid {
- display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important;
- gap:clamp(10px,3vw,17px); width:100%; max-width:530px;
- margin:16px auto 8px; align-items:stretch;
+ display:flex !important; flex-direction:column; gap:clamp(14px,4vw,20px);
+ width:100%; max-width:520px; margin:18px auto 8px; align-items:stretch;
 }
 #view-menu .menu-grid > .menu-card.menu-wide {
- display:flex; flex-direction:column; justify-content:center; align-items:center;
- position:relative; width:100%; min-width:0; min-height:0;
- aspect-ratio:1/1; height:auto; padding:16px 8px 12px; gap:12px;
- text-align:center; box-sizing:border-box; overflow:hidden;
+ display:flex; flex-direction:row; justify-content:flex-start; align-items:center;
+ position:relative; width:100%; min-width:0; min-height:clamp(96px,26vw,118px);
+ aspect-ratio:auto; height:auto; padding:12px 16px 12px 14px; gap:14px;
+ text-align:left; box-sizing:border-box; overflow:hidden;
 }
 #view-menu .menu-grid > .menu-card.menu-wide[hidden] { display:none !important; }
-#view-menu .menu-grid > .menu-card.menu-wide::before { left:0; top:0; right:0; bottom:auto; height:5px; width:auto; }
-#view-menu .menu-grid > .menu-card.menu-wide::after { opacity:.3; }
+#view-menu .menu-grid > .menu-card.menu-wide::before { left:0; top:0; bottom:0; right:auto; width:8px; height:auto; }
+#view-menu .menu-grid > .menu-card.menu-wide::after { opacity:.35; }
 #view-menu .menu-card .mc-medal {
- width:clamp(54px,17vw,84px); height:clamp(54px,17vw,84px);
- margin:0; border-width:3px; border-radius:10px; flex:0 0 auto;
- box-shadow:inset 0 0 0 3px rgba(0,0,0,.22),0 3px 0 rgba(0,0,0,.4);
+ width:clamp(66px,20vw,84px); height:clamp(66px,20vw,84px);
+ margin:0 0 0 6px; border-width:3px; border-radius:12px; flex:0 0 auto;
+ box-shadow:inset 0 0 0 3px rgba(0,0,0,.25),0 3px 0 rgba(0,0,0,.4);
 }
 #view-menu .menu-card .mc-art, #view-menu .menu-card .ic.mc-art {
- width:clamp(35px,10vw,51px); height:clamp(35px,10vw,51px);
- color:#ffd37d; fill:currentColor;
+ width:clamp(46px,13vw,58px); height:clamp(46px,13vw,58px);
 }
 #view-menu .menu-card .mc-text {
- display:flex; flex:0 1 auto; flex-direction:column; align-items:center; gap:6px;
- width:100%; min-width:0; z-index:1;
+ display:flex; flex:1 1 auto; flex-direction:column; align-items:flex-start; gap:8px;
+ min-width:0; z-index:1;
 }
 #view-menu .menu-card .mc-title {
- font-size:clamp(10px,2.8vw,14px); line-height:1.4; letter-spacing:0;
+ font-size:clamp(15px,4.6vw,21px); line-height:1.2; letter-spacing:1px;
  overflow-wrap:anywhere; color:#fff3c4;
 }
-#view-menu .menu-card .mc-sub { font-size:clamp(7px,1.85vw,9px); line-height:1.5; text-align:center; }
-#view-menu .menu-card .mc-chev { display:none; }
-#view-menu .menu-card.mc-upgrade { --mc:#d2a5ff; }
-#view-menu .menu-card.mc-quests { --mc:#e7bf84; }
+#view-menu .menu-card .mc-sub { font-size:clamp(8px,2.2vw,10px); line-height:1.6; text-align:left; }
+#view-menu .menu-card .mc-chev { display:block; }
+#view-menu .menu-card.mc-chests { --mc:#ff9a2e; }
 #view-menu .menu-card.mc-leaders { --mc:#b8a3ff; }
+#view-menu .menu-card .mc-glow { animation:mcGlow 2.6s ease-in-out infinite; }
+@keyframes mcGlow { 0%,100% { opacity:.12; } 50% { opacity:.34; } }
 #view-menu .menu-card:focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
 @media(max-width:350px){
- #view-menu .menu-grid { gap:10px; }
- #view-menu .menu-grid > .menu-card.menu-wide { padding:11px 5px; gap:8px; }
- #view-menu .menu-card .mc-medal { width:52px; height:52px; }
+ #view-menu .menu-grid > .menu-card.menu-wide { padding:10px 10px 10px 12px; gap:10px; }
+ #view-menu .menu-card .mc-medal { width:60px; height:60px; margin-left:4px; }
  #view-menu .menu-card .mc-sub { font-size:7px; }
 }
 @media(prefers-reduced-motion:reduce){
- #view-menu .mc-art *, #view-menu .menu-card {animation:none!important;transition:none!important}
+ #view-menu .mc-art *, #view-menu .mc-chev, #view-menu .menu-card {animation:none!important;transition:none!important}
 }
 
 /* Halloween PNG artwork: cross-fade image pairs, retaining SVG as fallback. */
@@ -86,7 +83,7 @@ html[data-halloween="on"] .bg-wide .halloween-scene {
 html[data-halloween="on"] .bg-wide .halloween-scene-png {
  display:block; position:absolute; inset:0; width:100%; height:100%;
  z-index:1; object-fit:cover; object-position:center;
- pointer-events:none; opacity:0; image-rendering:pixelated;
+ pointer-events:none; opacity:0; image-rendering:auto;
  transition:opacity 1400ms ease-in-out;
 }
 html[data-halloween="on"][data-halloween-art="png"] .bg-wide .halloween-scene { opacity:0; }

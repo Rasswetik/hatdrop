@@ -19,11 +19,11 @@ from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config
                           command_name, validate_command, messages_config,
                           validate_message, message_payload, valid_url)
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
-from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as quest_event, listed as quest_listed, claim as quest_claim
+from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, listed as quest_listed, claim as quest_claim
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from flask import Flask, Response, jsonify, request, send_from_directory, render_template, session
+from flask import Flask, Response, g, jsonify, request, send_from_directory, render_template, session
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))  # старый JSON-файл (только для миграции)
@@ -213,6 +213,60 @@ def store_put(key, path, text):
         raise RuntimeError("SQLite persistence unavailable") from e
 
 
+QUESTS_KEY = "quests"
+QUESTS_PATH = DB_PATH + ".quests"
+
+
+def quest_event(db_, user, event, **kwargs):
+    """Record a trusted game event; remember when a quest was just completed so the
+    request flushes the database right away instead of waiting for the saver thread."""
+    done = _quest_record_event(db_, user, event, **kwargs)
+    if done:
+        try:
+            g.quest_milestone = True
+        except RuntimeError:
+            pass
+    return done
+
+
+def quests_snapshot():
+    """Quest definitions and the on/off switch, kept in their own durable record."""
+    return json.dumps({"v": 1, "enabled": db["settings"].get("quests_enabled", True) is True,
+                       "quests": db.get("quests", {})}, ensure_ascii=False, sort_keys=True)
+
+
+def flush_quests():
+    """Write quest definitions to a dedicated key and read them back to verify.
+
+    Definitions live apart from the big user document, so a stale or concurrent
+    save of that document can never wipe them out."""
+    with _flush_lock:
+        with lock:
+            text = quests_snapshot()
+        store_put(QUESTS_KEY, QUESTS_PATH, text)
+        if store_get(QUESTS_KEY, QUESTS_PATH) != text:
+            raise RuntimeError("quest store verification failed")
+
+
+def load_quests():
+    """The dedicated quest record is authoritative; seed it from the main document once."""
+    text = store_get(QUESTS_KEY, QUESTS_PATH)
+    if text:
+        try:
+            data = json.loads(text)
+            quests = data.get("quests")
+            if isinstance(quests, dict):
+                db["quests"] = quests
+                db["settings"]["quests_enabled"] = data.get("enabled", True) is True
+                return
+        except ValueError:
+            print("Quest store is corrupted; falling back to the main document", flush=True)
+    try:
+        flush_quests()
+    except Exception as exc:
+        print(f"Quest store seed failed: {exc}", flush=True)
+
+
 def load_db():
     global db
     text = store_get("db", DB_PATH)
@@ -229,6 +283,7 @@ def load_db():
     ensure_analytics(db)
     db["settings"].setdefault("active_market", "portals")
     db["settings"].setdefault("halloween_enabled", False)
+    load_quests()
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
     if not DATABASE_URL and not (os.environ.get("DB_PATH") or os.environ.get("SQLITE_PATH")):
@@ -284,6 +339,7 @@ def _saver_loop():
 def _flush_on_exit(*_):
     try:
         flush_db()
+        flush_quests()
         save_catalog()
     except Exception as e:
         print(f"final flush failed: {e}", flush=True)
@@ -538,12 +594,15 @@ def api(fn):
             response = jsonify(result)
         # Quest definitions, settings and claimed rewards must be durable before
         # returning success. Normal game updates remain on the buffered saver.
-        if request.path in ("/api/admin/quests/save", "/api/quests/claim"):
+        if request.path in ("/api/admin/quests/save", "/api/quests/claim") or g.get("quest_milestone"):
             try:
+                if request.path == "/api/admin/quests/save":
+                    flush_quests()
                 flush_db()
             except Exception as exc:
                 print(f"Quest persistence failed: {exc}", flush=True)
-                return jsonify({"error": "db_save_failed"}), 503
+                if request.path in ("/api/admin/quests/save", "/api/quests/claim"):
+                    return jsonify({"error": "db_save_failed"}), 503
         return response
 
     wrapper.__name__ = fn.__name__
