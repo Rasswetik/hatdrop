@@ -1371,13 +1371,12 @@ def _send_bot_message(uid, key, name=None, gift=None, prize=None):
     with lock:
         config = bot_editor_config()["messages"]
         player = db.get("users", {}).get(uid, {})
-        payload = message_payload(config, key, _bot_app_url(),
-                                  name or player.get("first_name"), gift)
         ck = _prize_collection_key(prize)
-        if ck and ck in emoji_doc()["gifts"]:  # premium-эмодзи подарка вместо обычного 🎁
-            tag = gift_emoji_html(ck)
-            if tag != "🎁":
-                payload["text"] = payload["text"].replace("🎁", tag, 1)
+        tag = gift_emoji_html(ck) if ck else "🎁"
+        payload = message_payload(config, key, _bot_app_url(),
+                                  name or player.get("first_name"), gift, gift_emoji=tag)
+        if "{gift_emoji}" not in config[key]["text"] and tag != "🎁":
+            payload["text"] = payload["text"].replace("🎁", tag, 1)  # старые тексты с обычным 🎁
     _send_tg_async(uid, payload["text"], payload.get("reply_markup"), html=True)
 
 
@@ -4338,6 +4337,11 @@ def relayer_process_withdrawals(limit=6):
                 prize["status"] = "withdrawn"
                 _send_bot_message(req["uid"], "withdraw_completed", gift=prize["name"], prize=prize)
                 done += 1
+                continue
+            if res["status"] == "not_found" and prize:
+                req.update(auto="failed", auto_error=res.get("error", ""), auto_status="not_found")
+                _send_bot_message(req["uid"], "withdraw_not_found", gift=prize["name"], prize=prize)
+                _notify_admins_withdrawal(target, prize, req, error="Подарок не найден на релейере — нужен ручной вывод")
                 continue
             first_error = req.get("auto_error") != res.get("error", "")
             req["auto_error"] = res.get("error", "")

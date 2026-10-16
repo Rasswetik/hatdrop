@@ -124,21 +124,61 @@ function renderEmojiPicker() {
     box = admField('div', {id: 'botEmojiPicker', className: 'em-picker'});
     $('botMessageText').closest('label').after(box);
   }
-  box.replaceChildren(admField('small', {className: 'muted', textContent: 'Premium-эмодзи: нажмите, чтобы вставить в текст в позицию курсора.'}));
-  if (!emojiLib.length) { box.append(admField('small', {className: 'muted', textContent: ' Библиотека пуста — добавьте эмодзи во вкладке «Эмодзи».'})); return; }
-  const row = admField('div', {className: 'em-chips'});
-  for (const e of emojiLib) {
-    const b = admField('button', {type: 'button', title: e.id});
-    b.append(emojiImg(e.id, e.emoji));
-    b.onclick = () => {
-      const t = $('botMessageText'), token = `[emoji:${e.id}:${e.emoji}]`;
-      const a = t.selectionStart ?? t.value.length, z = t.selectionEnd ?? a;
-      t.value = t.value.slice(0, a) + token + t.value.slice(z);
-      t.focus(); t.setSelectionRange(a + token.length, a + token.length); botChanged();
-    };
-    row.append(b);
+  const insert = (token) => {
+    const t = $('botMessageText');
+    const a = t.selectionStart ?? t.value.length, z = t.selectionEnd ?? a;
+    t.value = t.value.slice(0, a) + token + t.value.slice(z);
+    t.focus(); t.setSelectionRange(a + token.length, a + token.length); botChanged();
+  };
+  box.replaceChildren();
+  const bar = admField('div', {className: 'em-bar'});
+  const toggle = admField('button', {type: 'button', className: 'em-toggle', textContent: '😀 Premium-эмодзи'});
+  bar.append(toggle);
+  for (const [token, label] of [['{gift_emoji}', 'эмодзи подарка'], ['{gift}', 'название подарка'], ['{name}', 'имя игрока']]) {
+    const b = admField('button', {type: 'button', className: 'em-var', textContent: token, title: label});
+    b.onclick = () => insert(token);
+    bar.append(b);
   }
-  box.append(row);
+  const panel = admField('div', {className: 'em-panel', hidden: true});
+  toggle.onclick = () => { panel.hidden = !panel.hidden; };
+  box.append(bar, panel);
+  const search = admField('input', {className: 'tc-input', placeholder: 'Поиск по набору или символу', autocomplete: 'off'});
+  const grid = admField('div', {className: 'em-grid'});
+  const add = admField('div', {className: 'adm-form'});
+  const link = admField('input', {className: 'tc-input', placeholder: 'Добавить набор: https://t.me/addemoji/НАЗВАНИЕ', autocomplete: 'off'});
+  const addBtn = admField('button', {type: 'button', textContent: '+ Набор'});
+  addBtn.onclick = async () => {
+    addBtn.disabled = true;
+    try { const r = await api('/api/admin/emojis/pack', {link: link.value.trim()}); toast(`Набор «${r.title}»: добавлено ${r.added}`); const lib = await api('/api/admin/emojis'); emojiLib = lib.saved || []; fill(); link.value = ''; }
+    catch (e) { admErr(e); } finally { addBtn.disabled = false; }
+  };
+  add.append(link, addBtn);
+  function fill() {
+    grid.replaceChildren();
+    const q = search.value.trim().toLowerCase();
+    if (!emojiLib.length) { grid.append(admField('small', {className: 'muted', textContent: 'Библиотека пуста — добавьте набор ссылкой ниже или во вкладке «Эмодзи».'})); return; }
+    const groups = new Map();
+    for (const e of emojiLib) {
+      const set = e.set_name || 'Отдельные';
+      if (q && !set.toLowerCase().includes(q) && !String(e.emoji).includes(q)) continue;
+      if (!groups.has(set)) groups.set(set, []);
+      groups.get(set).push(e);
+    }
+    for (const [set, items] of groups) {
+      grid.append(admField('div', {className: 'em-set', textContent: set}));
+      const row = admField('div', {className: 'em-cells'});
+      for (const e of items) {
+        const b = admField('button', {type: 'button', title: e.emoji});
+        b.append(emojiImg(e.id, e.emoji));
+        b.onclick = () => insert(`[emoji:${e.id}:${e.emoji}]`);
+        row.append(b);
+      }
+      grid.append(row);
+    }
+  }
+  search.oninput = fill;
+  panel.append(search, grid, add);
+  fill();
 }
 let botMessages = null, botDraft = null, botDirty = false;
 const BOT_ERROR = {message_text_invalid:'Введите текст до 3500 символов.',message_buttons_invalid:'Можно добавить до 8 кнопок.',message_button_invalid:'Проверьте названия и цвета кнопок.',message_button_url_invalid:'Для ссылки нужен полный HTTPS-адрес.',message_button_target_invalid:'Выберите раздел приложения.',app_https_url_required:'Укажите HTTPS-адрес приложения в разделе TON Connect.',command_name_invalid:'Команда: от 1 до 32 латинских букв, цифр или символов _.',command_description_invalid:'Введите описание команды до 256 символов.',command_reserved:'/start и /help редактируются как стандартные сообщения.',command_exists:'Эта команда уже существует. Выберите её в редакторе.',command_limit:'Можно создать до 98 дополнительных команд.'};

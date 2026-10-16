@@ -8,13 +8,14 @@ PLAY = {'text': '🎮 Играть', 'action': 'app', 'target': 'menu', 'style':
 DEFAULT_MESSAGES = {
     'welcome': {'label': 'Приветствие /start', 'text': '👋 Привет, {name}! Добро пожаловать в HatDrop.\n\nВыбирайте режим, открывайте сундуки и собирайте подарки. Нажмите «Играть», чтобы открыть меню.', 'buttons': [PLAY]},
     'help': {'label': 'Помощь /help', 'text': '🎩 HatDrop\n\nНажмите «Играть», чтобы выбрать режим. Ваши подарки и заявки на вывод доступны в профиле.', 'buttons': [PLAY]},
-    'withdraw_pending': {'label': 'Заявка на вывод получена', 'text': '🎁 Заявка на вывод подарка «{gift}» получена. Мы сообщим о решении.', 'buttons': []},
-    'withdraw_approved': {'label': 'Вывод одобрен', 'text': '✅ Ваш подарок «{gift}» найден. Заявка одобрена, ожидайте отправки.', 'buttons': []},
-    'withdraw_rejected': {'label': 'Вывод отклонён', 'text': '❌ Заявка на подарок «{gift}» отклонена. Подарок возвращён в инвентарь.', 'buttons': []},
-    'withdraw_completed': {'label': 'Вывод выполнен', 'text': '🎉 Вывод подарка «{gift}» отмечен как выполненный администратором.', 'buttons': []},
+    'withdraw_pending': {'label': 'Заявка на вывод создана', 'text': '📨 Заявка на вывод {gift_emoji} {gift} принята. Подарок передаётся автоматически — пришлём уведомление.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_completed': {'label': 'Вывод выполнен (подарок отправлен)', 'text': '✅ Заявка на вывод: {gift_emoji} {gift} успешно отправлен! Проверьте свои подарки в Telegram.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_not_found': {'label': 'Подарок не найден на релейере', 'text': '⚠️ {gift_emoji} {gift} не найден на релейере. Ожидайте ручной выдачи — администратор отправит подарок вручную.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_approved': {'label': 'Вывод одобрен (ручной)', 'text': '✅ {gift_emoji} {gift} найден. Заявка одобрена, ожидайте отправки.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_rejected': {'label': 'Вывод отклонён', 'text': '❌ Ваша заявка на вывод {gift_emoji} {gift} отклонена. Подарок вернулся в инвентарь.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
 }
 EMOJI_ID_RE = re.compile(r'[0-9]{5,30}')
-TOKEN_RE = re.compile(r'\{(name|gift)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
+TOKEN_RE = re.compile(r'\{(name|gift|gift_emoji)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
 APP_VIEWS = ('menu', 'upgrade', 'chests', 'profile')
 BUTTON_STYLES = ('default', 'primary', 'success', 'danger')
 MAX_CUSTOM_COMMANDS = 98  # Telegram supports 100, including /start and /help.
@@ -106,12 +107,14 @@ def messages_config(saved):
     return result
 
 
-def message_payload(config, key, app_url, name='друг', gift='подарок'):
+def message_payload(config, key, app_url, name='друг', gift='подарок', gift_emoji=''):
     item = config[key]
     replacements = {'name': str(name or 'друг')[:120], 'gift': str(gift or 'подарок')[:200]}
     # Single pass prevents placeholders in player-provided names from being expanded.
     # Текст уходит с parse_mode=HTML: всё экранируется, токены [emoji:ID:символ] становятся <tg-emoji>.
     def repl(m):
+        if m.group(1) == 'gift_emoji':
+            return gift_emoji or '🎁'  # готовый HTML (<tg-emoji>) из приложения
         if m.group(1):
             return escape(replacements[m.group(1)], quote=False)
         return f'<tg-emoji emoji-id="{m.group(2)}">{escape(m.group(3), quote=False)}</tg-emoji>'

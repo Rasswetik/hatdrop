@@ -2931,6 +2931,9 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 <style id="upgrade-css">
 /* окно победы в минах */
 .cx-win-card { overflow: hidden; }
+.lb-prize-place { margin: 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; }
+.lb-prize-img { border-radius: 14px; }
+.lb-prize-card .cta { width: 100%; margin-top: 10px; padding: 14px; font-size: 16px; }
 .cx-win-glow { position: absolute; left: 50%; top: 12px; width: 220px; height: 220px; margin-left: -110px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,214,110,.35) 0%, rgba(255,214,110,0) 65%); }
 .cx-win-img { position: relative; width: 120px; height: 120px; object-fit: contain; image-rendering: auto; }
@@ -3804,6 +3807,15 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
   </div>
 </div>
 
+<div class="modal" id="lbPrizeModal" hidden="">
+  <div class="modal-card cx-win-card lb-prize-card">
+    <p class="lb-prize-place" id="lbPrizePlace"></p>
+    <img alt="" class="modal-hat cx-win-img lb-prize-img" id="lbPrizeImg">
+    <h2 id="lbPrizeName"></h2>
+    <div class="cx-win-sum"><span>Цена</span><b id="lbPrizeValue"></b></div>
+    <button class="cta" id="lbPrizeClose" type="button">Закрыть</button>
+  </div>
+</div>
 <div class="modal" id="cxWinModal" hidden="">
   <div class="modal-card cx-win-card">
     <div class="cx-win-glow"></div>
@@ -6128,12 +6140,28 @@ function renderLeaderboard(data) {
       prize.src = row.prize.image;
       prize.title = `${row.prize.name} · ${fmtTon(row.prize.value_ton)}`;
       prize.onerror = () => prize.remove();
+      prize.style.cursor = 'pointer';
+      prize.addEventListener('click', () => lbShowPrize(row));
       li.appendChild(prize);
     }
     list.appendChild(li);
   }
   $('lbEmpty').hidden = data.rows.length > 0;
 }
+
+function lbShowPrize(row) {
+  $('lbPrizePlace').textContent = tr('Награда за {n} место', { n: row.rank });
+  $('lbPrizeImg').src = row.prize.image;
+  $('lbPrizeName').textContent = row.prize.name;
+  $('lbPrizeValue').textContent = fmtTon(row.prize.value_ton);
+  $('lbPrizeModal').hidden = false;
+  haptic('impact', 'light');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const close = () => { $('lbPrizeModal').hidden = true; };
+  $('lbPrizeClose').addEventListener('click', close);
+  $('lbPrizeModal').addEventListener('click', (e) => { if (e.target === $('lbPrizeModal')) close(); });
+});
 
 async function loadLeaderboard(force = false) {
   if (lbLoading) return;

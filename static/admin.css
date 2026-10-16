@@ -50,3 +50,9 @@
 .se-place .se-body{display:grid;gap:8px;min-width:0}.se-place .se-preview{grid-column:2/-1;font-size:12px;min-height:0}
 .se-place .se-preview:empty{display:none}.se-place select{width:100%}
 @media(max-width:700px){.se-place{grid-template-columns:1fr}.se-place .se-preview{grid-column:1}}
+
+.em-bar{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.em-bar button{min-height:34px;padding:0 10px;font-size:13px}.em-bar .em-var{font-family:monospace}
+.em-panel{border:1px solid var(--line);border-radius:12px;background:#0d1422;padding:10px;max-height:340px;overflow:auto}
+.em-set{margin:10px 0 4px;font-size:12px;opacity:.7}.em-cells{display:flex;flex-wrap:wrap;gap:4px}
+.em-cells button{width:44px;height:44px;min-height:44px;padding:4px;border-radius:10px;background:transparent;border:1px solid transparent}
+.em-cells button:hover{background:#18233a;border-color:var(--line)}.em-cells img{width:32px;height:32px}
