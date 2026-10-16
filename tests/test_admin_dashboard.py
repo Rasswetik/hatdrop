@@ -221,9 +221,9 @@ class DashboardTests(unittest.TestCase):
             if method=='getWebhookInfo':return dict(state)
             if method=='setWebhook':
                 self.assertRegex(params['secret_token'],r'^[a-f0-9]{64}$')
-                self.assertEqual(params['allowed_updates'],['message'])
+                self.assertEqual(params['allowed_updates'],['message','pre_checkout_query'])
                 self.assertNotIn('drop_pending_updates',params)
-                state['url']=params['url'];return True
+                state['url']=params['url'];state['allowed_updates']=params['allowed_updates'];return True
             raise AssertionError(method)
         env={'TELEGRAM_WEBHOOK_SECRET':'','RENDER_EXTERNAL_URL':'https://hatdrop.onrender.com','PUBLIC_APP_URL':'https://app.example.com/path?x=1'}
         with patch.dict(os.environ,env),patch.object(backend,'tg_api',side_effect=telegram) as call:
