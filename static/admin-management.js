@@ -18,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
+  const titles = {emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
   $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -42,6 +42,7 @@ function admShow(tab) {
   else if (tab === 'relayer') admLoadRelayer();
   else if (tab === 'rtp') admLoadGlobalRtp();
   else if (tab === 'payments') admLoadPayments();
+  else if (tab === 'emoji') admLoadEmoji();
 }
 
 async function admLoadGlobalRtp() {

@@ -23,7 +23,7 @@ from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate
 from decimal import ROUND_HALF_UP, Decimal
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from flask import Flask, Response, g, jsonify, request, send_from_directory, render_template, session
+from flask import Flask, Response, g, jsonify, request, send_from_directory, render_template, session, has_request_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "data.json"))  # старый JSON-файл (только для миграции)
@@ -1185,7 +1185,7 @@ def promo(user, body):
     return result
 
 
-def _send_tg_async(uid, message, reply_markup=None):
+def _send_tg_async(uid, message, reply_markup=None, html=False):
     if not BOT_TOKEN or not str(uid).startswith("tg"):
         return
     try:
@@ -1194,7 +1194,10 @@ def _send_tg_async(uid, message, reply_markup=None):
         return
     def job():
         try:
-            tg_api("sendMessage", chat_id=chat, text=message, **({"reply_markup": reply_markup} if reply_markup else {}))
+            extra = {"reply_markup": reply_markup} if reply_markup else {}
+            if html:
+                extra.update(parse_mode="HTML", link_preview_options={"is_disabled": True})
+            tg_api("sendMessage", chat_id=chat, text=message, **extra)
         except Exception as e:
             print("Telegram notification failed:", str(e), flush=True)
     threading.Thread(target=job, daemon=True).start()
@@ -3233,7 +3236,16 @@ FALLBACK_ART = {
 # TON Connect settings are persisted in the existing DB, not in a new file.
 # No private keys or seed phrases are stored here.
 def _tonconnect_site_origin():
-    return (_env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL", "RENDER_EXTERNAL_URL") or request.host_url).rstrip("/")
+    env = _env_first("PUBLIC_APP_URL", "APP_URL", "SITE_URL", "RENDER_EXTERNAL_URL")
+    if env:
+        return env.rstrip("/")
+    settings = db.setdefault("settings", {})
+    if has_request_context():
+        origin = request.host_url.rstrip("/")
+        if origin.startswith("https://") and settings.get("last_origin") != origin:
+            settings["last_origin"] = origin  # запоминаем для фоновых уведомлений бота
+        return origin
+    return str(settings.get("last_origin") or "")
 
 
 def tonconnect_config():
@@ -3797,18 +3809,69 @@ def nft_collection(title, slug):
 
 
 def nft_portal_price(title, slug, model=""):
-    """Цена Portals: точная модель, иначе пол коллекции. 0 — цены нет."""
+    """Цена Portals: только пол (floor) всей коллекции — модель и фон не учитываются. 0 — цены нет."""
     collection = nft_collection(title, slug)
     if not collection:
         return 0.0, ""
     try:
-        if model:
-            for m in gift_models(collection):
-                if _norm(m["model"]) == _norm(model):
-                    return ton(m["price_ton"]), collection
         return ton(gift_floor(collection)), collection
     except ApiError:
         return 0.0, collection
+
+
+# ---- Эмодзи (premium custom emoji) для сообщений бота ----
+EMOJI_ID_RE = re.compile(r"^[0-9]{5,30}$")
+EMOJI_NOTICE = ("Custom (premium) emoji в сообщениях бота работают, если у владельца бота есть Telegram Premium. "
+                "Если эмодзи не задано — используется обычный.")
+
+
+def emoji_doc():
+    doc = db.setdefault("emoji", {})
+    doc.setdefault("saved", {})
+    doc.setdefault("gifts", {})
+    doc.setdefault("ton", {})
+    return doc
+
+
+def emoji_tag(entry, default):
+    eid = str((entry or {}).get("id") or "")
+    fallback = str((entry or {}).get("emoji") or "")
+    if EMOJI_ID_RE.match(eid) and fallback:
+        return f'<tg-emoji emoji-id="{eid}">{html.escape(fallback)}</tg-emoji>'
+    return default
+
+
+def ton_emoji_html():
+    return emoji_tag(emoji_doc().get("ton"), "💎")
+
+
+def gift_emoji_html(collection):
+    return emoji_tag(emoji_doc()["gifts"].get(str(collection or "")), "🎁")
+
+
+def fetch_custom_emoji_map(ids):
+    """getCustomEmojiStickers: id -> канонический обычный эмодзи. Сетевой вызов, без lock."""
+    unique = []
+    for v in ids or []:
+        v = str(v or "").strip()
+        if EMOJI_ID_RE.match(v) and v not in unique:
+            unique.append(v)
+    out = {}
+    for i in range(0, len(unique), 200):
+        for st in tg_api("getCustomEmojiStickers", custom_emoji_ids=unique[i:i + 200]) or []:
+            eid = str(st.get("custom_emoji_id") or "")
+            if eid:
+                out[eid] = {"id": eid, "emoji": str(st.get("emoji") or "")[:32], "set_name": str(st.get("set_name") or "")}
+    return out
+
+
+def nft_delivered_message(info, collection, name, value):
+    link = f"https://t.me/nft/{re.sub(r'[^A-Za-z0-9_-]+', '', info['slug'])}"
+    text = (f"{gift_emoji_html(collection)} Ваш подарок <a href=\"{link}\">{html.escape(name)}</a> успешно доставлен "
+            f"и обменян на {ton_emoji_html()} <b>{value:g} TON</b>.\n\nОн уже у вас на балансе.")
+    url = _bot_app_url()
+    markup = {"inline_keyboard": [[{"text": "Открыть приложение", "web_app": {"url": url}}]]} if valid_url(url) else None
+    return text, markup
 
 
 def relayer_catalog():
@@ -3848,18 +3911,23 @@ def relayer_credit(info, baseline=False):
     user = db["users"].get(f"tg{info['sender_id']}") if info["sender_id"] else None
     if not user:
         return finish("unknown_user")
-    portal, _ = nft_portal_price(info["title"], info["slug"], info["model"])
+    portal, collection = nft_portal_price(info["title"], info["slug"])
     if portal <= 0:
         return "pending_price"  # каталог ещё не загружен: повторим на следующем скане
     value = money(portal * GIFT_ACCEPT_RATE)
     if value <= 0:
         return finish("no_price")
     name = f"{info['title']} #{info['number']}" if info["number"] else info["title"]
-    prize = add_prize(user, f"nft:{info['slug']}", name, value, f"/nft-img/{re.sub(r'[^A-Za-z0-9_-]+', '', info['slug'])}.png")
-    prize.update(sell_rate=1.0, source="gift_deposit", portal_ton=portal, nft_slug=info["slug"])
-    finish("delivered", uid=user["id"], price_ton=value, portal_ton=portal, prize_id=prize["id"])
-    _send_tg_async(user["id"], f"🎁 Подарок {name} зачислен в инвентарь: {value:g} TON")
-    return "delivered"
+    user["balance"] = ton(user["balance"] + value)
+    try:
+        _quest_record_deposit(db, user, amount=value, payment_id="nft:" + info["key"])
+    except ValueError:
+        pass
+    credit_referral_bonus(user, value)
+    finish("credited", uid=user["id"], price_ton=value, portal_ton=portal, collection=collection)
+    text, markup = nft_delivered_message(info, collection, name, value)
+    _send_tg_async(user["id"], text, markup, html=True)
+    return "credited"
 
 
 def relayer_apply_scan(result):
@@ -3874,7 +3942,7 @@ def relayer_apply_scan(result):
     for info in result["gifts"]:
         status = relayer_credit(info, baseline=baseline)
         processed += 0 if status in ("duplicate", "pending_price") else 1
-        delivered += 1 if status == "delivered" else 0
+        delivered += 1 if status == "credited" else 0
     state.update(authorized=True, status="online", account=result.get("account") or state.get("account", {}),
                  baseline_ready=True, last_scan=int(time.time()), saved_gifts_count=len(result["gifts"]), error="")
     if result.get("stars_balance") is not None:
@@ -4434,6 +4502,99 @@ def admin_cryptobot_save(body):
                      app_id=proposed.get("app_id"), app_name=proposed.get("app_name", ""))
         db["settings"]["crypto_pay"] = saved
         return crypto_admin_view()
+
+
+@route("/api/admin/emojis")
+def admin_emojis(user, body):
+    require_admin(user)
+    doc = emoji_doc()
+    return {"saved": sorted(doc["saved"].values(), key=lambda x: x["id"]), "ton": doc["ton"],
+            "ton_preview": ton_emoji_html(), "notice": EMOJI_NOTICE}
+
+
+@admin_io("/api/admin/emojis/add")
+def admin_emoji_add(body):
+    eid = str(body.get("id") or "").strip()
+    if not EMOJI_ID_RE.match(eid):
+        raise ApiError("bad_emoji_id", 400, message="Введите корректный ID эмодзи (только цифры).")
+    found = fetch_custom_emoji_map([eid]).get(eid)
+    if not found:
+        raise ApiError("emoji_not_found", 404, message="Telegram не нашёл эмодзи с таким ID.")
+    with lock:
+        emoji_doc()["saved"][eid] = {"id": eid, "emoji": found["emoji"] or "⭐", "set_name": found["set_name"]}
+        return {"ok": True, "item": emoji_doc()["saved"][eid]}
+
+
+@route("/api/admin/emojis/remove")
+def admin_emoji_remove(user, body):
+    require_admin(user)
+    eid = str(body.get("id") or "")
+    doc = emoji_doc()
+    doc["saved"].pop(eid, None)
+    if doc["ton"].get("id") == eid:
+        doc["ton"] = {}
+    for key in [k for k, v in doc["gifts"].items() if v.get("id") == eid]:
+        doc["gifts"].pop(key)
+    save_db()
+    return {"ok": True}
+
+
+def _emoji_assign(body, target):
+    """target: 'ton' или id коллекции. Пустой id — сбросить на обычный эмодзи."""
+    eid = str(body.get("emoji_id") or "").strip()
+    if not eid:
+        with lock:
+            doc = emoji_doc()
+            if target == "ton":
+                doc["ton"] = {}
+            else:
+                doc["gifts"].pop(target, None)
+            return {"ok": True, "item": {}}
+    if not EMOJI_ID_RE.match(eid):
+        raise ApiError("bad_emoji_id", 400, message="Введите корректный ID эмодзи (только цифры).")
+    found = fetch_custom_emoji_map([eid]).get(eid)
+    if not found or not found["emoji"]:
+        raise ApiError("emoji_not_found", 404, message="Telegram не нашёл premium-эмодзи с таким ID.")
+    item = {"id": eid, "emoji": found["emoji"]}
+    with lock:
+        doc = emoji_doc()
+        doc["saved"][eid] = {**item, "set_name": found["set_name"]}
+        if target == "ton":
+            doc["ton"] = item
+        else:
+            doc["gifts"][target] = item
+        return {"ok": True, "item": item}
+
+
+@admin_io("/api/admin/emojis/ton")
+def admin_emoji_ton(body):
+    return _emoji_assign(body, "ton")
+
+
+@route("/api/admin/gift-emojis")
+def admin_gift_emojis(user, body):
+    require_admin(user)
+    term = str(body.get("q") or "").strip().casefold()[:80]
+    gifts = emoji_doc()["gifts"]
+    items = []
+    for key, entry in gifts_map().items():
+        name = str(entry.get("name") or key)
+        if term and term not in name.casefold() and term not in key.casefold():
+            continue
+        item = gifts.get(key) or {}
+        items.append({"gift_id": key, "name": name, "image": gift_image(key),
+                      "emoji_id": item.get("id", ""), "emoji": item.get("emoji", "")})
+    items.sort(key=lambda x: x["name"].casefold())
+    return {"items": items[:600]}
+
+
+@admin_io("/api/admin/gift-emojis/save")
+def admin_gift_emoji_save(body):
+    key = str(body.get("gift_id") or "")
+    with lock:
+        if key not in gifts_map():
+            raise ApiError("not_found", 404, message="Подарок не найден в каталоге.")
+    return _emoji_assign(body, key)
 
 
 load_db()

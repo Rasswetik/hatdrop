@@ -17,6 +17,7 @@ class RelayerTests(unittest.TestCase):
         self.client = backend.app.test_client()
         self.client.post("/api/state", json={"initData": signed_user(202)})
         self.user = backend.db["users"]["tg202"]
+        self.start = self.user["balance"]
         self.catalog = {"plushpepe": {"name": "Plush Pepe", "floor": 100.0, "models": [{"model": "Cozy", "floor": 200.0}]}}
         patcher = mock.patch.object(backend, "CATALOG", self.catalog)
         patcher.start()
@@ -25,32 +26,53 @@ class RelayerTests(unittest.TestCase):
     def scan(self, gifts):
         return backend.relayer_apply_scan({"status": "online", "account": {"username": "relay"}, "gifts": gifts})
 
-    def test_baseline_then_delivery_at_85_percent_and_sale_without_fee(self):
+    def test_baseline_then_floor_credit_to_balance_and_bot_message(self):
         old = gift("tg:1")
         self.assertTrue(self.scan([old])["baseline"])
-        self.assertEqual(self.user["prizes"], [])  # gifts that existed before linking are not credited
-        stats = self.scan([old, gift("tg:2", slug="PlushPepe-8")])
+        self.assertEqual(self.user["balance"], self.start)  # gifts that existed before linking are not credited
+        backend.db["emoji"] = {"ton": {"id": "5368324170671202286", "emoji": "💎"}, "gifts": {"plushpepe": {"id": "5424972470023104089", "emoji": "🐸"}}, "saved": {}}
+        backend.db["settings"]["tonconnect"] = {"app_url": "https://app.example"}
+        sent = []
+        with mock.patch.object(backend, "_send_tg_async", lambda *a, **k: sent.append((a, k))):
+            stats = self.scan([old, gift("tg:2", slug="PlushPepe-8")])
         self.assertEqual(stats["delivered"], 1)
-        prize = self.user["prizes"][0]
-        self.assertEqual(prize["value"], 170.0)  # model price 200 * 0.85
-        self.assertTrue(prize["image"].startswith("/nft-img/plushpepe-8") or prize["image"].startswith("/nft-img/PlushPepe-8"))
-        self.assertEqual(self.client.post("/api/state", json={"initData": signed_user(202)}).json["prizes"][0]["sell_ton"], 170.0)
-        before = self.user["balance"]
-        self.assertEqual(self.client.post("/api/sell", json={"initData": signed_user(202), "prize_id": prize["id"]}).json["payout_ton"], 170.0)
-        self.assertEqual(self.user["balance"], before + 170.0)
+        self.assertEqual(self.user["prizes"], [])  # nothing goes to the inventory
+        self.assertEqual(self.user["balance"], self.start + 85.0)  # collection floor 100 * 0.85, model ignored
+        text, markup = sent[0][0][1], sent[0][0][2]
+        self.assertIn('href="https://t.me/nft/PlushPepe-8"', text)
+        self.assertIn("85 TON", text)
+        self.assertIn('<tg-emoji emoji-id="5368324170671202286">', text)
+        self.assertIn('<tg-emoji emoji-id="5424972470023104089">', text)
+        self.assertTrue(sent[0][1]["html"])
+        self.assertEqual(markup["inline_keyboard"][0][0]["text"], "Открыть приложение")
 
-    def test_floor_used_when_model_unknown_and_duplicates_ignored(self):
+    def test_floor_used_and_duplicates_ignored(self):
         self.scan([])
         g = gift("tg:3", model="Mystery")
         self.assertEqual(self.scan([g])["delivered"], 1)
-        self.assertEqual(self.user["prizes"][0]["value"], 85.0)
+        self.assertEqual(self.user["balance"], self.start + 85.0)
         self.assertEqual(self.scan([g])["processed"], 0)
-        self.assertEqual(len(self.user["prizes"]), 1)
+        self.assertEqual(self.user["balance"], self.start + 85.0)
+
+    def test_admin_emojis(self):
+        self.user["is_admin"] = True
+        fake = lambda ids: {i: {"id": i, "emoji": "🐸", "set_name": "s"} for i in ids if i == "5424972470023104089"}
+        admin = lambda p, **b: self.client.post(p, json={"initData": signed_user(202), **b})
+        with mock.patch.object(backend, "fetch_custom_emoji_map", fake), mock.patch.object(backend, "require_admin", lambda u: None):
+            self.assertEqual(admin("/api/admin/emojis/ton", emoji_id="5424972470023104089").status_code, 200)
+            self.assertEqual(admin("/api/admin/emojis/ton", emoji_id="1234567").status_code, 404)
+            self.assertEqual(admin("/api/admin/gift-emojis/save", gift_id="plushpepe", emoji_id="5424972470023104089").json["item"]["emoji"], "🐸")
+            self.assertEqual(admin("/api/admin/gift-emojis/save", gift_id="nope", emoji_id="5424972470023104089").status_code, 404)
+            items = admin("/api/admin/gift-emojis").json["items"]
+            self.assertEqual(items[0]["emoji_id"], "5424972470023104089")
+            self.assertIn("tg-emoji", admin("/api/admin/emojis").json["ton_preview"])
+            admin("/api/admin/emojis/remove", id="5424972470023104089")
+            self.assertEqual(backend.emoji_doc()["gifts"], {})
 
     def test_unknown_sender_plain_gift_and_missing_price(self):
         self.scan([])
         self.scan([gift("tg:4", sender=999), gift("tg:5", slug="")])
-        self.assertEqual(self.user["prizes"], [])
+        self.assertEqual(self.user["balance"], self.start)
         statuses = {e["key"]: e["status"] for e in backend.relayer_doc()["events"].values()}
         self.assertEqual(statuses["tg:4"], "unknown_user")
         self.assertEqual(statuses["tg:5"], "skipped")

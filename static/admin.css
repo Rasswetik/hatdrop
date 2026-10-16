@@ -27,3 +27,14 @@
 .adm-prize em{flex:1 1 100%;font-size:11px}
 @media(min-width:1000px){.adm-prize em{flex:0 1 auto;margin-left:auto;text-align:right}}
 .adm-status{color:var(--muted);font-size:12px;margin:12px 0 0}
+
+#admEmoji{display:grid;gap:20px}#admEmoji>.adm-box{margin:0}
+.em-notice{font-size:12px;color:var(--muted);line-height:1.6}
+.em-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.em-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:999px;padding:6px 8px 6px 12px;background:#101827;font-size:12px}
+.em-chip b{font-size:18px;font-weight:400}.em-chip button{min-height:26px;padding:0 8px;font-size:12px}
+.em-gifts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.em-gift{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px;background:#101827}
+.em-gift img{width:44px;height:44px;object-fit:contain}.em-gift b{font-size:12px;overflow-wrap:anywhere}
+.em-gift .em-row{grid-column:1/-1;display:flex;gap:6px;align-items:center}.em-gift input{min-height:34px;padding:6px 8px;font-size:12px;flex:1}
+.em-gift button{min-height:34px;padding:4px 10px;font-size:12px}.em-cur{font-size:20px;min-width:24px;text-align:center}

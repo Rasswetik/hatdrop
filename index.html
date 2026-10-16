@@ -3817,7 +3817,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
         </button>
         <button class="dep-method dep-nft" id="depChooseGift" type="button" data-method="nft">
           <span class="dep-m-ico"><img src="/static/img/gift.png" alt="NFT" draggable="false" onerror="this.onerror=null;this.src='/static/img/gift.svg'"></span>
-          <span class="dep-m-copy"><b>NFT-подарки</b><small id="depGiftSub">Отправь подарок — получишь его в инвентаре</small></span>
+          <span class="dep-m-copy"><b>NFT-подарки</b><small id="depGiftSub">Отправь подарок — получишь TON на баланс</small></span>
           <span class="dep-m-arrow">›</span>
         </button>
       </div>
@@ -7391,7 +7391,7 @@ function syncDepositMethods() {
   const gift = !!(giftCfg && giftCfg.enabled && giftCfg.account);
   $('depChooseGift').disabled = !gift;
   $('depGiftSub').textContent = gift
-    ? tr('Отправь подарок на @{account} — получишь его в инвентаре', { account: giftCfg.account })
+    ? tr('Отправь подарок на @{account} — получишь TON на баланс', { account: giftCfg.account })
     : tr('Сейчас недоступно');
   if (starsCfg) {
     $('starsRate').textContent = tr('1 TON = {n} Stars', { n: starsCfg.per_ton });
@@ -7524,7 +7524,7 @@ async function openGiftDeposit() {
   $('giftHow').hidden = true;
   giftPicked = null;
   $('giftIntro').textContent =
-    tr('Подари NFT-подарок на @{account} — он появится в инвентаре картинкой по цене Portals минус {percent}%. Продать его можно по этой цене.',
+    tr('Отправь NFT-подарок на @{account} — он сразу обменяется на TON по минимальной цене (флору) коллекции на Portals минус {percent}%. Модель и фон не учитываются. TON придут на баланс, бот пришлёт уведомление.',
       { account: giftCfg.account, percent: Math.round((1 - giftCfg.share) * 100) });
   const list = $('giftList');
   list.replaceChildren();

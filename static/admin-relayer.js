@@ -1,6 +1,6 @@
 'use strict';
 const RELAYER_STATUS = { online: 'Подключён', code_sent: 'Ждём код из Telegram', need_password: 'Нужен пароль 2FA', logged_out: 'Не подключён', login_required: 'Нужен вход', disabled: 'Выключен' };
-const RELAYER_EVENT = { delivered: 'Зачислен', baseline: 'Был до подключения', unknown_user: 'Отправитель не в игре', skipped: 'Обычный подарок', no_price: 'Нет цены' };
+const RELAYER_EVENT = { credited: 'Зачислен', delivered: 'Зачислен', baseline: 'Был до подключения', unknown_user: 'Отправитель не в игре', skipped: 'Обычный подарок', no_price: 'Нет цены' };
 const RELAYER_AUTO = { queued: 'В очереди', done: 'Выдан', failed: 'Нужен ручной вывод' };
 
 function relayerErr(e) {
