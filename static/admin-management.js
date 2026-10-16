@@ -467,7 +467,7 @@ async function admLoadWithdrawals() {
       if (wd.auto) {
         const auto = {queued:'Автовывод: в очереди у релейера', done:'Автовывод: выдан', failed:'Автовывод не удался — нужен ручной вывод', manual:'Ручная проверка'}[wd.auto] || wd.auto;
         let line = auto;
-        if (wd.auto_error) line += ' · Ошибка: ' + wd.auto_error + (wd.attempts ? ' (попытка ' + wd.attempts + '/5)' : '');
+        if (wd.auto_error) line += (wd.auto_status === 'not_eligible' ? ' · Причина: ' : ' · Ошибка: ') + wd.auto_error + (wd.attempts ? ' (попытка ' + wd.attempts + '/5)' : '');
         else if (wd.auto_status && wd.auto === 'queued') line += ' · ' + wd.auto_status;
         info.append(admField('span',{className:'adm-wd-meta',textContent:line}));
       }

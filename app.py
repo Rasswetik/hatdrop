@@ -324,6 +324,46 @@ def save_db():
     _dirty.set()
 
 
+BACKUP_EVERY = float(os.environ.get("BACKUP_HOURS", "6")) * 3600
+BACKUP_KEEP = int(os.environ.get("BACKUP_KEEP", "14"))
+
+
+def backup_sqlite():
+    """Копия SQLite-базы (нужна только без Postgres): backups/ рядом с базой, хранится BACKUP_KEEP последних."""
+    if DATABASE_URL or not os.path.exists(SQLITE_PATH):
+        return ""
+    folder = os.environ.get("BACKUP_DIR") or os.path.join(os.path.dirname(os.path.abspath(SQLITE_PATH)), "backups")
+    os.makedirs(folder, exist_ok=True)
+    dest = os.path.join(folder, time.strftime("data-%Y%m%d-%H%M%S.sqlite3"))
+    with _sqlite_lock:
+        src = sqlite3.connect(SQLITE_PATH, timeout=15)
+        try:
+            dst = sqlite3.connect(dest)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+        finally:
+            src.close()
+    for old in sorted(f for f in os.listdir(folder) if f.startswith("data-") and f.endswith(".sqlite3"))[:-BACKUP_KEEP]:
+        try:
+            os.remove(os.path.join(folder, old))
+        except OSError:
+            pass
+    return dest
+
+
+def _backup_loop():
+    time.sleep(60)
+    while True:
+        try:
+            flush_db()
+            backup_sqlite()
+        except Exception as e:
+            print("SQLite backup failed:", e, flush=True)
+        time.sleep(BACKUP_EVERY)
+
+
 def _saver_loop():
     while True:
         _dirty.wait()
@@ -1156,7 +1196,11 @@ def withdraw(user, body):
         "updated": int(time.time()), "name": prize["name"], "image": prize.get("image", ""),
         "value_ton": prize["value"], "tier": prize["tier"]}
     req = db["withdrawals"][key]
-    req["auto"] = "queued" if auto_withdraw_eligible(user, prize) else "manual"
+    reason = auto_withdraw_block_reason(user, prize)
+    req["auto"] = "manual" if reason else "queued"
+    if reason:
+        req["auto_error"] = reason
+        req["auto_status"] = "not_eligible"
     _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"], prize=prize)
     _notify_admins_withdrawal(user, prize, req)
     return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": req["auto"] == "queued"}
@@ -4226,13 +4270,27 @@ def prize_withdraw_target(prize):
     return None
 
 
-def auto_withdraw_eligible(user, prize):
-    if not relayer_ready() or not str(user["id"]).startswith("tg"):
-        return False
+def auto_withdraw_block_reason(user, prize):
+    """Почему автовывод невозможен (None — возможен). Показывается в админке."""
+    if not str(user["id"]).startswith("tg"):
+        return "Игрок без Telegram-аккаунта"
+    doc = relayer_doc()
+    if not doc.get("enabled"):
+        return "Релейер выключен"
+    if not all(relayer_creds()) or not doc["state"].get("authorized"):
+        return "Релейер не авторизован (войдите в управлении релейером)"
     auto = relayer_auto()
-    if not auto["enabled"] or (auto["limit_enabled"] and prize["value"] > auto["limit_ton"] + 1e-9):
-        return False
-    return prize_withdraw_target(prize) is not None
+    if not auto["enabled"]:
+        return "Автовывод выключен в настройках релейера"
+    if auto["limit_enabled"] and prize["value"] > auto["limit_ton"] + 1e-9:
+        return f"Цена {prize['value']:g} TON выше лимита автовывода {auto['limit_ton']:g} TON"
+    if prize_withdraw_target(prize) is None:
+        return "Для этого приза нет данных для поиска подарка на релейере"
+    return None
+
+
+def auto_withdraw_eligible(user, prize):
+    return auto_withdraw_block_reason(user, prize) is None
 
 
 def relayer_process_withdrawals(limit=6):
@@ -4244,6 +4302,12 @@ def relayer_process_withdrawals(limit=6):
         api_id, api_hash = relayer_creds()
         session = relayer_doc().get("session", "")
         for req in db.setdefault("withdrawals", {}).values():
+            if req.get("status") == "pending" and req.get("auto") == "manual" and req.get("auto_status") in (None, "", "not_eligible"):
+                # заявка ждала, пока релейер подключат/включат — ставим её в очередь автовывода
+                tgt = db["users"].get(req["uid"])
+                pz = next((p for p in (tgt or {}).get("prizes", []) if p.get("id") == req["prize_id"]), None)
+                if tgt and pz and pz.get("status") == "withdraw_pending" and auto_withdraw_eligible(tgt, pz):
+                    req.update(auto="queued", auto_error="", auto_status="")
             if req.get("status") != "pending" or req.get("auto") != "queued" or req.get("retry_at", 0) > now:
                 continue
             target = db["users"].get(req["uid"])
@@ -5249,6 +5313,7 @@ threading.Thread(target=portals_loop, daemon=True).start()
 threading.Thread(target=models_prewarm_loop, daemon=True).start()
 threading.Thread(target=relayer_loop, daemon=True).start()
 threading.Thread(target=season_loop, daemon=True).start()
+threading.Thread(target=_backup_loop, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
 if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):

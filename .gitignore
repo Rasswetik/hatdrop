@@ -1,2 +1,8 @@
 __pycache__/
 *.pyc
+data.sqlite3*
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+data.json*
+backups/
