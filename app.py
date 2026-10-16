@@ -3910,6 +3910,52 @@ def relayer_catalog():
     return items
 
 
+def _msk_day(ts=None):
+    return time.strftime("%Y-%m-%d", time.gmtime((ts or time.time()) + 3 * 3600))
+
+
+def relayer_stats_add(sender_id, value):
+    """Накопительная статистика зачислений (события хранятся ограниченно, итоги — постоянно)."""
+    stats = relayer_doc().setdefault("stats", {"count": 0, "ton": 0.0, "days": {}, "senders": {}})
+    stats["count"] = int(stats.get("count", 0)) + 1
+    stats["ton"] = ton(float(stats.get("ton", 0)) + value)
+    day = stats.setdefault("days", {}).setdefault(_msk_day(), {"count": 0, "ton": 0.0})
+    day["count"] += 1
+    day["ton"] = ton(day["ton"] + value)
+    for old in sorted(stats["days"])[:-90]:
+        stats["days"].pop(old, None)
+    sender = stats.setdefault("senders", {}).setdefault(str(sender_id), {"count": 0, "ton": 0.0})
+    sender["count"] += 1
+    sender["ton"] = ton(sender["ton"] + value)
+
+
+def relayer_stats_view():
+    doc = relayer_doc()
+    stats = doc.get("stats")
+    if not stats:  # события до введения счётчиков
+        for ev in doc["events"].values():
+            if ev.get("status") in ("credited", "delivered") and ev.get("price_ton"):
+                relayer_stats_add(ev.get("sender_id", 0), float(ev["price_ton"]))
+        stats = doc.get("stats") or {"count": 0, "ton": 0.0, "days": {}, "senders": {}}
+    days = stats.get("days", {})
+    today = _msk_day()
+    def window(n):
+        keys = [_msk_day(time.time() - i * 86400) for i in range(n)]
+        return {"count": sum(days.get(k, {}).get("count", 0) for k in keys), "ton": ton(sum(days.get(k, {}).get("ton", 0) for k in keys))}
+    top = sorted(stats.get("senders", {}).items(), key=lambda kv: kv[1]["ton"], reverse=True)[:5]
+    names = []
+    for sid, v in top:
+        u = db["users"].get(f"tg{sid}") or {}
+        names.append({"id": sid, "name": u.get("username") and "@" + u["username"] or u.get("first_name") or "", "count": v["count"], "ton": v["ton"]})
+    gifts_value = 0.0
+    for g in doc.get("gifts", []):
+        price, _ = nft_portal_price(g.get("title"), g.get("slug"))
+        gifts_value += price
+    return {"today": window(1), "week": window(7), "month": window(30),
+            "total": {"count": int(stats.get("count", 0)), "ton": ton(stats.get("ton", 0))},
+            "senders": len(stats.get("senders", {})), "top": names, "gifts_value_ton": ton(gifts_value), "today_key": today}
+
+
 def relayer_credit(info, baseline=False):
     """Зачислить один подарок. Вызывать под lock. Возвращает статус."""
     doc = relayer_doc()
@@ -3946,6 +3992,7 @@ def relayer_credit(info, baseline=False):
     except ValueError:
         pass
     credit_referral_bonus(user, value)
+    relayer_stats_add(info["sender_id"], value)
     finish("credited", uid=user["id"], price_ton=value, portal_ton=portal, collection=collection)
     text, markup = nft_delivered_message(info, collection, name, value)
     _send_tg_async(user["id"], text, markup, html=True)
@@ -4181,6 +4228,8 @@ def relayer_status_view():
                  "delivery": doc["auth"].get("delivery", ""), "next": doc["auth"].get("next", ""),
                  "qr_url": doc["auth"].get("qr_url", "") if doc["auth"].get("status") == "qr_wait" else ""},
         "accept_percent": round(GIFT_ACCEPT_RATE * 100),
+        "stats": relayer_stats_view(),
+        "refresh_seconds": RELAYER_SCAN_SECONDS,
         "events": events,
     }
 

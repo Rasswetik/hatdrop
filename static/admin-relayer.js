@@ -11,6 +11,24 @@ function relayerErr(e) {
 }
 
 let relayerPoll = null;
+let relayerAuto = null;
+const RELAYER_REFRESH_CHOICES = [['10', '10 с'], ['20', '20 с'], ['30', '30 с'], ['60', '1 мин'], ['0', 'выкл']];
+function relayerRefreshSeconds() {
+  try { const v = localStorage.getItem('relayerRefresh'); if (v !== null && RELAYER_REFRESH_CHOICES.some((c) => c[0] === v)) return Number(v); } catch (e) { /* storage недоступно */ }
+  return 20;
+}
+function relayerScheduleRefresh() {
+  clearInterval(relayerAuto);
+  const secs = relayerRefreshSeconds();
+  if (!secs) return;
+  relayerAuto = setInterval(() => {
+    if (admin.tab !== 'relayer' || document.hidden) return;
+    const root = $('admRelayer');
+    // не затираем то, что админ сейчас вводит
+    if (root.contains(document.activeElement) && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && document.activeElement.id !== 'relayerRefreshSel') return;
+    admLoadRelayer(null, null, true);
+  }, secs * 1000);
+}
 function relayerLoadQrLib() {
   if (window.QRCode) return Promise.resolve();
   if (!window.__qrLib) window.__qrLib = new Promise((resolve, reject) => {
@@ -22,7 +40,7 @@ function relayerLoadQrLib() {
   return window.__qrLib;
 }
 
-async function admLoadRelayer(action, body) {
+async function admLoadRelayer(action, body, silent) {
   const root = $('admRelayer');
   try {
     clearTimeout(relayerPoll);
@@ -30,7 +48,7 @@ async function admLoadRelayer(action, body) {
     admRenderRelayer(root, res);
     if (['qr_starting', 'qr_wait'].includes(res.state && res.state.status) && admin.tab === 'relayer') relayerPoll = setTimeout(() => admLoadRelayer(), 2500);
     if (res.scan) toast(res.scan.baseline ? `Запомнено подарков: ${res.scan.saved_gifts_count}` : `Подарков: ${res.scan.saved_gifts_count} · зачислено: ${res.scan.delivered}`);
-  } catch (e) { relayerErr(e); }
+  } catch (e) { if (!silent) relayerErr(e); }
 }
 
 function relayerBox(title) {
@@ -114,6 +132,25 @@ function admRenderRelayer(root, r) {
     info.appendChild(row);
   }
   root.appendChild(info);
+
+  const sx = r.stats;
+  if (sx) {
+    const box = relayerBox('Статистика пополнений NFT');
+    const line = (w) => `${w.count} шт. · ${fmt(w.ton, 2)} TON`;
+    relayerRows(box, [
+      ['Сегодня (МСК)', line(sx.today)],
+      ['7 дней', line(sx.week)],
+      ['30 дней', line(sx.month)],
+      ['Всего', line(sx.total)],
+      ['Отправителей', sx.senders],
+      ['Подарки на аккаунте (флор)', fmt(sx.gifts_value_ton, 2) + ' TON'],
+      ['Stars на аккаунте', st.stars_balance ?? '—'],
+    ]);
+    if (sx.top && sx.top.length) {
+      box.append(Object.assign(document.createElement('p'), { className: 'tc-info', textContent: 'Топ отправителей: ' + sx.top.map((t) => `${t.name || 'ID ' + t.id} — ${fmt(t.ton, 2)} TON (${t.count})`).join(' · ') }));
+    }
+    root.appendChild(box);
+  }
 
   if (!st.authorized) {
     const login = relayerBox('Вход');
@@ -216,4 +253,21 @@ function admRenderRelayer(root, r) {
       `${RELAYER_EVENT[ev.status] || ev.status}${ev.price_ton ? ' · ' + fmt(ev.price_ton, 2) + ' TON' : ''} · ID ${ev.sender_id}`));
   }
   root.appendChild(log);
+
+  const foot = document.createElement('div');
+  foot.className = 'adm-form';
+  const sel = document.createElement('select');
+  sel.id = 'relayerRefreshSel';
+  for (const [v, label] of RELAYER_REFRESH_CHOICES) sel.append(Object.assign(document.createElement('option'), { value: v, textContent: label }));
+  sel.value = String(relayerRefreshSeconds());
+  sel.onchange = () => { try { localStorage.setItem('relayerRefresh', sel.value); } catch (e) { /* ignore */ } relayerScheduleRefresh(); };
+  const lbl = document.createElement('span');
+  lbl.className = 'muted';
+  lbl.textContent = 'Автообновление: ';
+  const stamp = document.createElement('span');
+  stamp.className = 'muted';
+  stamp.textContent = ' · обновлено ' + new Date().toLocaleTimeString('ru-RU');
+  foot.append(lbl, sel, stamp);
+  root.appendChild(foot);
+  relayerScheduleRefresh();
 }

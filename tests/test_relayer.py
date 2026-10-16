@@ -37,6 +37,11 @@ class RelayerTests(unittest.TestCase):
             stats = self.scan([old, gift("tg:2", slug="PlushPepe-8")])
         self.assertEqual(stats["delivered"], 1)
         self.assertEqual(self.user["prizes"], [])  # nothing goes to the inventory
+        view = backend.relayer_status_view()
+        self.assertEqual((view["stats"]["total"], view["stats"]["today"]["count"], view["stats"]["senders"]), ({"count": 1, "ton": 85.0}, 1, 1))
+        self.assertEqual(view["stats"]["top"][0]["id"], "202")
+        self.assertEqual(view["stats"]["gifts_value_ton"], 100.0 * 2)  # two saved gifts on the account, floor 100 each
+        self.assertEqual(view["refresh_seconds"], backend.RELAYER_SCAN_SECONDS)
         self.assertEqual(self.user["balance"], self.start + 85.0)  # collection floor 100 * 0.85, model ignored
         text, markup = sent[0][0][1], sent[0][0][2]
         self.assertIn('href="https://t.me/nft/PlushPepe-8"', text)
