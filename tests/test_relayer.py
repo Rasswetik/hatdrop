@@ -155,6 +155,21 @@ class RelayerTests(unittest.TestCase):
             seconds = 600
         self.assertIn("11 мин", relayer.explain(FloodWaitError()))
 
+    def test_login_by_ready_session(self):
+        ticket = self.client.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]
+        self.client.post("/admin/login", json={"ticket": ticket})
+        with self.client.session_transaction() as session:
+            h = {"X-Admin-CSRF": session["admin_csrf"]}
+        self.client.post("/api/admin/relayer/settings", headers=h, json={"api_id": "12345", "api_hash": "b" * 32})
+        async def check(api_id, api_hash, session):
+            return {"status": "authorized", "account": {"username": "relay", "id": 5}}, session
+        self.assertEqual(self.client.post("/api/admin/relayer/login/session", headers=h, json={"session": "short"}).status_code, 400)
+        string = "1" + "A" * 200
+        with mock.patch.object(relayer, "session_check", check):
+            r = self.client.post("/api/admin/relayer/login/session", headers=h, json={"session": string})
+        self.assertTrue(r.json["state"]["authorized"])
+        self.assertEqual(backend.relayer_doc()["session"], string)
+
     def test_crop_png_trims_transparent_border(self):
         from PIL import Image
         img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))

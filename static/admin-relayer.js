@@ -126,6 +126,15 @@ function admRenderRelayer(root, r) {
       note.textContent = 'Код принят. На аккаунте включена двухфакторная защита — введите пароль 2FA и нажмите «Войти».';
       login.append(note);
     }
+    const sessBox = document.createElement('details');
+    const sum = document.createElement('summary');
+    sum.textContent = 'Код не приходит? Вход по готовой сессии';
+    const sessNote = document.createElement('p');
+    sessNote.className = 'tc-info';
+    sessNote.textContent = 'Telegram иногда не присылает код при входе с IP хостинга. Выполните на своём компьютере tools/relayer_login.py (инструкция внутри файла), вставьте полученную строку сюда.';
+    const [ls, sessInput] = relayerField('Строка сессии (StringSession)', { type: 'password', autocomplete: 'off' });
+    sessBox.append(sum, sessNote, ls, relayerButton('Войти по сессии', () => admLoadRelayer('/api/admin/relayer/login/session', { session: sessInput.value })));
+    login.append(sessBox);
     root.appendChild(login);
   }
 

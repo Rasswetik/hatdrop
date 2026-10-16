@@ -114,13 +114,26 @@ def explain(exc):
 
 
 async def phone_start(api_id, api_hash, session, phone):
-    client = _client(api_id, api_hash, session)
+    client = _client(api_id, api_hash, session)  # session может быть пустой: тогда вход начинается с нуля
     try:
         await client.connect()
         if await client.is_user_authorized():
             return {"status": "authorized", "account": account_dict(await client.get_me())}, await _finish(client)
         sent = await client.send_code_request(phone)
         return {"status": "code_sent", **_delivery(sent)}, await _finish(client)
+    except BaseException:
+        await _finish(client)
+        raise
+
+
+async def session_check(api_id, api_hash, session):
+    """Проверить готовую StringSession (созданную локально) и получить аккаунт."""
+    client = _client(api_id, api_hash, session)
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            raise RelayerError("Эта сессия не авторизована или отозвана. Создайте новую.")
+        return {"status": "authorized", "account": account_dict(await client.get_me())}, await _finish(client)
     except BaseException:
         await _finish(client)
         raise

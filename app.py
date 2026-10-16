@@ -4217,12 +4217,27 @@ def admin_relayer_phone(body):
     if not re.fullmatch(r"\+?[0-9]{8,16}", phone):
         raise ApiError("bad_phone")
     api_id, api_hash, session, _ = _relayer_session_args()
+    with lock:
+        if not relayer_doc()["state"].get("authorized"):
+            session = ""  # битая/недовходная сессия не должна мешать новому коду
     result, session = relayer_lib.run(relayer_lib.phone_start(api_id, api_hash, session, phone))
     if result["status"] == "authorized":
         _relayer_store(session, "online", {"status": "authorized"}, result["account"])
         return relayer_status_view_locked()
     _relayer_store(session, "code_sent", {"status": "code_sent", "phone": phone, "phone_code_hash": result["phone_code_hash"],
                                           "delivery": result.get("delivery", ""), "next": result.get("next", "")})
+    return relayer_status_view_locked()
+
+
+@admin_io("/api/admin/relayer/login/session")
+def admin_relayer_session(body):
+    """Вход по готовой StringSession: обход ситуации, когда Telegram не шлёт код на IP сервера."""
+    string = re.sub(r"\s+", "", str(body.get("session") or ""))
+    if not 100 <= len(string) <= 2000 or not re.fullmatch(r"[A-Za-z0-9_=+/-]+", string):
+        raise ApiError("bad_session", 400, message="Вставьте строку сессии целиком (её выводит tools/relayer_login.py).")
+    api_id, api_hash, _, _ = _relayer_session_args()
+    result, session = relayer_lib.run(relayer_lib.session_check(api_id, api_hash, string))
+    _relayer_store(session or string, "online", {"status": "authorized"}, result["account"])
     return relayer_status_view_locked()
 
 
