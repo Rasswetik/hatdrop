@@ -3918,22 +3918,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     <button class="cta" id="wpApply" type="button">Применить</button>
   </div>
 </div>
-<div class="modal" id="spinPreview" hidden="">
-  <div class="modal-card wp-card" id="spCard">
-    <button class="x-close" id="spClose" type="button" aria-label="Закрыть">&times;</button>
-    <svg class="sp-demo" viewBox="0 0 120 120" aria-hidden="true">
-      <circle cx="60" cy="60" r="52" fill="rgba(0,0,0,.28)" stroke="rgba(255,255,255,.35)" stroke-width="4"/>
-      <path d="M60 60L60 8A52 52 0 0 1 100 27Z" fill="#5fc15a" opacity=".85"/>
-      <path d="M100 27A52 52 0 1 1 60 8L60 60Z" fill="#d9534f" opacity=".5"/>
-      <g id="spDemoPtr" style="transform-origin:60px 60px"><path d="M60 62L56 18L60 6L64 18Z" fill="#fff4cf" stroke="#2a1c10" stroke-width="2"/></g>
-      <circle cx="60" cy="60" r="6" fill="#fff4cf" stroke="#2a1c10" stroke-width="2"/>
-    </svg>
-    <p class="wp-hint">Так будет выглядеть прокрут</p>
-    <h2 id="spName"></h2>
-    <small class="shop-price-line">Есть у <b id="spPercent">…</b> игроков</small>
-    <button class="cta" id="spApply" type="button">Применить</button>
-  </div>
-</div>
 <div class="modal" id="lvlModal" hidden="">
   <div class="modal-card lvl-modal">
     <h2>Награды за уровни</h2>
@@ -7634,8 +7618,9 @@ function initSpinStyle() {
   $('spinGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-spin]');
     if (!b) return;
+    if (b.classList.contains('locked')) { haptic('notification', 'warning'); return; }
     haptic('impact', 'light');
-    openSpinPreview(b.dataset.spin);
+    setSpinStyle(b.dataset.spin);
   });
 }
 
@@ -7671,51 +7656,6 @@ function initWeapon() {
 }
 
 
-
-/* Демка типа прокрута: мини-колесо, стрелка крутится по тем же кадрам, что и в игре */
-let spDemoTimer = 0, spDemoAnim = null;
-function spinDemoFrames(style, from, end) {
-  const f = (d, o, e) => ({ transform: `rotate(${d}deg)`, offset: o, ...(e ? { easing: e } : {}) });
-  switch (style) {
-    case 'pendulum': return [f(from, 0, 'cubic-bezier(.2,.6,.3,1)'), f(end + 55, .56, 'ease-in-out'), f(end - 24, .78, 'ease-in-out'), f(end + 8, .91, 'ease-in-out'), f(end, 1)];
-    case 'spring': return [f(from, 0, 'cubic-bezier(.2,.7,.3,1)'), f(end + 38, .62, 'ease-in-out'), f(end - 16, .8, 'ease-in-out'), f(end + 5, .92, 'ease-in-out'), f(end, 1)];
-    case 'snap': return [f(from, 0, 'ease-out'), f(from - 48, .16, 'cubic-bezier(.3,.1,.1,1)'), f(end, 1)];
-    case 'tease': return [f(from, 0, 'cubic-bezier(.2,.6,.3,1)'), f(end - 50, .6, 'ease-out'), f(end - 22, .78, 'ease-in-out'), f(end - 20, .84, 'ease-in-out'), f(end - 4, .94, 'ease-in-out'), f(end, 1)];
-    case 'swing': return [f(from, 0, 'ease-in-out'), f(from + 200, .22, 'ease-in-out'), f(from - 160, .48, 'ease-in-out'), f(end - 40, .8, 'cubic-bezier(.2,.6,.3,1)'), f(end, 1)];
-    case 'turbo': return [f(from, 0, 'cubic-bezier(.3,.1,.2,1)'), f(end + 14, .82, 'ease-out'), f(end, 1)];
-    case 'wild': return [f(from, 0, 'cubic-bezier(.25,.6,.6,.9)'), f(from + 900, .45, 'cubic-bezier(.16,.62,.18,1)'), f(from + 600, .6, 'cubic-bezier(.25,.6,.6,.9)'), f(end, 1, 'cubic-bezier(.16,.62,.18,1)')];
-    default: return [f(from, 0, 'cubic-bezier(.12,.55,.08,1)'), f(end, 1)];
-  }
-}
-function spinDemoRun(style) {
-  const ptr = $('spDemoPtr'); if (!ptr || $('spinPreview').hidden) return;
-  const from = 0, turns = style === 'roulette' ? 4 : style === 'turbo' ? 2 : style === 'swing' ? 2 : 2;
-  const end = from + 360 * turns + 20 + Math.random() * 330;
-  const dur = { turbo: 1500, roulette: 4200, tease: 4300, swing: 4000, wild: 3600 }[style] || 3200;
-  try { if (spDemoAnim) spDemoAnim.cancel(); spDemoAnim = ptr.animate(spinDemoFrames(style, from, end), { duration: dur, fill: 'forwards' }); } catch (e) {}
-  spDemoTimer = setTimeout(() => spinDemoRun(style), dur + 900);
-}
-async function openSpinPreview(id) {
-  const modal = $('spinPreview');
-  const rarity = SPIN_RARITY[id] || 'common', locked = !spinOwned(id);
-  $('spCard').dataset.rarity = rarity;
-  $('spName').textContent = `${tr(SPIN_LABELS[id])} (${tr(RARITY_LABELS[rarity]).toLowerCase()})`;
-  $('spPercent').textContent = '…';
-  const apply = $('spApply');
-  apply.disabled = locked || id === spinStyle;
-  apply.textContent = id === spinStyle && !locked ? tr('Выбрано') : tr('Применить');
-  apply.onclick = () => { setSpinStyle(id); haptic('notification', 'success'); closeSpinPreview(); };
-  $('spClose').onclick = closeSpinPreview;
-  modal.hidden = false;
-  clearTimeout(spDemoTimer); spinDemoRun(id);
-  try {
-    if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
-    const p = wpStats['spin_' + id] && wpStats['spin_' + id].percent;
-    $('spPercent').textContent = p === undefined ? '—' : `${p}%`;
-  } catch (e) { $('spPercent').textContent = '—'; }
-}
-function closeSpinPreview() { clearTimeout(spDemoTimer); if (spDemoAnim) { try { spDemoAnim.cancel(); } catch (e) {} } $('spinPreview').hidden = true; }
-document.addEventListener('DOMContentLoaded', () => { $('spinPreview').addEventListener('click', (e) => { if (e.target === $('spinPreview')) closeSpinPreview(); }); });
 
 /* Предпросмотр оружия: настоящая 3D-модель. Иконка оружия выдавливается в воксели (объём по краям тоньше),
    рисуется на canvas с вращением и освещением; процент владельцев приходит с сервера. */
