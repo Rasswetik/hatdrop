@@ -1085,13 +1085,26 @@ def level_table_view(user):
     return rows
 
 
+def grant_weapon(user, wid):
+    """Выдать предмет; если админ скрыл его для всех, у получателя он всё равно появляется (только у него)."""
+    weapons_lib.grant(user, wid)
+    if wid in weapons_lib.hidden_set(db["settings"]):
+        shown = user.setdefault("unhidden", [])
+        if wid not in shown:
+            shown.append(wid)
+
+
+def hidden_for(user):
+    return sorted(weapons_lib.hidden_set(db["settings"]) - set(user.get("unhidden", [])))
+
+
 def grant_reward(user, r):
     if r["kind"] == "ton":
         user["balance"] = ton(user["balance"] + r["amount"])
     elif r["kind"] == "hatcoin":
         user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
     elif r["kind"] == "weapon" and r["weapon"] in weapons_lib.WEAPONS:
-        weapons_lib.grant(user, r["weapon"])
+        grant_weapon(user, r["weapon"])
 
 
 @route("/api/level/claim")
@@ -1143,7 +1156,7 @@ def full_state(user):
         "server_time": int(time.time()),
         "is_admin": is_admin(user),
         "halloween_enabled": db["settings"].get("halloween_enabled") is True,
-        "weapon_hidden": sorted(weapons_lib.hidden_set(db["settings"])),
+        "weapon_hidden": hidden_for(user),
         "lavka_hidden": lavka_hidden(),
         "referral": referral_view(user),
     }
@@ -1480,7 +1493,7 @@ def promo(user, body):
     elif item["kind"] == "item":
         if item["weapon"] not in weapons_lib.WEAPONS:
             raise ApiError("promo_inactive")
-        weapons_lib.grant(user, item["weapon"])
+        grant_weapon(user, item["weapon"])
         result = {"balance_ton": ton(user["balance"]), "gift": item.get("name", ""), "weapons": weapons_lib.owned(user)}
     else:
         slug = item["gift"]
@@ -1972,7 +1985,7 @@ def shop_buy(user, body):
     elif r["kind"] == "hatcoin":
         user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
     elif r["kind"] == "weapon":
-        weapons_lib.grant(user, r["weapon"])
+        grant_weapon(user, r["weapon"])
     else:
         prize = season_award(user, r)
         prize["source"] = "shop"
@@ -2080,7 +2093,7 @@ def admin_user_weapons(user, body):
         if body.get("action") == "revoke":
             weapons_lib.revoke(target, wid)
         else:
-            weapons_lib.grant(target, wid)
+            grant_weapon(target, wid)
     except ValueError:
         raise ApiError("bad_request", 400, message="Выберите снаряжение.")
     return {"user": admin_user_detail(target)}
@@ -2822,7 +2835,7 @@ def player_quest_claim(user, body):
         raise ApiError(str(exc))
     amount = q["reward_amount"]
     if q["reward_type"] == "weapon":
-        weapons_lib.grant(user, q["reward_weapon"])
+        grant_weapon(user, q["reward_weapon"])
     elif q["reward_type"] == "ton":
         user["balance"] = ton(user["balance"] + amount)
     else:

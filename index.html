@@ -3026,7 +3026,7 @@ button.lvl-badge { font: inherit; color: inherit; cursor: pointer; }
 .lvl-modal { max-height: 86vh; display: flex; flex-direction: column; gap: 10px; }
 .lvl-modal h2 { margin: 0; }
 .lvl-modal-sub { margin: 0; font-size: 10px; opacity: .8; }
-.lvl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; padding: 2px; min-height: 0; }
+.lvl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; overflow-y: auto; overflow-x: hidden; padding: 2px; min-height: 0; }
 .lvl-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; aspect-ratio: 1; border: 2px dashed rgba(255,255,255,.28); border-radius: 12px; background: rgba(0,0,0,.2); padding: 6px; font-size: 10px; text-align: center; }
 .lvl-cell b { font-size: 11px; }
 .lvl-cell small { font-size: 8px; opacity: .7; }
@@ -3087,7 +3087,7 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
-<link rel="stylesheet" href="/static/meadow-scene.css?v=3">
+<link rel="stylesheet" href="/static/meadow-scene.css?v=4">
 <link rel="stylesheet" href="/static/halloween-fx.css?v=2">
 <link rel="stylesheet" href="/static/halloween-theme.css?v=19">
 <style id="mines-palette">
@@ -3139,7 +3139,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html[data-weapon-custom="0"] .ptr-custom { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=27">
+<link rel="stylesheet" href="/static/ui-layout.css?v=28">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -4185,7 +4185,7 @@ html[data-weapon-custom="0"] .ptr-custom { display:none!important; }
 </script>
 
 <script src="/static/village-scene.js?v=6"></script>
-<script src="/static/meadow-scene.js?v=3" defer></script>
+<script src="/static/meadow-scene.js?v=4" defer></script>
 <script src="/static/halloween-art.js?v=4" defer></script>
 <script>
 (function () {
@@ -6581,12 +6581,6 @@ function renderLevelGrid() {
     const small = document.createElement('small');
     small.textContent = `${+Number(row.need).toFixed(2)} TON`;
     cell.append(b, small);
-    if (row.reward && row.claimed && row.view) {
-      const r = document.createElement('span'); r.className = 'lvl-rw';
-      const im = document.createElement('img'); im.alt = ''; im.src = row.view.image; im.onerror = () => im.remove();
-      r.append(im, document.createTextNode(tr('Получено') + ': ' + levelRewardLabel(row.view)));
-      cell.append(r);
-    }
     if (ready) cell.onclick = () => claimLevelReward(n);
     grid.appendChild(cell);
   }
@@ -6600,7 +6594,12 @@ async function claimLevelReward(n) {
     if (r.weapons) setOwnedWeapons(r.weapons);
     haptic('notification', 'success');
     renderLevelGrid();
-    toast(tr('Получено') + ': ' + levelRewardLabel(r.view));
+    $('lbPrizePlace').textContent = tr('Награда за уровень {n}', { n });
+    $('lbPrizeImg').src = r.view.image;
+    $('lbPrizeName').textContent = levelRewardLabel(r.view);
+    $('lbPrizeValue').textContent = '';
+    $('lbPrizeModal').querySelector('.cx-win-sum').hidden = true;
+    $('lbPrizeModal').hidden = false;
     renderState(await api('/api/state'));
     renderLevelGrid();
   } catch (e) {
@@ -6626,6 +6625,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function lbShowPrize(row) {
+  $('lbPrizeModal').querySelector('.cx-win-sum').hidden = false;
   $('lbPrizePlace').textContent = tr('Награда за {n} место', { n: row.rank });
   $('lbPrizeImg').src = row.prize.image;
   $('lbPrizeName').textContent = row.prize.name;
@@ -6659,7 +6659,7 @@ const CX_CELLS = 25;
 const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
 // A skin owns its artwork and available weapons. The server chooses the active event.
 const EVENT_SKINS = {
-  default: { weapons:['axe','staff','skeleton','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
+  default: { weapons:['axe','staff','skeleton','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1',mimic:'/static/chest-mimic.svg?v=1'} },
   halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
 const isHiddenItem = (id) => !!(state && Array.isArray(state.weapon_hidden) && state.weapon_hidden.includes(id));
@@ -6672,7 +6672,7 @@ function weaponUsable(id) {
 }
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
 function eventSkin() { return EVENT_SKINS[activeEventKey()]; }
-const CX_IMG = { get closed(){return eventSkin().mines.closed;},get gold(){return eventSkin().mines.gold;},get empty(){return eventSkin().mines.empty;} };
+const CX_IMG = { get closed(){return eventSkin().mines.closed;},get gold(){return eventSkin().mines.gold;},get empty(){return eventSkin().mines.empty;},get mimic(){return eventSkin().mines.mimic||eventSkin().mines.empty;} };
 function syncKostyanBanner() {
   const img = document.getElementById('kostyanBanner');
   if (!img) return;
@@ -6791,7 +6791,7 @@ function cxDraw() {
     let cls = 'cx-cell';
     let kind = 'closed';
     if (opened.has(i)) { cls += ' gold'; kind = 'gold'; }
-    else if (bad.has(i)) { cls += end.hit === i ? ' empty hit' : ' empty cx-revealed'; kind = 'empty'; }
+    else if (bad.has(i)) { cls += end.hit === i ? ' empty hit' : ' empty cx-revealed'; kind = end.hit === i && eventSkin().mines.mimic ? 'mimic' : 'empty'; if (kind === 'mimic') cls += ' cx-mimic'; }
     else if (end) { cls += ' gold cx-revealed'; kind = 'gold'; }
     const was = b._kind;
     if (b._cls !== cls) {

@@ -330,3 +330,10 @@ button.lvl-cell { font: inherit; color: inherit; cursor: pointer; padding: 0; ba
 @keyframes lvlGlow { 0%, 100% { box-shadow: 0 0 0 2px rgba(255,211,77,.35), 0 0 8px rgba(255,200,60,.4); transform: scale(1); } 50% { box-shadow: 0 0 0 3px rgba(255,211,77,.7), 0 0 18px rgba(255,200,60,.8); transform: scale(1.04); } }
 @keyframes lvlStar { 0% { opacity: 1; } 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .lvl-cell.claimable, .lvl-cell.claimable::after { animation: none; } }
+
+/* поляна: при поражении из сундука вылезает мимик */
+#view-chests #cxGrid .cx-cell.cx-mimic { overflow: visible; z-index: 2; }
+#view-chests #cxGrid .cx-cell.cx-mimic img { transform-origin: 50% 90%; animation: cxMimic .7s cubic-bezier(.2,1.6,.4,1) both, cxMimicShake 1.6s .7s ease-in-out infinite; }
+@keyframes cxMimic { 0% { transform: scale(.55) translateY(14%); } 55% { transform: scale(1.32) translateY(-12%); } 100% { transform: scale(1.18) translateY(-6%); } }
+@keyframes cxMimicShake { 0%, 100% { transform: scale(1.18) translateY(-6%) rotate(0); } 25% { transform: scale(1.2) translateY(-7%) rotate(-3deg); } 75% { transform: scale(1.2) translateY(-7%) rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { #view-chests #cxGrid .cx-cell.cx-mimic img { animation: none; transform: scale(1.15); } }

@@ -15,16 +15,15 @@ html[data-theme="meadow"]:not([data-halloween="on"]) .bg-wide #villageScene { di
 @keyframes msPan { from { transform: translate(0, -50%); } to { transform: translate(calc(100vw - var(--ms-w)), -50%); } }
 .ms-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; transition: opacity 2.6s ease-in-out; }
 .ms-dusk { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
-/* закат / рассвет: вечерняя картинка проступает на середине смены дня и ночи */
-#meadowScene.ms-to-night .ms-dusk { animation: msDusk 4.2s ease-in-out both; }
-#meadowScene.ms-to-day .ms-dusk { animation: msDusk 4.2s ease-in-out both; filter: hue-rotate(-12deg) saturate(1.1); }
-@keyframes msDusk { 0% { opacity: 0; } 42% { opacity: 1; } 62% { opacity: 1; } 100% { opacity: 0; } }
-.ms-img, .ms-fg, .ms-night { transition-duration: 4.2s !important; }
-.ms-img.night, .ms-fg.night, .ms-night { opacity: 0; }
-html[data-sky="night"] .ms-img.night, html[data-sky="night"] .ms-fg.night, html[data-sky="night"] .ms-night { opacity: 1; }
+/* день и ночь: прогресс ведёт скрипт (--ms-n 0..1, --ms-d - вечерний слой), поэтому смену можно развернуть с любого места */
+.ms-img.night, .ms-fg.night { opacity: var(--ms-n, 0); transition: none; }
+.ms-dusk { opacity: var(--ms-d, 0); }
+.ms-dayfx, .ms-nightfx { position: absolute; inset: 0; }
+.ms-dayfx { opacity: var(--ms-day, 1); }
+.ms-nightfx { opacity: var(--ms-n, 0); }
 /* ветер: нижняя трава с цветами чуть покачивается */
 .ms-fg { position: absolute; left: 0; right: 0; bottom: 0; height: 46%; overflow: hidden; transform-origin: 50% 100%; animation: msSway 5.5s ease-in-out infinite alternate;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); transition: opacity 2.6s ease-in-out; }
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%); mask-image: linear-gradient(to bottom, transparent 0, #000 22%); }
 .ms-fg img { position: absolute; left: 0; bottom: 0; width: 100%; height: auto; aspect-ratio: 1384 / 856; display: block; }
 @keyframes msSway { from { transform: skewX(.9deg); } to { transform: skewX(-.9deg); } }
 .ms-fx { position: absolute; inset: 0; }
@@ -48,7 +47,6 @@ html[data-sky="night"] .ms-smoke { background: #9fa8c8; }
 @keyframes msFly { 0% { transform: translate(0, 0); } 25% { transform: translate(8em, -3em); } 50% { transform: translate(15em, 1em); } 75% { transform: translate(6em, 3.5em); } 100% { transform: translate(0, 0); } }
 .ms-pollen { position: absolute; width: .22em; height: .22em; background: #fff6b0; opacity: 0; animation: msPollen 14s linear infinite; }
 @keyframes msPollen { 0% { transform: translate(0, 0); opacity: 0; } 10%, 85% { opacity: .85; } 100% { transform: translate(14em, -5em); opacity: 0; } }
-html[data-sky="night"] .ms-pollen, html[data-sky="night"] .ms-bfly, html[data-sky="night"] .ms-cloud { display: none; }
 /* ночь: светлячки, звёзды, огни окон */
 .ms-firefly { position: absolute; width: .3em; height: .3em; background: #e9ff8a; box-shadow: 0 0 .7em .25em rgba(210,255,110,.6); opacity: 0; animation: msFirefly 6s ease-in-out infinite; }
 @keyframes msFirefly { 0%, 100% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 55% { opacity: .35; transform: translate(2.2em, -1.6em); } 75% { opacity: 1; } }
@@ -57,6 +55,5 @@ html[data-sky="night"] .ms-pollen, html[data-sky="night"] .ms-bfly, html[data-sk
 .ms-lamp { position: absolute; width: 7em; height: 7em; margin: -3.5em 0 0 -3.5em; border-radius: 50%; background: radial-gradient(circle, rgba(255,200,110,.55), rgba(255,170,60,.18) 45%, transparent 70%); animation: msFlicker 2.4s steps(1) infinite; }
 .ms-win { position: absolute; width: 2.6em; height: 2.6em; margin: -1.3em 0 0 -1.3em; border-radius: 50%; background: radial-gradient(circle, rgba(255,205,120,.5), transparent 70%); animation: msFlicker 3.1s steps(1) infinite; }
 @keyframes msFlicker { 0%, 100% { opacity: 1; } 18% { opacity: .78; } 36% { opacity: .95; } 61% { opacity: .7; } 80% { opacity: .92; } }
-html:not([data-sky="night"]) .ms-win { display: none; }
 @media (prefers-reduced-motion: reduce) { .ms-world, .ms-world * { animation: none !important; } }
 #meadowScene.scene-paused * { animation-play-state: paused !important; }

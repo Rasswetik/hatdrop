@@ -238,3 +238,14 @@ class DatabaseAdminTests(VisibilityAdminTests):
             self.assertEqual(backend._read_dbcfg()["backend"], "postgres")
         self.assertEqual(backend._mask_url("postgresql://u:secret@h:5432/d"), "postgresql://u:***@h:5432/d")
         self.assertEqual(backend._normalize_pg_url("postgres://a@b/c"), "postgresql://a@b/c")
+
+
+class HiddenRewardTests(VisibilityAdminTests):
+    def test_hidden_reward_visible_only_for_receiver(self):
+        post = lambda uid, path, body=None: self.c.post(path, json={"initData": signed_user(uid), **(body or {})})
+        post(404, "/api/state"); post(405, "/api/state")
+        backend.db["settings"]["level_rewards"] = {"1": {"kind": "weapon", "weapon": "mace"}}
+        self.assertIn("mace", post(404, "/api/state").json["weapon_hidden"])
+        self.assertEqual(post(404, "/api/level/claim", {"level": 1}).status_code, 200)
+        self.assertNotIn("mace", post(404, "/api/state").json["weapon_hidden"])
+        self.assertIn("mace", post(405, "/api/state").json["weapon_hidden"])
