@@ -128,3 +128,11 @@ kbd{font:600 11px/1 ui-monospace,monospace;padding:4px 6px;border-radius:6px;bac
 .ud-flags textarea{width:100%;min-height:78px}
 .ud-flags .adm-form{margin-top:12px}
 @media(max-width:700px){.ud-head{grid-template-columns:1fr}.gs-trigger kbd{display:none}.admin-app .topbar{padding-left:10px}}
+
+.wcol{padding:14px;margin-bottom:12px;border:1px solid var(--ui-line);border-radius:12px;background:#0d1426}
+.wchips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.wchip{display:inline-flex;align-items:center;gap:6px;padding:4px 4px 4px 8px;border:1px solid var(--ui-line);border-radius:999px;font-size:13px}
+.wchip img{width:22px;height:22px;object-fit:contain}
+.wchip button{padding:0 8px;min-height:22px;line-height:1}
+.wchip[data-rarity=rare]{border-color:#5aa9ff}.wchip[data-rarity=epic]{border-color:#b46bff}.wchip[data-rarity=legendary]{border-color:#ffc83d}
+.wimg{width:34px;height:34px;object-fit:contain}

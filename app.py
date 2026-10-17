@@ -2294,8 +2294,81 @@ def weapon_stats(user, body):
     out = {}
     for wid, w in weapons_lib.WEAPONS.items():
         n = sum(1 for u in users if wid in weapons_lib.owned(u))
-        out[wid] = {"name": w["name"], "rarity": w["rarity"], "percent": round(100.0 * n / total, 1)}
+        out[wid] = {"name": w["name"], "rarity": w["rarity"], "owners": n, "percent": round(100.0 * n / total, 1)}
     return {"weapons": out}
+
+
+def weapon_claims(user):
+    c = user.get("wclaims")
+    if not isinstance(c, list):
+        c = user["wclaims"] = []
+    return c
+
+
+def weapon_catalog_view(user):
+    cfg = weapons_lib.get_cfg(db["settings"])
+    prog = weapons_lib.progress(user, cfg)
+    claims = set(weapon_claims(user))
+    items = {k: {"name": v["name"], "rarity": v["rarity"], "event": v["event"], "default": bool(v["default"])}
+             for k, v in weapons_lib.WEAPONS.items() if v.get("kind") != "spin"}
+    cols = [{**c, "have": prog["collections"][c["id"]], "claimed": "c:" + c["id"] in claims} for c in cfg["collections"]]
+    levels = [{**lv, "claimed": "l:" + lv["id"] in claims} for lv in cfg["levels"]]
+    return {"items": items, "collections": cols, "levels": levels, "total": prog["total"], "have": prog["have"]}
+
+
+@route("/api/weapons/catalog")
+def weapon_catalog(user, body):
+    return weapon_catalog_view(user)
+
+
+@route("/api/weapons/claim")
+def weapon_claim(user, body):
+    view = weapon_catalog_view(user)
+    kind, rid = str(body.get("type") or ""), str(body.get("id") or "")
+    if kind == "collection":
+        row = next((c for c in view["collections"] if c["id"] == rid), None)
+        have = row and row["have"]
+    elif kind == "level":
+        row = next((c for c in view["levels"] if c["id"] == rid), None)
+        have = view["have"]
+    else:
+        row = None
+    if not row:
+        raise ApiError("not_found", 404, message="Награда не найдена.")
+    key = ("c:" if kind == "collection" else "l:") + rid
+    if key in weapon_claims(user):
+        raise ApiError("already_claimed", 400, message="Награда уже получена.")
+    if have < row["need"]:
+        raise ApiError("not_ready", 400, message="Коллекция ещё не собрана.")
+    weapon_claims(user).append(key)
+    user["balance"] = ton(user["balance"] + row["reward"])
+    return {"ok": True, "balance_ton": ton(user["balance"]), **weapon_catalog_view(user)}
+
+
+@route("/api/admin/weapons")
+def admin_weapons(user, body):
+    require_admin(user)
+    cfg = weapons_lib.get_cfg(db["settings"])
+    users = [u for u in db["users"].values() if isinstance(u, dict)]
+    total = max(1, len(users))
+    weapons = [{"id": k, "name": v["name"], "rarity": v["rarity"], "event": v["event"], "default": bool(v["default"]),
+                "owners": sum(1 for u in users if k in weapons_lib.owned(u))}
+               for k, v in weapons_lib.WEAPONS.items() if v.get("kind") != "spin"]
+    claims = sum(len(u.get("wclaims") or []) for u in users)
+    return {"cfg": cfg, "weapons": weapons, "players": total, "claims": claims}
+
+
+@route("/api/admin/weapons/save")
+def admin_weapons_save(user, body):
+    require_admin(user)
+    try:
+        cfg = weapons_lib.clean_cfg(body.get("cfg"))
+    except ValueError as exc:
+        msg = {"collection_name": "У коллекции должно быть название.", "collection_number": "Проверьте награду и количество в коллекции.",
+               "level_number": "Проверьте уровни: нужно число от 1 и награда."}.get(str(exc), "Проверьте настройки.")
+        raise ApiError("bad_request", 400, message=msg)
+    db["settings"]["weapon_cfg"] = cfg
+    return {"ok": True, "cfg": cfg}
 
 
 @route("/api/tour/complete")

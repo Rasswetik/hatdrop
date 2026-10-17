@@ -208,3 +208,49 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 @media (max-height: 700px) { .cx-grid { max-width: 220px; gap: 4px; } }
 .cx-cell img { will-change: auto; }
 .sp-demo { width: 150px; height: 150px; margin: 14px auto 0; display: block; }
+
+/* Кастомизация: разделы по редкости и коллекции, ненайденное оружие */
+.weapon-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; min-height: 0; padding: 2px; scrollbar-width: none; }
+.weapon-list::-webkit-scrollbar { display: none; }
+.cz-sum { margin: 0; font-size: 11px; opacity: .85; }
+.cz-sum b { color: #fff; }
+.cz-filter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.cz-filter button { padding: 8px 4px; font: inherit; font-size: 10px; color: inherit; background: rgba(0,0,0,.25); border: 2px solid rgba(255,255,255,.14); border-radius: 10px; cursor: pointer; }
+.cz-filter button.on { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.5); }
+.cz-filter[hidden], .cz-sum[hidden] { display: none !important; }
+.cz-sec { display: flex; flex-direction: column; gap: 8px; }
+.cz-sec-h { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .9; }
+.cz-sec-h small { opacity: .7; }
+.cz-sec.col { padding: 10px; border: 2px solid rgba(255,170,60,.45); border-radius: 14px; background: rgba(255,150,40,.06); }
+.cz-sec.col .cz-sec-h { color: #ffb066; }
+.cz-sec .weapon-grid { overflow: visible; }
+.cz-reward { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border: 2px solid rgba(110,200,255,.4); border-radius: 12px; background: rgba(60,140,200,.12); }
+.cz-reward > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; text-align: left; }
+.cz-reward b { font-size: 12px; }
+.cz-reward small { font-size: 9px; opacity: .75; }
+.cz-rw { font-size: 12px; font-weight: 700; color: #6ee7d0; }
+.cz-claim { flex: none; min-width: 84px; padding: 10px 12px; font: inherit; font-size: 12px; font-weight: 700; color: #fff; background: rgba(120,140,170,.45); border: 0; border-radius: 10px; }
+.cz-claim.ready { background: linear-gradient(135deg, #7fe3ff, #3b8cff); color: #05283d; cursor: pointer; }
+.cz-claim:disabled:not(.ready) { opacity: .75; cursor: default; }
+.cz-empty { margin: 20px 0; text-align: center; font-size: 11px; opacity: .6; }
+.weapon-card .wc-img { position: relative; width: 100%; max-width: 58px; aspect-ratio: 1; }
+.weapon-card .wc-img img { width: 100%; height: 100%; max-width: none; }
+.weapon-card.unk { filter: none; opacity: 1; cursor: pointer; border-color: rgba(255,255,255,.1); background: rgba(0,0,0,.35); }
+.weapon-card.unk .wc-img img { filter: brightness(0) opacity(.55); }
+.weapon-card.unk .wc-img b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; color: rgba(255,255,255,.85); }
+.weapon-card.unk .weapon-name, .weapon-card.unk small { opacity: .6; }
+.wp-unk { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.wp-unk[hidden] { display: none !important; }
+.wp-unk img { height: 76%; filter: brightness(0) opacity(.5); }
+.wp-unk b { position: absolute; font-size: 58px; color: rgba(255,255,255,.9); }
+.wp-card.unk .wp-stage, .wp-card[data-rarity="unknown"] .wp-stage { cursor: default; }
+.wp-rar { align-self: center; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: #cfd6e4; }
+.wp-card[data-rarity="rare"] .wp-rar { color: #8cc4ff; }
+.wp-card[data-rarity="epic"] .wp-rar { color: #d2a3ff; }
+.wp-card[data-rarity="legendary"] .wp-rar { color: #ffdb7a; }
+.wp-card[data-rarity="unknown"] .wp-rar { color: #aab; opacity: .7; }
+.wp-info { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px; border-radius: 12px; background: rgba(0,0,0,.28); }
+.wp-info > div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; font-size: 11px; }
+.wp-info > div > span { opacity: .65; }
+.wp-note { margin: 0; font-size: 10px; line-height: 1.5; opacity: .7; }
+.wp-note[hidden], #wpApply[hidden] { display: none !important; }

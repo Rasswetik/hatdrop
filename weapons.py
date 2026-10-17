@@ -19,6 +19,14 @@ WEAPONS = {
     "rainbow": {"name": "Радужный посох", "default": False, "event": "", "rarity": "epic"},
     "butterfly": {"name": "Жезл бабочки", "default": False, "event": "", "rarity": "epic"},
     "sun": {"name": "Солнечный скипетр", "default": False, "event": "", "rarity": "legendary"},
+    "pickaxe": {"name": "Кирка шахтёра", "default": False, "event": "", "rarity": "common"},
+    "mace": {"name": "Булава", "default": False, "event": "", "rarity": "common"},
+    "spear": {"name": "Копьё", "default": False, "event": "", "rarity": "rare"},
+    "orb": {"name": "Жезл мага", "default": False, "event": "", "rarity": "rare"},
+    "frost": {"name": "Ледяной клинок", "default": False, "event": "", "rarity": "epic"},
+    "flame": {"name": "Огненный жезл", "default": False, "event": "", "rarity": "epic"},
+    "dragon": {"name": "Клинок дракона", "default": False, "event": "", "rarity": "legendary"},
+    "thunder": {"name": "Молния Зевса", "default": False, "event": "", "rarity": "legendary"},
     # типы прокрута (kind=spin): хранятся и выдаются так же, как оружие
     "spin_plain": {"name": "Прокрут: Обычный", "default": True, "event": "", "rarity": "common", "kind": "spin"},
     "spin_wild": {"name": "Прокрут: Дикий", "default": False, "event": "", "rarity": "rare", "kind": "spin"},
@@ -54,3 +62,84 @@ def revoke(user, weapon):
     if weapon not in WEAPONS or WEAPONS[weapon]["default"]:
         raise ValueError("bad_weapon")
     user["weapons"] = [w for w in user.get("weapons", []) if w != weapon]
+
+
+# --- коллекции и награды за сбор (настраиваются в админке, хранятся в settings["weapon_cfg"]) ---
+DEFAULT_CFG = {
+    "collections": [
+        {"id": "halloween", "name": "Хэллоуин", "need": 5, "reward": 1.0, "weapons": ["skeleton", "club", "pumpkin", "scythe"]},
+    ],
+    "levels": [
+        {"id": "l1", "need": 8, "reward": 0.2},
+        {"id": "l2", "need": 14, "reward": 0.5},
+        {"id": "l3", "need": 20, "reward": 1.0},
+    ],
+}
+
+
+def gear_ids():
+    return [k for k, v in WEAPONS.items() if v.get("kind") != "spin"]
+
+
+def clean_cfg(raw):
+    """Проверяет настройки коллекций: оружие входит максимум в одну коллекцию, числа в разумных пределах."""
+    raw = raw if isinstance(raw, dict) else {}
+    used, cols, ids = set(), [], set()
+    for c in (raw.get("collections") or [])[:30]:
+        if not isinstance(c, dict):
+            continue
+        name = str(c.get("name") or "").strip()[:40]
+        if not name:
+            raise ValueError("collection_name")
+        cid = str(c.get("id") or "").strip()[:20] or "c" + str(len(cols) + 1)
+        while cid in ids:
+            cid += "x"
+        ids.add(cid)
+        ws = []
+        for w in c.get("weapons") or []:
+            w = str(w)
+            if w in WEAPONS and WEAPONS[w].get("kind") != "spin" and w not in used:
+                used.add(w)
+                ws.append(w)
+        try:
+            reward = round(max(0.0, min(100000.0, float(c.get("reward") or 0))), 6)
+            need = int(c.get("need") or len(ws))
+        except (TypeError, ValueError):
+            raise ValueError("collection_number")
+        cols.append({"id": cid, "name": name, "need": max(1, min(need, max(1, len(ws)))), "reward": reward, "weapons": ws})
+    levels, lids = [], set()
+    for lv in (raw.get("levels") or [])[:30]:
+        if not isinstance(lv, dict):
+            continue
+        try:
+            need = int(lv.get("need") or 0)
+            reward = round(max(0.0, min(100000.0, float(lv.get("reward") or 0))), 6)
+        except (TypeError, ValueError):
+            raise ValueError("level_number")
+        if need < 1:
+            raise ValueError("level_number")
+        lid = str(lv.get("id") or "").strip()[:20] or "l" + str(len(levels) + 1)
+        while lid in lids:
+            lid += "x"
+        lids.add(lid)
+        levels.append({"id": lid, "need": need, "reward": reward})
+    levels.sort(key=lambda x: x["need"])
+    return {"collections": cols, "levels": levels}
+
+
+def get_cfg(settings):
+    cfg = settings.get("weapon_cfg")
+    return clean_cfg(cfg) if isinstance(cfg, dict) else clean_cfg(DEFAULT_CFG)
+
+
+def collection_of(cfg):
+    return {w: c["id"] for c in cfg["collections"] for w in c["weapons"]}
+
+
+def progress(user, cfg):
+    have = set(owned(user))
+    allg = gear_ids()
+    return {
+        "total": len(allg), "have": sum(1 for w in allg if w in have),
+        "collections": {c["id"]: sum(1 for w in c["weapons"] if w in have) for c in cfg["collections"]},
+    }

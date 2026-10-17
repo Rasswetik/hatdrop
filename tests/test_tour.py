@@ -67,3 +67,29 @@ class AdminUsersTests(unittest.TestCase):
         self.assertEqual(self.c.post("/api/state", json={"initData": signed_user(303)}).status_code, 403)
         self.c.post("/api/admin/user/flags", headers=self.h, json={"key": key, "banned": False})
         self.assertEqual(self.c.post("/api/state", json={"initData": signed_user(303)}).status_code, 200)
+
+
+class WeaponCollectionTests(AdminUsersTests):
+    def test_collections_claim_and_admin_edit(self):
+        post = lambda path, body=None: self.c.post(path, json={"initData": signed_user(303), **(body or {})})
+        cat = post("/api/weapons/catalog").json
+        self.assertEqual([c["id"] for c in cat["collections"]], ["halloween"])
+        self.assertEqual(cat["have"], 1)
+        # админ: коллекция из трёх обычных вещей, награда 2 TON, оружие не может быть в двух коллекциях
+        cfg = {"collections": [
+            {"id": "a", "name": "Поле", "need": 2, "reward": 2, "weapons": ["axe", "staff", "shovel"]},
+            {"id": "b", "name": "Дубль", "need": 1, "reward": 1, "weapons": ["axe", "mace"]}],
+            "levels": [{"id": "x", "need": 1, "reward": 0.5}]}
+        saved = self.c.post("/api/admin/weapons/save", headers=self.h, json={"cfg": cfg}).json["cfg"]
+        self.assertEqual(saved["collections"][1]["weapons"], ["mace"])
+        cat = post("/api/weapons/catalog").json
+        self.assertEqual(post("/api/weapons/claim", {"type": "collection", "id": "a"}).status_code, 400)  # собрано 1 из 2
+        self.assertEqual(post("/api/weapons/claim", {"type": "level", "id": "x"}).status_code, 200)
+        self.assertEqual(post("/api/weapons/claim", {"type": "level", "id": "x"}).status_code, 400)
+        self.assertEqual(post("/api/state").json["balance_ton"], 0.5)
+        backend.weapons_lib.grant(backend.db["users"]["tg303"], "staff")
+        r = post("/api/weapons/claim", {"type": "collection", "id": "a"})
+        self.assertEqual(r.json["balance_ton"], 2.5)
+        bad = self.c.post("/api/admin/weapons/save", headers=self.h, json={"cfg": {"collections": [{"name": ""}]}})
+        self.assertEqual(bad.status_code, 400)
+        self.assertEqual(self.c.post("/api/admin/weapons", headers=self.h, json={}).json["claims"], 2)

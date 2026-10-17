@@ -3114,7 +3114,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=15">
+<link rel="stylesheet" href="/static/ui-layout.css?v=16">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3901,9 +3901,11 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 <div class="modal" id="weaponModal" hidden="">
   <div class="modal-card weapon-modal">
     <h2>Кастомизация</h2>
-    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Тип прокрута</button></div>
+    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Типы прокрута</button></div>
+    <p class="cz-sum" id="czSum"></p>
+    <div class="cz-filter" id="czFilter"><button type="button" class="on" data-cf="all">Все</button><button type="button" data-cf="mine">Мои</button><button type="button" data-cf="lost">Не найденные</button></div>
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
-    <div class="weapon-grid" id="weaponGrid"></div>
+    <div class="weapon-list" id="weaponGrid"></div>
     <div class="weapon-grid" id="spinGrid" hidden></div>
     <button class="cta" id="weaponModalClose" type="button">Закрыть</button>
   </div>
@@ -3911,10 +3913,12 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 <div class="modal" id="weaponPreview" hidden="">
   <div class="modal-card wp-card" id="wpCard">
     <button class="x-close" id="wpClose" type="button" aria-label="Закрыть">&times;</button>
-    <div class="wp-stage" id="wpStage"><canvas id="wpCanvas" width="480" height="380"></canvas></div>
-    <p class="wp-hint">Потяни, чтобы покрутить</p>
+    <div class="wp-stage" id="wpStage"><canvas id="wpCanvas" width="480" height="380"></canvas><div class="wp-unk" id="wpUnk" hidden><img id="wpUnkImg" alt=""><b>?</b></div></div>
+    <p class="wp-hint" id="wpHint">Потяни, чтобы покрутить</p>
     <h2 id="wpName"></h2>
-    <small class="shop-price-line" id="wpPercentLine">Есть у <b id="wpPercent">…</b> игроков</small>
+    <small class="wp-rar" id="wpRar"></small>
+    <div class="wp-info" id="wpInfo"></div>
+    <p class="wp-note" id="wpNote" hidden></p>
     <button class="cta" id="wpApply" type="button">Применить</button>
   </div>
 </div>
@@ -6542,8 +6546,8 @@ const CX_CELLS = 25;
 const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
 // A skin owns its artwork and available weapons. The server chooses the active event.
 const EVENT_SKINS = {
-  default: { weapons:['axe','staff','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
-  halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
+  default: { weapons:['axe','staff','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
+  halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
 function eventSkin() { return EVENT_SKINS[activeEventKey()]; }
@@ -7501,15 +7505,19 @@ const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.web
   scythe: '/static/weapons/scythe-icon.png?v=1', pumpkin: '/static/weapons/pumpkin-icon.png?v=1',
   trident: '/static/weapons/trident-icon.png?v=1', crystal: '/static/weapons/crystal-icon.png?v=1', club: '/static/weapons/club-icon.png?v=1',
   shovel: '/static/weapons/shovel-icon.png?v=1', pitchfork: '/static/weapons/pitchfork-icon.png?v=1', flower: '/static/weapons/flower-icon.png?v=1',
-  rainbow: '/static/weapons/rainbow-icon.png?v=1', butterfly: '/static/weapons/butterfly-icon.png?v=1', sun: '/static/weapons/sun-icon.png?v=1' };
+  rainbow: '/static/weapons/rainbow-icon.png?v=1', butterfly: '/static/weapons/butterfly-icon.png?v=1', sun: '/static/weapons/sun-icon.png?v=1',
+  pickaxe: '/static/weapons/pickaxe-icon.png?v=1', mace: '/static/weapons/mace-icon.png?v=1', spear: '/static/weapons/spear-icon.png?v=1', orb: '/static/weapons/orb-icon.png?v=1',
+  frost: '/static/weapons/frost-icon.png?v=1', flame: '/static/weapons/flame-icon.png?v=1', dragon: '/static/weapons/dragon-icon.png?v=1', thunder: '/static/weapons/thunder-icon.png?v=1' };
 const WEAPON_LABELS = { axe: 'Топор', staff: 'Посох', skeleton: 'Рука скелета', sword: 'Меч', hammer: 'Молот', scythe: 'Коса жнеца', pumpkin: 'Тыквенный посох',
   trident: 'Трезубец', crystal: 'Кристальный жезл', club: 'Костяная дубина', shovel: 'Лопата фермера', pitchfork: 'Вилы', flower: 'Цветочный жезл',
   rainbow: 'Радужный посох', butterfly: 'Жезл бабочки', sun: 'Солнечный скипетр',
+  pickaxe: 'Кирка шахтёра', mace: 'Булава', spear: 'Копьё', orb: 'Жезл мага', frost: 'Ледяной клинок', flame: 'Огненный жезл', dragon: 'Клинок дракона', thunder: 'Молния Зевса',
   spin_wild: 'Прокрут: Дикий', spin_roulette: 'Прокрут: Рулетка', spin_turbo: 'Прокрут: Рывок', spin_spring: 'Прокрут: Пружина', spin_snap: 'Прокрут: Замах', spin_pendulum: 'Прокрут: Маятник', spin_tease: 'Прокрут: Интрига', spin_swing: 'Прокрут: Качели', spin_plain: 'Прокрут: Обычный' };
 const WEAPON_RARITY = { axe: 'common', staff: 'common', skeleton: 'epic', sword: 'rare', hammer: 'rare', trident: 'epic', crystal: 'legendary', club: 'rare', pumpkin: 'epic', scythe: 'legendary',
-  shovel: 'common', pitchfork: 'rare', flower: 'rare', rainbow: 'epic', butterfly: 'epic', sun: 'legendary' };
+  shovel: 'common', pitchfork: 'rare', flower: 'rare', rainbow: 'epic', butterfly: 'epic', sun: 'legendary',
+  pickaxe: 'common', mace: 'common', spear: 'rare', orb: 'rare', frost: 'epic', flame: 'epic', dragon: 'legendary', thunder: 'legendary' };
 const RARITY_LABELS = { common: 'Обычное', rare: 'Редкое', epic: 'Эпическое', legendary: 'Легендарное' };
-const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club', 'shovel', 'pitchfork', 'flower', 'rainbow', 'butterfly', 'sun']);
+const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club', 'shovel', 'pitchfork', 'flower', 'rainbow', 'butterfly', 'sun', 'pickaxe', 'mace', 'spear', 'orb', 'frost', 'flame', 'dragon', 'thunder']);
 let ownedWeapons = ['axe'];
 function setOwnedWeapons(list) {
   if (!Array.isArray(list)) return;
@@ -7520,28 +7528,99 @@ function setOwnedWeapons(list) {
   try { preferred = localStorage.getItem('weapon:' + activeEventKey()) || localStorage.getItem('weapon') || 'axe'; } catch (e) {}
   setWeapon(preferred);
 }
+const RARITY_PLURAL = { common: 'Обычные', rare: 'Редкие', epic: 'Эпические', legendary: 'Легендарные' };
+const RARITY_ORDER = ['common', 'rare', 'epic', 'legendary'];
+let wCat = null, czFilter = 'all';
+async function loadWeaponCatalog() {
+  try { wCat = await api('/api/weapons/catalog'); } catch (e) { /* без каталога остаются обычные разделы */ }
+  buildWeaponMenu();
+}
+function weaponCard(id, cur) {
+  const locked = !ownedWeapons.includes(id);
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'weapon-card' + (locked ? ' unk' : '') + (id === cur ? ' on' : '');
+  b.dataset.weapon = id;
+  if (!locked) b.dataset.rarity = WEAPON_RARITY[id];
+  const box = document.createElement('div'); box.className = 'wc-img';
+  const img = document.createElement('img'); img.src = WEAPONS[id]; img.alt = '';
+  box.appendChild(img);
+  if (locked) { const q = document.createElement('b'); q.textContent = '?'; box.appendChild(q); }
+  const name = document.createElement('span'); name.className = 'weapon-name'; name.textContent = locked ? '???' : tr(WEAPON_LABELS[id]);
+  const note = document.createElement('small'); note.textContent = locked ? tr('Не найдено') : tr(RARITY_LABELS[WEAPON_RARITY[id]]);
+  b.append(box, name, note);
+  return b;
+}
+function rewardBlock(title, reward, need, have, total, claimed, type, id) {
+  const box = document.createElement('div'); box.className = 'cz-reward';
+  const txt = document.createElement('div');
+  const h = document.createElement('b'); h.textContent = tr(title);
+  const r = document.createElement('span'); r.className = 'cz-rw'; r.textContent = `${fmt(reward, 4)} TON`;
+  const sub = document.createElement('small');
+  sub.textContent = total ? `${tr('Нужно')} ${need} ${tr('из')} ${total} (${Math.round(100 * need / total)}%) · ${tr('у вас')} ${have}` : `${tr('Нужно')} ${need} · ${tr('у вас')} ${have}`;
+  txt.append(h, r, sub);
+  const btn = document.createElement('button'); btn.type = 'button';
+  const ready = have >= need;
+  btn.className = 'cz-claim' + (ready && !claimed ? ' ready' : '');
+  btn.disabled = claimed || !ready;
+  btn.textContent = claimed ? tr('Получено') : ready ? tr('Забрать') : `${Math.min(have, need)} / ${need}`;
+  btn.onclick = () => claimWeaponReward(type, id);
+  box.append(txt, btn);
+  return box;
+}
+async function claimWeaponReward(type, id) {
+  try {
+    const r = await api('/api/weapons/claim', { type, id });
+    wCat = r; setBalance(r.balance_ton); haptic('notification', 'success');
+  } catch (e) { haptic('notification', 'error'); }
+  buildWeaponMenu();
+}
 function buildWeaponMenu() {
-  const grid = $('weaponGrid');
-  if (!grid) return;
-  grid.replaceChildren();
+  const root = $('weaponGrid');
+  if (!root) return;
+  root.replaceChildren();
   const cur = document.documentElement.dataset.weapon;
   const q = (($('weaponSearch') && $('weaponSearch').value) || '').trim().toLowerCase();
-  for (const id of eventSkin().weapons) {
-    const label = tr(WEAPON_LABELS[id]);
-    if (q && !label.toLowerCase().includes(q) && !WEAPON_LABELS[id].toLowerCase().includes(q)) continue;
-    const locked = !ownedWeapons.includes(id);
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'weapon-card' + (locked ? ' locked' : '') + (id === cur ? ' on' : '');
-    b.dataset.weapon = id;
-    b.dataset.rarity = WEAPON_RARITY[id];
-    if (locked) b.setAttribute('aria-disabled', 'true');
-    const img = document.createElement('img'); img.src = WEAPONS[id]; img.alt = '';
-    const name = document.createElement('span'); name.className = 'weapon-name'; name.textContent = label;
-    const note = document.createElement('small'); note.textContent = tr(RARITY_LABELS[WEAPON_RARITY[id]]);
-    b.append(img, name, note);
-    grid.appendChild(b);
+  const gear = Object.keys(WEAPONS);
+  const have = gear.filter((id) => ownedWeapons.includes(id)).length;
+  $('czSum').innerHTML = `${tr('Собрано')} <b>${have}</b> ${tr('из')} <b>${gear.length}</b>`;
+  const cols = (wCat && wCat.collections) || [];
+  const inCol = new Set(cols.flatMap((c) => c.weapons));
+  const shown = (id) => {
+    const own = ownedWeapons.includes(id);
+    if (czFilter === 'mine' && !own) return false;
+    if (czFilter === 'lost' && own) return false;
+    if (q) return own && (tr(WEAPON_LABELS[id]).toLowerCase().includes(q) || WEAPON_LABELS[id].toLowerCase().includes(q));
+    return true;
+  };
+  const section = (title, ids, cls) => {
+    const list = ids.filter((id) => WEAPONS[id] && shown(id));
+    if (!list.length) return null;
+    const sec = document.createElement('section'); sec.className = 'cz-sec' + (cls ? ' ' + cls : '');
+    const head = document.createElement('div'); head.className = 'cz-sec-h';
+    const t = document.createElement('span'); t.textContent = tr(title);
+    const n = document.createElement('small'); n.textContent = `${ids.filter((id) => ownedWeapons.includes(id)).length}/${ids.length}`;
+    head.append(t, n); sec.appendChild(head);
+    return { sec, grid: Object.assign(document.createElement('div'), { className: 'weapon-grid' }), list };
+  };
+  const lvl = czFilter === 'all' && !q && wCat ? (wCat.levels || []).find((l) => !l.claimed) : null;
+  if (lvl) root.appendChild(rewardBlock('Награда за коллекцию', lvl.reward, lvl.need, have, gear.length, false, 'level', lvl.id));
+  for (const r of RARITY_ORDER) {
+    const ids = gear.filter((id) => WEAPON_RARITY[id] === r && !inCol.has(id));
+    const s = section(RARITY_PLURAL[r], ids);
+    if (!s) continue;
+    for (const id of s.list) s.grid.appendChild(weaponCard(id, cur));
+    s.sec.appendChild(s.grid); root.appendChild(s.sec);
   }
+  for (const c of cols) {
+    const ids = c.weapons.filter((id) => WEAPONS[id]);
+    const s = section('Коллекция · ' + c.name, ids, 'col');
+    if (!s) continue;
+    if (c.reward > 0 && czFilter === 'all' && !q) s.sec.appendChild(rewardBlock('Награда за коллекцию', c.reward, c.need, c.have, ids.length, c.claimed, 'collection', c.id));
+    for (const id of s.list) s.grid.appendChild(weaponCard(id, cur));
+    s.sec.appendChild(s.grid); root.appendChild(s.sec);
+  }
+  if (!root.children.length) { const e = document.createElement('p'); e.className = 'cz-empty'; e.textContent = tr('Ничего не найдено'); root.appendChild(e); }
 }
 
 function setWeapon(name) {
@@ -7637,6 +7716,7 @@ function initWeapon() {
     $('weaponSearch').value = '';
     buildWeaponMenu();
     modal.hidden = false;
+    loadWeaponCatalog();
   });
   $('weaponGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-weapon]');
@@ -7645,10 +7725,16 @@ function initWeapon() {
     openWeaponPreview(b.dataset.weapon, close);
   });
   $('weaponSearch').addEventListener('input', buildWeaponMenu);
+  $('czFilter').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-cf]'); if (!b) return;
+    czFilter = b.dataset.cf; haptic('impact', 'light');
+    $('czFilter').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    buildWeaponMenu();
+  });
   modal.querySelectorAll('[data-cz]').forEach((t) => t.addEventListener('click', () => {
     const spin = t.dataset.cz === 'spin';
     modal.querySelectorAll('[data-cz]').forEach((x) => x.classList.toggle('on', x === t));
-    $('weaponGrid').hidden = spin; $('spinGrid').hidden = !spin; $('weaponSearch').hidden = spin;
+    $('weaponGrid').hidden = spin; $('spinGrid').hidden = !spin; $('weaponSearch').hidden = spin; $('czFilter').hidden = spin; $('czSum').hidden = spin;
     haptic('impact', 'light');
   }));
   $('weaponModalClose').addEventListener('click', close);
@@ -7750,25 +7836,40 @@ function wpLoop() {
 async function openWeaponPreview(id, closeMenu) {
   const modal = $('weaponPreview');
   const rarity = WEAPON_RARITY[id] || 'common', locked = !ownedWeapons.includes(id);
-  $('wpCard').dataset.rarity = rarity;
-  $('wpName').textContent = `${tr(WEAPON_LABELS[id])} (${tr(RARITY_LABELS[rarity]).toLowerCase()})`;
-  $('wpPercent').textContent = '…';
+  const card = $('wpCard');
+  card.dataset.rarity = locked ? 'unknown' : rarity;
+  $('wpName').textContent = locked ? '???' : tr(WEAPON_LABELS[id]);
+  $('wpRar').textContent = locked ? '???' : tr(RARITY_LABELS[rarity]);
+  $('wpUnk').hidden = !locked; $('wpCanvas').hidden = locked; $('wpHint').hidden = locked;
+  $('wpUnkImg').src = WEAPONS[id];
+  const col = ((wCat && wCat.collections) || []).find((c) => c.weapons.includes(id));
+  const w = (wCat && wCat.items && wCat.items[id]) || {};
+  const status = locked ? '???' : w.default ? tr('Стартовое') : w.event ? tr('Ивентовое') : tr('Наградное');
+  const rows = [[tr('Статус'), status], [tr('Коллекция'), col ? col.name : tr(RARITY_PLURAL[rarity])], [tr('Есть у игроков'), locked ? '???' : '…'], [tr('Владельцев'), locked ? '???' : '…']];
+  const info = $('wpInfo'); info.replaceChildren();
+  const vals = rows.map(([k, v]) => { const r = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; r.append(a, b); info.appendChild(r); return b; });
+  const note = $('wpNote');
+  note.hidden = !locked; note.textContent = tr('Вы ещё не нашли это оружие. Получите его, чтобы узнать подробности.');
   const apply = $('wpApply'), cur = document.documentElement.dataset.weapon;
-  apply.disabled = locked || id === cur;
-  apply.textContent = id === cur && !locked ? tr('Выбрано') : tr('Применить');
+  const usable = eventSkin().weapons.includes(id);
+  apply.hidden = locked;
+  apply.disabled = locked || id === cur || !usable;
+  apply.textContent = !usable ? tr('Только на ивенте') : id === cur ? tr('Выбрано') : tr('Применить');
   apply.onclick = () => { setWeapon(id); haptic('notification', 'success'); modal.hidden = true; if (closeMenu) closeMenu(); };
   $('wpClose').onclick = () => { modal.hidden = true; };
   wpAngle = 0.5; wpTilt = -0.12; wpIdle = true; wpDrag = null; wpModel = null;
   $('wpCanvas').getContext('2d').clearRect(0, 0, 480, 380);
   modal.hidden = false;
   cancelAnimationFrame(wpRaf);
+  if (locked) return;
   wpModel = await wpLoadModel(id, WEAPONS[id]);
   cancelAnimationFrame(wpRaf); wpLoop();
   try {
     if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
-    const p = wpStats[id] && wpStats[id].percent;
-    $('wpPercent').textContent = p === undefined ? '—' : `${p}%`;
-  } catch (e) { $('wpPercent').textContent = '—'; }
+    const st = wpStats[id];
+    vals[2].textContent = st ? `${st.percent}%` : '—';
+    vals[3].textContent = st ? String(st.owners) : '—';
+  } catch (e) { vals[2].textContent = vals[3].textContent = '—'; }
 }
 document.addEventListener('DOMContentLoaded', () => {
   const stage = $('wpStage');
@@ -7788,6 +7889,10 @@ const WEAPON_FX = {
   flower: { arc: ['#ff7eb6'], width: 2.4, life: 460, sparks: 2, spark: ['#ffb3d1', '#ffffff', '#ff7eb6'], shape: 'petal' },
   rainbow: { arc: ['#f03c3c', '#ff9628', '#ffe246', '#5ac846', '#4696f0', '#9a5ae6'], width: 1.7, gap: 2.1, life: 560, sparks: 0 },
   butterfly: { arc: ['#5cb6f2', '#ff78ac'], width: 2.2, life: 520, sparks: 1, spark: ['#8fd3ff', '#ffa6c9', '#ffffff'], shape: 'wing' },
+  frost: { arc: ['#8fd3ff', '#ffffff'], width: 2.6, life: 520, sparks: 2, spark: ['#bfe6ff', '#ffffff', '#6fb8ff'], shape: 'ray' },
+  flame: { arc: ['#ff4a2a', '#ffb02e'], width: 3, life: 520, sparks: 2, spark: ['#ff7a2a', '#ffd36a', '#ffffff'] },
+  dragon: { arc: ['#e0283c', '#ffb02e'], width: 3.6, life: 640, sparks: 2, spark: ['#ff5a3c', '#ffd36a', '#ffffff'], shape: 'wing' },
+  thunder: { arc: ['#ffe84a', '#ffffff'], width: 3.2, life: 480, sparks: 3, spark: ['#fff7a0', '#ffffff', '#ffe84a'], shape: 'ray' },
   sun: { arc: ['#ffb42e', '#fff3c0'], width: 3.8, life: 640, sparks: 2, spark: ['#ffd36a', '#fff3c0', '#ff9a1f'], shape: 'ray' },
 };
 const TRAIL_STYLE = {

@@ -236,6 +236,92 @@ def sun():
     a.rect(8, 19, 12, 21, "gold")
     return a
 
+def pickaxe():
+    a = Art()
+    handle(a, 9, 46, "wood", (26, 40, "iron"))
+    a.rect(2, 3, 18, 5, "iron"); a.rect(1, 5, 3, 8, "iron"); a.rect(17, 5, 19, 8, "iron")
+    a.rect(7, 2, 13, 8, "steel"); a.rect(0, 7, 1, 9, "steel"); a.rect(19, 7, 20, 9, "steel")
+    return a
+
+
+def mace():
+    a = Art()
+    handle(a, 16, 46, "wood", (30, 42, "iron"))
+    a.ellipse(10, 8, 7.2, 7.2, "iron")
+    a.ellipse(10, 8, 3.6, 3.6, "steel")
+    for x, y in ((10, 0), (10, 16), (2, 8), (18, 8), (4, 2), (16, 2), (4, 14), (16, 14)):
+        a.cells[(x, y)] = "steel"
+    a.rect(9, 0, 11, 1, "steel")
+    a.rect(8, 44, 12, 46, "iron")
+    return a
+
+
+def spear():
+    a = Art()
+    handle(a, 14, 46, "wood", (32, 44, "leaf"))
+    a.poly([(10, 0), (15, 8), (10, 14), (5, 8)], "steel")
+    a.rect(10, 3, 10, 11, "bone")
+    a.rect(5, 14, 15, 15, "gold")
+    a.rect(8, 45, 12, 47, "gold")
+    return a
+
+
+def orb():
+    a = Art()
+    handle(a, 19, 46, "dark", (28, 44, "gold"))
+    a.ellipse(10, 9, 7.6, 7.6, "water")
+    a.ellipse(10, 9, 4.2, 4.2, "bone")
+    a.rect(2, 3, 3, 14, "gold"); a.rect(17, 3, 18, 14, "gold")
+    a.rect(5, 16, 15, 19, "gold")
+    return a
+
+
+def frost():
+    a = Art()
+    a.cells[(10, 0)] = "bone"
+    a.rect(9, 1, 11, 3, "water")
+    a.rect(8, 4, 12, 29, "water")
+    a.rect(10, 4, 10, 28, "bone")
+    for y in (8, 14, 20):
+        a.rect(5, y, 7, y + 1, "water"); a.rect(13, y, 15, y + 1, "water")
+    a.rect(3, 30, 17, 32, "crystal")
+    a.rect(2, 29, 3, 29, "crystal"); a.rect(17, 29, 18, 29, "crystal")
+    handle(a, 33, 42, "dark", (34, 41, "water"))
+    a.ellipse(10, 45, 2.8, 2.8, "bone")
+    return a
+
+
+def flame():
+    a = Art()
+    handle(a, 22, 46, "dark", (30, 44, "ruby"))
+    a.poly([(10, 0), (16, 8), (15, 16), (10, 21), (5, 16), (4, 8)], "r1")
+    a.poly([(10, 4), (13, 10), (13, 16), (10, 20), (7, 16), (7, 10)], "r2")
+    a.poly([(10, 9), (12, 14), (10, 18), (8, 14)], "r3")
+    a.rect(7, 22, 13, 23, "gold")
+    return a
+
+
+def dragon():
+    a = Art()
+    a.cells[(10, 0)] = "ruby"
+    a.rect(9, 1, 11, 3, "ruby")
+    a.rect(8, 4, 12, 26, "ruby")
+    a.rect(10, 5, 10, 25, "r2")
+    a.poly([(0, 24), (8, 28), (12, 28), (20, 24), (20, 31), (14, 33), (6, 33), (0, 31)], "gold")
+    a.cells[(10, 30)] = "ruby"
+    handle(a, 34, 42, "dark", (35, 41, "gold"))
+    a.ellipse(10, 45, 3, 3, "glow")
+    return a
+
+
+def thunder():
+    a = Art()
+    a.poly([(14, 0), (4, 12), (10, 12), (5, 23), (17, 9), (11, 9), (17, 0)], "r3")
+    a.poly([(13, 2), (7, 11), (12, 11), (8, 19), (14, 9), (9, 9), (14, 2)], "glow")
+    handle(a, 24, 46, "dark", (30, 44, "gold"))
+    a.rect(6, 22, 14, 24, "gold")
+    return a
+
 
 def icon_from(img):
     rot = img.resize((W * SCALE, H * SCALE), Image.NEAREST).rotate(-45, resample=Image.NEAREST, expand=True)
@@ -282,7 +368,7 @@ def spin_icons():
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin), ("trident", trident), ("crystal", crystal), ("club", club), ("shovel", shovel), ("pitchfork", pitchfork), ("flower", flower), ("rainbow", rainbow), ("butterfly", butterfly), ("sun", sun)):
+    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin), ("trident", trident), ("crystal", crystal), ("club", club), ("shovel", shovel), ("pitchfork", pitchfork), ("flower", flower), ("rainbow", rainbow), ("butterfly", butterfly), ("sun", sun), ("pickaxe", pickaxe), ("mace", mace), ("spear", spear), ("orb", orb), ("frost", frost), ("flame", flame), ("dragon", dragon), ("thunder", thunder)):
         art = fn().render()
         art.resize((W * SCALE, H * SCALE), Image.NEAREST).save(os.path.join(OUT, name + ".png"))
         icon_from(art).save(os.path.join(OUT, name + "-icon.png"))
