@@ -88,7 +88,7 @@ _db_state = {"error": "", "fallback": False, "wanted_url": ""}
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
 # Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
 PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
-    "PORTALS_API", "https://portal-market.com/api,https://portals-market.com/api"
+    "PORTALS_API", "https://portal-market.com/api"
 ).split(",") if h.strip()]
 PORTALS_AUTH = os.environ.get("PORTALS_AUTH", "")
 GIFT_IMG_TEMPLATE = os.environ.get(
