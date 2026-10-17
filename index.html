@@ -18,7 +18,7 @@
     r.dataset.sky = localStorage.getItem('halloweenSky') === 'day' ? 'day' : 'night';
     ['night', 'day'].forEach(function (n) {
       var l = document.createElement('link');
-      l.rel = 'preload'; l.as = 'image'; l.href = '/static/halloween/' + n + '.svg?v=1';
+      l.rel = 'preload'; l.as = 'image'; l.href = '/static/halloween/' + n + '.svg?v=2';
       if (n === r.dataset.sky) l.setAttribute('fetchpriority', 'high');
       d.appendChild(l);
     });
@@ -3139,7 +3139,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=25">
+<link rel="stylesheet" href="/static/ui-layout.css?v=26">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -4186,7 +4186,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 
 <script src="/static/village-scene.js?v=6"></script>
 <script src="/static/meadow-scene.js?v=3" defer></script>
-<script src="/static/halloween-art.js?v=3" defer></script>
+<script src="/static/halloween-art.js?v=4" defer></script>
 <script>
 (function () {
   'use strict';
@@ -7818,7 +7818,7 @@ function applyTheme(id) {
 }
 async function openThemePreview(id, offer) {
   const t = THEMES.find((x) => x.id === id); if (!t) return;
-  const owned = themeOwned(id), cur = themeCur() === id;
+  const owned = offer ? !!offer.owned : themeOwned(id), cur = themeCur() === id;
   const card = $('tpCard'); card.dataset.rarity = t.rarity;
   const stage = $('tpStage');
   stage.replaceChildren(themePic(id)); stage.querySelector('.tc-pic').classList.add('big');
@@ -7834,7 +7834,7 @@ async function openThemePreview(id, offer) {
   if (offer && !owned) {
     const have = shopCache ? (offer.currency === 'hatcoin' ? shopCache.hatcoin_balance : shopCache.balance_ton) : 0;
     const poor = offer.price > 0 && have + 1e-9 < offer.price;
-    note.hidden = true;
+    note.hidden = false; note.textContent = tr('Сейчас тема доступна только на время ивента. Купите её, чтобы она осталась у вас навсегда.');
     apply.disabled = !offer.available || poor;
     apply.textContent = !offer.available ? tr('Распродано') : poor ? tr('Недостаточно средств') : (offer.price <= 0 ? tr('Забрать') : `${tr('Купить')} · ${shopPriceLabel(offer)}`);
     apply.onclick = () => { if (offer.price <= 0) { apply.disabled = true; doShopBuy(offer, () => { apply.disabled = false; }); } else openShopConfirm(offer); };

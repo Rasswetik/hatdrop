@@ -27,7 +27,7 @@
 
   function preload(which) {
     const probe = new Image();
-    let url = '/static/halloween/' + which + '.svg?v=1';  // анимированная пиксельная сцена
+    let url = '/static/halloween/' + which + '.svg?v=2';  // анимированная пиксельная сцена
     probe.decoding = 'async';
     let retried = false;
     probe.onload = () => {

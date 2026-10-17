@@ -304,7 +304,7 @@ html:not([data-halloween="on"]) .mt-card h2 { color: #ffe08a; }
 
 /* обрезаем рамку у картинок оформлений */
 .tc-pic img { transform: scale(1.14); }
-.shop-card .tc-pic.shop-theme-pic { width: 100%; max-width: 84px; }
+.shop-card .tc-pic.shop-theme-pic { width: 64px; height: 64px; flex: none; }
 #themePreview { z-index: 60; }
 #shopConfirm { z-index: 70; }
 
