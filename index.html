@@ -2931,6 +2931,17 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 <style id="upgrade-css">
 /* окно победы в минах */
 .cx-win-card { overflow: hidden; }
+button.lvl-badge { font: inherit; color: inherit; cursor: pointer; }
+.lvl-modal { max-height: 86vh; display: flex; flex-direction: column; gap: 10px; }
+.lvl-modal h2 { margin: 0; }
+.lvl-modal-sub { margin: 0; font-size: 10px; opacity: .8; }
+.lvl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; overflow-y: auto; padding: 2px; min-height: 0; }
+.lvl-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; aspect-ratio: 1; border: 2px dashed rgba(255,255,255,.28); border-radius: 12px; background: rgba(0,0,0,.2); padding: 6px; font-size: 10px; text-align: center; }
+.lvl-cell b { font-size: 11px; }
+.lvl-cell small { font-size: 8px; opacity: .7; }
+.lvl-cell.done { border-style: solid; border-color: #6fcf6f; }
+.lvl-cell.now { border-style: solid; border-color: #ffd34d; box-shadow: 0 0 0 2px rgba(255,211,77,.35); }
+.lvl-modal .cta { width: 100%; padding: 14px; font-size: 16px; }
 .lb-prize-place { margin: 0; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; }
 .lb-prize-img { border-radius: 14px; }
 .lb-prize-card .cta { width: 100%; margin-top: 10px; padding: 14px; font-size: 16px; }
@@ -3683,9 +3694,9 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
           <div class="pname" id="profileName">—</div>
           <div class="pwallet" id="profileWallet">Кошелёк не подключён</div>
         </div>
-        <div class="lvl-badge" id="lvlBadge">LVL 1</div>
+        <button class="lvl-badge" id="lvlBadge" type="button" aria-haspopup="dialog">LVL 1</button>
       </div>
-      <div class="lvl-row">
+      <div class="lvl-row" id="lvlRow" role="button" tabindex="0" aria-haspopup="dialog" style="cursor:pointer">
         <div class="lvl-bar"><i id="lvlFill"></i></div>
         <p class="lvl-note" id="lvlNote">—</p>
       </div>
@@ -3807,6 +3818,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html:not([data-halloween="on"]) #w
   </div>
 </div>
 
+<div class="modal" id="lvlModal" hidden="">
+  <div class="modal-card lvl-modal">
+    <h2>Награды за уровни</h2>
+    <p class="lvl-modal-sub" id="lvlModalSub"></p>
+    <div class="lvl-grid" id="lvlGrid"></div>
+    <button class="cta" id="lvlModalClose" type="button">Закрыть</button>
+  </div>
+</div>
 <div class="modal" id="lbPrizeModal" hidden="">
   <div class="modal-card cx-win-card lb-prize-card">
     <p class="lb-prize-place" id="lbPrizePlace"></p>
@@ -6148,6 +6167,35 @@ function renderLeaderboard(data) {
   }
   $('lbEmpty').hidden = data.rows.length > 0;
 }
+
+function openLevelRewards() {
+  const cur = (state && state.level && state.level.level) || 1;
+  $('lvlModalSub').textContent = tr('Твой уровень: {level}', { level: cur });
+  const grid = $('lvlGrid');
+  grid.replaceChildren();
+  for (let n = 1; n <= 60; n++) {
+    const cell = document.createElement('div');
+    cell.className = 'lvl-cell' + (n < cur ? ' done' : n === cur ? ' now' : '');
+    const b = document.createElement('b');
+    b.textContent = tr('Уровень {n}', { n });
+    const small = document.createElement('small');
+    small.textContent = `${(n - 1) ** 2 * 5} TON`;
+    cell.append(b, small);
+    grid.appendChild(cell);
+  }
+  $('lvlModal').hidden = false;
+  haptic('impact', 'light');
+  const now = grid.querySelector('.now');
+  if (now) now.scrollIntoView({ block: 'center' });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const close = () => { $('lvlModal').hidden = true; };
+  $('lvlBadge').addEventListener('click', openLevelRewards);
+  $('lvlRow').addEventListener('click', openLevelRewards);
+  $('lvlRow').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLevelRewards(); } });
+  $('lvlModalClose').addEventListener('click', close);
+  $('lvlModal').addEventListener('click', (e) => { if (e.target === $('lvlModal')) close(); });
+});
 
 function lbShowPrize(row) {
   $('lbPrizePlace').textContent = tr('Награда за {n} место', { n: row.rank });

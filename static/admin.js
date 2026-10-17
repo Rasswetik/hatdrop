@@ -37,7 +37,45 @@ async function admLoadOverview() {
   } catch(e) {if(sequence===overviewSequence)admErr(e);}
   finally {if(sequence===overviewSequence)$('overviewReload').disabled=false;}
 }
+function renderStorageBox(data) {
+  let box = $('storageBox');
+  if (!box) { box = admField('div', {id: 'storageBox', className: 'adm-box'}); $('summaryCards').before(box); }
+  box.replaceChildren();
+  const st = data.storage || {};
+  if (st.persistent === false) {
+    box.append(admField('p', {className: 'em-notice', textContent: '⚠️ База лежит во временном хранилище: при деплое или перезапуске хостинга данные (рейтинг, эмодзи, настройки) сотрутся. Задайте DATABASE_URL (Postgres) или SQLITE_PATH на постоянном диске. Пока этого нет — копия базы автоматически приходит владельцу в Telegram, её можно вернуть командой /restore.'}));
+  } else {
+    box.append(admField('p', {className: 'muted', textContent: 'Хранилище: ' + (st.kind === 'postgres' ? 'Postgres' : 'SQLite на постоянном диске') + '. Копия базы приходит владельцу в Telegram каждые 12 часов.'}));
+  }
+  const row = admField('div', {className: 'adm-form'});
+  const dl = admField('button', {type: 'button', textContent: 'Скачать копию'});
+  dl.onclick = async () => {
+    dl.disabled = true;
+    try {
+      const r = await api('/api/admin/backup/download');
+      const bytes = Uint8Array.from(atob(r.data), c => c.charCodeAt(0));
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes], {type: 'application/gzip'})); a.download = r.filename; a.click();
+    } catch (e) { admErr(e); } finally { dl.disabled = false; }
+  };
+  const send = admField('button', {type: 'button', textContent: 'Прислать копию в Telegram'});
+  send.onclick = async () => { send.disabled = true; try { const r = await api('/api/admin/backup/send'); toast(r.ok ? 'Копия отправлена владельцу' : 'Нечего отправлять', !r.ok); } catch (e) { admErr(e); } finally { send.disabled = false; } };
+  const file = admField('input', {type: 'file', accept: '.gz,.json', hidden: true});
+  const up = admField('button', {type: 'button', className: 'danger', textContent: 'Восстановить из файла'});
+  up.onclick = () => file.click();
+  file.onchange = async () => {
+    const f = file.files[0]; if (!f) return;
+    if (!confirm('Заменить ВСЮ текущую базу данными из файла «' + f.name + '»? Текущее состояние будет сохранено в служебный ключ.')) { file.value = ''; return; }
+    try {
+      const buf = new Uint8Array(await f.arrayBuffer()); let bin = ''; for (const b of buf) bin += String.fromCharCode(b);
+      const r = await api('/api/admin/backup/restore', {data: btoa(bin)});
+      toast('База восстановлена. Игроков: ' + r.users); location.reload();
+    } catch (e) { admErr(e); } finally { file.value = ''; }
+  };
+  row.append(dl, send, up, file); box.append(row);
+}
 function renderOverview(data) {
+  renderStorageBox(data);
   const t=data.totals,u=data.users,w=data.withdrawals;
   $('statsUpdated').textContent='Обновлено '+new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Moscow'}).format(new Date(data.now*1000));
   $('summaryCards').replaceChildren();

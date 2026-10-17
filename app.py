@@ -1281,6 +1281,118 @@ def withdrawal_record(row):
             "telegram_id": str(row["uid"])[2:] if str(row["uid"]).startswith("tg") else ""}
 
 
+# ---------- Резервная копия: скачать/загрузить в админке + автоотправка владельцу в Telegram ----------
+BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "12"))
+
+
+def storage_info():
+    persistent = bool(DATABASE_URL or os.environ.get("SQLITE_PATH") or os.environ.get("DB_PATH"))
+    return {"kind": "postgres" if DATABASE_URL else "sqlite", "persistent": persistent}
+
+
+def backup_bytes():
+    with lock:
+        text = json.dumps({"format": "hatdrop-backup", "version": 1, "created": int(time.time()), "db": db}, ensure_ascii=False)
+    return gzip.compress(text.encode("utf-8"))
+
+
+def restore_backup(raw):
+    """Заменить базу данными из копии (json или gzip). Предыдущее состояние сохраняется в ключ db_before_restore."""
+    try:
+        raw = gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw
+        data = json.loads(raw.decode("utf-8"))
+        new = data["db"] if data.get("format") == "hatdrop-backup" else data
+        if not isinstance(new, dict) or not isinstance(new.get("users"), dict):
+            raise ValueError("no users")
+    except Exception:
+        raise ApiError("bad_backup", 400, message="Файл не похож на резервную копию HatDrop.")
+    with lock:
+        try:
+            store_put("db_before_restore", DB_PATH + ".before", json.dumps(db, ensure_ascii=False))
+        except Exception as exc:
+            print("pre-restore snapshot failed:", exc, flush=True)
+        db.clear()
+        db.update(new)
+        for key, default in (("users", {}), ("prices", {}), ("settings", {}), ("promocodes", {}), ("withdrawals", {}), ("quests", {})):
+            db.setdefault(key, default)
+        ensure_analytics(db)
+        count = len(db["users"])
+    flush_db()
+    try:
+        flush_quests()
+    except Exception as exc:
+        print("quest flush after restore failed:", exc, flush=True)
+    return count
+
+
+def tg_send_document(chat_id, filename, data, caption=""):
+    boundary = "----hatdrop" + secrets.token_hex(8)
+    parts = []
+    for name, value in (("chat_id", str(chat_id)), ("caption", caption)):
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode("utf-8"))
+    parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="document"; filename="{filename}"\r\n'
+                  f'Content-Type: application/gzip\r\n\r\n').encode() + data + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    req = urllib.request.Request(f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument", data=b"".join(parts),
+                                 headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        out = json.load(resp)
+    if not out.get("ok"):
+        raise ValueError(out.get("description", "telegram error"))
+
+
+def send_backup_to_owner():
+    if not BOT_TOKEN:
+        return False
+    with lock:
+        if not db.get("users"):
+            return False
+    data = backup_bytes()
+    if len(data) > 49 * 1024 * 1024:
+        return False
+    tg_send_document(OWNER_ADMIN_ID, time.strftime("hatdrop-backup-%Y%m%d-%H%M.json.gz"), data,
+                     "Резервная копия HatDrop. Чтобы восстановить базу, отправьте этот файл боту с подписью /restore")
+    return True
+
+
+def _tg_backup_loop():
+    time.sleep(180)
+    while True:
+        try:
+            if BACKUP_TG_HOURS > 0:
+                send_backup_to_owner()
+        except Exception as e:
+            print("Telegram backup failed:", e, flush=True)
+        time.sleep(max(1800, BACKUP_TG_HOURS * 3600))
+
+
+@route("/api/admin/backup/download")
+def admin_backup_download(user, body):
+    require_admin(user)
+    import base64
+    return {"filename": time.strftime("hatdrop-backup-%Y%m%d-%H%M.json.gz"), "data": base64.b64encode(backup_bytes()).decode()}
+
+
+@route("/api/admin/backup/restore")
+def admin_backup_restore(user, body):
+    if str(user["id"]) != "tg" + OWNER_ADMIN_ID:
+        raise ApiError("forbidden", 403, message="Восстановление доступно только владельцу.")
+    import base64
+    try:
+        raw = base64.b64decode(str(body.get("data") or ""), validate=True)
+    except Exception:
+        raise ApiError("bad_backup", 400, message="Файл не прочитан.")
+    return {"ok": True, "users": restore_backup(raw)}
+
+
+@route("/api/admin/backup/send")
+def admin_backup_send(user, body):
+    require_admin(user)
+    if not BOT_TOKEN:
+        raise ApiError("bot_token_missing", 400, message="Не задан токен бота.")
+    return {"ok": send_backup_to_owner()}
+
+
 @route("/api/admin/withdrawals")
 def admin_withdrawals(user, body):
     require_admin(user)
@@ -1460,6 +1572,17 @@ def bot_webhook():
         return jsonify({"ok": True})
     if message.get("successful_payment"):
         stars_successful_payment(sender["id"], message["successful_payment"])
+        return jsonify({"ok": True})
+    doc_file = message.get("document")
+    if doc_file and str(sender["id"]) == OWNER_ADMIN_ID and str(message.get("caption") or "").strip().lower().startswith("/restore"):
+        try:
+            path = tg_api("getFile", file_id=doc_file["file_id"])["file_path"]
+            with urllib.request.urlopen(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=60) as resp:
+                count = restore_backup(resp.read())
+            tg_api("sendMessage", chat_id=sender["id"], text=f"✅ База восстановлена из копии. Игроков: {count}.")
+        except Exception as exc:
+            msg = exc.message if isinstance(exc, ApiError) else "Не удалось прочитать файл."
+            tg_api("sendMessage", chat_id=sender["id"], text=f"❌ {msg}")
         return jsonify({"ok": True})
     text = str(message.get("text") or "").strip()
     command = text.split(maxsplit=1)[0].split("@")[0] if text else ""
@@ -2106,6 +2229,7 @@ def admin_overview(user, body):
     result = overview(db, days, scope)
     result["bot"]["configured"] = bool(BOT_TOKEN)
     result["admin_name"] = display_name(user)
+    result["storage"] = storage_info()
     return result
 
 
@@ -5319,6 +5443,7 @@ threading.Thread(target=models_prewarm_loop, daemon=True).start()
 threading.Thread(target=relayer_loop, daemon=True).start()
 threading.Thread(target=season_loop, daemon=True).start()
 threading.Thread(target=_backup_loop, daemon=True).start()
+threading.Thread(target=_tg_backup_loop, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
 if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):
