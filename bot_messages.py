@@ -8,9 +8,9 @@ PLAY = {'text': '🎮 Играть', 'action': 'app', 'target': 'menu', 'style':
 DEFAULT_MESSAGES = {
     'welcome': {'label': 'Приветствие /start', 'text': '👋 Привет, {name}! Добро пожаловать в HatDrop.\n\nВыбирайте режим, открывайте сундуки и собирайте подарки. Нажмите «Играть», чтобы открыть меню.', 'buttons': [PLAY]},
     'help': {'label': 'Помощь /help', 'text': '🎩 HatDrop\n\nНажмите «Играть», чтобы выбрать режим. Ваши подарки и заявки на вывод доступны в профиле.', 'buttons': [PLAY]},
-    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} Новая заявка на вывод\n{gift} · {value} TON\n{user} · ID {id}\nРежим: {mode}', 'buttons': []},
+    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} Новая заявка на вывод\n{gift} · {value} TON\n{user} · ID {id}', 'buttons': []},
     'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ Автовывод не удался\n{gift_emoji} {gift} → {user}\nОшибка релейера: {error}', 'buttons': []},
-    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} <b>Новая заявка на вывод</b>\n{gift} · {value} TON\n{user} · ID <code>{id}</code>\nРежим: {mode}', 'buttons': []},
+    'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} <b>Новая заявка на вывод</b>\n{gift} · {value} TON\n{user} · ID <code>{id}</code>', 'buttons': []},
     'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ <b>Автовывод не удался</b>\n{gift_emoji} {gift} → {user}\nОшибка релейера: <code>{error}</code>', 'buttons': []},
     'season_place_prize': {'label': 'Место в топе: есть награда', 'text': '🏆 Сезон «{season}» завершён! Вы заняли {place} место.\nНаграда: {gift_emoji} <b>{gift}</b> — уже в вашем инвентаре.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'season_place_none': {'label': 'Место в топе: без награды', 'text': '🏆 Сезон «{season}» завершён! Вы заняли {place} место. За это место награды нет — попробуйте в следующем сезоне!', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},

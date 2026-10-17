@@ -16,7 +16,7 @@ class TourTests(unittest.TestCase):
     def test_new_player_has_zero_balance_and_no_skeleton(self):
         st = self.post("/api/state").json
         self.assertEqual(st["balance_ton"], 0)
-        self.assertEqual(st["weapons"], ["axe"])
+        self.assertEqual(st["weapons"], ["axe", "spin_plain"])
         self.assertFalse(st["tour_done"])
 
     def test_free_hand_offer_for_everyone(self):

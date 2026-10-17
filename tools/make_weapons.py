@@ -19,6 +19,15 @@ MATS = {  # материал: (свет, база, тень)
     "ruby": ((255, 150, 160), (230, 50, 70), (150, 20, 45)),
     "crystal": ((236, 214, 255), (176, 120, 245), (112, 64, 184)),
     "cut": ((50, 30, 50), (34, 20, 42), (34, 20, 42)),
+    "petal": ((255, 214, 230), (255, 120, 172), (204, 66, 122)),
+    "water": ((200, 238, 255), (92, 182, 242), (40, 112, 192)),
+    "iron": ((190, 190, 196), (130, 132, 142), (84, 86, 98)),
+    "r1": ((255, 140, 140), (240, 60, 60), (170, 30, 40)),
+    "r2": ((255, 210, 140), (255, 150, 40), (200, 100, 20)),
+    "r3": ((255, 250, 160), (255, 226, 70), (210, 170, 30)),
+    "r4": ((180, 240, 150), (90, 200, 70), (50, 140, 40)),
+    "r5": ((170, 220, 255), (70, 150, 240), (40, 90, 190)),
+    "r6": ((220, 180, 255), (150, 90, 230), (100, 50, 170)),
 }
 
 
@@ -156,6 +165,78 @@ def club():
     return a
 
 
+def shovel():
+    a = Art()
+    handle(a, 8, 46, "wood", (20, 30, "iron"))
+    a.rect(7, 4, 13, 6, "wood"); a.rect(6, 3, 6, 6, "wood"); a.rect(14, 3, 14, 6, "wood")
+    a.poly([(4, 22), (16, 22), (15, 30), (10, 34), (5, 30)], "iron")
+    a.rect(9, 21, 11, 23, "iron")
+    a.rect(10, 24, 10, 31, "steel")
+    return a
+
+
+def pitchfork():
+    a = Art()
+    handle(a, 14, 46, "wood", (30, 42, "leaf"))
+    a.rect(4, 2, 5, 12, "iron"); a.rect(9, 0, 11, 12, "iron"); a.rect(15, 2, 16, 12, "iron")
+    a.rect(4, 11, 16, 14, "iron")
+    a.rect(8, 15, 12, 16, "gold")
+    return a
+
+
+def flower():
+    a = Art()
+    handle(a, 14, 46, "leaf", (30, 44, "wood"))
+    a.rect(4, 26, 8, 27, "leaf"); a.rect(12, 32, 16, 33, "leaf")
+    for cx, cy in ((10, 3), (16, 8), (4, 8), (14, 14), (6, 14)):
+        a.ellipse(cx, cy, 4, 4, "petal")
+    a.ellipse(10, 9, 4.6, 4.6, "glow")
+    return a
+
+
+def rainbow():
+    a = Art()
+    handle(a, 18, 46, "wood", (28, 44, "bone"))
+    for i, mat in enumerate(("r1", "r2", "r3", "r4", "r5", "r6")):
+        r = 9.6 - i * 1.2
+        for y in range(H):
+            for x in range(W):
+                d = ((x - 10) ** 2 + (y - 13) ** 2) ** 0.5
+                if r - 1.2 < d <= r and y <= 13:
+                    a.cells[(x, y)] = mat
+    a.rect(1, 13, 3, 17, "r1"); a.rect(17, 13, 19, 17, "r1")
+    a.rect(8, 14, 12, 19, "gold")
+    a.ellipse(10, 11, 2.2, 2.2, "glow")
+    return a
+
+
+def butterfly():
+    a = Art()
+    handle(a, 20, 46, "crystal", (28, 44, "wood"))
+    a.ellipse(5, 6, 4.6, 5.4, "water"); a.ellipse(15, 6, 4.6, 5.4, "water")
+    a.ellipse(6, 14, 3.4, 4, "petal"); a.ellipse(14, 14, 3.4, 4, "petal")
+    a.rect(9, 3, 11, 17, "dark")
+    a.cells[(8, 1)] = "dark"; a.cells[(12, 1)] = "dark"; a.cells[(9, 2)] = "dark"; a.cells[(11, 2)] = "dark"
+    for x, y in ((4, 5), (16, 5), (6, 13), (14, 13)):
+        a.cells[(x, y)] = "bone"
+    return a
+
+
+def sun():
+    a = Art()
+    handle(a, 20, 46, "gold", (28, 44, "ruby"))
+    for ang in range(0, 360, 30):
+        import math
+        for r in (7.4, 8.4, 9.4):
+            x = round(10 + r * math.cos(math.radians(ang))); y = round(10 + r * math.sin(math.radians(ang)))
+            a.cells[(x, y)] = "gold"
+            if r > 8: a.cells[(x + (1 if x > 10 else -1 if x < 10 else 0), y)] = "gold"
+    a.ellipse(10, 10, 6.2, 6.2, "glow")
+    a.ellipse(10, 10, 3.6, 3.6, "r2")
+    a.rect(8, 19, 12, 21, "gold")
+    return a
+
+
 def icon_from(img):
     rot = img.resize((W * SCALE, H * SCALE), Image.NEAREST).rotate(-45, resample=Image.NEAREST, expand=True)
     return fit_square(rot)
@@ -171,12 +252,41 @@ def fit_square(img, size=300, pad=14):
     return canvas
 
 
+SPIN_COLORS = {"common": (210, 218, 232), "rare": (90, 169, 255), "epic": (180, 107, 255), "legendary": (255, 200, 61)}
+SPIN_STYLES = {"plain": "common", "wild": "rare", "roulette": "rare", "turbo": "rare", "spring": "rare",
+               "snap": "epic", "pendulum": "epic", "tease": "epic", "swing": "legendary"}
+
+
+def spin_icons():
+    """Иконки типов прокрута для магазина: кольцо со стрелкой и знаком стиля."""
+    import math
+    for style, rarity in SPIN_STYLES.items():
+        col = SPIN_COLORS[rarity] + (255,)
+        g = 60
+        img = Image.new("RGBA", (g, g), (0, 0, 0, 0)); d = ImageDraw.Draw(img)
+        d.ellipse((6, 6, 53, 53), outline=col, width=5)
+        d.ellipse((12, 12, 47, 47), outline=(40, 26, 56, 255), width=1)
+        ang = {"plain": -60, "wild": -20, "roulette": 30, "turbo": -90, "spring": 60, "snap": 140, "pendulum": 200, "tease": 250, "swing": -140}[style]
+        cx = cy = 29.5
+        tip = (cx + 20 * math.cos(math.radians(ang)), cy + 20 * math.sin(math.radians(ang)))
+        d.line((cx, cy, tip[0], tip[1]), fill=col, width=5)
+        d.ellipse((cx - 5, cy - 5, cx + 5, cy + 5), fill=col)
+        if style in ("turbo", "swing", "spring"):
+            d.arc((1, 1, 58, 58), start=ang - 70, end=ang - 20, fill=col, width=3)
+        if style in ("snap", "tease", "pendulum"):
+            for k in range(3):
+                d.point((8 + k * 4, 52), fill=col)
+        big = img.resize((300, 300), Image.NEAREST)
+        big.save(os.path.join(OUT, f"spin_{style}-icon.png"))
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin), ("trident", trident), ("crystal", crystal), ("club", club)):
+    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin), ("trident", trident), ("crystal", crystal), ("club", club), ("shovel", shovel), ("pitchfork", pitchfork), ("flower", flower), ("rainbow", rainbow), ("butterfly", butterfly), ("sun", sun)):
         art = fn().render()
         art.resize((W * SCALE, H * SCALE), Image.NEAREST).save(os.path.join(OUT, name + ".png"))
         icon_from(art).save(os.path.join(OUT, name + "-icon.png"))
+    spin_icons()
     hand = Image.open(os.path.join(OUT, "..", "img", "hand.png")).convert("RGBA")
     fit_square(hand).save(os.path.join(OUT, "skeleton-icon.png"))
 

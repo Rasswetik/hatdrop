@@ -2963,6 +2963,9 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .shop-modal-desc { margin: 0; font-size: 10px; line-height: 1.6; opacity: .9; }
 .shop-modal .cta { width: 100%; padding: 14px; font-size: 16px; }
 .shop-modal .cta[disabled] { opacity: .5; }
+.cz-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cz-tab { padding: 9px 4px; font: inherit; font-size: 11px; color: inherit; background: rgba(0,0,0,.25); border: 3px solid rgba(255,255,255,.18); border-radius: 10px; cursor: pointer; }
+.cz-tab.on { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.55); }
 .weapon-search { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; font-size: 12px; border: 3px solid rgba(255,255,255,.25); border-radius: 10px; background: rgba(0,0,0,.25); color: inherit; }
 .weapon-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; overflow-y: auto; padding: 2px; min-height: 0; scrollbar-width: none; }
 .weapon-grid::-webkit-scrollbar { display: none; }
@@ -3111,7 +3114,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=11">
+<link rel="stylesheet" href="/static/ui-layout.css?v=13">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3726,18 +3729,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
           <button class="fast-btn" id="fastBtn" type="button" aria-pressed="false" title="Быстрая прокрутка" aria-label="Быстрая прокрутка">
             <svg class="ic-bolt" aria-hidden="true"><use href="#ic-bolt"></use></svg>
           </button>
-          <button class="fast-btn gear-btn" id="gearBtn" type="button" title="Тип крутки" aria-label="Тип крутки">
-            <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
-              <path fill-rule="evenodd" d="M6 0h4v2h2V1h2v2h1v2h-1v1h2v4h-2v1h1v2h-1v2h-2v-1h-2v2H6v-2H4v1H2v-2H1v-2h1v-1H0V6h2V5H1V3h1V1h2v1h2zM6 6v4h4V6z"></path>
-            </svg>
-          </button>
-          <div class="weapon-menu spin-menu" id="spinMenu" hidden="">
-            <button type="button" data-spin="plain"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 12V5.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg><span>Обычная</span></button>
-            <button type="button" data-spin="wild"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="8.5" cy="8.5" r="1.7" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.7" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.7" fill="currentColor"/></svg><span>Азартная</span></button>
-            <button type="button" data-spin="roulette"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6.5" r="1.9" fill="currentColor"/></svg><span>Рулетка</span></button>
-            <button type="button" data-spin="pendulum"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5Q12 2 20 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2.4"/><path d="M12 3.5L7 17" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="6.2" cy="19" r="3" fill="currentColor"/></svg><span>Маятник</span></button>
-            <button type="button" data-spin="turbo"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5l8 7-8 7zM12 5l8 7-8 7z" fill="currentColor"/></svg><span>Рывок</span></button>
-          </div>
         </span>
       </div>
     </section>
@@ -3909,10 +3900,11 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 </div>
 <div class="modal" id="weaponModal" hidden="">
   <div class="modal-card weapon-modal">
-    <h2>Снаряжение</h2>
-    <p class="weapon-modal-sub">Выбери, чем крутить колесо. Закрытое снаряжение выдают за достижения и в лавке.</p>
+    <h2>Кастомизация</h2>
+    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Тип прокрута</button></div>
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
     <div class="weapon-grid" id="weaponGrid"></div>
+    <div class="weapon-grid" id="spinGrid" hidden></div>
     <button class="cta" id="weaponModalClose" type="button">Закрыть</button>
   </div>
 </div>
@@ -4304,6 +4296,21 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Вкл': { en: 'On', zh: '开' },
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
+    'Кастомизация': { en: 'Customization', zh: '自定义' },
+    'Снаряжение': { en: 'Gear', zh: '装备' },
+    'Тип прокрута': { en: 'Spin style', zh: '转动方式' },
+    'Обычный': { en: 'Classic', zh: '普通' },
+    'Дикий': { en: 'Wild', zh: '狂野' },
+    'Пружина': { en: 'Spring', zh: '弹簧' },
+    'Замах': { en: 'Wind-up', zh: '蓄力' },
+    'Интрига': { en: 'Suspense', zh: '悬念' },
+    'Качели': { en: 'Swing', zh: '秋千' },
+    'Лопата фермера': { en: 'Farmer’s Shovel', zh: '农夫铲' },
+    'Вилы': { en: 'Pitchfork', zh: '干草叉' },
+    'Цветочный жезл': { en: 'Flower Wand', zh: '花之魔杖' },
+    'Радужный посох': { en: 'Rainbow Staff', zh: '彩虹法杖' },
+    'Жезл бабочки': { en: 'Butterfly Wand', zh: '蝴蝶魔杖' },
+    'Солнечный скипетр': { en: 'Sun Scepter', zh: '太阳权杖' },
     'В магазине уже лежит бесплатный ордер «Посох Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.': { en: 'A free “Kostyan’s Staff” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“科斯彦的法杖”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
     'Понятно': { en: 'Got it', zh: '明白了' },
     'Бесплатно': { en: 'Free', zh: '免费' },
@@ -6122,8 +6129,10 @@ function openShopOffer(o) {
   const rar = $('shopModalRar'); rar.hidden = !o.reward.rarity; rar.textContent = o.reward.rarity ? tr(RARITY_LABELS[o.reward.rarity]) : '';
   $('shopModalCard').dataset.rarity = o.reward.rarity || 'none';
   const btn = $('shopBuyBtn');
-  btn.disabled = !o.available;
-  btn.textContent = o.owned ? tr('Уже есть') : o.available ? (o.price <= 0 ? tr('Забрать') : tr('Купить')) : tr('Распродано');
+  const have = shopCache ? (o.currency === 'hatcoin' ? shopCache.hatcoin_balance : shopCache.balance_ton) : 0;
+  const poor = o.available && o.price > 0 && have + 1e-9 < o.price;
+  btn.disabled = !o.available || poor;
+  btn.textContent = o.owned ? tr('Уже есть') : !o.available ? tr('Распродано') : poor ? tr('Недостаточно средств') : (o.price <= 0 ? tr('Забрать') : tr('Купить'));
   btn.onclick = () => { if (o.price <= 0) { btn.disabled = true; doShopBuy(o, () => { btn.disabled = false; }); } else openShopConfirm(o); };
   $('shopModal').hidden = false;
   haptic('impact', 'light');
@@ -6180,7 +6189,7 @@ function renderQuestCards(data, container, status) {
   if (!data.enabled) { bar.hidden = true; status.hidden = false; status.textContent = 'Квесты временно недоступны. Загляни позже!'; return; }
   const now = data.server_time || Math.floor(Date.now() / 1000);
   const rank = { ready: 0, active: 1, expired: 2, claimed: 3 };
-  const all = (data.rows || []).map((q) => ({ q, st: questState(q, now) })).sort((a, b) => rank[a.st] - rank[b.st]);
+  const all = (data.rows || []).map((q) => ({ q, st: questState(q, now) })).filter((r) => r.st !== 'expired').sort((a, b) => rank[a.st] - rank[b.st]);
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
   const quests = all.filter((r) => !r.q.achievement);
   const achievements = all.filter((r) => r.q.achievement);
@@ -6526,7 +6535,7 @@ const CX_CELLS = 25;
 const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
 // A skin owns its artwork and available weapons. The server chooses the active event.
 const EVENT_SKINS = {
-  default: { weapons:['axe','staff','sword','hammer','trident','crystal'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
+  default: { weapons:['axe','staff','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
   halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
@@ -7308,7 +7317,7 @@ async function doSpin() {
   const pointer = $('pointer');
   let spinDur = spinMs();
 
-  if (spinStyle === 'roulette' || spinStyle === 'pendulum' || spinStyle === 'turbo') {
+  if (['roulette', 'pendulum', 'turbo', 'spring', 'snap', 'tease', 'swing'].includes(spinStyle)) {
     const swung = swingPointer(pointer, current, targetAngle, spinStyle);
     pointerDeg = swung.deg;
     spinDur = swung.ms;
@@ -7355,10 +7364,10 @@ function swingPointer(pointer, from, target, style) {
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const quick = fastSpin || calm;
   const dir = style === 'pendulum' ? (Math.random() < 0.5 ? 1 : -1) : 1;
-  const turns = quick ? 1 : (style === 'turbo' ? 3 : style === 'roulette' ? 6 : 2);
+  const turns = quick ? 1 : (style === 'turbo' ? 3 : style === 'roulette' ? 6 : style === 'swing' ? 3 : 2);
   const delta = (((dir * (target - from)) % 360) + 360) % 360;
   const end = from + dir * (360 * turns + delta);
-  const total = quick ? spinMs() : style === 'turbo' ? 1900 : style === 'roulette' ? 5200 : 4300;
+  const total = quick ? spinMs() : style === 'turbo' ? 1900 : style === 'roulette' ? 5200 : style === 'tease' ? 5600 : style === 'swing' ? 5000 : 4300;
   let frames;
   if (style === 'pendulum' && !quick) {
     frames = [
@@ -7366,6 +7375,37 @@ function swingPointer(pointer, from, target, style) {
       { transform: `rotate(${end + dir * 55}deg)`, offset: .56, easing: 'ease-in-out' },
       { transform: `rotate(${end - dir * 24}deg)`, offset: .78, easing: 'ease-in-out' },
       { transform: `rotate(${end + dir * 8}deg)`, offset: .91, easing: 'ease-in-out' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else if (style === 'spring' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'cubic-bezier(.2,.7,.3,1)' },
+      { transform: `rotate(${end + 38}deg)`, offset: .62, easing: 'ease-in-out' },
+      { transform: `rotate(${end - 16}deg)`, offset: .8, easing: 'ease-in-out' },
+      { transform: `rotate(${end + 5}deg)`, offset: .92, easing: 'ease-in-out' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else if (style === 'snap' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'ease-out' },
+      { transform: `rotate(${from - 48}deg)`, offset: .16, easing: 'cubic-bezier(.3,.1,.1,1)' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else if (style === 'tease' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'cubic-bezier(.2,.6,.3,1)' },
+      { transform: `rotate(${end - 50}deg)`, offset: .6, easing: 'ease-out' },
+      { transform: `rotate(${end - 22}deg)`, offset: .78, easing: 'ease-in-out' },
+      { transform: `rotate(${end - 20}deg)`, offset: .84, easing: 'ease-in-out' },
+      { transform: `rotate(${end - 4}deg)`, offset: .94, easing: 'ease-in-out' },
+      { transform: `rotate(${end}deg)`, offset: 1 },
+    ];
+  } else if (style === 'swing' && !quick) {
+    frames = [
+      { transform: `rotate(${from}deg)`, offset: 0, easing: 'ease-in-out' },
+      { transform: `rotate(${from + 200}deg)`, offset: .22, easing: 'ease-in-out' },
+      { transform: `rotate(${from - 160}deg)`, offset: .48, easing: 'ease-in-out' },
+      { transform: `rotate(${end - 40}deg)`, offset: .8, easing: 'cubic-bezier(.2,.6,.3,1)' },
       { transform: `rotate(${end}deg)`, offset: 1 },
     ];
   } else if (style === 'turbo' && !quick) {
@@ -7452,17 +7492,23 @@ function throwPointer(pointer, from, target) {
 const WEAPONS = { axe: 'images/axe-icon.webp?v=2', staff: 'images/staff-icon.webp?v=2', skeleton: '/static/weapons/skeleton-icon.png?v=1',
   sword: '/static/weapons/sword-icon.png?v=1', hammer: '/static/weapons/hammer-icon.png?v=1',
   scythe: '/static/weapons/scythe-icon.png?v=1', pumpkin: '/static/weapons/pumpkin-icon.png?v=1',
-  trident: '/static/weapons/trident-icon.png?v=1', crystal: '/static/weapons/crystal-icon.png?v=1', club: '/static/weapons/club-icon.png?v=1' };
+  trident: '/static/weapons/trident-icon.png?v=1', crystal: '/static/weapons/crystal-icon.png?v=1', club: '/static/weapons/club-icon.png?v=1',
+  shovel: '/static/weapons/shovel-icon.png?v=1', pitchfork: '/static/weapons/pitchfork-icon.png?v=1', flower: '/static/weapons/flower-icon.png?v=1',
+  rainbow: '/static/weapons/rainbow-icon.png?v=1', butterfly: '/static/weapons/butterfly-icon.png?v=1', sun: '/static/weapons/sun-icon.png?v=1' };
 const WEAPON_LABELS = { axe: 'Топор', staff: 'Посох', skeleton: 'Рука скелета', sword: 'Меч', hammer: 'Молот', scythe: 'Коса жнеца', pumpkin: 'Тыквенный посох',
-  trident: 'Трезубец', crystal: 'Кристальный жезл', club: 'Костяная дубина' };
-const WEAPON_RARITY = { axe: 'common', staff: 'common', skeleton: 'epic', sword: 'rare', hammer: 'rare', trident: 'epic', crystal: 'legendary', club: 'rare', pumpkin: 'epic', scythe: 'legendary' };
+  trident: 'Трезубец', crystal: 'Кристальный жезл', club: 'Костяная дубина', shovel: 'Лопата фермера', pitchfork: 'Вилы', flower: 'Цветочный жезл',
+  rainbow: 'Радужный посох', butterfly: 'Жезл бабочки', sun: 'Солнечный скипетр',
+  spin_wild: 'Прокрут: Дикий', spin_roulette: 'Прокрут: Рулетка', spin_turbo: 'Прокрут: Рывок', spin_spring: 'Прокрут: Пружина', spin_snap: 'Прокрут: Замах', spin_pendulum: 'Прокрут: Маятник', spin_tease: 'Прокрут: Интрига', spin_swing: 'Прокрут: Качели', spin_plain: 'Прокрут: Обычный' };
+const WEAPON_RARITY = { axe: 'common', staff: 'common', skeleton: 'epic', sword: 'rare', hammer: 'rare', trident: 'epic', crystal: 'legendary', club: 'rare', pumpkin: 'epic', scythe: 'legendary',
+  shovel: 'common', pitchfork: 'rare', flower: 'rare', rainbow: 'epic', butterfly: 'epic', sun: 'legendary' };
 const RARITY_LABELS = { common: 'Обычное', rare: 'Редкое', epic: 'Эпическое', legendary: 'Легендарное' };
-const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club']);
+const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club', 'shovel', 'pitchfork', 'flower', 'rainbow', 'butterfly', 'sun']);
 let ownedWeapons = ['axe'];
 function setOwnedWeapons(list) {
   if (!Array.isArray(list)) return;
   ownedWeapons = list;
   buildWeaponMenu();
+  if (typeof setSpinStyle === 'function') { let sv = 'plain'; try { sv = localStorage.getItem('spinStyle') || 'plain'; } catch (e) {} setSpinStyle(sv); }
   let preferred = 'axe';
   try { preferred = localStorage.getItem('weapon:' + activeEventKey()) || localStorage.getItem('weapon') || 'axe'; } catch (e) {}
   setWeapon(preferred);
@@ -7531,34 +7577,44 @@ function initSky() {
   });
 }
 
-const SPIN_STYLES = ['plain', 'wild', 'roulette', 'pendulum', 'turbo'];
-let spinStyle = 'wild';
+const SPIN_STYLES = ['plain', 'wild', 'roulette', 'turbo', 'spring', 'snap', 'pendulum', 'tease', 'swing'];
+const SPIN_LABELS = { plain: 'Обычный', wild: 'Дикий', roulette: 'Рулетка', turbo: 'Рывок', spring: 'Пружина', snap: 'Замах', pendulum: 'Маятник', tease: 'Интрига', swing: 'Качели' };
+const SPIN_RARITY = { plain: 'common', wild: 'rare', roulette: 'rare', turbo: 'rare', spring: 'rare', snap: 'epic', pendulum: 'epic', tease: 'epic', swing: 'legendary' };
+let spinStyle = 'plain';
+const spinOwned = (name) => name === 'plain' || ownedWeapons.includes('spin_' + name);
 
 function setSpinStyle(name) {
-  spinStyle = SPIN_STYLES.includes(name) ? name : 'wild';
+  spinStyle = SPIN_STYLES.includes(name) && spinOwned(name) ? name : 'plain';
   try { localStorage.setItem('spinStyle', spinStyle); } catch (e) {}
-  document.querySelectorAll('#spinMenu [data-spin]').forEach((b) => b.classList.toggle('on', b.dataset.spin === spinStyle));
+  buildSpinGrid();
+}
+function buildSpinGrid() {
+  const grid = $('spinGrid'); if (!grid) return;
+  grid.replaceChildren();
+  for (const id of SPIN_STYLES) {
+    const locked = !spinOwned(id);
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.spin = id; b.dataset.rarity = SPIN_RARITY[id];
+    b.className = 'weapon-card' + (locked ? ' locked' : '') + (id === spinStyle ? ' on' : '');
+    const img = document.createElement('img'); img.src = `/static/weapons/spin_${id}-icon.png?v=1`; img.alt = '';
+    const name = document.createElement('span'); name.className = 'weapon-name'; name.textContent = tr(SPIN_LABELS[id]);
+    const note = document.createElement('small'); note.textContent = tr(RARITY_LABELS[SPIN_RARITY[id]]);
+    b.append(img, name, note);
+    grid.appendChild(b);
+  }
 }
 
 function initSpinStyle() {
-  let saved = 'wild';
-  try { saved = localStorage.getItem('spinStyle') || 'wild'; } catch (e) {}
+  let saved = 'plain';
+  try { saved = localStorage.getItem('spinStyle') || 'plain'; } catch (e) {}
   setSpinStyle(saved);
-  const menu = $('spinMenu');
-  $('gearBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (spinning) return;
-    haptic('impact', 'light');
-    menu.hidden = !menu.hidden;
-  });
-  menu.addEventListener('click', (e) => {
+  $('spinGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-spin]');
     if (!b) return;
+    if (b.classList.contains('locked')) { haptic('notification', 'warning'); return; }
     haptic('impact', 'light');
     setSpinStyle(b.dataset.spin);
-    menu.hidden = true;
   });
-  document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('#spinMenu')) menu.hidden = true; });
 }
 
 function initWeapon() {
@@ -7571,7 +7627,6 @@ function initWeapon() {
     e.stopPropagation();
     if (spinning) return;
     haptic('impact', 'light');
-    $('spinMenu').hidden = true;
     $('weaponSearch').value = '';
     buildWeaponMenu();
     modal.hidden = false;
@@ -7583,6 +7638,12 @@ function initWeapon() {
     openWeaponPreview(b.dataset.weapon, close);
   });
   $('weaponSearch').addEventListener('input', buildWeaponMenu);
+  modal.querySelectorAll('[data-cz]').forEach((t) => t.addEventListener('click', () => {
+    const spin = t.dataset.cz === 'spin';
+    modal.querySelectorAll('[data-cz]').forEach((x) => x.classList.toggle('on', x === t));
+    $('weaponGrid').hidden = spin; $('spinGrid').hidden = !spin; $('weaponSearch').hidden = spin;
+    haptic('impact', 'light');
+  }));
   $('weaponModalClose').addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 }
@@ -7715,6 +7776,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Пиксельный шлейф у эпического и легендарного оружия: следим за углом указателя и сыплем квадратики по его траектории. */
+const WEAPON_FX = {
+  flower: { arc: ['#ff7eb6'], width: 2.4, life: 460, sparks: 2, spark: ['#ffb3d1', '#ffffff', '#ff7eb6'], shape: 'petal' },
+  rainbow: { arc: ['#f03c3c', '#ff9628', '#ffe246', '#5ac846', '#4696f0', '#9a5ae6'], width: 1.7, gap: 2.1, life: 560, sparks: 0 },
+  butterfly: { arc: ['#5cb6f2', '#ff78ac'], width: 2.2, life: 520, sparks: 1, spark: ['#8fd3ff', '#ffa6c9', '#ffffff'], shape: 'wing' },
+  sun: { arc: ['#ffb42e', '#fff3c0'], width: 3.8, life: 640, sparks: 2, spark: ['#ffd36a', '#fff3c0', '#ff9a1f'], shape: 'ray' },
+};
 const TRAIL_STYLE = {
   rare: { arc: ['#5aa9ff'], width: 2.2, life: 380, sparks: 0 },
   epic: { arc: ['#9b59f0', '#d9bcff'], width: 3, life: 480, sparks: 1, spark: ['#c9a0ff', '#ffffff'] },
@@ -7724,7 +7791,7 @@ let trailLastAngle = null;
 function trailTick() {
   requestAnimationFrame(trailTick);
   const rarity = document.documentElement.dataset.weaponRarity;
-  const cfg = TRAIL_STYLE[rarity];
+  const cfg = WEAPON_FX[document.documentElement.dataset.weapon] || TRAIL_STYLE[rarity];
   const pointer = $('pointer'), layer = $('ptrTrail');
   if (!cfg || !pointer || !layer || document.hidden) { trailLastAngle = null; return; }
   const m = getComputedStyle(pointer).transform;
@@ -7739,7 +7806,7 @@ function trailTick() {
   const sweep = delta > 0 ? 1 : 0;
   // плавный хвост-дуга за остриём; дуги разных радиусов дают объём
   cfg.arc.forEach((color, k) => {
-    const r = 128 - k * 7;
+    const r = 128 - k * (cfg.gap || 7);
     const path = document.createElementNS(NS, 'path');
     path.setAttribute('d', `M${pt(prev, r)} A${r} ${r} 0 0 ${sweep} ${pt(angle, r)}`);
     path.setAttribute('fill', 'none'); path.setAttribute('stroke', color);
@@ -7749,10 +7816,13 @@ function trailTick() {
   });
   for (let i = 0; i < cfg.sparks; i++) {
     const a = prev + (angle - prev) * Math.random(), r = 112 + Math.random() * 28;
-    const dot = document.createElementNS(NS, 'circle');
-    dot.setAttribute('cx', (150 + r * Math.sin(a)).toFixed(1)); dot.setAttribute('cy', (150 - r * Math.cos(a)).toFixed(1));
-    dot.setAttribute('r', (0.9 + Math.random() * 1.3).toFixed(1));
-    dot.setAttribute('fill', cfg.spark[Math.floor(Math.random() * cfg.spark.length)]);
+    const px = 150 + r * Math.sin(a), py = 150 - r * Math.cos(a), col = cfg.spark[Math.floor(Math.random() * cfg.spark.length)];
+    let dot;
+    if (cfg.shape === 'petal') { dot = document.createElementNS(NS, 'ellipse'); dot.setAttribute('rx', 2.6); dot.setAttribute('ry', 1.4); dot.setAttribute('transform', `rotate(${Math.floor(Math.random() * 180)} ${px.toFixed(1)} ${py.toFixed(1)})`); dot.setAttribute('cx', px.toFixed(1)); dot.setAttribute('cy', py.toFixed(1)); }
+    else if (cfg.shape === 'wing') { dot = document.createElementNS(NS, 'path'); dot.setAttribute('d', `M${px.toFixed(1)} ${py.toFixed(1)}l-3.4 -2.6l0.6 3.4l-0.6 3.4z M${px.toFixed(1)} ${py.toFixed(1)}l3.4 -2.6l-0.6 3.4l0.6 3.4z`); }
+    else if (cfg.shape === 'ray') { dot = document.createElementNS(NS, 'path'); const L = 3 + Math.random() * 3; dot.setAttribute('d', `M${px.toFixed(1)} ${py.toFixed(1)}l${(L * Math.sin(a)).toFixed(1)} ${(-L * Math.cos(a)).toFixed(1)}`); dot.setAttribute('stroke', col); dot.setAttribute('stroke-width', 1.4); dot.setAttribute('stroke-linecap', 'round'); dot.setAttribute('fill', 'none'); }
+    else { dot = document.createElementNS(NS, 'circle'); dot.setAttribute('cx', px.toFixed(1)); dot.setAttribute('cy', py.toFixed(1)); dot.setAttribute('r', (0.9 + Math.random() * 1.3).toFixed(1)); }
+    if (cfg.shape !== 'ray') dot.setAttribute('fill', col);
     layer.appendChild(dot);
     const dx = (Math.random() - 0.5) * 12, dy = 4 + Math.random() * 10;
     dot.animate([{ opacity: 1, transform: 'translate(0,0)' }, { opacity: 0, transform: `translate(${dx}px,${dy}px)` }], { duration: cfg.life + 200, easing: 'ease-out' }).onfinish = () => dot.remove();

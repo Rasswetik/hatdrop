@@ -198,3 +198,12 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .wp-stage { height: 220px !important; margin-top: 14px; }
 .wp-stage canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
 .wp-card h2 { font-size: 16px; }
+.weapon-grid[hidden], .weapon-search[hidden] { display: none !important; }
+
+/* сундуки: компактнее на невысоких экранах, чтобы всё помещалось без прокрутки */
+@media (max-height: 820px) {
+  .cx-grid { max-width: 262px; gap: 5px; }
+  .cx-cell { padding: 3px; box-shadow: inset 2px 2px 0 #aa7bcb, 0 2px 0 #21132f; }
+}
+@media (max-height: 700px) { .cx-grid { max-width: 220px; gap: 4px; } }
+.cx-cell img { will-change: auto; }

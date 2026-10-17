@@ -1902,7 +1902,7 @@ def _bot_app_url():
 def _notify_admins_withdrawal(user, prize, req, error=None):
     """Заявка на вывод (и ошибка автовывода) приходит админам в бота; тексты редактируются в разделе «Бот»."""
     who = ("@" + user["username"]) if user.get("username") else (user.get("first_name") or "Игрок")
-    mode = "автовывод через релейер" if req.get("auto") == "queued" else "нужна ручная проверка"
+    mode = "автовывод через релейер" if req.get("auto") == "queued" else ""
     ck = _prize_collection_key(prize)
     with lock:
         config = bot_editor_config()["messages"]
@@ -1910,8 +1910,9 @@ def _notify_admins_withdrawal(user, prize, req, error=None):
                                   prize["name"], gift_emoji=gift_emoji_html(ck) if ck else "🎁",
                                   extra={"value": f"{prize['value']:g}", "user": who, "id": str(user["id"])[2:],
                                          "mode": mode, "error": error or ""})
+    text = "\n".join(l for l in payload["text"].split("\n") if re.sub(r"<[^>]+>", "", l).strip() != "Режим:")
     for aid in effective_admin_ids():
-        _send_tg_async("tg" + str(aid), payload["text"], payload.get("reply_markup"), html=True)
+        _send_tg_async("tg" + str(aid), text, payload.get("reply_markup"), html=True)
 
 
 def _prize_collection_key(prize):
