@@ -3131,7 +3131,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=19">
+<link rel="stylesheet" href="/static/ui-layout.css?v=21">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3927,7 +3927,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 <div class="modal" id="weaponModal" hidden="">
   <div class="modal-card weapon-modal">
     <h2>Кастомизация</h2>
-    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Типы прокрута</button><button class="cz-tab" type="button" data-cz="theme">Оформление</button></div>
+    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Оружие</button><button class="cz-tab" type="button" data-cz="spin">Прокрут</button><button class="cz-tab" type="button" data-cz="theme">Оформление</button></div>
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
     <div class="weapon-list" id="weaponGrid"></div>
     <div class="weapon-grid" id="spinGrid" hidden></div>
@@ -5716,6 +5716,7 @@ async function activatePromo(e) {
     setBalance(r.balance_ton);
     updateSpinButton();
     if (r.prizes) { state.prizes = r.prizes; renderPrizes(r.prizes); }
+    if (r.weapons) setOwnedWeapons(r.weapons);
     toast(r.gift ? `Получен подарок: ${r.gift}` : tr('Промокод активирован: +{sum} TON', { sum: fmt(r.amount_ton, 2) }));
     haptic('notification', 'success');
   } catch (err) {
@@ -7644,6 +7645,7 @@ function buildWeaponMenu() {
   const cur = document.documentElement.dataset.weapon;
   const q = (($('weaponSearch') && $('weaponSearch').value) || '').trim().toLowerCase();
   const gear = Object.keys(WEAPONS);
+  const have = gear.filter((id) => ownedWeapons.includes(id)).length;
   const cols = (wCat && wCat.collections) || [];
   const inCol = new Set(cols.flatMap((c) => c.weapons));
   const shown = (id) => {

@@ -47,10 +47,11 @@
     </div>
     <div id="admPromos" hidden="">
       <div class="adm-box"><h3>Создать промокод</h3>
-        <select id="admPromoKind" class="gp-search"><option value="balance">Баланс TON</option><option value="gift">Подарок</option></select>
+        <select id="admPromoKind" class="gp-search"><option value="balance">Баланс TON</option><option value="gift">Подарок</option><option value="item">Оружие / прокрут / оформление</option></select>
         <input id="admPromoCode" class="gp-search" placeholder="Код (пусто = случайный)" maxlength="32">
         <input id="admPromoLimit" class="gp-search" type="number" min="1" value="1" placeholder="Количество активаций">
         <input id="admPromoAmount" class="gp-search" type="number" step="0.01" min="0.01" placeholder="Сумма TON">
+        <select id="admPromoItem" class="gp-search" hidden=""></select>
         <div id="admPromoGiftField" hidden=""><button type="button" id="admPromoChoose">Выбрать подарок из каталога</button><p id="admPromoSelected" class="muted">Подарок не выбран</p></div>
         <button type="button" id="admPromoCreate">Создать промокод</button>
       </div><h3>Все промокоды</h3><div id="admPromoRows" class="lv-list"></div>

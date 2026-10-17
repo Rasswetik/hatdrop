@@ -298,9 +298,9 @@ function admRenderUser(u) {
   hcForm.append(hcAmount, hcSet, hcAdd); hc.appendChild(hcForm);
 
   // Снаряжение
-  const wp = admBox('Снаряжение игрока');
+  const wp = admBox('Предметы игрока: оружие, прокруты, оформления');
   const names = Object.fromEntries((u.weapon_catalog || []).map(w => [w.id, w.name]));
-  if (!u.weapons.length) wp.append('Закрытого снаряжения нет');
+  if (!u.weapons.length) wp.append('Выданных предметов нет');
   for (const id of u.weapons) {
     const row = admField('div', { className: 'adm-form' });
     const del = admField('button', { type: 'button', className: 'danger', textContent: 'Убрать' });
@@ -309,9 +309,13 @@ function admRenderUser(u) {
   }
   const wForm = admField('div', { className: 'adm-form' });
   const wSel = admField('select');
-  for (const w of (u.weapon_catalog || []).filter(w => !u.weapons.includes(w.id))) wSel.append(admField('option', { value: w.id, textContent: w.name }));
+  for (const [kind, label] of Object.entries(ITEM_GROUPS)) {
+    const g = admField('optgroup', { label });
+    for (const w of (u.weapon_catalog || []).filter(w => !u.weapons.includes(w.id) && (w.kind || 'gear') === kind)) g.append(admField('option', { value: w.id, textContent: w.name }));
+    if (g.children.length) wSel.append(g);
+  }
   const wGive = admField('button', { type: 'button', textContent: 'Выдать' });
-  wGive.onclick = async () => { if (!wSel.value) return; try { admRenderUser((await api('/api/admin/user/weapons', { key: u.key, weapon: wSel.value })).user); toast('Снаряжение выдано'); } catch (e) { admErr(e); } };
+  wGive.onclick = async () => { if (!wSel.value) return; try { admRenderUser((await api('/api/admin/user/weapons', { key: u.key, weapon: wSel.value })).user); toast('Предмет выдан'); } catch (e) { admErr(e); } };
   wForm.append(wSel, wGive); wp.appendChild(wForm);
 
   // Личные ордера лавки
@@ -432,6 +436,18 @@ function admRenderMarket(res) {
 }
 
 let promoGift = null;
+const ITEM_GROUPS = { gear: 'Оружие', spin: 'Типы прокрута', theme: 'Оформления' };
+async function admFillItems(sel) {
+  try {
+    const { items } = await api('/api/admin/levels');
+    for (const [kind, label] of Object.entries(ITEM_GROUPS)) {
+      const g = admField('optgroup', { label });
+      for (const it of items.filter(i => !i.default && i.kind === kind)) g.append(admField('option', { value: it.id, textContent: it.name }));
+      sel.append(g);
+    }
+  } catch (e) { admErr(e); }
+}
+
 async function admLoadPromos() {
   try {
     const {rows} = await api('/api/admin/promos');
@@ -684,7 +700,8 @@ function initAdmin() {
   $('admMrktSave').addEventListener('click', () => admSaveMrkt(false));
   $('admMrktClear').addEventListener('click', () => admSaveMrkt(true));
   $('admPromoKind').addEventListener('change', () => {
-    const gift=$('admPromoKind').value==='gift'; $('admPromoAmount').hidden=gift; $('admPromoGiftField').hidden=!gift;
+    const k=$('admPromoKind').value; $('admPromoAmount').hidden=k!=='balance'; $('admPromoGiftField').hidden=k!=='gift'; $('admPromoItem').hidden=k!=='item';
+    if (k==='item' && !$('admPromoItem').options.length) admFillItems($('admPromoItem'));
   });
   $('admPromoChoose').addEventListener('click', admChoosePromoGift);
   $('admPromoCreate').addEventListener('click', async () => {
@@ -693,7 +710,7 @@ function initAdmin() {
     try {
       const result=await api('/api/admin/promos/create', {kind,code:$('admPromoCode').value.trim(),
         limit: Number($('admPromoLimit').value),amount:Number($('admPromoAmount').value),
-        gift:promoGift?.slug});
+        gift:promoGift?.slug, weapon:$('admPromoItem').value});
       $('admPromoCode').value='';toast(`Создан промокод ${result.code}`);admLoadPromos();
     } catch(e) { admErr(e); }
   });

@@ -296,3 +296,7 @@ html:not([data-halloween="on"]) .mt-card h2 { color: #ffe08a; }
 .weapon-list[hidden] { display: none !important; }
 .weapon-modal { width: min(96vw, 520px) !important; max-width: none !important; }
 .weapon-card .weapon-name { font-size: 10px; }
+
+.weapon-modal { width: min(96vw, 560px) !important; max-width: 560px !important; }
+.cz-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
+.cz-tab { display: flex; align-items: center; justify-content: center; min-height: 42px; padding: 6px 4px !important; font-size: 12px !important; line-height: 1.1; white-space: nowrap; text-align: center; }

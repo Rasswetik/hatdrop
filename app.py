@@ -1376,6 +1376,11 @@ def promo(user, body):
         amount = money(item["amount"])
         user["balance"] = ton(user["balance"] + amount)
         result = {"balance_ton": ton(user["balance"]), "amount_ton": amount}
+    elif item["kind"] == "item":
+        if item["weapon"] not in weapons_lib.WEAPONS:
+            raise ApiError("promo_inactive")
+        weapons_lib.grant(user, item["weapon"])
+        result = {"balance_ton": ton(user["balance"]), "gift": item.get("name", ""), "weapons": weapons_lib.owned(user)}
     else:
         slug = item["gift"]
         model = item.get("model", "")
@@ -2311,6 +2316,11 @@ def admin_promos_create(user, body):
         if not 0 < amount <= 100000:
             raise ApiError("bad_request")
         row["amount"] = amount
+    elif kind == "item":
+        wid = str(body.get("weapon") or "")
+        if wid not in weapons_lib.WEAPONS or weapons_lib.WEAPONS[wid]["default"]:
+            raise ApiError("bad_request", 400, message="Выберите предмет.")
+        row.update(weapon=wid, name=weapons_lib.WEAPONS[wid]["name"])
     elif kind == "gift":
         slug = str(body.get("gift") or "")
         model = str(body.get("model") or "")
@@ -3002,8 +3012,8 @@ def admin_user_detail(u):
         "hatcoin": round(hatcoin_balance(u), 6),
         "note_text": str(u.get("note") or ""),
         "tour_done": bool(u.get("tour_done")),
-        "weapons": [w for w in weapons_lib.owned(u) if not weapons_lib.WEAPONS[w]["default"]],
-        "weapon_catalog": [{"id": k, "name": v["name"], "rarity": v["rarity"]} for k, v in weapons_lib.WEAPONS.items() if not v["default"]],
+        "weapons": [w for w in (u.get("weapons") or []) if w in weapons_lib.WEAPONS and not weapons_lib.WEAPONS[w]["default"]],
+        "weapon_catalog": [{"id": k, "name": v["name"], "rarity": v["rarity"], "kind": v.get("kind", "gear")} for k, v in weapons_lib.WEAPONS.items() if not v["default"]],
         "rtp": {m: {"global": global_rtp(m), "adj": user_rtp_adj(u, m),
                     "effective": effective_rtp(u, m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES},
         "prizes": [

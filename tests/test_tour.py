@@ -134,3 +134,14 @@ class ThemeMaintenanceTests(AdminUsersTests):
         self.assertEqual(st["balance_ton"], 0)  # уровень 2 ещё не достигнут
         bad = self.c.post("/api/admin/levels", headers=self.h, json={"rewards": {"1": {"kind": "weapon", "weapon": "nope"}}})
         self.assertEqual(bad.status_code, 400)
+
+
+class PromoItemTests(AdminUsersTests):
+    def test_item_promo_grants_theme(self):
+        r = self.c.post("/api/admin/promos/create", headers=self.h, json={"kind": "item", "code": "THEME1", "weapon": "theme_halloween", "limit": 5})
+        self.assertEqual(r.status_code, 200)
+        bad = self.c.post("/api/admin/promos/create", headers=self.h, json={"kind": "item", "code": "BADONE", "weapon": "axe"})
+        self.assertEqual(bad.status_code, 400)
+        out = self.c.post("/api/promo", json={"initData": signed_user(303), "code": "THEME1"}).json
+        self.assertIn("theme_halloween", out["weapons"])
+        d = self.c.post("/api/admin/user", headers=self.h, json={"key": backend.db["users"]["tg303"]["key"]}).json
