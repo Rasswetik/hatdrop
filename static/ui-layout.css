@@ -301,3 +301,22 @@ html:not([data-halloween="on"]) .mt-card h2 { color: #ffe08a; }
 .weapon-modal { width: min(96vw, 560px) !important; max-width: 560px !important; }
 .cz-tabs { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
 .cz-tab { display: flex; align-items: center; justify-content: center; min-height: 42px; padding: 6px 4px !important; font-size: 12px !important; line-height: 1.1; white-space: nowrap; text-align: center; }
+
+/* обрезаем рамку у картинок оформлений */
+.tc-pic img { transform: scale(1.14); }
+.shop-card .tc-pic.shop-theme-pic { width: 100%; max-width: 84px; }
+#themePreview { z-index: 60; }
+#shopConfirm { z-index: 70; }
+
+/* Хэллоуин: анимированная SVG-сцена вместо PNG; старый слой эффектов отключён, чтобы ведьмы и мыши не дублировались */
+.halloween-fx { display: none !important; }
+html[data-halloween="on"] .bg-wide .halloween-scene-png { transition: opacity 3200ms ease-in-out; image-rendering: pixelated; }
+html[data-halloween="on"] .bg-wide::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; background: linear-gradient(180deg, rgba(120,60,160,.55), rgba(255,120,40,.55) 70%, rgba(255,190,80,.5)); mix-blend-mode: soft-light; }
+html.hw-dusk .bg-wide::before { animation: hwDusk 3.6s ease-in-out both; }
+@keyframes hwDusk { 0% { opacity: 0; } 45% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: 0; } }
+/* на узких экранах сцена медленно «панорамируется», чтобы показать всё кладбище */
+@media (max-aspect-ratio: 1/1) {
+  html[data-halloween="on"] .bg-wide .halloween-scene-png { animation: hwPan 140s ease-in-out infinite alternate; }
+}
+@keyframes hwPan { from { object-position: 8% 50%; } to { object-position: 92% 50%; } }
+@media (prefers-reduced-motion: reduce) { html[data-halloween="on"] .bg-wide .halloween-scene-png { animation: none !important; } }

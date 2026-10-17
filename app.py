@@ -1448,7 +1448,7 @@ def withdrawal_record(row):
 
 
 # ---------- Резервная копия: скачать/загрузить в админке + автоотправка владельцу в Telegram ----------
-BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "0.5"))  # копия владельцу каждые 30 мин, если база менялась
+BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "0"))  # автокопии в Telegram выключены (включить: BACKUP_TG_HOURS=0.5); ручная выгрузка в админке работает
 
 
 def storage_info():
@@ -1561,6 +1561,8 @@ def auto_restore_if_empty():
 
 def _boot_report():
     """Один раз при старте пишет владельцу, где лежит база и сколько в ней игроков - чтобы не гадать."""
+    if os.environ.get("BOOT_REPORT") != "1":
+        return
     time.sleep(25)
     if not BOT_TOKEN:
         return

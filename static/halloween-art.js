@@ -10,7 +10,15 @@
   const images = { day, night };
   const available = { day: false, night: false };
 
+  let lastSky = root.dataset.sky, duskTimer = 0;
   function sync() {
+    if (root.dataset.sky !== lastSky) {
+      lastSky = root.dataset.sky;
+      if (root.dataset.halloween === 'on' && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        root.classList.remove('hw-dusk'); void root.offsetWidth; root.classList.add('hw-dusk');
+        clearTimeout(duskTimer); duskTimer = setTimeout(() => root.classList.remove('hw-dusk'), 3800);
+      }
+    }
     const sky = root.dataset.sky === 'night' ? 'night' : 'day';
     const usePng = root.dataset.halloween === 'on' && available[sky];
     root.dataset.halloweenArt = usePng ? 'png' : 'svg';
@@ -19,7 +27,7 @@
 
   function preload(which) {
     const probe = new Image();
-    let url = '/static/halloween/' + which + '.webp';  // сжатая копия делается сервером из PNG
+    let url = '/static/halloween/' + which + '.svg?v=1';  // анимированная пиксельная сцена
     probe.decoding = 'async';
     let retried = false;
     probe.onload = () => {

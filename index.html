@@ -18,7 +18,7 @@
     r.dataset.sky = localStorage.getItem('halloweenSky') === 'day' ? 'day' : 'night';
     ['night', 'day'].forEach(function (n) {
       var l = document.createElement('link');
-      l.rel = 'preload'; l.as = 'image'; l.href = '/static/halloween/' + n + '.webp';
+      l.rel = 'preload'; l.as = 'image'; l.href = '/static/halloween/' + n + '.svg?v=1';
       if (n === r.dataset.sky) l.setAttribute('fetchpriority', 'high');
       d.appendChild(l);
     });
@@ -3139,7 +3139,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=22">
+<link rel="stylesheet" href="/static/ui-layout.css?v=25">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -4186,7 +4186,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 
 <script src="/static/village-scene.js?v=6"></script>
 <script src="/static/meadow-scene.js?v=2" defer></script>
-<script src="/static/halloween-art.js?v=2" defer></script>
+<script src="/static/halloween-art.js?v=3" defer></script>
 <script>
 (function () {
   'use strict';
@@ -6163,10 +6163,11 @@ function renderShop(container, status) {
   if (!offers.length) { status.textContent = tr('Костян пока раскладывает товар. Загляни позже!'); return; }
   const grid = mk('div', 'shop-grid');
   for (const o of offers) {
-    const card = mk('button', 'shop-card' + (o.available ? '' : ' off'));
+    const card = mk('button', 'shop-card' + (o.available || o.owned ? '' : ' off'));
     card.type = 'button';
     if (o.reward.rarity) card.dataset.rarity = o.reward.rarity;
-    const img = mk('img'); img.src = o.reward.image; img.alt = '';
+    const themeId = o.reward.weapon && String(o.reward.weapon).startsWith('theme_') ? String(o.reward.weapon).slice(6) : '';
+    const img = themeId ? themePic(themeId) : mk('img'); if (!themeId) { img.src = o.reward.image; img.alt = ''; } else img.classList.add('shop-theme-pic');
     const price = mk('span', 'shop-price');
     const cur = mk('img'); cur.src = o.currency === 'hatcoin' ? '/images/hatcoin.webp' : '/images/ton.svg'; cur.alt = '';
     if (o.price <= 0) price.append(document.createTextNode(tr('Бесплатно'))); else price.append(cur, document.createTextNode(String(+o.price.toFixed(4))));
@@ -6186,7 +6187,7 @@ async function doShopBuy(o, onDone) {
     if (r.weapons) setOwnedWeapons(r.weapons);
     haptic('notification', 'success');
     toast(tr('Покупка совершена'));
-    $('shopConfirm').hidden = true; $('shopModal').hidden = true;
+    $('shopConfirm').hidden = true; $('shopModal').hidden = true; $('themePreview').hidden = true; buildThemeGrid();
     renderQuestCards(questsCache || { enabled: true, rows: [] }, $('questCards'), $('questLoading'));
     renderState(await api('/api/state'));
   } catch (e) {
@@ -6194,6 +6195,7 @@ async function doShopBuy(o, onDone) {
   } finally { shopBusy = false; if (onDone) onDone(); }
 }
 function openShopOffer(o) {
+  if (o.reward.weapon && String(o.reward.weapon).startsWith('theme_')) { haptic('impact', 'light'); openThemePreview(String(o.reward.weapon).slice(6), o); return; }
   $('shopModalImg').src = o.reward.image;
   $('shopModalTitle').textContent = o.title;
   $('shopModalPriceLine').hidden = o.price <= 0;
@@ -7814,7 +7816,7 @@ function applyTheme(id) {
   try { localStorage.setItem('themeCache', id); } catch (e) {}
   buildThemeGrid();
 }
-async function openThemePreview(id) {
+async function openThemePreview(id, offer) {
   const t = THEMES.find((x) => x.id === id); if (!t) return;
   const owned = themeOwned(id), cur = themeCur() === id;
   const card = $('tpCard'); card.dataset.rarity = t.rarity;
@@ -7829,7 +7831,14 @@ async function openThemePreview(id) {
   const apply = $('tpApply');
   apply.disabled = !owned || cur;
   apply.textContent = !owned ? tr('Только на ивенте') : cur ? tr('Выбрано') : tr('Применить');
-  apply.onclick = async () => {
+  if (offer && !owned) {
+    const have = shopCache ? (offer.currency === 'hatcoin' ? shopCache.hatcoin_balance : shopCache.balance_ton) : 0;
+    const poor = offer.price > 0 && have + 1e-9 < offer.price;
+    note.hidden = true;
+    apply.disabled = !offer.available || poor;
+    apply.textContent = !offer.available ? tr('Распродано') : poor ? tr('Недостаточно средств') : (offer.price <= 0 ? tr('Забрать') : `${tr('Купить')} · ${shopPriceLabel(offer)}`);
+    apply.onclick = () => { if (offer.price <= 0) { apply.disabled = true; doShopBuy(offer, () => { apply.disabled = false; }); } else openShopConfirm(offer); };
+  } else apply.onclick = async () => {
     apply.disabled = true;
     try { await api('/api/theme/set', { id }); applyTheme(id); haptic('notification', 'success'); $('themePreview').hidden = true; }
     catch (e) { haptic('notification', 'error'); apply.disabled = false; }
