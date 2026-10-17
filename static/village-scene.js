@@ -3,6 +3,7 @@
   const root = document.documentElement;
   const scene = document.getElementById('villageScene');
   const halloween = document.getElementById('halloweenFx');
+  const meadow = document.getElementById('meadowScene');
   if (!scene) return;
   const dusk = scene.querySelector('.v-dusk');
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -41,6 +42,7 @@
     const paused = document.hidden || !appActive;
     scene.classList.toggle('scene-paused', paused);
     halloween?.classList.toggle('scene-paused', paused);
+    meadow?.classList.toggle('scene-paused', paused);
     if (duskAnimation?.playState === 'running' && paused) duskAnimation.pause();
     else if (duskAnimation?.playState === 'paused' && !paused) duskAnimation.play();
   }

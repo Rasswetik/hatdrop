@@ -6,7 +6,13 @@
 /* Тема применяется до первой отрисовки: берём последнюю известную из кэша, а не ждём ответа сервера */
 (function () {
   try {
-    if (localStorage.getItem('themeCache') !== 'halloween') return;
+    if (localStorage.getItem('themeCache') !== 'halloween') {
+      var pl = document.createElement('link');
+      pl.rel = 'preload'; pl.as = 'image'; pl.setAttribute('fetchpriority', 'high');
+      pl.href = '/static/meadow/' + (localStorage.getItem('sky') === 'night' ? 'night' : 'day') + '.webp?v=1';
+      document.head.appendChild(pl);
+      return;
+    }
     var r = document.documentElement, d = document.head;
     r.dataset.halloween = 'on';
     r.dataset.sky = localStorage.getItem('halloweenSky') === 'day' ? 'day' : 'night';
@@ -3080,6 +3086,7 @@ html[data-theme="meadow"] .modal-card .cx-win-glow { background: radial-gradient
 html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal-card .cxg-grid { scrollbar-width: thin; scrollbar-color: #a8713c transparent; }
 </style>
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
+<link rel="stylesheet" href="/static/meadow-scene.css?v=2">
 <link rel="stylesheet" href="/static/halloween-fx.css?v=2">
 <link rel="stylesheet" href="/static/halloween-theme.css?v=18">
 <style id="mines-palette">
@@ -3131,7 +3138,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=21">
+<link rel="stylesheet" href="/static/ui-layout.css?v=22">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3177,6 +3184,13 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 </svg>
 
 <div class="bg-wide" aria-hidden="true">
+<div id="meadowScene"><div class="ms-world" id="meadowWorld">
+  <img class="ms-img day" src="/static/meadow/day.webp?v=1" alt="" decoding="async" fetchpriority="high">
+  <img class="ms-img night" src="/static/meadow/night.webp?v=1" alt="" decoding="async">
+  <div class="ms-fg day"><img src="/static/meadow/day.webp?v=1" alt=""></div>
+  <div class="ms-fg night"><img src="/static/meadow/night.webp?v=1" alt=""></div>
+  <div class="ms-fx"></div>
+</div></div>
 <svg xmlns="http://www.w3.org/2000/svg" id="villageScene" viewBox="0 0 960 640" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true" focusable="false">
 <defs>
   <linearGradient id="vDusk" x2="0" y2="1"><stop stop-color="#e17587" stop-opacity="0" /><stop offset=".65" stop-color="#ef8871" /><stop offset="1" stop-color="#ffc986" /></linearGradient>
@@ -4169,7 +4183,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 })();
 </script>
 
-<script src="/static/village-scene.js?v=5"></script>
+<script src="/static/village-scene.js?v=6"></script>
+<script src="/static/meadow-scene.js?v=1" defer></script>
 <script src="/static/halloween-art.js?v=2" defer></script>
 <script>
 (function () {
@@ -7772,7 +7787,7 @@ const themeOwned = (id) => ownedWeapons.includes('theme_' + id);
 const themeCur = () => (document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'meadow');
 function themePic(id) {
   const box = document.createElement('div'); box.className = 'tc-pic'; box.dataset.theme = id;
-  const img = document.createElement('img'); img.alt = ''; img.src = `/static/themes/${id}.png?v=1`; img.onerror = () => img.remove();
+  const img = document.createElement('img'); img.alt = ''; img.src = `/static/themes/${id}.webp?v=1`; img.onerror = () => img.remove();
   box.appendChild(img);
   return box;
 }

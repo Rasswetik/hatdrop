@@ -1751,7 +1751,7 @@ WEAPON_IMAGES = {"axe": "/images/axe-icon.webp", "staff": "/images/staff-icon.we
 
 def weapon_image(wid):
     if weapons_lib.WEAPONS.get(wid, {}).get("kind") == "theme":
-        return f"/static/themes/{wid[len('theme_'):]}.png"
+        return f"/static/themes/{wid[len('theme_'):]}.webp?v=1"
     return WEAPON_IMAGES.get(wid) or f"/static/weapons/{wid}-icon.png"
 
 
@@ -4536,7 +4536,10 @@ def png_as_webp(name):
         try:
             from PIL import Image
             with Image.open(src) as im:
-                im.convert("RGBA" if "A" in im.getbands() else "RGB").save(out, "WEBP", quality=82, method=4)
+                im = im.convert("RGBA" if "A" in im.getbands() else "RGB")
+                if name.startswith("themes/"):
+                    im.thumbnail((640, 640), Image.LANCZOS)  # превью карточек: большой PNG не нужен
+                im.save(out, "WEBP", quality=82, method=4)
         except Exception as exc:
             print(f"webp convert failed: {exc}", flush=True)
             return None
