@@ -289,3 +289,14 @@ class ResetTests(VisibilityAdminTests):
             self.assertTrue(backend.db["settings"]["reset_at"])
             self.assertIn("tg999", backend._sqlite_get("db_before_reset"))
             self.assertEqual(backend.auto_restore_if_empty(), 0)
+
+
+class MarketLogTests(VisibilityAdminTests):
+    def test_log_endpoint(self):
+        backend.mlog("portals", "error", "тест")
+        r = self.adm("/api/admin/market/log", {"since": 0}).json
+        self.assertTrue(any(e["msg"] == "тест" and e["level"] == "error" for e in r["entries"]))
+        last = r["last_id"]
+        self.assertEqual(self.adm("/api/admin/market/log", {"since": last}).json["entries"], [])
+        self.adm("/api/admin/market/log", {"clear": True})
+        self.assertFalse(any(e["msg"] == "тест" for e in self.adm("/api/admin/market/log", {}).json["entries"]))

@@ -31,7 +31,7 @@ function admShow(tab) {
   history.replaceState(null, '', '/admin#' + tab);
   if (tab === 'overview' || tab === 'finance') admLoadOverview();
   else if (tab === 'users') admLoadUsers();
-  else if (tab === 'market') { admLoadMarket(); admLoadMarketAuto(); }
+  else if (tab === 'market') { admLoadMarket(); admLoadMarketAuto(); admLoadMarketLog(); }
   else if (tab === 'promos') admLoadPromos();
   else if (tab === 'quests') admLoadQuests();
   else if (tab === 'withdrawals') admLoadWithdrawals();

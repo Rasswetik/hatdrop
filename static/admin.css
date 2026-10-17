@@ -71,3 +71,9 @@
 .lvl-admin-row { align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
 .lvl-admin-row b { min-width: 48px; }
 .lvl-admin-row input[type=number] { width: 110px; }
+
+.ml-console { height: 280px; overflow: auto; background: #0b0f14; color: #cfd8e3; border-radius: 8px; padding: 8px 10px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.ml-line.ml-ok { color: #6fdc8c; }
+.ml-line.ml-warn { color: #f0c75e; }
+.ml-line.ml-error { color: #ff7a7a; }
+.ml-line.ml-info { color: #cfd8e3; }

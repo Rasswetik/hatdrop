@@ -3527,6 +3527,19 @@ class PortalsError(Exception):
     pass
 
 
+from collections import deque
+MARKET_LOG = deque(maxlen=600)
+_market_log_id = [0]
+_market_log_lock = threading.Lock()
+
+
+def mlog(src, level, msg):
+    """Журнал загрузки маркетов для консоли в админке (последние 600 строк)."""
+    with _market_log_lock:
+        _market_log_id[0] += 1
+        MARKET_LOG.append({"id": _market_log_id[0], "t": int(time.time()), "src": src, "level": level, "msg": str(msg)[:400]})
+
+
 PORTALS_STATE = {"running": False, "error": "", "updated": 0, "gifts": 0, "models": 0, "source": ""}
 MRKT_STATE = {"running": False, "error": "", "updated": 0, "checked": 0, "models": 0, "total": 0, "failed": 0}
 MRKT_MODELS_PAYLOAD = {"key": "collectionName"}  # auto-detected successful MRKT request format
@@ -3584,31 +3597,42 @@ def portals_get(paths, public_ok=False, timeout=20):
         if not attempt_auth and not auth_rejected and portals_auth():
             break
         headers = portals_headers(attempt_auth)
+        mode = "с ключом" if "Authorization" in headers else "без ключа"
         if attempt_auth and "Authorization" not in headers and not public_ok:
             raise PortalsError("ключ не задан")
         for host in order:
             host_dead = False
             for path in paths:
+                short = path.split("?")[0]
+                noisy = short.startswith("/collections/filters")
+                t0 = time.time()
                 try:
                     req = urllib.request.Request(host + path, headers=headers)
                     with urllib.request.urlopen(req, timeout=timeout) as resp:
                         data = json.load(resp)
                     _host_first["i"] = PORTALS_HOSTS.index(host)
+                    if not noisy:
+                        mlog("portals", "ok", f"GET {host.split('//')[1]}{short} ({mode}) -> 200, {int((time.time() - t0) * 1000)} мс")
                     return data
                 except urllib.error.HTTPError as e:
                     if e.code == 429:
+                        mlog("portals", "error", f"GET {short} ({mode}) -> HTTP 429, лимит запросов")
                         raise PortalsError("лимит запросов Portals (HTTP 429)")
                     if e.code in (401, 403):
                         auth_rejected = True
                         errors.append(f"ключ отклонён (HTTP {e.code})")
+                        mlog("portals", "error" if not noisy else "warn", f"GET {host.split('//')[1]}{short} ({mode}) -> HTTP {e.code}")
                         break
                     errors.append(f"{host.split('//')[1]}{path.split('?')[0]} -> HTTP {e.code}")
+                    mlog("portals", "error", f"GET {host.split('//')[1]}{short} ({mode}) -> HTTP {e.code}")
                 except urllib.error.URLError as e:
                     errors.append(f"{host.split('//')[1]} недоступен: {e.reason}")
+                    mlog("portals", "error", f"{host.split('//')[1]} недоступен: {e.reason}")
                     host_dead = True
                     break
                 except Exception as e:
                     errors.append(f"{host.split('//')[1]}{path.split('?')[0]} -> {type(e).__name__}")
+                    mlog("portals", "error", f"GET {host.split('//')[1]}{short} -> {type(e).__name__}: {e}")
             if host_dead:
                 continue
     if auth_rejected:
@@ -4176,12 +4200,14 @@ def portals_refresh_worker():
         return
     PORTALS_STATE.update(running=True, error="", source="Portals")
     generation = db["settings"].get("market_generation", 0)
+    mlog("portals", "info", f"Старт загрузки Portals. Ключ: {mask_key(portals_auth()) if portals_auth() else 'не задан, пробую без ключа'}")
     try:
         # Unlike the old implementation, this reads Portals itself, not a
         # Fragment/GetGems snapshot with stale/inferred prices.
         response = portals_get(["/collections?limit=5000", "/collections?limit=500"],
                                public_ok=True, timeout=12)
         collections = parse_collections(response)
+        mlog("portals", "info", f"Получено коллекций: {len(collections)}, с ценой: {sum(1 for c in collections if c['floor'] > 0)}")
         if not collections:
             raise PortalsError("Portals вернул 0 коллекций — данные не заменены")
         from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -4205,6 +4231,8 @@ def portals_refresh_worker():
                 stats["fail"] += 1
                 raise
             stats["ok"] += 1
+            if stats["ok"] % 25 == 0:
+                mlog("portals", "info", f"Модели: загружено коллекций {stats['ok']}, ошибок {stats['fail']}")
             return c, out
         if rows:
             with ThreadPoolExecutor(max_workers=8) as executor:
@@ -4221,7 +4249,9 @@ def portals_refresh_worker():
                     except Exception as exc:
                         if len(errors) < 3:
                             errors.append(str(exc))
+                            mlog("portals", "warn", f"Коллекция пропущена: {exc}")
         with_prices = sum(len(r["models"]) for r in rows)
+        mlog("portals", "info", f"Модели готовы: {with_prices} моделей с ценами, ошибок {stats['fail']}")
         if with_prices == 0:
             raise PortalsError("Portals: 0 моделей с ценами; " +
                                (errors[0] if errors else "API фильтров пуст"))
@@ -4230,12 +4260,16 @@ def portals_refresh_worker():
         PORTALS_STATE.update(updated=int(time.time()), gifts=len(CATALOG),
                              models=with_prices, source="Portals",
                              error=("Часть коллекций без моделей: " + errors[0]) if errors else "")
+        mlog("portals", "ok", f"Готово: подарков {len(CATALOG)}, моделей {with_prices}")
     except Exception as exc:
         PORTALS_STATE["error"] = str(exc)
+        mlog("portals", "error", f"Загрузка остановлена: {exc}")
     finally:
         PORTALS_STATE["running"] = False
 
 def start_portals_refresh():
+    if db["settings"].get("active_market") == "portals" and PORTALS_STATE["running"]:
+        mlog("portals", "info", "Загрузка уже идёт")
     if db["settings"].get("active_market") == "portals" and not PORTALS_STATE["running"]:
         PORTALS_STATE["running"] = True
         def run():
@@ -4323,8 +4357,10 @@ def admin_portals_set(user, body):
     cfg = db["settings"]
     if body.get("clear_key"):
         cfg["portals_auth"] = ""
+        mlog("portals", "info", "Ключ Portals удалён")
     elif str(body.get("auth") or "").strip():
         cfg["portals_auth"] = str(body["auth"]).strip()[:4000]
+        mlog("portals", "info", f"Ключ Portals сохранён ({mask_key(cfg['portals_auth'])})")
         start_portals_refresh()
     return {"rows": market_rows(), **portals_status()}
 
@@ -4346,6 +4382,7 @@ def mrkt_refresh_worker():
         return
     MRKT_STATE.update(running=True, error="", checked=0, models=0, total=0, failed=0)
     generation = db["settings"].get("market_generation", 0)
+    mlog("mrkt", "info", "Старт загрузки MRKT")
     try:
         if not db["settings"].get("mrkt_auth"):
             raise PortalsError("Токен MRKT не задан")
@@ -4355,6 +4392,7 @@ def mrkt_refresh_worker():
         names = [{"name": name, "short": item.get("short", "")}
                  for name, item in snapshot.items()]
         MRKT_STATE["total"] = len(names)
+        mlog("mrkt", "info", f"Коллекций для проверки: {len(names)}")
         from concurrent.futures import ThreadPoolExecutor, as_completed
         rows, errors = [], []
         def task(c):
@@ -4374,17 +4412,23 @@ def mrkt_refresh_worker():
                     MRKT_STATE["failed"] += 1
                     if len(errors) < 2:
                         errors.append(str(exc))
+                    if MRKT_STATE["failed"] <= 5:
+                        mlog("mrkt", "warn", f"Коллекция пропущена: {exc}")
                 finally:
                     MRKT_STATE["checked"] += 1
+                    if MRKT_STATE["checked"] % 25 == 0:
+                        mlog("mrkt", "info", f"Проверено {MRKT_STATE['checked']}/{MRKT_STATE['total']}, моделей {MRKT_STATE['models']}, ошибок {MRKT_STATE['failed']}")
         if MRKT_STATE["models"] == 0:
             raise PortalsError("MRKT: 0 моделей с ценами; " + (errors[0] if errors else "пустой ответ"))
         if not _publish_source_catalog(rows, "mrkt", generation):
             raise PortalsError("Не удалось сохранить новый каталог MRKT")
         MRKT_STATE["updated"] = int(time.time())
+        mlog("mrkt", "ok", f"Готово: коллекций {len(rows)}, моделей {MRKT_STATE['models']}")
         if errors:
             MRKT_STATE["error"] = f"Недоступно коллекций: {MRKT_STATE['failed']} · {errors[0]}"
     except Exception as exc:
         MRKT_STATE["error"] = str(exc)
+        mlog("mrkt", "error", f"Загрузка остановлена: {exc}")
     finally:
         MRKT_STATE["running"] = False
 
@@ -4406,6 +4450,25 @@ def admin_mrkt_refresh(user, body):
         raise ApiError("market_not_selected")
     start_mrkt_refresh()
     return {"rows": market_rows(), **portals_status()}
+
+
+@route("/api/admin/market/log")
+def admin_market_log(user, body):
+    require_admin(user)
+    if body.get("clear") is True:
+        with _market_log_lock:
+            MARKET_LOG.clear()
+        mlog("system", "info", "Журнал очищен")
+    try:
+        since = int(body.get("since") or 0)
+    except (TypeError, ValueError):
+        since = 0
+    with _market_log_lock:
+        entries = [e for e in MARKET_LOG if e["id"] > since]
+    return {"entries": entries, "last_id": _market_log_id[0],
+            "portals": {"running": PORTALS_STATE["running"], "error": PORTALS_STATE["error"]},
+            "mrkt": {"running": MRKT_STATE["running"], "error": MRKT_STATE["error"],
+                     "checked": MRKT_STATE["checked"], "total": MRKT_STATE["total"]}}
 
 
 @route("/api/admin/market/source")
