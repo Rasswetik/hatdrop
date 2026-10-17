@@ -337,3 +337,10 @@ button.lvl-cell { font: inherit; color: inherit; cursor: pointer; padding: 0; ba
 @keyframes cxMimic { 0% { transform: scale(.55) translateY(14%); } 55% { transform: scale(1.32) translateY(-12%); } 100% { transform: scale(1.18) translateY(-6%); } }
 @keyframes cxMimicShake { 0%, 100% { transform: scale(1.18) translateY(-6%) rotate(0); } 25% { transform: scale(1.2) translateY(-7%) rotate(-3deg); } 75% { transform: scale(1.2) translateY(-7%) rotate(3deg); } }
 @media (prefers-reduced-motion: reduce) { #view-chests #cxGrid .cx-cell.cx-mimic img { animation: none; transform: scale(1.15); } }
+
+/* диалог с Костяном: имя выделено плашкой над рамкой, текст ниже, «Дальше» без рамки */
+.tour-box { padding-top: 24px; }
+.tour-name { position: absolute; top: -15px; left: 12px; margin: 0; padding: 4px 12px 3px; font-size: 13px; color: #f0c977; background: #2a190d; border: 3px solid var(--kq-edge, #382315); box-shadow: 0 3px 0 rgba(0, 0, 0, .35); }
+.tour-text { margin-top: 6px; }
+.tour-btn { background: none; border: 0; box-shadow: none; color: var(--kq-text, #f3dcb4); opacity: .78; padding: 7px 4px; font-size: 13px; }
+.tour-btn:hover, .tour-btn:focus-visible { opacity: 1; text-decoration: underline; }
