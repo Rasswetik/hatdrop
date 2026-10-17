@@ -207,3 +207,4 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 }
 @media (max-height: 700px) { .cx-grid { max-width: 220px; gap: 4px; } }
 .cx-cell img { will-change: auto; }
+.sp-demo { width: 150px; height: 150px; margin: 14px auto 0; display: block; }

@@ -423,6 +423,11 @@ def _flush_on_exit(*_):
         save_catalog()
     except Exception as e:
         print(f"final flush failed: {e}", flush=True)
+    try:
+        if BOT_TOKEN and BACKUP_TG_HOURS > 0 and os.environ.get("PYTEST_CURRENT_TEST") is None:
+            send_backup_to_owner(force=False)  # последняя копия перед остановкой/деплоем
+    except Exception as e:
+        print(f"exit backup failed: {e}", flush=True)
 
 
 def _install_exit_hooks():
@@ -1364,7 +1369,7 @@ def withdrawal_record(row):
 
 
 # ---------- Резервная копия: скачать/загрузить в админке + автоотправка владельцу в Telegram ----------
-BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "12"))
+BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "0.5"))  # копия владельцу каждые 30 мин, если база менялась
 
 
 def storage_info():
@@ -1423,9 +1428,11 @@ def tg_send_document(chat_id, filename, data, caption=""):
         out = json.load(resp)
     if not out.get("ok"):
         raise ValueError(out.get("description", "telegram error"))
+    return out.get("result") or {}
 
 
-def send_backup_to_owner():
+def send_backup_to_owner(force=True):
+    """Копия базы владельцу в бота + закрепление: по закрепу сервер сам находит последнюю копию и восстанавливается при пустой базе."""
     if not BOT_TOKEN:
         return False
     with lock:
@@ -1434,9 +1441,62 @@ def send_backup_to_owner():
     data = backup_bytes()
     if len(data) > 49 * 1024 * 1024:
         return False
-    tg_send_document(OWNER_ADMIN_ID, time.strftime("hatdrop-backup-%Y%m%d-%H%M.json.gz"), data,
-                     "Резервная копия HatDrop. Чтобы восстановить базу, отправьте этот файл боту с подписью /restore")
+    with lock:
+        digest = hashlib.sha1(json.dumps(db.get("users", {}), sort_keys=True).encode()).hexdigest()
+    if not force and digest == _backup_state.get("hash"):
+        return False  # ничего не менялось с прошлой копии
+    msg = tg_send_document(OWNER_ADMIN_ID, time.strftime("hatdrop-backup-%Y%m%d-%H%M.json.gz"), data,
+                           "Резервная копия HatDrop (закреплена; сервер сам восстановится из неё, если база окажется пустой). Вручную: отправьте файл боту с подписью /restore")
+    _backup_state["hash"] = digest
+    try:
+        if msg.get("message_id"):
+            tg_api("pinChatMessage", chat_id=int(OWNER_ADMIN_ID), message_id=msg["message_id"], disable_notification=True)
+    except Exception as exc:
+        print("pin backup failed:", exc, flush=True)
     return True
+
+
+_backup_state = {"hash": None, "restored": 0}
+
+
+def auto_restore_if_empty():
+    """База пустая (хостинг стёр диск) - берём закреплённую копию из чата владельца с ботом и восстанавливаемся."""
+    if not BOT_TOKEN or db.get("users"):
+        return 0
+    try:
+        pinned = (tg_api("getChat", chat_id=int(OWNER_ADMIN_ID)) or {}).get("pinned_message") or {}
+        doc = pinned.get("document") or {}
+        if not str(doc.get("file_name") or "").startswith("hatdrop-backup"):
+            return 0
+        path = tg_api("getFile", file_id=doc["file_id"])["file_path"]
+        with urllib.request.urlopen(f"https://api.telegram.org/file/bot{BOT_TOKEN}/{path}", timeout=30) as resp:
+            raw = resp.read()
+        count = restore_backup(raw)
+        _backup_state["restored"] = count
+        print(f"AUTO-RESTORE: база была пустой, восстановлено игроков: {count}", flush=True)
+        return count
+    except Exception as exc:
+        print("auto-restore failed:", exc, flush=True)
+        return 0
+
+
+def _boot_report():
+    """Один раз при старте пишет владельцу, где лежит база и сколько в ней игроков - чтобы не гадать."""
+    time.sleep(25)
+    if not BOT_TOKEN:
+        return
+    try:
+        info = storage_info()
+        with lock:
+            users = len(db.get("users", {}))
+        lines = ["Сервер запущен.", f"База: {'PostgreSQL' if info['kind'] == 'postgres' else 'SQLite'}, игроков: {users}"]
+        if _backup_state["restored"]:
+            lines.append(f"База была пустой - восстановлена из закреплённой копии ({_backup_state['restored']} игроков).")
+        if info["kind"] == "sqlite" and not info["persistent"]:
+            lines.append("Внимание: диск не постоянный. Копии базы приходят сюда автоматически, но лучше подключить Postgres или диск.")
+        tg_api("sendMessage", chat_id=int(OWNER_ADMIN_ID), text="\n".join(lines))
+    except Exception as exc:
+        print("boot report failed:", exc, flush=True)
 
 
 def _tg_backup_loop():
@@ -1444,10 +1504,10 @@ def _tg_backup_loop():
     while True:
         try:
             if BACKUP_TG_HOURS > 0:
-                send_backup_to_owner()
+                send_backup_to_owner(force=False)
         except Exception as e:
             print("Telegram backup failed:", e, flush=True)
-        time.sleep(max(1800, BACKUP_TG_HOURS * 3600))
+        time.sleep(max(600, BACKUP_TG_HOURS * 3600))
 
 
 @route("/api/admin/backup/download")
@@ -5934,6 +5994,7 @@ def seed_free_hand_offer():
 
 
 load_db()
+auto_restore_if_empty()
 seed_achievements()
 seed_free_hand_offer()
 load_catalog()
@@ -5946,6 +6007,7 @@ threading.Thread(target=relayer_loop, daemon=True).start()
 threading.Thread(target=season_loop, daemon=True).start()
 threading.Thread(target=_backup_loop, daemon=True).start()
 threading.Thread(target=_tg_backup_loop, daemon=True).start()
+threading.Thread(target=_boot_report, daemon=True).start()
 if KEEPALIVE_URL:
     threading.Thread(target=keepalive_loop, daemon=True).start()
 if BOT_TOKEN and _env_first("RENDER_EXTERNAL_URL", "PUBLIC_APP_URL", "APP_URL", "SITE_URL"):
