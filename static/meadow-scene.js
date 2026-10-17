@@ -36,4 +36,16 @@
   for (let i = 0; i < 16; i++) put('ms-star ms-night', rnd(30, 97), rnd(1.5, 21), { animationDelay: rnd(0, 3) + 's', animationDuration: rnd(1.8, 4) + 's' });
   put('ms-lamp ms-night', 95.1, 33.6);
   for (const [x, y] of [[90, 23.1], [90.2, 34.2], [70.4, 33.2], [70.5, 38.1]]) put('ms-win', x, y, { animationDelay: rnd(0, 3) + 's' });
+  // закат / рассвет при переключении неба
+  const scene = document.getElementById('meadowScene');
+  const root = document.documentElement;
+  let last = root.dataset.sky, timer = 0;
+  new MutationObserver(() => {
+    const now = root.dataset.sky;
+    if (now === last) return; last = now;
+    if (root.dataset.halloween === 'on' || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    scene.classList.remove('ms-to-night', 'ms-to-day'); void scene.offsetWidth;
+    scene.classList.add(now === 'night' ? 'ms-to-night' : 'ms-to-day');
+    clearTimeout(timer); timer = setTimeout(() => scene.classList.remove('ms-to-night', 'ms-to-day'), 4400);
+  }).observe(root, { attributes: true, attributeFilter: ['data-sky'] });
 })();
