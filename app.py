@@ -16,6 +16,7 @@ import urllib.request
 from math import comb
 from datetime import timedelta
 import season as season_lib
+import weapons as weapons_lib
 from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config,
                           command_name, validate_command, messages_config,
                           validate_message, message_payload, valid_url)
@@ -887,6 +888,7 @@ def full_state(user):
         "chest_round": chest_view(user),
         "hatcoin": {"balance": hatcoin_balance(user), "rate_per_ton": float(HATCOIN_PER_TON)},
         "level": level_info(user["turnover"]),
+        "weapons": weapons_lib.owned(user),
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
         "withdraw_locked_until": int(user.get("stars_lock_until", 0) or 0),
@@ -1777,7 +1779,7 @@ def player_quests():
         enabled = db["settings"].get("quests_enabled", True) is True
         rows = quest_listed(db, user)
         if not enabled:
-            rows = [r for r in rows if r.get("uid")]  # общий запуск выключен — остаются только личные квесты
+            rows = [r for r in rows if r.get("uid") or r.get("achievement")]  # без общего запуска — только личные квесты и достижения
     response = jsonify({"enabled": enabled or bool(rows), "rows": rows, "server_time": int(time.time())})
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -1790,12 +1792,14 @@ def player_quest_claim(user, body):
     except ValueError as exc:
         raise ApiError(str(exc))
     amount = q["reward_amount"]
-    if q["reward_type"] == "ton":
+    if q["reward_type"] == "weapon":
+        weapons_lib.grant(user, q["reward_weapon"])
+    elif q["reward_type"] == "ton":
         user["balance"] = ton(user["balance"] + amount)
     else:
         user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(amount * HATCOIN_UNITS))
     return {"ok": True, "balance_ton": ton(user["balance"]),
-            "hatcoin_balance": hatcoin_balance(user)}
+            "hatcoin_balance": hatcoin_balance(user), "weapons": weapons_lib.owned(user)}
 
 
 @route("/api/admin/quests")
@@ -1804,6 +1808,7 @@ def admin_quests(user, body):
     from quest_engine import QUEST_ICONS
     return {"enabled": db["settings"].get("quests_enabled") is True,
             "icons": list(QUEST_ICONS),
+            "weapons": [{"id": k, "name": v["name"], "event": v["event"]} for k, v in weapons_lib.WEAPONS.items() if not v["default"]],
             "types": [{"id": k, "label": label, "unit": unit} for k, (label, unit) in QUEST_TYPES.items()],
             "rows": quest_listed(db, user, admin=True)}
 
@@ -1832,7 +1837,7 @@ def admin_quests_save(user, body):
     try:
         new = validate_quest(body, existing)
     except (ValueError, TypeError, OverflowError) as exc:
-        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at") else "quest"
+        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at", "reward_weapon") else "quest"
         raise ApiError("quest_invalid", field=field)
     now = int(time.time())
     qid = existing["id"] if existing else secrets.token_hex(8)
@@ -1878,7 +1883,7 @@ def admin_user_quests_save(user, body):
     try:
         new = validate_quest({**body, "active": True}, None)
     except (ValueError, TypeError, OverflowError) as exc:
-        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at") else "quest"
+        field = str(exc) if str(exc) in ("threshold", "goal", "reward_amount", "start_at", "end_at", "reward_weapon") else "quest"
         raise ApiError("quest_invalid", field=field)
     qid = secrets.token_hex(8)
     quests[qid] = {**new, "id": qid, "uid": target["id"], "created": int(time.time()), "version": 1}
@@ -5433,7 +5438,52 @@ def admin_season_clear(user, body):
     return season_admin_view()
 
 
+DEFAULT_ACHIEVEMENTS = [  # (тип, цель, порог, награда TON, иконка, название)
+    ("turnover", 5, 0, 0.05, "turnover", "Первые ставки: оборот 5 TON"),
+    ("turnover", 25, 0, 0.1, "turnover", "Оборот 25 TON"),
+    ("turnover", 100, 0, 0.25, "turnover", "Оборот 100 TON"),
+    ("turnover", 500, 0, 0.75, "trophy", "Оборот 500 TON"),
+    ("turnover", 2000, 0, 2.0, "trophy", "Оборот 2000 TON"),
+    ("wheel_spins", 10, 0, 0.05, "wheel", "Десять прокруток рулетки"),
+    ("wheel_spins", 100, 0, 0.2, "wheel", "Сто прокруток рулетки"),
+    ("wheel_spins", 500, 0, 0.6, "wheel", "Пятьсот прокруток рулетки"),
+    ("wheel_wins", 5, 0, 0.05, "star", "Пять побед в рулетке"),
+    ("wheel_wins", 50, 0, 0.3, "star", "Пятьдесят побед в рулетке"),
+    ("upgrade_wins_min", 1, 50, 0.05, "upgrade", "Выиграй апгрейд с шансом от 50%"),
+    ("upgrade_wins_max", 1, 25, 0.3, "flame", "Выиграй апгрейд с шансом до 25%"),
+    ("upgrade_wins_max", 3, 10, 1.0, "flame", "Три победы в апгрейде с шансом до 10%"),
+    ("upgrade_plays_above", 20, 1, 0.15, "upgrade", "Двадцать апгрейдов"),
+    ("mines_plays", 10, 0, 0.05, "mines", "Десять игр в сундуки"),
+    ("mines_plays", 100, 0, 0.3, "mines", "Сто игр в сундуки"),
+    ("mines_gift_wins", 1, 0, 0.1, "gift", "Первый подарок из сундуков"),
+    ("mines_gift_wins", 10, 0, 0.5, "gift", "Десять подарков из сундуков"),
+    ("mines_opened", 100, 0, 0.1, "chest", "Открой 100 безопасных сундуков"),
+    ("deposit_total", 5, 0, 0.1, "deposit", "Пополни баланс на 5 TON"),
+]
+
+
+def seed_achievements():
+    """20 базовых достижений: создаются один раз, дальше редактируются в админке."""
+    quests = quest_definitions(db)
+    if db["settings"].get("achievements_seeded") or any(q.get("achievement") for q in quests.values() if isinstance(q, dict)):
+        db["settings"]["achievements_seeded"] = True
+        return
+    now = int(time.time())
+    for i, (kind, goal, threshold, reward, icon, title) in enumerate(DEFAULT_ACHIEVEMENTS, 1):
+        qid = f"ach{i:02d}"
+        new = validate_quest({"kind": kind, "goal": goal, "threshold": threshold, "reward_type": "ton", "reward_amount": reward,
+                              "icon": icon, "title": title, "achievement": True, "active": True})
+        quests[qid] = {**new, "id": qid, "created": now + i, "version": 1}
+    db["settings"]["achievements_seeded"] = True
+    try:
+        flush_quests()
+        flush_db()
+    except Exception as exc:
+        print("achievement seed save failed:", exc, flush=True)
+
+
 load_db()
+seed_achievements()
 load_catalog()
 apply_tier_values()
 _install_exit_hooks()

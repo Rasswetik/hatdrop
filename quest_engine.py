@@ -6,6 +6,8 @@ All calls happen while app.lock is held and are persisted with the app's JSON st
 import math
 import time
 
+from weapons import WEAPONS
+
 QUEST_TYPES = {
     "deposit_min": ("Депозиты от указанной суммы", "count"),
     "deposit_total": ("Общая сумма депозитов", "ton"),
@@ -86,20 +88,31 @@ def validate(data, current=None):
             raise ValueError("threshold")
     else:
         threshold = 0
+    achievement = data.get("achievement", current.get("achievement", False)) is True
     start_at = int(_num(data.get("start_at", current.get("start_at", 0)), maximum=4102444800))
     end_at = int(_num(data.get("end_at", current.get("end_at", 0)), maximum=4102444800))
     if end_at and start_at and end_at <= start_at:
         raise ValueError("bad_request")
     hours = _num(data.get("duration_hours", current.get("duration_hours", 0)), maximum=8760)
     reward_type = str(data.get("reward_type", current.get("reward_type", "ton")))
-    if reward_type not in ("ton", "hatcoin"):
+    if reward_type not in ("ton", "hatcoin", "weapon"):
         raise ValueError("bad_request")
-    reward_amount = _num(data.get("reward_amount", current.get("reward_amount", 0)), maximum=100000)
-    if reward_amount <= 0:
-        raise ValueError("bad_request")
+    reward_weapon = ""
+    if reward_type == "weapon":
+        reward_weapon = str(data.get("reward_weapon", current.get("reward_weapon", "")))
+        if reward_weapon not in WEAPONS or WEAPONS[reward_weapon]["default"]:
+            raise ValueError("reward_weapon")
+        reward_amount = 1.0
+    else:
+        reward_amount = _num(data.get("reward_amount", current.get("reward_amount", 0)), maximum=100000)
+        if reward_amount <= 0:
+            raise ValueError("bad_request")
     icon = str(data.get("icon", current.get("icon", "auto")))
     if icon not in QUEST_ICONS:
         raise ValueError("bad_request")
+    if achievement:  # достижения постоянные: без сроков и личных лимитов
+        start_at = end_at = 0
+        hours = 0
     title_auto = not bool(title)
     if title_auto:
         title = auto_title(kind, goal, threshold)
@@ -107,7 +120,8 @@ def validate(data, current=None):
         "title_auto": title_auto, "title": title, "icon": icon, "description": description, "kind": kind,
         "goal": goal, "threshold": threshold,
         "start_at": start_at, "end_at": end_at, "duration_hours": hours,
-        "reward_type": reward_type, "reward_amount": round(reward_amount, 6),
+        "reward_type": reward_type, "reward_amount": round(reward_amount, 6), "reward_weapon": reward_weapon,
+        "achievement": achievement,
         "active": data.get("active", current.get("active", True)) is True,
     }
 
@@ -244,7 +258,7 @@ def claim(db, user, quest_id, *, launched=False):
     q = definitions(db).get(str(quest_id))
     if q and q.get("uid") and q["uid"] != user["id"]:
         raise ValueError("not_found")
-    if not launched and not (q and q.get("uid")):
+    if not launched and not (q and (q.get("uid") or q.get("achievement"))):
         raise ValueError("quests_not_launched")  # личные квесты не зависят от общего запуска
     if not q or not q.get("active", True):
         raise ValueError("not_found")

@@ -2,14 +2,14 @@
 const questMs = value => value ? Math.round(new Date(value + ':00+03:00').getTime() / 1000) : 0;
 const questDate = ts => ts ? new Date((Number(ts) - 3*3600)*1000).toISOString().slice(0,16) : '';
 const questEditCache = new Map();
-function questFormClear() { $('questForm').reset();$('questActive').checked=true;$('questId').value='';$('questGoal').value='1';$('questThreshold').value='0';$('questRewardAmount').value='0.1';$('questDuration').value='0';$('questSave').textContent='Сохранить квест';questPreview(); }
+function questFormClear() { $('questForm').reset();$('questActive').checked=true;$('questAchievement').checked=false;$('questId').value='';$('questGoal').value='1';$('questThreshold').value='0';$('questRewardAmount').value='0.1';$('questDuration').value='0';$('questSave').textContent='Сохранить квест';questPreview(); }
 function questRow(q) {
   const el=document.createElement('div');el.className='quest-admin-row';
-  const heading=document.createElement('b');heading.textContent=q.title+' · '+(q.active?'Включён':'Выключен');
+  const heading=document.createElement('b');heading.textContent=(q.achievement?'🏆 ':'')+q.title+' · '+(q.active?'Включён':'Выключен');
   const details=document.createElement('small');details.textContent=
     (document.querySelector('#questKind option[value="'+q.kind+'"]')?.textContent||q.kind)+
     ' · цель: '+q.goal+(q.threshold?' · порог: '+q.threshold:'')+
-    ' · награда: '+q.reward_amount+' '+q.reward_type+
+    ' · награда: '+(q.reward_type==='weapon'?'снаряжение '+q.reward_weapon:q.reward_amount+' '+q.reward_type)+
     (q.end_at?' · до '+new Date(q.end_at*1000).toLocaleString('ru-RU'):'');
   const icon=document.createElement('img');icon.src='/static/quests/'+(q.resolved_icon||'star')+'.svg';icon.width=42;icon.height=42;icon.alt='';
   const buttons=document.createElement('div');buttons.className='adm-form';
@@ -17,7 +17,7 @@ function questRow(q) {
   edit.onclick=()=>{ $('questId').value=q.id;$('questTitle').value=q.title;$('questDescription').value=q.description||'';
     $('questKind').value=q.kind;$('questGoal').value=q.goal;$('questThreshold').value=q.threshold;
     $('questStart').value=questDate(q.start_at);$('questEnd').value=questDate(q.end_at);
-    $('questDuration').value=q.duration_hours;$('questRewardType').value=q.reward_type;
+    $('questDuration').value=q.duration_hours;$('questRewardType').value=q.reward_type==='weapon'?'weapon:'+q.reward_weapon:q.reward_type;$('questAchievement').checked=!!q.achievement;
     $('questRewardAmount').value=q.reward_amount;$('questIcon').value=q.icon||'auto';$('questActive').checked=q.active;questPreview();
     $('questSave').textContent='Сохранить изменения';$('questTitle').focus();
   };
@@ -33,6 +33,10 @@ async function admLoadQuests(){
     kinds.replaceChildren();data.types.forEach(t=>{const o=document.createElement('option');o.value=t.id;o.textContent=t.label;kinds.append(o);});
     if(data.types.some(t=>t.id===current))kinds.value=current;
     const iconSelect=$('questIcon'),iconCurrent=iconSelect.value;iconSelect.replaceChildren();(data.icons||['auto','wheel','upgrade','mines','gift','deposit','turnover','chest','star','trophy','hatcoin','moon','flame']).forEach(icon=>{const op=document.createElement('option');op.value=icon;op.textContent=icon==='auto'?'Автоматически':icon;iconSelect.append(op)});if(data.icons?.includes(iconCurrent))iconSelect.value=iconCurrent;questPreview();
+    const rt=$('questRewardType'),rtCur=rt.value;
+    [...rt.querySelectorAll('option[data-weapon]')].forEach(o=>o.remove());
+    (data.weapons||[]).forEach(w=>{const o=document.createElement('option');o.value='weapon:'+w.id;o.dataset.weapon='1';o.textContent='Снаряжение: '+w.name+(w.event?' (Хэллоуин)':'');rt.append(o);});
+    if([...rt.options].some(o=>o.value===rtCur))rt.value=rtCur;
     const box=$('questRows');box.replaceChildren();
     data.rows.forEach(q=>box.append(questRow(q)));
     if(!data.rows.length){const p=document.createElement('p');p.className='muted';p.textContent='Заданий пока нет.';box.append(p);}
@@ -60,8 +64,11 @@ function initQuestAdmin(){
       start_at:questMs($('questStart').value),
       end_at:questMs($('questEnd').value),
       duration_hours:Number($('questDuration').value),
-      reward_type:$('questRewardType').value,reward_amount:Number($('questRewardAmount').value),active:$('questActive').checked};
-    try{await api('/api/admin/quests/save',data);toast('Квест сохранён');questFormClear();await admLoadQuests();}
+      reward_type:$('questRewardType').value.startsWith('weapon:')?'weapon':$('questRewardType').value,
+      reward_weapon:$('questRewardType').value.startsWith('weapon:')?$('questRewardType').value.slice(7):'',
+      achievement:$('questAchievement').checked,
+      reward_amount:Number($('questRewardAmount').value)||1,active:$('questActive').checked};
+    try{await api('/api/admin/quests/save',data);toast(data.achievement?'Достижение сохранено':'Квест сохранён');questFormClear();await admLoadQuests();}
     catch(e){if(e.code==='quest_invalid'){toast(e.data?.field==='threshold'?'Порог для выбранного задания должен быть больше нуля':'Проверьте параметры квеста',true);}else admErr(e);}finally{button.disabled=false;}
   };
 }

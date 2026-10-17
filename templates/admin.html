@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Админ</title><link rel="stylesheet" href="/static/admin.css?v=10"><script src="/static/admin-management.js?v=12" defer></script><script src="/static/admin-controls.js?v=2" defer></script><script src="/static/admin-quests.js?v=4" defer></script><script src="/static/admin-relayer.js?v=7" defer></script><script src="/static/admin-payments.js?v=2" defer></script><script src="/static/admin-emoji.js?v=2" defer></script><script src="/static/admin-season.js?v=1" defer></script><script src="/static/admin.js?v=14" defer></script></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="admin-csrf" content="{{ csrf }}"><meta name="robots" content="noindex,nofollow"><meta name="color-scheme" content="dark"><title>HatDrop · Админ</title><link rel="stylesheet" href="/static/admin.css?v=10"><script src="/static/admin-management.js?v=12" defer></script><script src="/static/admin-controls.js?v=2" defer></script><script src="/static/admin-quests.js?v=5" defer></script><script src="/static/admin-relayer.js?v=7" defer></script><script src="/static/admin-payments.js?v=2" defer></script><script src="/static/admin-emoji.js?v=2" defer></script><script src="/static/admin-season.js?v=1" defer></script><script src="/static/admin.js?v=14" defer></script></head>
 <body>
 <div id="accessGate" class="access-gate"><div class="access-card"><span class="brand-mark">H</span><h1>HatDrop</h1><p id="accessMessage" role="status">Проверяем доступ…</p><a class="button primary" href="/">Открыть HatDrop</a></div></div>
 <div id="adminApp" class="admin-app" hidden>
@@ -51,7 +51,8 @@
     <label>Конец<input type="datetime-local" id="questEnd"></label>
     <label>Личный лимит после первого действия (часов, 0 = без лимита)<input type="number" min="0" max="8760" step="1" value="0" id="questDuration"></label>
     <label>Награда<select id="questRewardType"><option value="ton">TON на баланс</option><option value="hatcoin">HatCoin</option></select></label>
-    <label>Количество награды<input id="questRewardAmount" type="number" min="0.000001" step="any" value="0.1" required></label>
+    <label>Количество награды<input id="questRewardAmount" type="number" min="0" step="any" value="0.1" required></label>
+    <label class="quest-launch"><input type="checkbox" id="questAchievement"> Это достижение (постоянное: без сроков, не пропадает, в игре — вкладка «Достижения»)</label>
     <label class="quest-launch"><input type="checkbox" id="questActive"> Задание активно</label>
     <div class="adm-form"><button type="submit" class="primary" id="questSave">Сохранить квест</button><button type="button" id="questClear">Очистить форму</button></div>
    </form>
