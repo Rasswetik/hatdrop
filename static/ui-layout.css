@@ -294,3 +294,5 @@ html[data-halloween="on"] .mt-card h2 { color: #ffa94d; }
 html:not([data-halloween="on"]) .mt-card { border-color: #5fbf59; background: rgba(20, 44, 70, .93); }
 html:not([data-halloween="on"]) .mt-card h2 { color: #ffe08a; }
 .weapon-list[hidden] { display: none !important; }
+.weapon-modal { width: min(96vw, 520px) !important; max-width: none !important; }
+.weapon-card .weapon-name { font-size: 10px; }

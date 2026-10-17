@@ -76,13 +76,9 @@ def revoke(user, weapon):
 # --- коллекции и награды за сбор (настраиваются в админке, хранятся в settings["weapon_cfg"]) ---
 DEFAULT_CFG = {
     "collections": [
-        {"id": "halloween", "name": "Хэллоуин", "need": 5, "reward": 1.0, "weapons": ["skeleton", "club", "pumpkin", "scythe"]},
+        {"id": "halloween", "name": "Хэллоуин", "need": 4, "reward": 0, "weapons": ["skeleton", "club", "pumpkin", "scythe"]},
     ],
-    "levels": [
-        {"id": "l1", "need": 8, "reward": 0.2},
-        {"id": "l2", "need": 14, "reward": 0.5},
-        {"id": "l3", "need": 20, "reward": 1.0},
-    ],
+    "levels": [],
 }
 
 

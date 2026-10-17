@@ -3131,7 +3131,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=18">
+<link rel="stylesheet" href="/static/ui-layout.css?v=19">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3928,8 +3928,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
   <div class="modal-card weapon-modal">
     <h2>Кастомизация</h2>
     <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Типы прокрута</button><button class="cz-tab" type="button" data-cz="theme">Оформление</button></div>
-    <p class="cz-sum" id="czSum"></p>
-    <div class="cz-filter" id="czFilter"><button type="button" class="on" data-cf="all">Все</button><button type="button" data-cf="mine">Мои</button><button type="button" data-cf="lost">Не найденные</button></div>
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
     <div class="weapon-list" id="weaponGrid"></div>
     <div class="weapon-grid" id="spinGrid" hidden></div>
@@ -7646,8 +7644,6 @@ function buildWeaponMenu() {
   const cur = document.documentElement.dataset.weapon;
   const q = (($('weaponSearch') && $('weaponSearch').value) || '').trim().toLowerCase();
   const gear = Object.keys(WEAPONS);
-  const have = gear.filter((id) => ownedWeapons.includes(id)).length;
-  $('czSum').innerHTML = `${tr('Собрано')} <b>${have}</b> ${tr('из')} <b>${gear.length}</b>`;
   const cols = (wCat && wCat.collections) || [];
   const inCol = new Set(cols.flatMap((c) => c.weapons));
   const shown = (id) => {
@@ -7663,8 +7659,7 @@ function buildWeaponMenu() {
     const sec = document.createElement('section'); sec.className = 'cz-sec' + (cls ? ' ' + cls : '');
     const head = document.createElement('div'); head.className = 'cz-sec-h';
     const t = document.createElement('span'); t.textContent = tr(title);
-    const n = document.createElement('small'); n.textContent = `${ids.filter((id) => ownedWeapons.includes(id)).length}/${ids.length}`;
-    head.append(t, n); sec.appendChild(head);
+    head.append(t); sec.appendChild(head);
     return { sec, grid: Object.assign(document.createElement('div'), { className: 'weapon-grid' }), list };
   };
   const lvl = czFilter === 'all' && !q && wCat ? (wCat.levels || []).find((l) => !l.claimed) : null;
@@ -7855,17 +7850,12 @@ function initWeapon() {
     openWeaponPreview(b.dataset.weapon, close);
   });
   $('weaponSearch').addEventListener('input', buildWeaponMenu);
-  $('czFilter').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-cf]'); if (!b) return;
-    czFilter = b.dataset.cf; haptic('impact', 'light');
-    $('czFilter').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
-    buildWeaponMenu();
-  });
+
   modal.querySelectorAll('[data-cz]').forEach((t) => t.addEventListener('click', () => {
     modal.querySelectorAll('[data-cz]').forEach((x) => x.classList.toggle('on', x === t));
     const mode = t.dataset.cz;
     $('weaponGrid').hidden = mode !== 'gear'; $('spinGrid').hidden = mode !== 'spin'; $('themeGrid').hidden = mode !== 'theme';
-    $('weaponSearch').hidden = mode !== 'gear'; $('czFilter').hidden = mode !== 'gear'; $('czSum').hidden = mode !== 'gear';
+    $('weaponSearch').hidden = mode !== 'gear';
     if (mode === 'theme') buildThemeGrid();
     haptic('impact', 'light');
   }));
