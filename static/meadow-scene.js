@@ -11,13 +11,6 @@
     fx.appendChild(e);
     return e;
   };
-  const CLOUD = '<svg viewBox="0 0 100 38" shape-rendering="crispEdges"><path d="M0 23h9V12h14V6h15V0h21v6h15v8h16v10h10v13H0z" fill="#fffaf0" opacity=".92"/><path d="M0 31h100v7H0zM4 26h18v5H4zM81 25h16v6H81z" fill="#d9e9f2" opacity=".9"/></svg>';
-  for (const [y, dur, delay, w] of [[3, 190, -40, 9], [10, 240, -150, 7], [6, 210, -95, 11]]) {
-    const c = document.createElement('div');
-    c.className = 'ms-cloud'; c.style.top = y + '%'; c.style.width = w + 'em'; c.style.height = (w * .38) + 'em';
-    c.style.animationDuration = dur + 's'; c.style.animationDelay = delay + 's'; c.innerHTML = CLOUD;
-    fx.appendChild(c);
-  }
   // дым: 4 трубы
   for (const [x, y] of [[95.5, 9.4], [74.6, 25.6], [66.8, 31.6], [61.4, 33]]) {
     for (let i = 0; i < 3; i++) put('ms-smoke', x, y, { animationDelay: (i * 1.7) + 's', animationDuration: rnd(4.6, 6) + 's' });
