@@ -3008,8 +3008,9 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 
 .wp-card { display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
 .wp-card h2 { margin: 0; }
-.wp-stage { position: relative; height: 200px; perspective: 700px; background: radial-gradient(ellipse at 50% 60%, rgba(255,255,255,.16), transparent 65%), rgba(0,0,0,.28); border: 3px solid rgba(255,255,255,.16); border-radius: 12px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; }
-.wp-stage:active { cursor: grabbing; }
+.wp-stage { position: relative; height: 200px; perspective: 700px; background: radial-gradient(ellipse at 50% 60%, rgba(255,255,255,.16), transparent 65%), rgba(0,0,0,.28); border: 3px solid rgba(255,255,255,.16); border-radius: 12px; overflow: hidden; user-select: none; }
+.wp-img { position:absolute; left:50%; top:50%; width:150px; height:150px; margin:-75px 0 0 -75px; object-fit:contain; image-rendering:pixelated; pointer-events:none; animation:wpBob 2.4s ease-in-out infinite; filter:drop-shadow(0 8px 6px rgba(0,0,0,.4)); }
+@keyframes wpBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .wp-floor { position: absolute; left: 28%; right: 28%; bottom: 16px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.4); filter: blur(4px); }
 .wp-obj { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px; margin: -65px 0 0 -65px; transform-style: preserve-3d; }
 .wp-obj img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; backface-visibility: visible; }
@@ -3952,9 +3953,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 <div class="modal" id="weaponPreview" hidden="">
   <div class="modal-card wp-card" id="wpCard">
     <button class="x-close" id="wpClose" type="button" aria-label="Закрыть">&times;</button>
-    <div class="wp-stage" id="wpStage"><canvas id="wpCanvas" width="480" height="380"></canvas><div class="wp-unk" id="wpUnk" hidden><img id="wpUnkImg" alt=""><b>?</b></div></div>
-    <p class="wp-hint" id="wpHint">Потяни, чтобы покрутить</p>
-    <h2 id="wpName"></h2>
+    <div class="wp-stage" id="wpStage"><img id="wpImg" class="wp-img" alt=""><div class="wp-unk" id="wpUnk" hidden><img id="wpUnkImg" alt=""><b>?</b></div></div>
+        <h2 id="wpName"></h2>
     <small class="wp-rar" id="wpRar"></small>
     <div class="wp-info" id="wpInfo"></div>
     <p class="wp-note" id="wpNote" hidden></p>
@@ -4367,14 +4367,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Радужный посох': { en: 'Rainbow Staff', zh: '彩虹法杖' },
     'Жезл бабочки': { en: 'Butterfly Wand', zh: '蝴蝶魔杖' },
     'Солнечный скипетр': { en: 'Sun Scepter', zh: '太阳权杖' },
-    'В магазине уже лежит бесплатный ордер «Посох Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.': { en: 'A free “Kostyan’s Staff” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“科斯彦的法杖”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
+    'В магазине уже лежит бесплатный ордер «Посох мага». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно рассмотреть его и узнать подробности.': { en: 'A free “Mage’s Staff” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“法师法杖”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
     'Понятно': { en: 'Got it', zh: '明白了' },
     'Бесплатно': { en: 'Free', zh: '免费' },
     'Забрать': { en: 'Claim', zh: '领取' },
     'Потяни, чтобы покрутить': { en: 'Drag to rotate', zh: '拖动旋转' },
     'Применить': { en: 'Apply', zh: '应用' },
     'Есть у игроков': { en: 'Owned by players', zh: '玩家拥有率' },
-    'Посох Костяна': { en: 'Kostyan’s Staff', zh: '科斯彦的法杖' },
+    'Посох мага': { en: 'Mage’s Staff', zh: '法师法杖' },
     'Купить «{title}» за {price}?': { en: 'Buy “{title}” for {price}?', zh: '以 {price} 购买“{title}”？' },
     'Да': { en: 'Yes', zh: '是' },
     'Баланс после': { en: 'Balance after', zh: '操作后余额' },
@@ -4385,7 +4385,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».': { en: 'Achievements. They stay forever: complete one, claim the reward, and it turns grey marked “Received”.', zh: '成就。成就永久保留：完成后领取奖励，条目会变灰并标记“已领取”。' },
     'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.': { en: 'Quests. Timed tasks: finish before the timer ends and claim your reward.', zh: '任务。限时任务：在倒计时结束前完成并领取奖励。' },
     'А оружие для прокрута меняется вот здесь. Чем реже оружие, тем ярче оно светится. Новое открывается за награды и в магазине.': { en: 'Your spin weapon is changed right here. The rarer the weapon, the brighter it glows. New ones unlock through rewards and the store.', zh: '转盘武器在这里更换。武器越稀有，光芒越亮。新武器可通过奖励和商店解锁。' },
-    'Ты прошёл экскурсию! Держи от меня Руку скелета для прокрута. Она эпическая, так что носи с гордостью.': { en: 'You finished the tour! Take the Skeleton Hand for spinning from me. It’s epic, so wear it proudly.', zh: '你完成了导览！送你转盘用的骷髅之手。它是史诗级的，请自豪地使用。' },
+    'Ты прошёл экскурсию! Держи от меня Посох мага для прокрута. Забери его в магазине, там он лежит бесплатно.': { en: 'You finished the tour! Take the Mage’s Staff for spinning from me. It’s waiting for you free in the shop.', zh: '你完成了导览！送你转盘用的法师法杖。它在商店里免费等你领取。' },
     'Забрать руку': { en: 'Take the hand', zh: '领取骷髅之手' },
     'Поехали': { en: 'Let’s go', zh: '出发' },
     'Пропустить': { en: 'Skip', zh: '跳过' },
@@ -6331,13 +6331,13 @@ async function loadKostyanQuests(force = false) {
   } finally { questLoadInFlight = false; }
 }
 
-// ---- Экскурсия Костяна: показывается при первом заходе в «Лавку», в конце выдаёт Руку скелета ----
+// ---- Экскурсия Костяна: показывается при первом заходе в «Лавку», в конце подсказывает забрать Посох мага ----
 const TOUR_STEPS = [
   { text: 'Здарова! Я Костян, хозяин этой лавки. Давай коротко покажу, что тут есть.' },
   { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.' },
   { sel: '.kq-tab:nth-child(2)', filter: 'achievements', text: 'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».' },
   { sel: '.kq-tab:nth-child(3)', filter: 'quests', text: 'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.' },
-  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'В магазине уже лежит бесплатный ордер «Рука Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.' },
+  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'В магазине уже лежит бесплатный ордер «Посох мага». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно рассмотреть его и узнать подробности.' },
 ];
 let tourIdx = 0, tourTimer = 0, tourActive = false, tourSkipped = false;
 function tourType(text) {
@@ -7885,93 +7885,7 @@ function initWeapon() {
 /* Предпросмотр оружия: настоящая 3D-модель. Иконка оружия выдавливается в воксели (объём по краям тоньше),
    рисуется на canvas с вращением и освещением; процент владельцев приходит с сервера. */
 const wpModels = {};
-let wpStats = null, wpStatsAt = 0, wpRaf = 0, wpAngle = 0.5, wpTilt = -0.12, wpDrag = null, wpIdle = true, wpModel = null;
-function wpLoadModel(id, src) {
-  if (wpModels[id]) return Promise.resolve(wpModels[id]);
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const W = img.naturalWidth, H = img.naturalHeight;
-      const c = document.createElement('canvas'); c.width = W; c.height = H;
-      const cx = c.getContext('2d'); cx.drawImage(img, 0, 0);
-      const full = cx.getImageData(0, 0, W, H).data;
-      let x0 = W, y0 = H, x1 = 0, y1 = 0;
-      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (full[(y * W + x) * 4 + 3] > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-      const bw = x1 - x0 + 1, bh = y1 - y0 + 1, N = 64, k = N / Math.max(bw, bh);
-      const gw = Math.max(1, Math.round(bw * k)), gh = Math.max(1, Math.round(bh * k));
-      const d = document.createElement('canvas'); d.width = gw; d.height = gh;
-      const dx = d.getContext('2d'); dx.imageSmoothingQuality = 'high'; dx.drawImage(img, x0, y0, bw, bh, 0, 0, gw, gh);
-      const px = dx.getImageData(0, 0, gw, gh).data;
-      const solid = (x, y) => x >= 0 && y >= 0 && x < gw && y < gh && px[(y * gw + x) * 4 + 3] > 110;
-      const depth = new Int8Array(gw * gh);
-      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
-        if (!solid(x, y)) continue;
-        let t = 3;
-        for (let r = 1; r <= 3 && t === 3; r++) for (let oy = -r; oy <= r; oy++) for (let ox = -r; ox <= r; ox++) if (!solid(x + ox, y + oy) && Math.max(Math.abs(ox), Math.abs(oy)) === r) t = Math.min(t, r - 1);
-        depth[y * gw + x] = t + 1;
-      }
-      const has = (x, y, z) => { if (x < 0 || y < 0 || x >= gw || y >= gh) return false; const t = depth[y * gw + x]; return t > 0 && z >= -t && z < t; };
-      const faces = [];
-      const DIRS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
-      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
-        const t = depth[y * gw + x]; if (!t) continue;
-        const p = (y * gw + x) * 4, col = [px[p], px[p + 1], px[p + 2]];
-        for (let z = -t; z < t; z++) for (const [nx, ny, nz] of DIRS) {
-          if (has(x + nx, y + ny, z + nz)) continue;
-          const front = nz !== 0;
-          const base = front ? col : col.map((v) => v * 0.78);
-          faces.push({ c: [x + 0.5 - gw / 2 + nx * 0.5, -(y + 0.5 - gh / 2) - ny * 0.5 * -1 * -1 + 0, z + 0.5 + nz * 0.5], n: [nx, -ny, nz], col: base });
-        }
-      }
-      // y в модели направлена вверх: нормаль и смещение центра по y инвертируем отдельно
-      for (const f of faces) f.c[1] = f.c[1];
-      resolve(wpModels[id] = { faces, size: Math.max(gw, gh) });
-    };
-    img.onerror = () => resolve(null);
-    img.src = src;
-  });
-}
-function wpDraw() {
-  const cv = $('wpCanvas'); if (!cv || !wpModel) return;
-  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
-  g.clearRect(0, 0, W, H);
-  const sc = Math.min(W * 0.9, H * 0.92) / wpModel.size;
-  const ca = Math.cos(wpAngle), sa = Math.sin(wpAngle), ct = Math.cos(wpTilt), st = Math.sin(wpTilt);
-  const L = [-0.35, 0.55, 0.75], ll = Math.hypot(...L), lx = L[0] / ll, ly = L[1] / ll, lz = L[2] / ll;
-  const vis = [];
-  for (const f of wpModel.faces) {
-    // поворот вокруг Y, затем наклон вокруг X
-    const nx = f.n[0] * ca + f.n[2] * sa, nz0 = -f.n[0] * sa + f.n[2] * ca;
-    const ny = f.n[1] * ct - nz0 * st, nz = f.n[1] * st + nz0 * ct;
-    if (nz <= 0.02) continue;
-    const x = f.c[0] * ca + f.c[2] * sa, z0 = -f.c[0] * sa + f.c[2] * ca;
-    const y = f.c[1] * ct - z0 * st, z = f.c[1] * st + z0 * ct;
-    vis.push({ f, x, y, z, nx, ny, nz });
-  }
-  vis.sort((a, b) => a.z - b.z);
-  for (const v of vis) {
-    const light = 0.5 + 0.5 * Math.max(0, v.nx * lx + v.ny * ly + v.nz * lz);
-    const c = v.f.col;
-    g.fillStyle = `rgb(${c[0] * light | 0},${c[1] * light | 0},${c[2] * light | 0})`;
-    g.strokeStyle = g.fillStyle; g.lineWidth = 0.8;
-    // грань — квадрат 1x1 с нормалью n: строим две касательные оси
-    const n = v.f.n; let ux, uy, uz, wx, wy, wz;
-    if (n[0] !== 0) { [ux, uy, uz, wx, wy, wz] = [0, 1, 0, 0, 0, 1]; } else if (n[1] !== 0) { [ux, uy, uz, wx, wy, wz] = [1, 0, 0, 0, 0, 1]; } else { [ux, uy, uz, wx, wy, wz] = [1, 0, 0, 0, 1, 0]; }
-    g.beginPath();
-    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-      const ox = (ux * a + wx * b) * 0.5, oy = (uy * a + wy * b) * 0.5, oz = (uz * a + wz * b) * 0.5;
-      const rx = ox * ca + oz * sa, rz0 = -ox * sa + oz * ca, ry = oy * ct - rz0 * st;
-      const X = W / 2 + (v.x + rx) * sc, Y = H / 2 - (v.y + ry) * sc;
-      if (a === -1 && b === -1) g.moveTo(X, Y); else g.lineTo(X, Y);
-    }
-    g.closePath(); g.fill(); g.stroke();
-  }
-}
-function wpLoop() {
-  if ($('weaponPreview').hidden) return;
-  if (wpIdle && !wpDrag) wpAngle += 0.012;
-  wpDraw(); wpRaf = requestAnimationFrame(wpLoop);
-}
+let wpStats = null, wpStatsAt = 0;
 async function openWeaponPreview(id, closeMenu) {
   const modal = $('weaponPreview');
   const rarity = WEAPON_RARITY[id] || 'common', locked = !ownedWeapons.includes(id);
@@ -7979,7 +7893,7 @@ async function openWeaponPreview(id, closeMenu) {
   card.dataset.rarity = locked ? 'unknown' : rarity;
   $('wpName').textContent = locked ? '???' : tr(WEAPON_LABELS[id]);
   $('wpRar').textContent = locked ? '???' : tr(RARITY_LABELS[rarity]);
-  $('wpUnk').hidden = !locked; $('wpCanvas').hidden = locked; $('wpHint').hidden = locked;
+  $('wpUnk').hidden = !locked; $('wpImg').hidden = locked; $('wpImg').src = locked ? '' : WEAPONS[id];
   $('wpUnkImg').src = WEAPONS[id];
   const col = ((wCat && wCat.collections) || []).find((c) => c.weapons.includes(id));
   const w = (wCat && wCat.items && wCat.items[id]) || {};
@@ -7996,13 +7910,8 @@ async function openWeaponPreview(id, closeMenu) {
   apply.textContent = !usable ? tr(id === 'skeleton' && state && state.halloween_enabled ? 'Нужна тема Хэллоуин' : 'Только на ивенте') : id === cur ? tr('Выбрано') : tr('Применить');
   apply.onclick = () => { setWeapon(id); haptic('notification', 'success'); modal.hidden = true; if (closeMenu) closeMenu(); };
   $('wpClose').onclick = () => { modal.hidden = true; };
-  wpAngle = 0.5; wpTilt = -0.12; wpIdle = true; wpDrag = null; wpModel = null;
-  $('wpCanvas').getContext('2d').clearRect(0, 0, 480, 380);
   modal.hidden = false;
-  cancelAnimationFrame(wpRaf);
   if (locked) return;
-  wpModel = await wpLoadModel(id, WEAPONS[id]);
-  cancelAnimationFrame(wpRaf); wpLoop();
   try {
     if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
     const st = wpStats[id];
@@ -8011,15 +7920,6 @@ async function openWeaponPreview(id, closeMenu) {
   } catch (e) { vals[2].textContent = vals[3].textContent = '—'; }
 }
 document.addEventListener('DOMContentLoaded', () => {
-  const stage = $('wpStage');
-  stage.addEventListener('pointerdown', (e) => { wpDrag = { x: e.clientX, y: e.clientY, a: wpAngle, t: wpTilt }; wpIdle = false; stage.setPointerCapture(e.pointerId); });
-  stage.addEventListener('pointermove', (e) => {
-    if (!wpDrag) return;
-    wpAngle = wpDrag.a + (e.clientX - wpDrag.x) * 0.014;
-    wpTilt = Math.max(-0.6, Math.min(0.6, wpDrag.t - (e.clientY - wpDrag.y) * 0.008));
-  });
-  const end = () => { wpDrag = null; };
-  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
   $('weaponPreview').addEventListener('click', (e) => { if (e.target === $('weaponPreview')) $('weaponPreview').hidden = true; });
 });
 

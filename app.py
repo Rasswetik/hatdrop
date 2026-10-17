@@ -44,14 +44,16 @@ def _env_first(*names):
 BOT_TOKEN = _env_first("BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "TG_BOT_TOKEN")
 OWNER_ADMIN_ID = "5257227756"
 ADMIN_IDS = {x.strip().removeprefix("tg") for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {OWNER_ADMIN_ID, "6718371539"}
-# Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
-# Если задана любая из этих переменных - база живёт в PostgreSQL. Если нет - в локальном SQLite.
-# Пока DB_BACKEND не равен "postgres", ВСЕ данные пишутся только в SQLite (даже если ссылка на Postgres задана).
-# Чтобы перейти на Postgres: DB_BACKEND=postgres и DATABASE_URL=<ссылка>.
+# PostgreSQL: если задана ссылка (DATABASE_URL и похожие) - база живёт ТОЛЬКО там и переживает деплои/рестарты.
+# Раньше нужно было ещё выставить DB_BACKEND=postgres, и без этого данные молча писались в SQLite на
+# временном диске Render - отсюда «после перезагрузки всё сбрасывается». Теперь ссылка включает Postgres сама.
+# Явно вернуть SQLite можно через DB_BACKEND=sqlite.
 DATABASE_URL = ""
-if os.environ.get("DB_BACKEND", "sqlite").strip().lower() in ("postgres", "postgresql", "pg"):
+if os.environ.get("DB_BACKEND", "").strip().lower() not in ("sqlite", "sqlite3", "local"):
     DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
                               "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI")
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
 # Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
 PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
@@ -278,13 +280,20 @@ def load_quests():
 def load_db():
     global db, DATABASE_URL
     if DATABASE_URL:
-        try:
-            _pg()
-        except Exception as exc:
-            # Postgres недоступен при старте: сайт не падает, а работает на SQLite (данные не теряются и не расходятся в процессе).
-            hint = " Для Render используйте External Database URL (хост вида ...-postgres.render.com), а не Internal." if "translate host name" in str(exc) else ""
-            print(f"WARNING: PostgreSQL недоступен ({exc}). Работаю на SQLite.{hint}", flush=True)
-            DATABASE_URL = ""
+        last = None
+        for attempt in range(6):
+            try:
+                _pg()
+                last = None
+                break
+            except Exception as exc:
+                last = exc
+                print(f"PostgreSQL недоступен (попытка {attempt + 1}/6): {exc}", flush=True)
+                time.sleep(2 + attempt * 2)
+        if last is not None:
+            # Не переключаемся молча на SQLite: иначе сайт стартует с пустой базой, а настоящие данные остаются в Postgres.
+            hint = " Для Render используйте External Database URL (хост вида ...-postgres.render.com), а не Internal." if "translate host name" in str(last) else ""
+            raise SystemExit(f"FATAL: PostgreSQL недоступен ({last}). Запуск остановлен, чтобы не потерять данные.{hint}")
     text = store_get("db", DB_PATH)
     if text:
         db = json.loads(text)
@@ -6266,15 +6275,17 @@ def seed_achievements():
 
 
 def seed_free_hand_offer():
-    """Бесплатный ордер «Рука Костяна» для всех игроков (создаётся один раз, дальше правится в админке)."""
+    """Бесплатный ордер «Посох мага» для всех игроков (создаётся один раз, дальше правится в админке)."""
     offers = shop_doc()["offers"]
     old = offers.get("free_hand")
     if old and old.get("reward", {}).get("weapon") == "skeleton":  # раньше выдавалась Рука скелета, теперь она открывается на ивенте
-        old.update(title="Посох Костяна", description="", reward={"kind": "weapon", "weapon": "staff"})
+        old.update(title="Посох мага", description="", reward={"kind": "weapon", "weapon": "staff"})
+    elif old and old.get("title") in ("Посох Костяна", "Рука Костяна") and old.get("reward", {}).get("weapon") == "staff":
+        old["title"] = "Посох мага"
     if db["settings"].get("free_hand_seeded"):
         return
     db["settings"]["free_hand_seeded"] = True
-    offers["free_hand"] = {"id": "free_hand", "title": "Посох Костяна", "description": "",
+    offers["free_hand"] = {"id": "free_hand", "title": "Посох мага", "description": "",
                            "currency": "hatcoin", "price": 0.0, "limit_total": 0, "limit_user": 1, "active": True, "sold": 0,
                            "created": int(time.time()) - 10, "sort": -10, "reward": {"kind": "weapon", "weapon": "staff"}}
     try:
