@@ -1886,7 +1886,7 @@ def shop_reward_view(r):
     if kind == "ton":
         return {"kind": kind, "name": f"{r['amount']:g} TON", "image": "/images/gram.webp"}
     if kind == "hatcoin":
-        return {"kind": kind, "name": f"{r['amount']:g} HatCoin", "image": "/images/hatcoin.webp"}
+        return {"kind": kind, "name": f"{r['amount']:g} HatCoin", "image": "/images/hatcoin.webp?v=2"}
     if kind == "weapon":
         w = weapons_lib.WEAPONS[r["weapon"]]
         return {"kind": kind, "name": w["name"], "image": weapon_image(r["weapon"]), "weapon": r["weapon"], "rarity": w["rarity"]}
