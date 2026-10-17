@@ -17,7 +17,7 @@ class TourTests(unittest.TestCase):
     def test_new_player_has_zero_balance_and_no_skeleton(self):
         st = self.post("/api/state").json
         self.assertEqual(st["balance_ton"], 0)
-        self.assertEqual(st["weapons"], ["axe", "skeleton", "spin_plain", "staff", "theme_meadow"])
+        self.assertEqual(st["weapons"], ["axe", "skeleton", "spin_plain", "spin_wild", "staff", "theme_meadow"])
         self.assertFalse(st["tour_done"])
 
     def test_no_free_offer_and_shop_hidden_by_default(self):
