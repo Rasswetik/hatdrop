@@ -2952,7 +2952,14 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .shop-modal { display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
 .shop-modal h2 { margin: 0; }
 .shop-modal-kind { margin: 0; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; opacity: .8; }
-.shop-modal-img { width: 120px; height: 120px; object-fit: contain; margin: 0 auto; }
+.shop-stage { position: relative; display: grid; place-items: center; height: 150px; margin: 2px 0; background: radial-gradient(ellipse at 50% 62%, rgba(255,255,255,.14), transparent 62%), rgba(0,0,0,.22); border: 3px solid rgba(255,255,255,.14); border-radius: 12px; }
+.shop-stage::after { content: ""; position: absolute; left: 30%; right: 30%; bottom: 14px; height: 10px; border-radius: 50%; background: rgba(0,0,0,.35); filter: blur(3px); }
+.shop-modal-img { position: relative; z-index: 1; width: 116px; height: 116px; object-fit: contain; margin: 0 auto; }
+.shop-rar { align-self: center; padding: 3px 10px; font-size: 10px; border: 2px solid currentColor; border-radius: 99px; }
+.shop-modal[data-rarity="rare"] .shop-stage, .shop-modal[data-rarity="rare"] .shop-rar { border-color: #5aa9ff; color: #8cc4ff; }
+.shop-modal[data-rarity="epic"] .shop-stage, .shop-modal[data-rarity="epic"] .shop-rar { border-color: #b46bff; color: #d2a3ff; }
+.shop-modal[data-rarity="legendary"] .shop-stage, .shop-modal[data-rarity="legendary"] .shop-rar { border-color: #ffc83d; color: #ffdb7a; }
+.shop-modal[data-rarity="common"] .shop-rar { color: #cfd6e4; }
 .shop-modal-desc { margin: 0; font-size: 10px; line-height: 1.6; opacity: .9; }
 .shop-modal .cta { width: 100%; padding: 14px; font-size: 16px; }
 .shop-modal .cta[disabled] { opacity: .5; }
@@ -2964,19 +2971,29 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 .weapon-card .weapon-name { overflow-wrap: anywhere; }
 .weapon-card small { font-size: 8px; opacity: .85; }
 .weapon-card[data-rarity="rare"] { border-color: #5aa9ff; }
-.weapon-card[data-rarity="epic"] { border-color: #b46bff; box-shadow: 0 0 8px rgba(180,107,255,.45); }
-.weapon-card[data-rarity="legendary"] { border-color: #ffc83d; box-shadow: 0 0 12px rgba(255,200,61,.6); }
+.weapon-card[data-rarity="epic"] { border-color: #b46bff; }
+.weapon-card[data-rarity="legendary"] { border-color: #ffc83d; }
 .weapon-card[data-rarity="rare"] small { color: #8cc4ff; }
 .weapon-card[data-rarity="epic"] small { color: #d2a3ff; }
 .weapon-card[data-rarity="legendary"] small { color: #ffdb7a; }
 .weapon-card.on { outline: 3px solid #fff; outline-offset: -1px; }
 .weapon-card.locked { filter: grayscale(1); opacity: .5; cursor: not-allowed; }
-/* свечение указателя по редкости; обычное — без эффектов */
-html[data-theme="meadow"][data-weapon-rarity="rare"] .pointer { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)) drop-shadow(0 0 4px rgba(90,169,255,.9)) !important; }
-html[data-theme="meadow"][data-weapon-rarity="epic"] .pointer { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)) drop-shadow(0 0 6px #b46bff) drop-shadow(0 0 13px rgba(180,107,255,.7)) !important; animation: rarityPulseE 1.8s ease-in-out infinite; }
-html[data-theme="meadow"][data-weapon-rarity="legendary"] .pointer { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)) drop-shadow(0 0 7px #ffc83d) drop-shadow(0 0 18px rgba(255,200,61,.8)) !important; animation: rarityPulseL 1.3s ease-in-out infinite; }
-@keyframes rarityPulseE { 50% { opacity: .88; } }
-@keyframes rarityPulseL { 50% { opacity: .82; } }
+/* оружие само не светится: эффекты рисуются за ним во время прокрута (см. trailTick) */
+
+.wp-card { display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+.wp-card h2 { margin: 0; }
+.wp-stage { position: relative; height: 200px; perspective: 700px; background: radial-gradient(ellipse at 50% 60%, rgba(255,255,255,.16), transparent 65%), rgba(0,0,0,.28); border: 3px solid rgba(255,255,255,.16); border-radius: 12px; cursor: grab; touch-action: none; overflow: hidden; user-select: none; }
+.wp-stage:active { cursor: grabbing; }
+.wp-floor { position: absolute; left: 28%; right: 28%; bottom: 16px; height: 12px; border-radius: 50%; background: rgba(0,0,0,.4); filter: blur(4px); }
+.wp-obj { position: absolute; left: 50%; top: 50%; width: 130px; height: 130px; margin: -65px 0 0 -65px; transform-style: preserve-3d; }
+.wp-obj img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; backface-visibility: visible; }
+.wp-hint { margin: 0; font-size: 9px; opacity: .6; }
+.wp-card[data-rarity="rare"] .wp-stage, .wp-card[data-rarity="rare"] .shop-rar { border-color: #5aa9ff; color: #8cc4ff; }
+.wp-card[data-rarity="epic"] .wp-stage, .wp-card[data-rarity="epic"] .shop-rar { border-color: #b46bff; color: #d2a3ff; }
+.wp-card[data-rarity="legendary"] .wp-stage, .wp-card[data-rarity="legendary"] .shop-rar { border-color: #ffc83d; color: #ffdb7a; }
+.wp-card[data-rarity="common"] .shop-rar { color: #cfd6e4; }
+.wp-card .cta { width: 100%; padding: 14px; font-size: 16px; }
+.wp-card .cta[disabled] { opacity: .5; }
 .weapon-modal .cta { width: 100%; padding: 14px; font-size: 16px; }
 button.lvl-badge { font: inherit; color: inherit; cursor: pointer; }
 .lvl-modal { max-height: 86vh; display: flex; flex-direction: column; gap: 10px; }
@@ -3094,7 +3111,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=8">
+<link rel="stylesheet" href="/static/ui-layout.css?v=10">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3447,7 +3464,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 </svg>
 <img id="halloweenDayPng" class="halloween-scene-png" data-loaded="false" alt="" aria-hidden="true" decoding="async">
 <img id="halloweenNightPng" class="halloween-scene-png" data-loaded="false" alt="" aria-hidden="true" decoding="async">
-<svg xmlns="http://www.w3.org/2000/svg" id="halloweenFx" class="halloween-fx" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><radialGradient id="fxOrange"><stop offset="0" stop-color="#ffb03a" stop-opacity=".62"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient><radialGradient id="fxWhite"><stop offset="0" stop-color="#ffffff" stop-opacity=".5"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient><radialGradient id="fxBlue"><stop offset="0" stop-color="#9fe0ff" stop-opacity=".6"/><stop offset="1" stop-color="#6ab8ff" stop-opacity="0"/></radialGradient><radialGradient id="fxMoon"><stop offset="0" stop-color="#e8f4ff" stop-opacity=".5"/><stop offset=".5" stop-color="#bcdcff" stop-opacity=".16"/><stop offset="1" stop-color="#bcdcff" stop-opacity="0"/></radialGradient><radialGradient id="fxFog"><stop offset="0" stop-color="#bcd0ee" stop-opacity=".30"/><stop offset="1" stop-color="#bcd0ee" stop-opacity="0"/></radialGradient><g id="fxBat"><g class="fx-wl"><path d="M0 0C-10-13-26-14-40-6C-33-4-29 1-27 8C-21 3-14 4-10 9C-6 5-3 4 0 6Z"/></g><g class="fx-wr"><path d="M0 0C10-13 26-14 40-6C33-4 29 1 27 8C21 3 14 4 10 9C6 5 3 4 0 6Z"/></g><ellipse cx="0" cy="3" rx="5.5" ry="8"/><path d="M-4-4L-6-13L-1-7ZM4-4L6-13L1-7Z"/></g><g id="fxWitch"><path d="M-46 8H40" stroke="#0a0614" stroke-width="3.4" stroke-linecap="round"/><path d="M40 8L58 2L56 14Z" fill="#0a0614"/><path d="M-8 8C-8-6-2-14 6-14C12-14 14-6 12 6Z" fill="#0a0614"/><circle cx="8" cy="-20" r="6" fill="#0a0614"/><path d="M1-22L16-22L10-40Z" fill="#0a0614"/><path d="M-2-22H20" stroke="#0a0614" stroke-width="3"/><path d="M-8 4C-18 8-24 16-30 14" stroke="#0a0614" stroke-width="3" fill="none"/></g></defs><g class="fx-night"><circle class="fx-star fx-st-0" cx="415" cy="35" r="1"/><circle class="fx-star fx-st-1" cx="93" cy="123" r="1.5"/><circle class="fx-star fx-st-2" cx="746" cy="209" r="1.2"/><circle class="fx-star fx-st-0" cx="48" cy="100" r="1"/><circle class="fx-star fx-st-1" cx="308" cy="127" r="1"/><circle class="fx-star fx-st-2" cx="1058" cy="28" r="1.2"/><circle class="fx-star fx-st-1" cx="79" cy="135" r="1"/><circle class="fx-star fx-st-2" cx="1250" cy="11" r="1.2"/><circle class="fx-star fx-st-0" cx="371" cy="33" r="1"/><circle class="fx-star fx-st-1" cx="731" cy="129" r="1.2"/><circle class="fx-star fx-st-2" cx="132" cy="131" r="1.2"/><circle class="fx-star fx-st-0" cx="477" cy="126" r="1"/><circle class="fx-star fx-st-1" cx="722" cy="142" r="1.8"/><circle class="fx-star fx-st-0" cx="402" cy="135" r="1.8"/><circle class="fx-star fx-st-1" cx="463" cy="57" r="1.2"/><circle class="fx-star fx-st-0" cx="735" cy="121" r="1.5"/><circle class="fx-star fx-st-1" cx="934" cy="66" r="1"/><circle class="fx-star fx-st-2" cx="151" cy="96" r="1.5"/><circle class="fx-star fx-st-0" cx="195" cy="112" r="1"/><circle class="fx-star fx-st-1" cx="1231" cy="18" r="1.5"/><circle class="fx-star fx-st-2" cx="435" cy="81" r="1.8"/><circle class="fx-star fx-st-1" cx="1075" cy="217" r="1.8"/><circle class="fx-star fx-st-2" cx="892" cy="15" r="1.5"/><circle class="fx-star fx-st-0" cx="828" cy="228" r="1.8"/><circle class="fx-star fx-st-1" cx="364" cy="89" r="1.5"/><circle class="fx-star fx-st-2" cx="29" cy="106" r="1.2"/><circle class="fx-star fx-st-1" cx="279" cy="66" r="1.2"/><circle class="fx-star fx-st-2" cx="509" cy="211" r="1.8"/><circle class="fx-star fx-st-0" cx="103" cy="103" r="1.5"/><circle class="fx-star fx-st-1" cx="1131" cy="188" r="1.5"/><circle class="fx-star fx-st-2" cx="904" cy="227" r="1.8"/><circle class="fx-star fx-st-0" cx="1226" cy="35" r="1.2"/><circle class="fx-star fx-st-1" cx="194" cy="151" r="1"/><circle class="fx-star fx-st-2" cx="621" cy="135" r="1.5"/><circle class="fx-star fx-st-0" cx="361" cy="34" r="1.5"/><circle class="fx-star fx-st-2" cx="161" cy="198" r="1"/><circle class="fx-star fx-st-0" cx="585" cy="200" r="1.8"/><circle class="fx-star fx-st-1" cx="510" cy="91" r="1.8"/><circle class="fx-star fx-st-0" cx="86" cy="48" r="1.2"/><circle class="fx-moonglow" cx="833" cy="95" r="190" fill="url(#fxMoon)"/><circle class="fx-pk" cx="182" cy="478" r="52" fill="url(#fxOrange)" style="animation-delay:-0.3s"/><circle class="fx-pk" cx="300" cy="628" r="70" fill="url(#fxOrange)" style="animation-delay:-1.8s"/><circle class="fx-pk" cx="412" cy="410" r="52" fill="url(#fxOrange)" style="animation-delay:-0.3s"/><circle class="fx-pk" cx="541" cy="464" r="52" fill="url(#fxOrange)" style="animation-delay:-1.7s"/><circle class="fx-pk" cx="774" cy="472" r="52" fill="url(#fxOrange)" style="animation-delay:-1.6s"/><circle class="fx-pk" cx="1030" cy="488" r="52" fill="url(#fxOrange)" style="animation-delay:-2.8s"/><circle class="fx-pk" cx="1052" cy="630" r="70" fill="url(#fxOrange)" style="animation-delay:-1.8s"/><g class="fx-lant" style="transform-origin:287px 46px"><circle cx="287" cy="76" r="46" fill="url(#fxOrange)" class="fx-pk"/></g><g class="fx-lant" style="transform-origin:992px 46px"><circle cx="992" cy="76" r="46" fill="url(#fxOrange)" class="fx-pk"/></g><circle class="fx-pk" cx="293" cy="358" r="34" fill="url(#fxOrange)"/><g class="fx-ghost" style="animation-delay:-0.3s"><circle cx="405" cy="275" r="74" fill="url(#fxBlue)"/></g><g class="fx-ghost" style="animation-delay:-0.8s"><circle cx="762" cy="328" r="74" fill="url(#fxBlue)"/></g><g class="fx-ghost" style="animation-delay:-1.5s"><circle cx="980" cy="310" r="74" fill="url(#fxBlue)"/></g><g class="fx-cat"><circle cx="1099" cy="304" r="3.4" fill="#7dff62"/><circle cx="1117" cy="304" r="3.4" fill="#7dff62"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-3.3s"><circle cx="809" cy="686" r="12" fill="#ffe27a" opacity=".18"/><circle cx="809" cy="686" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.3s"><circle cx="205" cy="652" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="205" cy="652" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-3.1s"><circle cx="428" cy="426" r="12" fill="#ffe27a" opacity=".18"/><circle cx="428" cy="426" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.6s"><circle cx="372" cy="645" r="8" fill="#ffe27a" opacity=".18"/><circle cx="372" cy="645" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-1.3s"><circle cx="302" cy="685" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="302" cy="685" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-2.7s"><circle cx="701" cy="389" r="12" fill="#ffe27a" opacity=".18"/><circle cx="701" cy="389" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.7s"><circle cx="819" cy="409" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="819" cy="409" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.8s"><circle cx="1132" cy="494" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1132" cy="494" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-5.5s"><circle cx="979" cy="485" r="8" fill="#ffe27a" opacity=".18"/><circle cx="979" cy="485" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.3s"><circle cx="990" cy="623" r="8" fill="#ffe27a" opacity=".18"/><circle cx="990" cy="623" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-1.8s"><circle cx="1026" cy="617" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1026" cy="617" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-7.1s"><circle cx="641" cy="614" r="8" fill="#ffe27a" opacity=".18"/><circle cx="641" cy="614" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-8.6s"><circle cx="617" cy="442" r="12" fill="#ffe27a" opacity=".18"/><circle cx="617" cy="442" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-8.6s"><circle cx="588" cy="680" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="588" cy="680" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-4.2s"><circle cx="490" cy="451" r="8" fill="#ffe27a" opacity=".18"/><circle cx="490" cy="451" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.6s"><circle cx="459" cy="534" r="12" fill="#ffe27a" opacity=".18"/><circle cx="459" cy="534" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-0.8s"><circle cx="626" cy="589" r="12" fill="#ffe27a" opacity=".18"/><circle cx="626" cy="589" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-6.8s"><circle cx="839" cy="671" r="12" fill="#ffe27a" opacity=".18"/><circle cx="839" cy="671" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-3.0s"><circle cx="624" cy="437" r="12" fill="#ffe27a" opacity=".18"/><circle cx="624" cy="437" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.2s"><circle cx="1005" cy="691" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="1005" cy="691" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-1.5s"><circle cx="937" cy="407" r="8" fill="#ffe27a" opacity=".18"/><circle cx="937" cy="407" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.3s"><circle cx="210" cy="428" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="210" cy="428" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-5.9s"><circle cx="232" cy="644" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="232" cy="644" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-0.2s"><circle cx="473" cy="556" r="8" fill="#ffe27a" opacity=".18"/><circle cx="473" cy="556" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.7s"><circle cx="1003" cy="612" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1003" cy="612" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-7.4s"><circle cx="1162" cy="519" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1162" cy="519" r="2" fill="#fff0a0"/></g><circle class="fx-ember" cx="182" cy="458" r="2.4" style="animation-delay:0.0s"/><circle class="fx-ember" cx="541" cy="446" r="2.4" style="animation-delay:-1.1s"/><circle class="fx-ember" cx="774" cy="452" r="2.4" style="animation-delay:-2.2s"/><circle class="fx-ember" cx="1030" cy="468" r="2.4" style="animation-delay:-3.3s"/><circle class="fx-ember" cx="300" cy="606" r="2.4" style="animation-delay:-4.4s"/><circle class="fx-ember" cx="1052" cy="610" r="2.4" style="animation-delay:-5.5s"/></g><g class="fx-day"><circle class="fx-moonglow" cx="860" cy="140" r="210" fill="url(#fxWhite)"/><circle class="fx-pk" cx="190" cy="505" r="46" fill="url(#fxWhite)" style="animation-delay:-0.6s"/><circle class="fx-pk" cx="300" cy="650" r="64" fill="url(#fxWhite)" style="animation-delay:-0.8s"/><circle class="fx-pk" cx="402" cy="440" r="46" fill="url(#fxWhite)" style="animation-delay:-0.9s"/><circle class="fx-pk" cx="535" cy="502" r="46" fill="url(#fxWhite)" style="animation-delay:-0.7s"/><circle class="fx-pk" cx="770" cy="516" r="46" fill="url(#fxWhite)" style="animation-delay:-1.8s"/><circle class="fx-pk" cx="1028" cy="526" r="46" fill="url(#fxWhite)" style="animation-delay:-0.8s"/><circle class="fx-pk" cx="1055" cy="652" r="64" fill="url(#fxWhite)" style="animation-delay:-1.3s"/><g class="fx-ghost" style="animation-delay:-0.5s"><circle cx="385" cy="295" r="72" fill="url(#fxWhite)"/></g><g class="fx-ghost" style="animation-delay:-3.6s"><circle cx="725" cy="362" r="72" fill="url(#fxWhite)"/></g><g class="fx-ghost" style="animation-delay:-1.4s"><circle cx="990" cy="328" r="72" fill="url(#fxWhite)"/></g><circle class="fx-mote fx-fly-a" cx="601" cy="567" r="1.8" fill="#fff" style="animation-delay:-8.1s"/><circle class="fx-mote fx-fly-b" cx="556" cy="674" r="1.8" fill="#fff" style="animation-delay:-4.5s"/><circle class="fx-mote fx-fly-c" cx="688" cy="548" r="1.8" fill="#fff" style="animation-delay:-0.2s"/><circle class="fx-mote fx-fly-a" cx="579" cy="439" r="1.8" fill="#fff" style="animation-delay:-0.0s"/><circle class="fx-mote fx-fly-b" cx="1003" cy="435" r="1.8" fill="#fff" style="animation-delay:-4.3s"/><circle class="fx-mote fx-fly-c" cx="916" cy="558" r="1.8" fill="#fff" style="animation-delay:-2.9s"/><circle class="fx-mote fx-fly-a" cx="672" cy="558" r="1.8" fill="#fff" style="animation-delay:-7.1s"/><circle class="fx-mote fx-fly-b" cx="185" cy="559" r="1.8" fill="#fff" style="animation-delay:-2.2s"/><circle class="fx-mote fx-fly-c" cx="387" cy="627" r="1.8" fill="#fff" style="animation-delay:-4.6s"/><circle class="fx-mote fx-fly-a" cx="723" cy="623" r="1.8" fill="#fff" style="animation-delay:-8.2s"/><circle class="fx-mote fx-fly-b" cx="583" cy="576" r="1.8" fill="#fff" style="animation-delay:-4.5s"/><circle class="fx-mote fx-fly-c" cx="664" cy="602" r="1.8" fill="#fff" style="animation-delay:-4.1s"/><circle class="fx-mote fx-fly-a" cx="689" cy="533" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-b" cx="885" cy="660" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-c" cx="366" cy="559" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-a" cx="1051" cy="424" r="1.8" fill="#fff" style="animation-delay:-1.1s"/></g><g class="fx-fog fx-fog-1"><g><ellipse cx="-5" cy="388" rx="236" ry="33" fill="url(#fxFog)"/><ellipse cx="270" cy="408" rx="313" ry="34" fill="url(#fxFog)"/><ellipse cx="529" cy="404" rx="225" ry="46" fill="url(#fxFog)"/><ellipse cx="805" cy="392" rx="319" ry="38" fill="url(#fxFog)"/><ellipse cx="1023" cy="414" rx="305" ry="35" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="-5" cy="388" rx="236" ry="33" fill="url(#fxFog)"/><ellipse cx="270" cy="408" rx="313" ry="34" fill="url(#fxFog)"/><ellipse cx="529" cy="404" rx="225" ry="46" fill="url(#fxFog)"/><ellipse cx="805" cy="392" rx="319" ry="38" fill="url(#fxFog)"/><ellipse cx="1023" cy="414" rx="305" ry="35" fill="url(#fxFog)"/></g></g><g class="fx-fog fx-fog-2"><g><ellipse cx="-5" cy="520" rx="286" ry="44" fill="url(#fxFog)"/><ellipse cx="241" cy="526" rx="243" ry="51" fill="url(#fxFog)"/><ellipse cx="507" cy="507" rx="285" ry="52" fill="url(#fxFog)"/><ellipse cx="769" cy="508" rx="373" ry="56" fill="url(#fxFog)"/><ellipse cx="1062" cy="509" rx="276" ry="41" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="-5" cy="520" rx="286" ry="44" fill="url(#fxFog)"/><ellipse cx="241" cy="526" rx="243" ry="51" fill="url(#fxFog)"/><ellipse cx="507" cy="507" rx="285" ry="52" fill="url(#fxFog)"/><ellipse cx="769" cy="508" rx="373" ry="56" fill="url(#fxFog)"/><ellipse cx="1062" cy="509" rx="276" ry="41" fill="url(#fxFog)"/></g></g><g class="fx-fog fx-fog-3"><g><ellipse cx="22" cy="644" rx="275" ry="54" fill="url(#fxFog)"/><ellipse cx="353" cy="659" rx="293" ry="48" fill="url(#fxFog)"/><ellipse cx="674" cy="652" rx="357" ry="47" fill="url(#fxFog)"/><ellipse cx="925" cy="655" rx="317" ry="46" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="22" cy="644" rx="275" ry="54" fill="url(#fxFog)"/><ellipse cx="353" cy="659" rx="293" ry="48" fill="url(#fxFog)"/><ellipse cx="674" cy="652" rx="357" ry="47" fill="url(#fxFog)"/><ellipse cx="925" cy="655" rx="317" ry="46" fill="url(#fxFog)"/></g></g><g class="fx-batfly" style="animation-duration:30s;animation-delay:0s;animation-direction:normal"><g transform="translate(0 70) scale(0.8)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:42s;animation-delay:-12s;animation-direction:reverse"><g transform="translate(0 150) scale(0.6)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:50s;animation-delay:-30s;animation-direction:normal"><g transform="translate(0 40) scale(0.5)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:36s;animation-delay:-20s;animation-direction:reverse"><g transform="translate(0 210) scale(0.7)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:58s;animation-delay:-8s;animation-direction:normal"><g transform="translate(0 110) scale(0.45)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-witchfly"><g transform="translate(0 130) scale(.62)"><use href="#fxWitch"/></g></g><g class="fx-leaf" style="animation-duration:22.0s;animation-delay:-20.8s"><g transform="translate(1166 -30)"><g class="fx-leafsway" style="animation-delay:-10.4s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:24.4s;animation-delay:-1.7s"><g transform="translate(140 -30)"><g class="fx-leafsway" style="animation-delay:-0.9s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:20.0s;animation-delay:-8.8s"><g transform="translate(1075 -30)"><g class="fx-leafsway" style="animation-delay:-4.4s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:25.2s;animation-delay:-7.0s"><g transform="translate(704 -30)"><g class="fx-leafsway" style="animation-delay:-3.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:20.8s;animation-delay:-6.2s"><g transform="translate(195 -30)"><g class="fx-leafsway" style="animation-delay:-3.1s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:16.8s;animation-delay:-1.3s"><g transform="translate(171 -30)"><g class="fx-leafsway" style="animation-delay:-0.7s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:18.4s;animation-delay:-7.9s"><g transform="translate(282 -30)"><g class="fx-leafsway" style="animation-delay:-4.0s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:18.2s;animation-delay:-13.0s"><g transform="translate(951 -30)"><g class="fx-leafsway" style="animation-delay:-6.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:18.8s;animation-delay:-0.5s"><g transform="translate(253 -30)"><g class="fx-leafsway" style="animation-delay:-0.2s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:15.2s;animation-delay:-19.1s"><g transform="translate(341 -30)"><g class="fx-leafsway" style="animation-delay:-9.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" id="halloweenFx" class="halloween-fx" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><radialGradient id="fxOrange"><stop offset="0" stop-color="#ffb03a" stop-opacity=".62"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient><radialGradient id="fxWhite"><stop offset="0" stop-color="#ffffff" stop-opacity=".5"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient><radialGradient id="fxBlue"><stop offset="0" stop-color="#9fe0ff" stop-opacity=".6"/><stop offset="1" stop-color="#6ab8ff" stop-opacity="0"/></radialGradient><radialGradient id="fxMoon"><stop offset="0" stop-color="#e8f4ff" stop-opacity=".5"/><stop offset=".5" stop-color="#bcdcff" stop-opacity=".16"/><stop offset="1" stop-color="#bcdcff" stop-opacity="0"/></radialGradient><radialGradient id="fxFog"><stop offset="0" stop-color="#bcd0ee" stop-opacity=".30"/><stop offset="1" stop-color="#bcd0ee" stop-opacity="0"/></radialGradient><g id="fxBat"><g class="fx-wl"><animateTransform attributeName="transform" type="rotate" values="-26 0 2;22 0 2;-26 0 2" dur=".3s" repeatCount="indefinite"/><path d="M0 0C-10-13-26-14-40-6C-33-4-29 1-27 8C-21 3-14 4-10 9C-6 5-3 4 0 6Z"/></g><g class="fx-wr"><animateTransform attributeName="transform" type="rotate" values="26 0 2;-22 0 2;26 0 2" dur=".3s" repeatCount="indefinite"/><path d="M0 0C10-13 26-14 40-6C33-4 29 1 27 8C21 3 14 4 10 9C6 5 3 4 0 6Z"/></g><ellipse cx="0" cy="3" rx="5.5" ry="8"/><path d="M-4-4L-6-13L-1-7ZM4-4L6-13L1-7Z"/></g><g id="fxWitch"><g><animateTransform attributeName="transform" type="rotate" values="-3 0 8;3 0 8;-3 0 8" dur="1.4s" repeatCount="indefinite"/><path d="M-46 8H40" stroke="#0a0614" stroke-width="3.4" stroke-linecap="round"/><path d="M40 8L58 2L56 14Z" fill="#0a0614"/><path d="M-8 8C-8-6-2-14 6-14C12-14 14-6 12 6Z" fill="#0a0614"/><circle cx="8" cy="-20" r="6" fill="#0a0614"/><path d="M1-22L16-22L10-40Z" fill="#0a0614"/><path d="M-2-22H20" stroke="#0a0614" stroke-width="3"/><path d="M-8 4C-18 8-24 16-30 14" stroke="#0a0614" stroke-width="3" fill="none"/><path d="M-46 8L-66 0M-46 8L-68 8M-46 8L-66 16" stroke="#0a0614" stroke-width="2.4" stroke-linecap="round"><animate attributeName="d" values="M-46 8L-66 0M-46 8L-68 8M-46 8L-66 16;M-46 8L-64 4M-46 8L-72 9M-46 8L-64 12;M-46 8L-66 0M-46 8L-68 8M-46 8L-66 16" dur=".25s" repeatCount="indefinite"/></path><path d="M-14 6C-24 16-30 24-38 22C-32 16-26 10-20 4Z" fill="#0a0614"><animateTransform attributeName="transform" type="rotate" values="-8 -12 6;10 -12 6;-8 -12 6" dur=".5s" repeatCount="indefinite"/></path><circle cx="-74" cy="8" r="1.6" fill="#ffd36a"><animate attributeName="opacity" values="1;0;1" dur=".6s" repeatCount="indefinite"/><animate attributeName="cx" values="-70;-96" dur=".6s" repeatCount="indefinite"/></circle></g></g></defs><g class="fx-night"><circle class="fx-star fx-st-0" cx="415" cy="35" r="1"/><circle class="fx-star fx-st-1" cx="93" cy="123" r="1.5"/><circle class="fx-star fx-st-2" cx="746" cy="209" r="1.2"/><circle class="fx-star fx-st-0" cx="48" cy="100" r="1"/><circle class="fx-star fx-st-1" cx="308" cy="127" r="1"/><circle class="fx-star fx-st-2" cx="1058" cy="28" r="1.2"/><circle class="fx-star fx-st-1" cx="79" cy="135" r="1"/><circle class="fx-star fx-st-2" cx="1250" cy="11" r="1.2"/><circle class="fx-star fx-st-0" cx="371" cy="33" r="1"/><circle class="fx-star fx-st-1" cx="731" cy="129" r="1.2"/><circle class="fx-star fx-st-2" cx="132" cy="131" r="1.2"/><circle class="fx-star fx-st-0" cx="477" cy="126" r="1"/><circle class="fx-star fx-st-1" cx="722" cy="142" r="1.8"/><circle class="fx-star fx-st-0" cx="402" cy="135" r="1.8"/><circle class="fx-star fx-st-1" cx="463" cy="57" r="1.2"/><circle class="fx-star fx-st-0" cx="735" cy="121" r="1.5"/><circle class="fx-star fx-st-1" cx="934" cy="66" r="1"/><circle class="fx-star fx-st-2" cx="151" cy="96" r="1.5"/><circle class="fx-star fx-st-0" cx="195" cy="112" r="1"/><circle class="fx-star fx-st-1" cx="1231" cy="18" r="1.5"/><circle class="fx-star fx-st-2" cx="435" cy="81" r="1.8"/><circle class="fx-star fx-st-1" cx="1075" cy="217" r="1.8"/><circle class="fx-star fx-st-2" cx="892" cy="15" r="1.5"/><circle class="fx-star fx-st-0" cx="828" cy="228" r="1.8"/><circle class="fx-star fx-st-1" cx="364" cy="89" r="1.5"/><circle class="fx-star fx-st-2" cx="29" cy="106" r="1.2"/><circle class="fx-star fx-st-1" cx="279" cy="66" r="1.2"/><circle class="fx-star fx-st-2" cx="509" cy="211" r="1.8"/><circle class="fx-star fx-st-0" cx="103" cy="103" r="1.5"/><circle class="fx-star fx-st-1" cx="1131" cy="188" r="1.5"/><circle class="fx-star fx-st-2" cx="904" cy="227" r="1.8"/><circle class="fx-star fx-st-0" cx="1226" cy="35" r="1.2"/><circle class="fx-star fx-st-1" cx="194" cy="151" r="1"/><circle class="fx-star fx-st-2" cx="621" cy="135" r="1.5"/><circle class="fx-star fx-st-0" cx="361" cy="34" r="1.5"/><circle class="fx-star fx-st-2" cx="161" cy="198" r="1"/><circle class="fx-star fx-st-0" cx="585" cy="200" r="1.8"/><circle class="fx-star fx-st-1" cx="510" cy="91" r="1.8"/><circle class="fx-star fx-st-0" cx="86" cy="48" r="1.2"/><circle class="fx-moonglow" cx="833" cy="95" r="190" fill="url(#fxMoon)"/><circle class="fx-pk" cx="182" cy="478" r="52" fill="url(#fxOrange)" style="animation-delay:-0.3s"/><circle class="fx-pk" cx="300" cy="628" r="70" fill="url(#fxOrange)" style="animation-delay:-1.8s"/><circle class="fx-pk" cx="412" cy="410" r="52" fill="url(#fxOrange)" style="animation-delay:-0.3s"/><circle class="fx-pk" cx="541" cy="464" r="52" fill="url(#fxOrange)" style="animation-delay:-1.7s"/><circle class="fx-pk" cx="774" cy="472" r="52" fill="url(#fxOrange)" style="animation-delay:-1.6s"/><circle class="fx-pk" cx="1030" cy="488" r="52" fill="url(#fxOrange)" style="animation-delay:-2.8s"/><circle class="fx-pk" cx="1052" cy="630" r="70" fill="url(#fxOrange)" style="animation-delay:-1.8s"/><g class="fx-lant" style="transform-origin:287px 46px"><circle cx="287" cy="76" r="46" fill="url(#fxOrange)" class="fx-pk"/></g><g class="fx-lant" style="transform-origin:992px 46px"><circle cx="992" cy="76" r="46" fill="url(#fxOrange)" class="fx-pk"/></g><circle class="fx-pk" cx="293" cy="358" r="34" fill="url(#fxOrange)"/><g class="fx-ghost" style="animation-delay:-0.3s"><circle cx="405" cy="275" r="74" fill="url(#fxBlue)"/></g><g class="fx-ghost" style="animation-delay:-0.8s"><circle cx="762" cy="328" r="74" fill="url(#fxBlue)"/></g><g class="fx-ghost" style="animation-delay:-1.5s"><circle cx="980" cy="310" r="74" fill="url(#fxBlue)"/></g><g class="fx-cat"><circle cx="1099" cy="304" r="3.4" fill="#7dff62"/><circle cx="1117" cy="304" r="3.4" fill="#7dff62"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-3.3s"><circle cx="809" cy="686" r="12" fill="#ffe27a" opacity=".18"/><circle cx="809" cy="686" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.3s"><circle cx="205" cy="652" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="205" cy="652" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-3.1s"><circle cx="428" cy="426" r="12" fill="#ffe27a" opacity=".18"/><circle cx="428" cy="426" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.6s"><circle cx="372" cy="645" r="8" fill="#ffe27a" opacity=".18"/><circle cx="372" cy="645" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-1.3s"><circle cx="302" cy="685" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="302" cy="685" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-2.7s"><circle cx="701" cy="389" r="12" fill="#ffe27a" opacity=".18"/><circle cx="701" cy="389" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.7s"><circle cx="819" cy="409" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="819" cy="409" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.8s"><circle cx="1132" cy="494" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1132" cy="494" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-5.5s"><circle cx="979" cy="485" r="8" fill="#ffe27a" opacity=".18"/><circle cx="979" cy="485" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.3s"><circle cx="990" cy="623" r="8" fill="#ffe27a" opacity=".18"/><circle cx="990" cy="623" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-1.8s"><circle cx="1026" cy="617" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1026" cy="617" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-7.1s"><circle cx="641" cy="614" r="8" fill="#ffe27a" opacity=".18"/><circle cx="641" cy="614" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-8.6s"><circle cx="617" cy="442" r="12" fill="#ffe27a" opacity=".18"/><circle cx="617" cy="442" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-8.6s"><circle cx="588" cy="680" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="588" cy="680" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-4.2s"><circle cx="490" cy="451" r="8" fill="#ffe27a" opacity=".18"/><circle cx="490" cy="451" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.6s"><circle cx="459" cy="534" r="12" fill="#ffe27a" opacity=".18"/><circle cx="459" cy="534" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-0.8s"><circle cx="626" cy="589" r="12" fill="#ffe27a" opacity=".18"/><circle cx="626" cy="589" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-6.8s"><circle cx="839" cy="671" r="12" fill="#ffe27a" opacity=".18"/><circle cx="839" cy="671" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-3.0s"><circle cx="624" cy="437" r="12" fill="#ffe27a" opacity=".18"/><circle cx="624" cy="437" r="3" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-4.2s"><circle cx="1005" cy="691" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="1005" cy="691" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-1.5s"><circle cx="937" cy="407" r="8" fill="#ffe27a" opacity=".18"/><circle cx="937" cy="407" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-7.3s"><circle cx="210" cy="428" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="210" cy="428" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-5.9s"><circle cx="232" cy="644" r="9.6" fill="#ffe27a" opacity=".18"/><circle cx="232" cy="644" r="2.4" fill="#fff0a0"/></g><g class="fx-fly fx-fly-c" style="animation-delay:-0.2s"><circle cx="473" cy="556" r="8" fill="#ffe27a" opacity=".18"/><circle cx="473" cy="556" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-a" style="animation-delay:-4.7s"><circle cx="1003" cy="612" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1003" cy="612" r="2" fill="#fff0a0"/></g><g class="fx-fly fx-fly-b" style="animation-delay:-7.4s"><circle cx="1162" cy="519" r="8" fill="#ffe27a" opacity=".18"/><circle cx="1162" cy="519" r="2" fill="#fff0a0"/></g><circle class="fx-ember" cx="182" cy="458" r="2.4" style="animation-delay:0.0s"/><circle class="fx-ember" cx="541" cy="446" r="2.4" style="animation-delay:-1.1s"/><circle class="fx-ember" cx="774" cy="452" r="2.4" style="animation-delay:-2.2s"/><circle class="fx-ember" cx="1030" cy="468" r="2.4" style="animation-delay:-3.3s"/><circle class="fx-ember" cx="300" cy="606" r="2.4" style="animation-delay:-4.4s"/><circle class="fx-ember" cx="1052" cy="610" r="2.4" style="animation-delay:-5.5s"/></g><g class="fx-day"><circle class="fx-moonglow" cx="860" cy="140" r="210" fill="url(#fxWhite)"/><circle class="fx-pk" cx="190" cy="505" r="46" fill="url(#fxWhite)" style="animation-delay:-0.6s"/><circle class="fx-pk" cx="300" cy="650" r="64" fill="url(#fxWhite)" style="animation-delay:-0.8s"/><circle class="fx-pk" cx="402" cy="440" r="46" fill="url(#fxWhite)" style="animation-delay:-0.9s"/><circle class="fx-pk" cx="535" cy="502" r="46" fill="url(#fxWhite)" style="animation-delay:-0.7s"/><circle class="fx-pk" cx="770" cy="516" r="46" fill="url(#fxWhite)" style="animation-delay:-1.8s"/><circle class="fx-pk" cx="1028" cy="526" r="46" fill="url(#fxWhite)" style="animation-delay:-0.8s"/><circle class="fx-pk" cx="1055" cy="652" r="64" fill="url(#fxWhite)" style="animation-delay:-1.3s"/><g class="fx-ghost" style="animation-delay:-0.5s"><circle cx="385" cy="295" r="72" fill="url(#fxWhite)"/></g><g class="fx-ghost" style="animation-delay:-3.6s"><circle cx="725" cy="362" r="72" fill="url(#fxWhite)"/></g><g class="fx-ghost" style="animation-delay:-1.4s"><circle cx="990" cy="328" r="72" fill="url(#fxWhite)"/></g><circle class="fx-mote fx-fly-a" cx="601" cy="567" r="1.8" fill="#fff" style="animation-delay:-8.1s"/><circle class="fx-mote fx-fly-b" cx="556" cy="674" r="1.8" fill="#fff" style="animation-delay:-4.5s"/><circle class="fx-mote fx-fly-c" cx="688" cy="548" r="1.8" fill="#fff" style="animation-delay:-0.2s"/><circle class="fx-mote fx-fly-a" cx="579" cy="439" r="1.8" fill="#fff" style="animation-delay:-0.0s"/><circle class="fx-mote fx-fly-b" cx="1003" cy="435" r="1.8" fill="#fff" style="animation-delay:-4.3s"/><circle class="fx-mote fx-fly-c" cx="916" cy="558" r="1.8" fill="#fff" style="animation-delay:-2.9s"/><circle class="fx-mote fx-fly-a" cx="672" cy="558" r="1.8" fill="#fff" style="animation-delay:-7.1s"/><circle class="fx-mote fx-fly-b" cx="185" cy="559" r="1.8" fill="#fff" style="animation-delay:-2.2s"/><circle class="fx-mote fx-fly-c" cx="387" cy="627" r="1.8" fill="#fff" style="animation-delay:-4.6s"/><circle class="fx-mote fx-fly-a" cx="723" cy="623" r="1.8" fill="#fff" style="animation-delay:-8.2s"/><circle class="fx-mote fx-fly-b" cx="583" cy="576" r="1.8" fill="#fff" style="animation-delay:-4.5s"/><circle class="fx-mote fx-fly-c" cx="664" cy="602" r="1.8" fill="#fff" style="animation-delay:-4.1s"/><circle class="fx-mote fx-fly-a" cx="689" cy="533" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-b" cx="885" cy="660" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-c" cx="366" cy="559" r="1.8" fill="#fff" style="animation-delay:-8.5s"/><circle class="fx-mote fx-fly-a" cx="1051" cy="424" r="1.8" fill="#fff" style="animation-delay:-1.1s"/></g><g class="fx-fog fx-fog-1"><g><ellipse cx="-5" cy="388" rx="236" ry="33" fill="url(#fxFog)"/><ellipse cx="270" cy="408" rx="313" ry="34" fill="url(#fxFog)"/><ellipse cx="529" cy="404" rx="225" ry="46" fill="url(#fxFog)"/><ellipse cx="805" cy="392" rx="319" ry="38" fill="url(#fxFog)"/><ellipse cx="1023" cy="414" rx="305" ry="35" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="-5" cy="388" rx="236" ry="33" fill="url(#fxFog)"/><ellipse cx="270" cy="408" rx="313" ry="34" fill="url(#fxFog)"/><ellipse cx="529" cy="404" rx="225" ry="46" fill="url(#fxFog)"/><ellipse cx="805" cy="392" rx="319" ry="38" fill="url(#fxFog)"/><ellipse cx="1023" cy="414" rx="305" ry="35" fill="url(#fxFog)"/></g></g><g class="fx-fog fx-fog-2"><g><ellipse cx="-5" cy="520" rx="286" ry="44" fill="url(#fxFog)"/><ellipse cx="241" cy="526" rx="243" ry="51" fill="url(#fxFog)"/><ellipse cx="507" cy="507" rx="285" ry="52" fill="url(#fxFog)"/><ellipse cx="769" cy="508" rx="373" ry="56" fill="url(#fxFog)"/><ellipse cx="1062" cy="509" rx="276" ry="41" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="-5" cy="520" rx="286" ry="44" fill="url(#fxFog)"/><ellipse cx="241" cy="526" rx="243" ry="51" fill="url(#fxFog)"/><ellipse cx="507" cy="507" rx="285" ry="52" fill="url(#fxFog)"/><ellipse cx="769" cy="508" rx="373" ry="56" fill="url(#fxFog)"/><ellipse cx="1062" cy="509" rx="276" ry="41" fill="url(#fxFog)"/></g></g><g class="fx-fog fx-fog-3"><g><ellipse cx="22" cy="644" rx="275" ry="54" fill="url(#fxFog)"/><ellipse cx="353" cy="659" rx="293" ry="48" fill="url(#fxFog)"/><ellipse cx="674" cy="652" rx="357" ry="47" fill="url(#fxFog)"/><ellipse cx="925" cy="655" rx="317" ry="46" fill="url(#fxFog)"/></g><g transform="translate(1280 0)"><ellipse cx="22" cy="644" rx="275" ry="54" fill="url(#fxFog)"/><ellipse cx="353" cy="659" rx="293" ry="48" fill="url(#fxFog)"/><ellipse cx="674" cy="652" rx="357" ry="47" fill="url(#fxFog)"/><ellipse cx="925" cy="655" rx="317" ry="46" fill="url(#fxFog)"/></g></g><g class="fx-batfly" style="animation-duration:30s;animation-delay:0s;animation-direction:normal"><g transform="translate(0 70) scale(0.8)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:42s;animation-delay:-12s;animation-direction:reverse"><g transform="translate(0 150) scale(0.6)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:50s;animation-delay:-30s;animation-direction:normal"><g transform="translate(0 40) scale(0.5)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:36s;animation-delay:-20s;animation-direction:reverse"><g transform="translate(0 210) scale(0.7)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-batfly" style="animation-duration:58s;animation-delay:-8s;animation-direction:normal"><g transform="translate(0 110) scale(0.45)"><use href="#fxBat" class="fx-bat"/></g></g><g class="fx-witchfly"><g transform="translate(0 130) scale(.62)"><use href="#fxWitch"/></g></g><g class="fx-leaf" style="animation-duration:22.0s;animation-delay:-20.8s"><g transform="translate(1166 -30)"><g class="fx-leafsway" style="animation-delay:-10.4s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:24.4s;animation-delay:-1.7s"><g transform="translate(140 -30)"><g class="fx-leafsway" style="animation-delay:-0.9s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:20.0s;animation-delay:-8.8s"><g transform="translate(1075 -30)"><g class="fx-leafsway" style="animation-delay:-4.4s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:25.2s;animation-delay:-7.0s"><g transform="translate(704 -30)"><g class="fx-leafsway" style="animation-delay:-3.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:20.8s;animation-delay:-6.2s"><g transform="translate(195 -30)"><g class="fx-leafsway" style="animation-delay:-3.1s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:16.8s;animation-delay:-1.3s"><g transform="translate(171 -30)"><g class="fx-leafsway" style="animation-delay:-0.7s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:18.4s;animation-delay:-7.9s"><g transform="translate(282 -30)"><g class="fx-leafsway" style="animation-delay:-4.0s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g><g class="fx-leaf" style="animation-duration:18.2s;animation-delay:-13.0s"><g transform="translate(951 -30)"><g class="fx-leafsway" style="animation-delay:-6.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-b"/></g></g></g><g class="fx-leaf" style="animation-duration:18.8s;animation-delay:-0.5s"><g transform="translate(253 -30)"><g class="fx-leafsway" style="animation-delay:-0.2s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-c"/></g></g></g><g class="fx-leaf" style="animation-duration:15.2s;animation-delay:-19.1s"><g transform="translate(341 -30)"><g class="fx-leafsway" style="animation-delay:-9.5s"><path d="M0 0C6-8 16-8 22 0C16 8 6 8 0 0Z" class="fx-lf-a"/></g></g></g></svg>
 <div class="bg-dim"></div>
 </div>
 
@@ -3863,13 +3880,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 </div>
 
 <div class="modal" id="shopModal" hidden="">
-  <div class="modal-card shop-modal">
+  <div class="modal-card shop-modal" id="shopModalCard">
     <p class="shop-modal-kind" id="shopModalKind"></p>
-    <img alt="" class="shop-modal-img" id="shopModalImg">
+    <div class="shop-stage"><img alt="" class="shop-modal-img" id="shopModalImg"></div>
     <h2 id="shopModalTitle"></h2>
+    <span class="shop-rar" id="shopModalRar" hidden></span>
     <p class="shop-modal-desc" id="shopModalDesc"></p>
     <div class="cx-win-sum"><span>Цена</span><b id="shopModalPrice"></b></div>
-    <div class="cx-win-sum"><span id="shopModalLeftLabel">Осталось</span><b id="shopModalLeft"></b></div>
+    <div class="cx-win-sum" id="shopModalLeftRow"><span id="shopModalLeftLabel">Осталось</span><b id="shopModalLeft"></b></div>
     <button class="cta" id="shopBuyBtn" type="button">Купить</button>
     <button class="cta shop-secondary" id="shopModalClose" type="button">Закрыть</button>
   </div>
@@ -3883,6 +3901,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     <button class="cta shop-secondary" id="shopConfirmNo" type="button">Отмена</button>
   </div>
 </div>
+<div class="tour-layer" id="tourLayer" hidden>
+  <div class="tour-spot none" id="tourSpot"></div>
+  <div class="tour-box" role="dialog" aria-live="polite">
+    <span class="tour-name">Костян</span>
+    <div class="tour-text" id="tourText"></div>
+    <div class="tour-row"><button class="tour-skip" id="tourSkip" type="button">Пропустить</button><div class="tour-dots" id="tourDots"></div><button class="tour-btn" id="tourNext" type="button">Дальше</button></div>
+  </div>
+</div>
 <div class="modal" id="weaponModal" hidden="">
   <div class="modal-card weapon-modal">
     <h2>Снаряжение</h2>
@@ -3890,6 +3916,17 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
     <div class="weapon-grid" id="weaponGrid"></div>
     <button class="cta" id="weaponModalClose" type="button">Закрыть</button>
+  </div>
+</div>
+<div class="modal" id="weaponPreview" hidden="">
+  <div class="modal-card wp-card" id="wpCard">
+    <div class="wp-stage" id="wpStage"><div class="wp-floor"></div><div class="wp-obj" id="wpObj"></div></div>
+    <p class="wp-hint">Потяни, чтобы покрутить</p>
+    <h2 id="wpName"></h2>
+    <span class="shop-rar" id="wpRar"></span>
+    <div class="cx-win-sum"><span>Есть у игроков</span><b id="wpPercent">…</b></div>
+    <button class="cta" id="wpApply" type="button">Применить</button>
+    <button class="cta shop-secondary" id="wpClose" type="button">Назад</button>
   </div>
 </div>
 <div class="modal" id="lvlModal" hidden="">
@@ -4270,6 +4307,29 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Вкл': { en: 'On', zh: '开' },
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
+    'В магазине уже лежит бесплатный ордер «Рука Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.': { en: 'A free “Kostyan’s Hand” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“科斯彦之手”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
+    'Понятно': { en: 'Got it', zh: '明白了' },
+    'Бесплатно': { en: 'Free', zh: '免费' },
+    'Забрать': { en: 'Claim', zh: '领取' },
+    'Потяни, чтобы покрутить': { en: 'Drag to rotate', zh: '拖动旋转' },
+    'Применить': { en: 'Apply', zh: '应用' },
+    'Есть у игроков': { en: 'Owned by players', zh: '玩家拥有率' },
+    'Рука Костяна': { en: 'Kostyan’s Hand', zh: '科斯彦之手' },
+    'Подарок от Костяна каждому новичку.': { en: 'A gift from Kostyan to every newcomer.', zh: '科斯彦送给每位新玩家的礼物。' },
+    'Здарова! Я Костян, хозяин этой лавки. Давай коротко покажу, что тут есть.': { en: 'Hey! I’m Kostyan, keeper of this shop. Let me quickly show you around.', zh: '嘿！我是科斯彦，这家商店的老板。我来带你快速逛一逛。' },
+    'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.': { en: 'Store. Here I trade goods for HatCoin and TON: weapons, gifts, NFTs. Some orders are limited, so don’t snooze.', zh: '商品。我在这里用 HatCoin 和 TON 换取商品：武器、礼物、NFT。有些订单数量有限，别错过。' },
+    'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».': { en: 'Achievements. They stay forever: complete one, claim the reward, and it turns grey marked “Received”.', zh: '成就。成就永久保留：完成后领取奖励，条目会变灰并标记“已领取”。' },
+    'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.': { en: 'Quests. Timed tasks: finish before the timer ends and claim your reward.', zh: '任务。限时任务：在倒计时结束前完成并领取奖励。' },
+    'А оружие для прокрута меняется вот здесь. Чем реже оружие, тем ярче оно светится. Новое открывается за награды и в магазине.': { en: 'Your spin weapon is changed right here. The rarer the weapon, the brighter it glows. New ones unlock through rewards and the store.', zh: '转盘武器在这里更换。武器越稀有，光芒越亮。新武器可通过奖励和商店解锁。' },
+    'Ты прошёл экскурсию! Держи от меня Руку скелета для прокрута. Она эпическая, так что носи с гордостью.': { en: 'You finished the tour! Take the Skeleton Hand for spinning from me. It’s epic, so wear it proudly.', zh: '你完成了导览！送你转盘用的骷髅之手。它是史诗级的，请自豪地使用。' },
+    'Забрать руку': { en: 'Take the hand', zh: '领取骷髅之手' },
+    'Поехали': { en: 'Let’s go', zh: '出发' },
+    'Пропустить': { en: 'Skip', zh: '跳过' },
+    'Костян': { en: 'Kostyan', zh: '科斯彦' },
+    'Рука скелета получена': { en: 'Skeleton Hand received', zh: '已获得骷髅之手' },
+    'Не удалось получить награду': { en: 'Could not get the reward', zh: '无法领取奖励' },
+    'Экскурсия от Костяна': { en: 'Kostyan’s tour', zh: '科斯彦的导览' },
+    'Пройди экскурсию от Костяна': { en: 'Take Kostyan’s tour', zh: '完成科斯彦的导览' },
     'Вы уверены, что хотите купить «{title}» за {price}?': { en: 'Are you sure you want to buy “{title}” for {price}?', zh: '确定要以 {price} 购买“{title}”吗？' },
     'Вывод подарков заблокирован на {n} дн.': { en: 'Gift withdrawals are blocked for {n} d.', zh: '礼物提现已被锁定 {n} 天' },
     'Да, купить': { en: 'Yes, buy', zh: '是的，购买' },
@@ -6001,7 +6061,7 @@ function showView(name) {
   for (const v of VIEWS) $(`view-${v}`).hidden = v !== name;
   currentView = name;
   if (name === 'leaders') loadLeaderboard();
-  if (name === 'quests') loadKostyanQuests();
+  if (name === 'quests') { loadKostyanQuests(); setTimeout(maybeStartTour, 700); }
   lbStartTimer(name === 'leaders');
   if (name === 'chests') cxOnShow();
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.view === VIEW_TAB[name]));
@@ -6014,7 +6074,7 @@ function showView(name) {
 
 let shopCache = null;
 let shopBusy = false;
-function shopPriceLabel(o) { return `${+o.price.toFixed(4)} ${o.currency === 'hatcoin' ? 'HatCoin' : 'TON'}`; }
+function shopPriceLabel(o) { return o.price <= 0 ? tr('Бесплатно') : `${+o.price.toFixed(4)} ${o.currency === 'hatcoin' ? 'HatCoin' : 'TON'}`; }
 function renderShop(container, status) {
   const mk = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
   if (!shopCache) { status.hidden = false; status.textContent = tr('Загружаем лавку…'); return; }
@@ -6029,7 +6089,7 @@ function renderShop(container, status) {
     const img = mk('img'); img.src = o.reward.image; img.alt = '';
     const price = mk('span', 'shop-price');
     const cur = mk('img'); cur.src = o.currency === 'hatcoin' ? '/images/hatcoin.webp' : '/images/ton.svg'; cur.alt = '';
-    price.append(cur, document.createTextNode(String(+o.price.toFixed(4))));
+    if (o.price <= 0) price.append(document.createTextNode(tr('Бесплатно'))); else price.append(cur, document.createTextNode(String(+o.price.toFixed(4))));
     const left = mk('small', '', o.owned ? tr('Уже есть') : !o.available ? tr('Распродано') : o.total_left !== null ? tr('Осталось: {n}', { n: o.total_left }) : '');
     card.append(img, mk('span', 'shop-title', o.title), price, left);
     card.onclick = () => openShopOffer(o);
@@ -6044,10 +6104,13 @@ function openShopOffer(o) {
   $('shopModalDesc').textContent = o.description || '';
   $('shopModalPrice').textContent = shopPriceLabel(o);
   const lefts = [o.total_left, o.user_left].filter((x) => x !== null);
-  $('shopModalLeft').textContent = lefts.length ? String(Math.min(...lefts)) : tr('без лимита');
+  $('shopModalLeftRow').hidden = !lefts.length;
+  $('shopModalLeft').textContent = lefts.length ? String(Math.min(...lefts)) : '';
+  const rar = $('shopModalRar'); rar.hidden = !o.reward.rarity; rar.textContent = o.reward.rarity ? tr(RARITY_LABELS[o.reward.rarity]) : '';
+  $('shopModalCard').dataset.rarity = o.reward.rarity || 'none';
   const btn = $('shopBuyBtn');
   btn.disabled = !o.available;
-  btn.textContent = o.owned ? tr('Уже есть') : o.available ? tr('Купить') : tr('Распродано');
+  btn.textContent = o.owned ? tr('Уже есть') : o.available ? (o.price <= 0 ? tr('Забрать') : tr('Купить')) : tr('Распродано');
   btn.onclick = () => openShopConfirm(o);
   $('shopModal').hidden = false;
   haptic('impact', 'light');
@@ -6129,7 +6192,7 @@ function renderQuestCards(data, container, status) {
   const open = (list) => list.filter((r) => r.st === 'ready' || r.st === 'active').length;
   const shopCount = shopCache ? shopCache.offers.filter((o) => o.available).length : 0;
   for (const [id, label, count] of [['shop', 'Магазин', shopCount], ['achievements', 'Достижения', open(achievements)], ['quests', 'Квесты', open(quests)]]) {
-    const t = mk('button', 'kq-tab' + (questFilter === id ? ' on' : ''), `${tr(label)} · ${count}`);
+    const t = mk('button', 'kq-tab' + (questFilter === id ? ' on' : ''), tr(label));
     t.type = 'button';
     t.onclick = () => { questFilter = id; renderQuestCards(data, container, status); };
     tabs.append(t);
@@ -6190,6 +6253,51 @@ async function loadKostyanQuests(force = false) {
     }
   } finally { questLoadInFlight = false; }
 }
+
+// ---- Экскурсия Костяна: показывается при первом заходе в «Лавку», в конце выдаёт Руку скелета ----
+const TOUR_STEPS = [
+  { text: 'Здарова! Я Костян, хозяин этой лавки. Давай коротко покажу, что тут есть.' },
+  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.' },
+  { sel: '.kq-tab:nth-child(2)', filter: 'achievements', text: 'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».' },
+  { sel: '.kq-tab:nth-child(3)', filter: 'quests', text: 'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.' },
+  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'В магазине уже лежит бесплатный ордер «Рука Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.' },
+];
+let tourIdx = 0, tourTimer = 0, tourActive = false, tourSkipped = false;
+function tourType(text) {
+  clearInterval(tourTimer);
+  const el = $('tourText'); const full = tr(text); let i = 0; el.textContent = '';
+  tourTimer = setInterval(() => { i += 2; el.textContent = full.slice(0, i); if (i >= full.length) clearInterval(tourTimer); }, 22);
+}
+function tourShow() {
+  const st = TOUR_STEPS[tourIdx]; const layer = $('tourLayer'), spot = $('tourSpot');
+  if (st.filter && typeof questFilter !== 'undefined' && questsCache) { questFilter = st.filter; renderQuestCards(questsCache, $('questCards'), $('questLoading')); }
+  const dots = $('tourDots'); dots.replaceChildren();
+  TOUR_STEPS.forEach((_, i) => { const d = document.createElement('i'); if (i <= tourIdx) d.className = 'on'; dots.append(d); });
+  $('tourNext').textContent = tr(tourIdx === TOUR_STEPS.length - 1 ? 'Понятно' : tourIdx === 0 ? 'Поехали' : 'Дальше');
+  $('tourSkip').hidden = tourIdx === TOUR_STEPS.length - 1;
+  const target = st.sel ? document.querySelector(st.sel) : null;
+  if (target) {
+    target.scrollIntoView({ block: 'nearest' });
+    const r = target.getBoundingClientRect();
+    Object.assign(spot.style, { left: r.left - 4 + 'px', top: r.top - 4 + 'px', width: r.width + 8 + 'px', height: r.height + 8 + 'px' });
+    spot.className = 'tour-spot';
+  } else { spot.removeAttribute('style'); spot.className = 'tour-spot none'; }
+  tourType(st.text);
+}
+function tourClose() { tourActive = false; clearInterval(tourTimer); $('tourLayer').hidden = true; }
+function maybeStartTour() {
+  if (tourActive || tourSkipped || !state || state.tour_done) return;
+  tourActive = true; tourIdx = 0; $('tourLayer').hidden = false; tourShow();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  $('tourSkip').addEventListener('click', () => { tourSkipped = true; tourClose(); });
+  $('tourNext').addEventListener('click', async () => {
+    if (tourIdx < TOUR_STEPS.length - 1) { tourIdx++; tourShow(); return; }
+    tourClose();
+    try { await api('/api/tour/complete'); if (state) state.tour_done = true; } catch (e) {}
+  });
+  window.addEventListener('resize', () => { if (tourActive) tourShow(); });
+});
 const LB_MIN_INTERVAL = 10000;
 let lbLoadedAt = 0;
 let lbLoading = false;
@@ -7353,7 +7461,7 @@ const WEAPON_LABELS = { axe: 'Топор', staff: 'Посох', skeleton: 'Ру�
 const WEAPON_RARITY = { axe: 'common', staff: 'common', skeleton: 'epic', sword: 'rare', hammer: 'rare', trident: 'epic', crystal: 'legendary', club: 'rare', pumpkin: 'epic', scythe: 'legendary' };
 const RARITY_LABELS = { common: 'Обычное', rare: 'Редкое', epic: 'Эпическое', legendary: 'Легендарное' };
 const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club']);
-let ownedWeapons = ['axe', 'staff', 'skeleton'];
+let ownedWeapons = ['axe', 'staff'];
 function setOwnedWeapons(list) {
   if (!Array.isArray(list)) return;
   ownedWeapons = list;
@@ -7474,18 +7582,77 @@ function initWeapon() {
   $('weaponGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-weapon]');
     if (!b) return;
-    if (b.classList.contains('locked')) { haptic('notification', 'warning'); toast(tr('Снаряжение закрыто — получи его за достижения'), true); return; }
     haptic('impact', 'light');
-    setWeapon(b.dataset.weapon);
-    close();
+    openWeaponPreview(b.dataset.weapon, close);
   });
   $('weaponSearch').addEventListener('input', buildWeaponMenu);
   $('weaponModalClose').addEventListener('click', close);
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 }
 
+
+/* Предпросмотр оружия: псевдо-3D из стопки слоёв, вращается пальцем; процент владельцев приходит с сервера */
+let wpStats = null, wpStatsAt = 0, wpRaf = 0, wpAngle = 25, wpTilt = -8, wpDrag = null, wpIdle = true;
+function wpRender() {
+  const obj = $('wpObj'); if (!obj) return;
+  obj.style.transform = `rotateX(${wpTilt}deg) rotateY(${wpAngle}deg)`;
+}
+function wpLoop() {
+  if ($('weaponPreview').hidden) return;
+  if (wpIdle && !wpDrag) wpAngle += 0.6;
+  wpRender(); wpRaf = requestAnimationFrame(wpLoop);
+}
+async function openWeaponPreview(id, closeMenu) {
+  const modal = $('weaponPreview'), obj = $('wpObj');
+  const rarity = WEAPON_RARITY[id] || 'common', locked = !ownedWeapons.includes(id);
+  $('wpCard').dataset.rarity = rarity;
+  $('wpName').textContent = tr(WEAPON_LABELS[id]);
+  $('wpRar').textContent = tr(RARITY_LABELS[rarity]);
+  $('wpPercent').textContent = '…';
+  obj.replaceChildren();
+  const src = WEAPON_CUSTOM.has(id) || id === 'skeleton' ? `/static/weapons/${id}.png?v=1` : WEAPONS[id];
+  const LAYERS = 12;
+  for (let i = 0; i < LAYERS; i++) {
+    const im = document.createElement('img'); im.src = src; im.alt = '';
+    const z = (i - (LAYERS - 1) / 2) * 1.6;
+    im.style.transform = `translateZ(${z}px)`;
+    const shade = i === LAYERS - 1 ? 1 : 0.72 + 0.2 * (i / LAYERS);
+    if (shade < 1) im.style.filter = `brightness(${shade.toFixed(2)})`;
+    obj.append(im);
+  }
+  const apply = $('wpApply'), cur = document.documentElement.dataset.weapon;
+  apply.disabled = locked || id === cur;
+  apply.textContent = locked ? tr('Закрыто') : id === cur ? tr('Выбрано') : tr('Применить');
+  apply.onclick = () => { setWeapon(id); haptic('notification', 'success'); modal.hidden = true; if (closeMenu) closeMenu(); };
+  $('wpClose').onclick = () => { modal.hidden = true; };
+  wpAngle = 25; wpTilt = -8; wpIdle = true; wpDrag = null;
+  modal.hidden = false;
+  cancelAnimationFrame(wpRaf); wpLoop();
+  try {
+    if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
+    const p = wpStats[id] && wpStats[id].percent;
+    $('wpPercent').textContent = p === undefined ? '—' : `${p}%`;
+  } catch (e) { $('wpPercent').textContent = '—'; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const stage = $('wpStage');
+  stage.addEventListener('pointerdown', (e) => { wpDrag = { x: e.clientX, y: e.clientY, a: wpAngle, t: wpTilt }; wpIdle = false; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointermove', (e) => {
+    if (!wpDrag) return;
+    wpAngle = wpDrag.a + (e.clientX - wpDrag.x) * 0.9;
+    wpTilt = Math.max(-35, Math.min(35, wpDrag.t - (e.clientY - wpDrag.y) * 0.4));
+  });
+  const end = () => { wpDrag = null; };
+  stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);
+  $('weaponPreview').addEventListener('click', (e) => { if (e.target === $('weaponPreview')) $('weaponPreview').hidden = true; });
+});
+
 /* Пиксельный шлейф у эпического и легендарного оружия: следим за углом указателя и сыплем квадратики по его траектории. */
-const TRAIL_STYLE = { epic: { colors: ['#b46bff', '#e2c4ff', '#7a3fd0'], per: 1, life: 420 }, legendary: { colors: ['#ffc83d', '#fff1a8', '#ff9a1f', '#ffffff'], per: 2, life: 560 } };
+const TRAIL_STYLE = {
+  rare: { arc: ['#5aa9ff'], width: 2.2, life: 380, sparks: 0 },
+  epic: { arc: ['#9b59f0', '#d9bcff'], width: 3, life: 480, sparks: 1, spark: ['#c9a0ff', '#ffffff'] },
+  legendary: { arc: ['#ffb42e', '#fff3c0'], width: 3.6, life: 600, sparks: 2, spark: ['#ffd36a', '#ffffff', '#ff9a1f'] },
+};
 let trailLastAngle = null;
 function trailTick() {
   requestAnimationFrame(trailTick);
@@ -7495,23 +7662,33 @@ function trailTick() {
   if (!cfg || !pointer || !layer || document.hidden) { trailLastAngle = null; return; }
   const m = getComputedStyle(pointer).transform;
   if (!m || m === 'none') { trailLastAngle = null; return; }
-  const mat = new DOMMatrixReadOnly(m);
-  const angle = Math.atan2(mat.b, mat.a);
+  const angle = Math.atan2(new DOMMatrixReadOnly(m).b, new DOMMatrixReadOnly(m).a);
   if (trailLastAngle === null) { trailLastAngle = angle; return; }
-  let d = Math.abs(angle - trailLastAngle); d = Math.min(d, Math.PI * 2 - d);
-  trailLastAngle = angle;
-  if (d < 0.02 || layer.childNodes.length > 70) return;
-  for (let i = 0; i < cfg.per; i++) {
-    const r = 70 + Math.random() * 62, a = angle + (Math.random() - 0.5) * 0.12;
-    const size = 3 + Math.floor(Math.random() * 3) * 1.5;
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', (150 + r * Math.sin(a) - size / 2).toFixed(1));
-    rect.setAttribute('y', (150 - r * Math.cos(a) - size / 2).toFixed(1));
-    rect.setAttribute('width', size); rect.setAttribute('height', size);
-    rect.setAttribute('fill', cfg.colors[Math.floor(Math.random() * cfg.colors.length)]);
-    layer.appendChild(rect);
-    const anim = rect.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${6 + Math.random() * 8}px)` }], { duration: cfg.life, easing: 'ease-out' });
-    anim.onfinish = () => rect.remove();
+  let delta = angle - trailLastAngle; if (delta > Math.PI) delta -= Math.PI * 2; if (delta < -Math.PI) delta += Math.PI * 2;
+  const prev = trailLastAngle; trailLastAngle = angle;
+  if (Math.abs(delta) < 0.015 || layer.childNodes.length > 90) return;
+  const NS = 'http://www.w3.org/2000/svg';
+  const pt = (a, r) => `${(150 + r * Math.sin(a)).toFixed(1)} ${(150 - r * Math.cos(a)).toFixed(1)}`;
+  const sweep = delta > 0 ? 1 : 0;
+  // плавный хвост-дуга за остриём; дуги разных радиусов дают объём
+  cfg.arc.forEach((color, k) => {
+    const r = 128 - k * 7;
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', `M${pt(prev, r)} A${r} ${r} 0 0 ${sweep} ${pt(angle, r)}`);
+    path.setAttribute('fill', 'none'); path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', (cfg.width - k * 0.8).toFixed(1)); path.setAttribute('stroke-linecap', 'round');
+    layer.appendChild(path);
+    path.animate([{ opacity: .85 }, { opacity: 0 }], { duration: cfg.life, easing: 'ease-out' }).onfinish = () => path.remove();
+  });
+  for (let i = 0; i < cfg.sparks; i++) {
+    const a = prev + (angle - prev) * Math.random(), r = 112 + Math.random() * 28;
+    const dot = document.createElementNS(NS, 'circle');
+    dot.setAttribute('cx', (150 + r * Math.sin(a)).toFixed(1)); dot.setAttribute('cy', (150 - r * Math.cos(a)).toFixed(1));
+    dot.setAttribute('r', (0.9 + Math.random() * 1.3).toFixed(1));
+    dot.setAttribute('fill', cfg.spark[Math.floor(Math.random() * cfg.spark.length)]);
+    layer.appendChild(dot);
+    const dx = (Math.random() - 0.5) * 12, dy = 4 + Math.random() * 10;
+    dot.animate([{ opacity: 1, transform: 'translate(0,0)' }, { opacity: 0, transform: `translate(${dx}px,${dy}px)` }], { duration: cfg.life + 200, easing: 'ease-out' }).onfinish = () => dot.remove();
   }
 }
 requestAnimationFrame(trailTick);

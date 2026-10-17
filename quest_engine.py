@@ -21,6 +21,7 @@ QUEST_TYPES = {
     "mines_plays": ("Сыграть в мины", "count"),
     "mines_gift_wins": ("Выиграть подарок в минах", "count"),
     "mines_opened": ("Открыть безопасные клетки в минах", "count"),
+    "tour": ("Пройти экскурсию Костяна", "count"),
 }
 LIMIT = 150
 QUEST_ICONS = ("auto", "wheel", "upgrade", "mines", "gift", "deposit", "turnover", "chest", "star", "trophy", "hatcoin", "moon", "flame")
@@ -31,6 +32,7 @@ def icon_for(kind):
     if kind.startswith("wheel"): return "wheel"
     if kind.startswith("upgrade"): return "upgrade"
     if kind == "mines_gift_wins": return "gift"
+    if kind == "tour": return "star"
     return "mines"
 
 def auto_title(kind, goal, threshold):
@@ -49,6 +51,7 @@ def auto_title(kind, goal, threshold):
         "mines_plays": f"Сыграй в мины {count} раз",
         "mines_gift_wins": f"Выиграй подарок в минах {count} раз",
         "mines_opened": f"Открой {count} безопасных клеток в минах",
+        "tour": "Пройди экскурсию от Костяна",
     }[kind]
 
 
@@ -203,6 +206,8 @@ def _increment(quest, event, amount, chance_pct, gift_awarded):
         return 1 if event == "mines_win" and gift_awarded else 0
     if kind == "mines_opened":
         return 1 if event == "mines_safe_open" else 0
+    if kind == "tour":
+        return 1 if event == "tour_done" else 0
     return 0
 
 

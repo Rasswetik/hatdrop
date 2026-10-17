@@ -45,8 +45,12 @@ OWNER_ADMIN_ID = "5257227756"
 ADMIN_IDS = {x.strip().removeprefix("tg") for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {OWNER_ADMIN_ID, "6718371539"}
 # Postgres-ссылка (Neon/Supabase/Render/Railway). Если задана - база живёт там и переживает перезапуски.
 # Если задана любая из этих переменных - база живёт в PostgreSQL. Если нет - в локальном SQLite.
-DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
-                          "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI")
+# Пока DB_BACKEND не равен "postgres", ВСЕ данные пишутся только в SQLite (даже если ссылка на Postgres задана).
+# Чтобы перейти на Postgres: DB_BACKEND=postgres и DATABASE_URL=<ссылка>.
+DATABASE_URL = ""
+if os.environ.get("DB_BACKEND", "sqlite").strip().lower() in ("postgres", "postgresql", "pg"):
+    DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
+                              "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI")
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
 # Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
 PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
@@ -68,7 +72,7 @@ GIFT_THUMB_TEMPLATES = [
     "https://cdn.changes.tg/gifts/originals/{name}/Original.png",
 ]
 
-START_BALANCE = 10.0
+START_BALANCE = 0.0
 PROMO_CODES = {"DEMO": 10.0}  # legacy codes; new codes use persistent DB
 MARGIN = 0.05
 SELL_SHARE = 0.9
@@ -145,6 +149,7 @@ def _sqlite_conn():
     conn = sqlite3.connect(SQLITE_PATH, timeout=15)
     try:
         conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=FULL")
     except sqlite3.DatabaseError:
         pass
     conn.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
@@ -772,6 +777,12 @@ def api(fn):
             response = jsonify(result)
         # Quest definitions, settings and claimed rewards must be durable before
         # returning success. Normal game updates remain on the buffered saver.
+        _READ_ONLY = ("/api/state", "/api/leaderboard", "/api/quests", "/api/shop", "/api/gifts/", "/api/admin/")
+        if response.status_code == 200 and request.path != "/api/shop/buy" and not request.path.startswith(_READ_ONLY):
+            try:
+                flush_db()  # сразу на диск: после перезагрузки ничего не откатывается
+            except Exception as exc:
+                print(f"DB flush failed: {exc}", flush=True)
         if request.path == "/api/shop/buy" and response.status_code == 200:
             try:
                 flush_db()
@@ -948,6 +959,7 @@ def full_state(user):
         "hatcoin": {"balance": hatcoin_balance(user), "rate_per_ton": float(HATCOIN_PER_TON)},
         "level": level_info(user["turnover"]),
         "weapons": weapons_lib.owned(user),
+        "tour_done": bool(user.get("tour_done")),
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
         "withdraw_locked_until": int(user.get("stars_lock_until", 0) or 0),
@@ -1720,7 +1732,7 @@ def shop_clean(body, reward):
         limit_user = int(body.get("limit_user") or 0)
     except (TypeError, ValueError):
         raise ApiError("bad_request", 400, message="Проверьте цену и лимиты.")
-    if not 0 < price <= 1000000 or not 0 <= limit_total <= 1000000 or not 0 <= limit_user <= 1000000:
+    if not 0 <= price <= 1000000 or not 0 <= limit_total <= 1000000 or not 0 <= limit_user <= 1000000:
         raise ApiError("bad_request", 400, message="Проверьте цену и лимиты.")
     return {"title": title, "description": str(body.get("description") or "").strip()[:200], "currency": currency,
             "price": round(price, 6), "limit_total": limit_total, "limit_user": limit_user,
@@ -2199,6 +2211,25 @@ def player_quests():
     response = jsonify({"enabled": enabled or bool(rows), "rows": rows, "server_time": int(time.time())})
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@route("/api/weapons/stats")
+def weapon_stats(user, body):
+    """Сколько процентов игроков владеет каждым снаряжением (для окна предпросмотра)."""
+    users = [u for u in db["users"].values() if isinstance(u, dict)]
+    total = max(1, len(users))
+    out = {}
+    for wid, w in weapons_lib.WEAPONS.items():
+        n = total if w["default"] else sum(1 for u in users if wid in (u.get("weapons") or []))
+        out[wid] = {"name": w["name"], "rarity": w["rarity"], "percent": round(100.0 * n / total, 1)}
+    return {"weapons": out}
+
+
+@route("/api/tour/complete")
+def tour_complete(user, body):
+    """Экскурсия по лавке пройдена."""
+    user["tour_done"] = True
+    return {"ok": True, "tour_done": True}
 
 
 @route("/api/quests/claim")
@@ -4065,16 +4096,14 @@ def tonconnect_manifest():
 @app.get("/img/<path:name>")
 def quest_image_asset(name):
     # Public quest art can be replaced by uploading files without changing the UI.
-    if name not in ("costyan_que.png", "kostyan-halloween.png", "kostyan-meadow.png"):
+    if name not in ("costyan_que.png", "kostyan-halloween.png", "kostyan-meadow.png", "kostyan-avatar.png"):
         return ("", 404)
     for folder in (os.path.join(BASE_DIR, "img"), os.path.join(BASE_DIR, "images"),
                    os.path.join(BASE_DIR, "static", "img")):
         if os.path.isfile(os.path.join(folder, name)):
             return send_from_directory(folder, name, conditional=True)
-    # Animated SVG banners are shown until the requested PNG is uploaded.
-    svg = {"kostyan-halloween.png": "kostyan-shop-halloween.svg",
-           "kostyan-meadow.png": "kostyan-shop-meadow.svg"}.get(name, "kostyan-banner.svg")
-    return send_from_directory(os.path.join(BASE_DIR, "static", "quests"), svg, conditional=True)
+    # PNG ещё не загружен: показывается прежний баннер.
+    return send_from_directory(os.path.join(BASE_DIR, "static", "quests"), "kostyan-banner.svg", conditional=True)
 
 
 @app.get("/static/img/hand.png")
@@ -5875,8 +5904,24 @@ def seed_achievements():
         print("achievement seed save failed:", exc, flush=True)
 
 
+def seed_free_hand_offer():
+    """Бесплатный ордер «Рука Костяна» для всех игроков (создаётся один раз, дальше правится в админке)."""
+    if db["settings"].get("free_hand_seeded"):
+        return
+    db["settings"]["free_hand_seeded"] = True
+    offers = shop_doc()["offers"]
+    offers["free_hand"] = {"id": "free_hand", "title": "Рука Костяна", "description": "Подарок от Костяна каждому новичку.",
+                           "currency": "hatcoin", "price": 0.0, "limit_total": 0, "limit_user": 1, "active": True, "sold": 0,
+                           "created": int(time.time()) - 10, "sort": -10, "reward": {"kind": "weapon", "weapon": "skeleton"}}
+    try:
+        flush_db()
+    except Exception as exc:
+        print("free hand offer save failed:", exc, flush=True)
+
+
 load_db()
 seed_achievements()
+seed_free_hand_offer()
 load_catalog()
 apply_tier_values()
 _install_exit_hooks()

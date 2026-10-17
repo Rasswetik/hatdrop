@@ -90,6 +90,7 @@ class DashboardTests(unittest.TestCase):
 
     def test_real_spins_and_chest_cash_are_recorded(self):
         self.post('/api/state')
+        backend.db['users']['tg101']['balance']=10.0
         with patch.object(backend.secrets,'randbelow',return_value=0):
             self.assertEqual(self.post('/api/spin',{'tier':'random','chance':.5}).status_code,200)
         user=backend.db['users']['tg101']

@@ -4,7 +4,7 @@ RARITIES = {"common": "Обычное", "rare": "Редкое", "epic": "Эпи�
 WEAPONS = {
     "axe": {"name": "Топор", "default": True, "event": "", "rarity": "common"},
     "staff": {"name": "Посох", "default": True, "event": "", "rarity": "common"},
-    "skeleton": {"name": "Рука скелета", "default": True, "event": "halloween", "rarity": "epic"},
+    "skeleton": {"name": "Рука скелета", "default": False, "event": "halloween", "rarity": "epic"},
     "sword": {"name": "Меч", "default": False, "event": "", "rarity": "rare"},
     "hammer": {"name": "Молот", "default": False, "event": "", "rarity": "rare"},
     "trident": {"name": "Трезубец", "default": False, "event": "", "rarity": "epic"},

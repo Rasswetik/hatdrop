@@ -26,9 +26,6 @@ html[data-sky="day"] .halloween-fx .fx-bat { fill: #1b1b1f; }
 .halloween-fx .fx-fog-3 { animation-duration: 42s; }
 html[data-sky="day"] .halloween-fx .fx-fog { opacity: .8; }
 .halloween-fx .fx-batfly { animation: fxBat 40s linear infinite; will-change: transform; }
-.halloween-fx .fx-wl, .halloween-fx .fx-wr { transform-box: fill-box; }
-.halloween-fx .fx-wl { transform-origin: 100% 60%; animation: fxFlapL .22s ease-in-out infinite alternate; }
-.halloween-fx .fx-wr { transform-origin: 0 60%; animation: fxFlapR .22s ease-in-out infinite alternate; }
 .halloween-fx .fx-witchfly { animation: fxWitch 46s linear infinite; animation-delay: -20s; will-change: transform; }
 .halloween-fx .fx-leaf { animation: fxLeaf 20s linear infinite; }
 .halloween-fx .fx-leafsway { transform-box: fill-box; transform-origin: center; animation: fxLeafSway 3.2s ease-in-out infinite alternate; }
