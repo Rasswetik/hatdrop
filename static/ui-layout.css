@@ -154,3 +154,13 @@ html[data-halloween="on"] #view-quests {
 #view-quests .kq-tab { background:var(--kq-chip-bg); border-color:var(--kq-edge); color:var(--kq-text); box-shadow:inset 2px 2px var(--kq-shine),inset -2px -2px var(--kq-shadow); }
 #view-quests .kq-tab.on { background:linear-gradient(#ffb04a,#e8892b); border-color:#5a2a0c; color:#2a1000; box-shadow:inset 2px 2px #ffd89a,inset -2px -2px #b4631a; }
 #view-quests .kostyan-state { background:var(--kq-lead-b); border-color:var(--kq-edge); color:var(--kq-title); }
+
+/* ===== Единая ширина окон и меню, только вертикальная прокрутка, без полос прокрутки ===== */
+html, body { overflow-x: hidden; overscroll-behavior-x: none; }
+.content { overflow-x: hidden; touch-action: pan-y; }
+* { scrollbar-width: none !important; -ms-overflow-style: none; }
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+.modal { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+.modal-card { width: min(100%, 340px); max-width: 340px; min-width: 0; box-sizing: border-box; overflow-x: hidden; overscroll-behavior: contain; }
+.modal-card > * { max-width: 100%; box-sizing: border-box; }
+.lvl-grid, .weapon-grid, .cxg-grid, .gp-list { overflow-x: hidden; overscroll-behavior: contain; }

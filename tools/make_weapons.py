@@ -17,6 +17,7 @@ MATS = {  # материал: (свет, база, тень)
     "leaf": ((140, 205, 80), (92, 160, 44), (58, 110, 30)),
     "glow": ((255, 250, 170), (255, 224, 90), (255, 190, 40)),
     "ruby": ((255, 150, 160), (230, 50, 70), (150, 20, 45)),
+    "crystal": ((236, 214, 255), (176, 120, 245), (112, 64, 184)),
     "cut": ((50, 30, 50), (34, 20, 42), (34, 20, 42)),
 }
 
@@ -125,6 +126,36 @@ def pumpkin():
     return a
 
 
+def trident():
+    a = Art()
+    a.rect(4, 3, 5, 13, "steel"); a.rect(15, 3, 16, 13, "steel"); a.rect(9, 0, 11, 13, "steel")
+    a.rect(4, 12, 16, 14, "steel")
+    a.cells[(4, 2)] = "steel"; a.cells[(16, 2)] = "steel"; a.cells[(10, 0)] = "steel"
+    handle(a, 15, 43, "wood", (30, 41, "gold"))
+    a.rect(8, 44, 12, 46, "gold")
+    return a
+
+
+def crystal():
+    a = Art()
+    handle(a, 20, 46, "gold", (28, 44, "wood"))
+    a.poly([(10, 0), (16, 8), (10, 18), (4, 8)], "crystal")
+    a.rect(8, 17, 12, 20, "gold")
+    a.rect(3, 9, 4, 13, "gold"); a.rect(16, 9, 17, 13, "gold")
+    a.rect(4, 13, 6, 14, "gold"); a.rect(14, 13, 16, 14, "gold")
+    return a
+
+
+def club():
+    a = Art()
+    handle(a, 20, 44, "bone")
+    a.ellipse(10, 9, 6.5, 9.5, "bone")
+    a.rect(8, 45, 12, 47, "bone")
+    for x, y in [(8, 5), (12, 7), (9, 11), (12, 13)]:
+        a.cells[(x, y)] = "cut"
+    return a
+
+
 def icon_from(img):
     rot = img.resize((W * SCALE, H * SCALE), Image.NEAREST).rotate(-45, resample=Image.NEAREST, expand=True)
     return fit_square(rot)
@@ -142,7 +173,7 @@ def fit_square(img, size=300, pad=14):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin)):
+    for name, fn in (("sword", sword), ("hammer", hammer), ("scythe", scythe), ("pumpkin", pumpkin), ("trident", trident), ("crystal", crystal), ("club", club)):
         art = fn().render()
         art.resize((W * SCALE, H * SCALE), Image.NEAREST).save(os.path.join(OUT, name + ".png"))
         icon_from(art).save(os.path.join(OUT, name + "-icon.png"))

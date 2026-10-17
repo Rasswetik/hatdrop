@@ -275,6 +275,7 @@ def load_db():
     if text:
         db = json.loads(text)
         _last_saved["db"] = text
+    _save_meta["rev"] = _read_meta().get("rev", 0)
     db.setdefault("users", {})
     db.setdefault("prices", {})
     db.setdefault("settings", {})
@@ -305,9 +306,21 @@ def load_db():
 # в Postgres/SQLite под глобальным локком - отсюда лаги на каждом клике. Теперь save_db()
 # только помечает «грязно», а фоновый поток пишет не чаще раза в SAVE_DELAY секунд;
 # на выходе процесса (SIGTERM/atexit) состояние дописывается принудительно.
-SAVE_DELAY = float(os.environ.get("SAVE_DELAY", "2"))
+SAVE_DELAY = float(os.environ.get("SAVE_DELAY", "0.7"))
 _dirty = threading.Event()
 _flush_lock = threading.Lock()
+
+
+_writer_id = secrets.token_hex(4)
+_save_meta = {"rev": 0, "conflict": None, "saved": 0, "bytes": 0, "users": 0}
+
+
+def _read_meta():
+    try:
+        raw = store_get("db_meta", DB_PATH + ".meta")
+        return json.loads(raw) if raw else {}
+    except Exception:
+        return {}
 
 
 def flush_db():
@@ -315,10 +328,21 @@ def flush_db():
     with _flush_lock:
         with lock:
             text = json.dumps(db, ensure_ascii=False)
+            users = len(db.get("users", {}))
         if text == _last_saved["db"]:
             return
+        meta = _read_meta()
+        if meta.get("writer") and meta["writer"] != _writer_id and meta.get("rev", 0) > _save_meta["rev"]:
+            # другой процесс записал базу после нашей последней загрузки: два воркера перетирают данные друг друга
+            _save_meta["conflict"] = {"writer": meta["writer"], "at": int(time.time())}
+            print("WARNING: БД изменил другой процесс — запущено несколько воркеров. Запустите ровно один (gunicorn -w 1).", flush=True)
         store_put("db", DB_PATH, text)
         _last_saved["db"] = text
+        _save_meta.update(rev=max(meta.get("rev", 0), _save_meta["rev"]) + 1, saved=int(time.time()), bytes=len(text), users=users)
+        try:
+            store_put("db_meta", DB_PATH + ".meta", json.dumps({"rev": _save_meta["rev"], "writer": _writer_id, "saved": _save_meta["saved"], "bytes": len(text), "users": users}))
+        except Exception as exc:
+            print("meta save failed:", exc, flush=True)
 
 
 def save_db():
@@ -748,6 +772,12 @@ def api(fn):
             response = jsonify(result)
         # Quest definitions, settings and claimed rewards must be durable before
         # returning success. Normal game updates remain on the buffered saver.
+        if request.path == "/api/shop/buy" and response.status_code == 200:
+            try:
+                flush_db()
+            except Exception as exc:
+                print(f"Shop persistence failed: {exc}", flush=True)
+                return jsonify({"error": "db_save_failed"}), 503
         if request.path in ("/api/admin/quests/save", "/api/admin/user/quests/save", "/api/quests/claim") or g.get("quest_milestone"):
             try:
                 if request.path in ("/api/admin/quests/save", "/api/admin/user/quests/save"):
@@ -1318,7 +1348,9 @@ BACKUP_TG_HOURS = float(os.environ.get("BACKUP_TG_HOURS", "12"))
 
 def storage_info():
     persistent = bool(DATABASE_URL or os.environ.get("SQLITE_PATH") or os.environ.get("DB_PATH"))
-    return {"kind": "postgres" if DATABASE_URL else "sqlite", "persistent": persistent}
+    return {"kind": "postgres" if DATABASE_URL else "sqlite", "persistent": persistent, "conflict": bool(_save_meta["conflict"]),
+            "last_saved": _save_meta["saved"], "bytes": _save_meta["bytes"], "users": _save_meta["users"], "rev": _save_meta["rev"],
+            "path": "" if DATABASE_URL else SQLITE_PATH}
 
 
 def backup_bytes():
@@ -1558,6 +1590,224 @@ def admin_broadcast_list(user, body):
     require_admin(user)
     rows = sorted(db.get("broadcasts", {}).values(), key=lambda r: r["created"], reverse=True)
     return {"rows": rows[:20], "users": sum(1 for u in db["users"].values() if str(u["id"]).startswith("tg") and not u.get("demo"))}
+
+
+# ---------- Лавка Костяна: магазин с настраиваемыми ордерами ----------
+SHOP_LIMIT = 100
+SHOP_CURRENCIES = ("ton", "hatcoin")
+WEAPON_IMAGES = {"axe": "/images/axe-icon.webp", "staff": "/images/staff-icon.webp", "skeleton": "/static/weapons/skeleton-icon.png"}
+
+
+def weapon_image(wid):
+    return WEAPON_IMAGES.get(wid) or f"/static/weapons/{wid}-icon.png"
+
+
+def shop_doc():
+    doc = db.setdefault("shop", {})
+    doc.setdefault("offers", {})
+    return doc
+
+
+def shop_reward_view(r):
+    kind = r["kind"]
+    if kind == "ton":
+        return {"kind": kind, "name": f"{r['amount']:g} TON", "image": "/images/gram.webp"}
+    if kind == "hatcoin":
+        return {"kind": kind, "name": f"{r['amount']:g} HatCoin", "image": "/images/hatcoin.webp"}
+    if kind == "weapon":
+        w = weapons_lib.WEAPONS[r["weapon"]]
+        return {"kind": kind, "name": w["name"], "image": weapon_image(r["weapon"]), "weapon": r["weapon"], "rarity": w["rarity"]}
+    return {"kind": kind, "name": r.get("name", ""), "image": r.get("image", ""), "value_ton": r.get("value", 0)}
+
+
+def shop_offer_view(offer, user):
+    bought = int(user.get("shop_bought", {}).get(offer["id"], 0))
+    total_left = None if not offer["limit_total"] else max(0, offer["limit_total"] - offer["sold"])
+    user_left = None if not offer["limit_user"] else max(0, offer["limit_user"] - bought)
+    reward = shop_reward_view(offer["reward"])
+    owned_weapon = offer["reward"]["kind"] == "weapon" and offer["reward"]["weapon"] in weapons_lib.owned(user)
+    left = [x for x in (total_left, user_left) if x is not None]
+    return {"id": offer["id"], "title": offer["title"], "description": offer.get("description", ""), "currency": offer["currency"],
+            "price": offer["price"], "reward": reward, "total_left": total_left, "user_left": user_left, "limit_total": offer["limit_total"],
+            "limit_user": offer["limit_user"], "personal": bool(offer.get("uid")),
+            "available": offer.get("active", True) and (not left or min(left) > 0) and not owned_weapon, "owned": owned_weapon}
+
+
+def shop_state(user):
+    offers = [o for o in shop_doc()["offers"].values()
+              if o.get("active", True) and (not o.get("uid") or o["uid"] == user["id"])]
+    offers.sort(key=lambda o: (o.get("sort", 0), o["created"]))
+    return {"offers": [shop_offer_view(o, user) for o in offers],
+            "balance_ton": ton(user["balance"]), "hatcoin_balance": hatcoin_balance(user)}
+
+
+@app.post("/api/shop")
+def player_shop():
+    with lock:
+        user, _ = current_user()
+        response = jsonify(shop_state(user))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@route("/api/shop/buy")
+def shop_buy(user, body):
+    offer = shop_doc()["offers"].get(str(body.get("id") or ""))
+    if not offer or not offer.get("active", True) or (offer.get("uid") and offer["uid"] != user["id"]):
+        raise ApiError("not_found", 404, message="Ордер недоступен.")
+    view = shop_offer_view(offer, user)
+    if view["owned"]:
+        raise ApiError("already_owned", 400, message="Это снаряжение у вас уже есть.")
+    if not view["available"]:
+        raise ApiError("sold_out", 400, message="Лимит ордера исчерпан.")
+    price = offer["price"]
+    if offer["currency"] == "ton":
+        if user["balance"] + 1e-9 < price:
+            raise ApiError("insufficient_funds", 400, message="Недостаточно TON.")
+    elif user.get("hatcoin_units", 0) < int(round(price * HATCOIN_UNITS)):
+        raise ApiError("insufficient_funds", 400, message="Недостаточно HatCoin.")
+    if offer["currency"] == "ton":
+        user["balance"] = ton(user["balance"] - price)
+    else:
+        user["hatcoin_units"] = user.get("hatcoin_units", 0) - int(round(price * HATCOIN_UNITS))
+    r = offer["reward"]
+    if r["kind"] == "ton":
+        user["balance"] = ton(user["balance"] + r["amount"])
+    elif r["kind"] == "hatcoin":
+        user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
+    elif r["kind"] == "weapon":
+        weapons_lib.grant(user, r["weapon"])
+    else:
+        prize = season_award(user, r)
+        prize["source"] = "shop"
+    offer["sold"] = offer.get("sold", 0) + 1
+    bought = user.setdefault("shop_bought", {})
+    bought[offer["id"]] = int(bought.get(offer["id"], 0)) + 1
+    return {"ok": True, **shop_state(user), "weapons": weapons_lib.owned(user), "prizes": visible_prizes(user)}
+
+
+def shop_parse_reward(body):
+    """Награда ордера из админ-формы; для подарков и NFT цена определяется на сервере."""
+    kind = str(body.get("kind") or "")
+    if kind in ("ton", "hatcoin"):
+        try:
+            amount = float(body.get("amount"))
+        except (TypeError, ValueError):
+            raise ApiError("bad_request", 400, message="Укажите количество награды.")
+        if not 0 < amount <= 100000:
+            raise ApiError("bad_request", 400, message="Количество награды: от 0 до 100000.")
+        return {"kind": kind, "amount": round(amount, 6)}
+    if kind == "weapon":
+        wid = str(body.get("weapon") or "")
+        if wid not in weapons_lib.WEAPONS or weapons_lib.WEAPONS[wid]["default"]:
+            raise ApiError("bad_request", 400, message="Выберите снаряжение.")
+        return {"kind": kind, "weapon": wid}
+    if kind in ("gift", "nft"):
+        return season_resolve_prize(body)
+    raise ApiError("bad_request", 400, message="Выберите тип награды.")
+
+
+def shop_clean(body, reward):
+    title = str(body.get("title") or "").strip()[:60]
+    if not title:
+        title = shop_reward_view(reward)["name"][:60]
+    currency = str(body.get("currency") or "ton")
+    if currency not in SHOP_CURRENCIES:
+        raise ApiError("bad_request", 400, message="Валюта: TON или HatCoin.")
+    try:
+        price = float(body.get("price"))
+        limit_total = int(body.get("limit_total") or 0)
+        limit_user = int(body.get("limit_user") or 0)
+    except (TypeError, ValueError):
+        raise ApiError("bad_request", 400, message="Проверьте цену и лимиты.")
+    if not 0 < price <= 1000000 or not 0 <= limit_total <= 1000000 or not 0 <= limit_user <= 1000000:
+        raise ApiError("bad_request", 400, message="Проверьте цену и лимиты.")
+    return {"title": title, "description": str(body.get("description") or "").strip()[:200], "currency": currency,
+            "price": round(price, 6), "limit_total": limit_total, "limit_user": limit_user,
+            "active": body.get("active", True) is not False, "reward": reward}
+
+
+@route("/api/admin/shop")
+def admin_shop(user, body):
+    require_admin(user)
+    offers = sorted((o for o in shop_doc()["offers"].values() if not o.get("uid")), key=lambda o: (o.get("sort", 0), o["created"]))
+    return {"rows": [{**o, "reward_view": shop_reward_view(o["reward"])} for o in offers],
+            "weapons": [{"id": k, "name": v["name"], "event": v["event"], "rarity": v["rarity"]} for k, v in weapons_lib.WEAPONS.items() if not v["default"]]}
+
+
+@admin_io("/api/admin/shop/save")
+def admin_shop_save(body):
+    action = str(body.get("action") or "")
+    uid = ""
+    if body.get("key"):
+        with lock:
+            uid = find_user(body.get("key"))["id"]
+    if action == "delete":
+        with lock:
+            offers = shop_doc()["offers"]
+            oid = str(body.get("id") or "")
+            if oid not in offers:
+                raise ApiError("not_found", 404)
+            del offers[oid]
+            return {"ok": True}
+    if action not in ("create", "update"):
+        raise ApiError("bad_request")
+    reward = shop_parse_reward(body.get("reward") or {})
+    with lock:
+        offers = shop_doc()["offers"]
+        existing = offers.get(str(body.get("id") or "")) if action == "update" else None
+        if action == "update" and not existing:
+            raise ApiError("not_found", 404)
+        if action == "create" and len(offers) >= SHOP_LIMIT:
+            raise ApiError("limit", 400, message="Слишком много ордеров.")
+        clean = shop_clean(body, reward)
+        oid = existing["id"] if existing else secrets.token_hex(6)
+        offers[oid] = {**(existing or {"sold": 0, "created": int(time.time())}), **clean, "id": oid,
+                       **({"uid": uid} if uid else {})}
+        return {"ok": True, "id": oid}
+
+
+@route("/api/admin/user/shop")
+def admin_user_shop(user, body):
+    require_admin(user)
+    target = find_user(body.get("key"))
+    rows = [{**o, "reward_view": shop_reward_view(o["reward"])} for o in shop_doc()["offers"].values() if o.get("uid") == target["id"]]
+    return {"rows": rows}
+
+
+@route("/api/admin/user/weapons")
+def admin_user_weapons(user, body):
+    require_admin(user)
+    target = find_user(body.get("key"))
+    wid = str(body.get("weapon") or "")
+    try:
+        if body.get("action") == "revoke":
+            weapons_lib.revoke(target, wid)
+        else:
+            weapons_lib.grant(target, wid)
+    except ValueError:
+        raise ApiError("bad_request", 400, message="Выберите снаряжение.")
+    return {"user": admin_user_detail(target)}
+
+
+@route("/api/admin/user/hatcoin")
+def admin_user_hatcoin(user, body):
+    require_admin(user)
+    target = find_user(body.get("key"))
+    try:
+        amount = float(body.get("amount"))
+    except (TypeError, ValueError):
+        raise ApiError("bad_request")
+    units = int(round(amount * HATCOIN_UNITS))
+    if body.get("mode") == "set":
+        if units < 0:
+            raise ApiError("bad_request")
+        target["hatcoin_units"] = units
+    elif body.get("mode") == "add":
+        target["hatcoin_units"] = max(0, target.get("hatcoin_units", 0) + units)
+    else:
+        raise ApiError("bad_request")
+    return {"user": admin_user_detail(target)}
 
 
 @route("/api/admin/withdrawals")
@@ -2450,6 +2700,9 @@ def admin_user_detail(u):
         "wallet": u["wallet"],
         "turnover_ton": ton(u["turnover"]),
         "stars_lock_until": int(u.get("stars_lock_until", 0) or 0),
+        "hatcoin": round(hatcoin_balance(u), 6),
+        "weapons": [w for w in weapons_lib.owned(u) if not weapons_lib.WEAPONS[w]["default"]],
+        "weapon_catalog": [{"id": k, "name": v["name"], "rarity": v["rarity"]} for k, v in weapons_lib.WEAPONS.items() if not v["default"]],
         "rtp": {m: {"global": global_rtp(m), "adj": user_rtp_adj(u, m),
                     "effective": effective_rtp(u, m), "nominal": RTP_NOMINAL[m]} for m in RTP_MODES},
         "prizes": [
@@ -3818,9 +4071,10 @@ def quest_image_asset(name):
                    os.path.join(BASE_DIR, "static", "img")):
         if os.path.isfile(os.path.join(folder, name)):
             return send_from_directory(folder, name, conditional=True)
-    # Prior banner remains visible until the requested PNG is deployed.
-    return send_from_directory(os.path.join(BASE_DIR, "static", "quests"),
-                               "kostyan-banner.svg", conditional=True)
+    # Animated SVG banners are shown until the requested PNG is uploaded.
+    svg = {"kostyan-halloween.png": "kostyan-shop-halloween.svg",
+           "kostyan-meadow.png": "kostyan-shop-meadow.svg"}.get(name, "kostyan-banner.svg")
+    return send_from_directory(os.path.join(BASE_DIR, "static", "quests"), svg, conditional=True)
 
 
 @app.get("/static/img/hand.png")

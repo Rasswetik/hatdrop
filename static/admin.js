@@ -47,6 +47,8 @@ function renderStorageBox(data) {
   } else {
     box.append(admField('p', {className: 'muted', textContent: 'Хранилище: ' + (st.kind === 'postgres' ? 'Postgres' : 'SQLite на постоянном диске') + '. Копия базы приходит владельцу в Telegram каждые 12 часов.'}));
   }
+  if (st.conflict) box.append(admField('p', {className: 'em-notice', textContent: '⛔ Базу изменяет другой процесс сервера: из-за этого данные откатываются. Запустите ровно один воркер (gunicorn -w 1) и перезапустите сервис.'}));
+  if (st.last_saved) box.append(admField('p', {className: 'muted', textContent: 'Последнее сохранение: ' + new Date(st.last_saved * 1000).toLocaleString('ru-RU') + ' · игроков ' + st.users + ' · ' + Math.round(st.bytes / 1024) + ' КБ' + (st.path ? ' · файл ' + st.path : '')}));
   const row = admField('div', {className: 'adm-form'});
   const dl = admField('button', {type: 'button', textContent: 'Скачать копию'});
   dl.onclick = async () => {
@@ -345,7 +347,7 @@ async function startAdmin() {
     $('financeSave').disabled=true;financeRequestId ||= crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()+Math.random().toString(16).slice(2);
     try{await api('/api/admin/finance/entry',{kind:$('financeKind').value,amount,note,request_id:financeRequestId});financeRequestId=null;$('financeForm').reset();toast('Операция записана');await admLoadOverview();}catch(e){admErr(e);}finally{$('financeSave').disabled=$('statsScope').value==='demo';}};
   if(typeof ResizeObserver!=='undefined') { let sizes={};const observer=new ResizeObserver(entries=>{for(const entry of entries){const id=entry.target.id,width=entry.contentRect.width;if(width>0&&sizes[id]!==width&&overviewData){sizes[id]=width;drawChart(id,overviewData.series,id==='profitChart'?'line':'bar');}}});observer.observe($('profitChart'));observer.observe($('volumeChart'));}
-  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer','rtp','payments','emoji','season','broadcast'].includes(initialTab)?initialTab:'overview');
+  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer','rtp','payments','emoji','season','broadcast','shop'].includes(initialTab)?initialTab:'overview');
   setInterval(()=>{if(!document.hidden&&['overview','finance'].includes(admin.tab))admLoadOverview();},60000);
 }
 startAdmin().catch(()=>{$('accessMessage').textContent='Не удалось загрузить панель. Обновите страницу.';});

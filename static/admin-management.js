@@ -18,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
+  const titles = {shop:'Лавка',broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
   $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji','Season','Broadcast']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji','Season','Broadcast','Shop']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -45,6 +45,7 @@ function admShow(tab) {
   else if (tab === 'emoji') admLoadEmoji();
   else if (tab === 'season') admLoadSeason();
   else if (tab === 'broadcast') admLoadBroadcast();
+  else if (tab === 'shop') admLoadShop();
 }
 
 async function admLoadGlobalRtp() {
@@ -281,7 +282,50 @@ function admRenderUser(u) {
   const pq = admBox('Личные квесты');
   pq.id = 'admPersonalQuests';
   admRenderPersonalQuests(pq, u.key);
-  root.append(info, ...(lockBox ? [lockBox] : []), rtp, bal, inv, give, pq);
+  // HatCoin
+  const hc = admBox(`Баланс HatCoin: ${fmt(u.hatcoin, 4)}`);
+  const hcForm = admField('div', { className: 'adm-form' });
+  const hcAmount = admField('input', { type: 'number', step: 'any', placeholder: 'Сумма, HatCoin' });
+  const hcSet = admField('button', { type: 'button', textContent: 'Установить' });
+  const hcAdd = admField('button', { type: 'button', textContent: '± Изменить' });
+  const hcSend = async (mode) => {
+    const v = parseFloat(hcAmount.value);
+    if (!Number.isFinite(v)) { toast('Введи сумму', true); return; }
+    try { admRenderUser((await api('/api/admin/user/hatcoin', { key: u.key, mode, amount: v })).user); toast('Баланс HatCoin обновлён'); } catch (e) { admErr(e); }
+  };
+  hcSet.onclick = () => hcSend('set'); hcAdd.onclick = () => hcSend('add');
+  hcForm.append(hcAmount, hcSet, hcAdd); hc.appendChild(hcForm);
+
+  // Снаряжение
+  const wp = admBox('Снаряжение игрока');
+  const names = Object.fromEntries((u.weapon_catalog || []).map(w => [w.id, w.name]));
+  if (!u.weapons.length) wp.append('Закрытого снаряжения нет');
+  for (const id of u.weapons) {
+    const row = admField('div', { className: 'adm-form' });
+    const del = admField('button', { type: 'button', className: 'danger', textContent: 'Убрать' });
+    del.onclick = async () => { try { admRenderUser((await api('/api/admin/user/weapons', { key: u.key, weapon: id, action: 'revoke' })).user); } catch (e) { admErr(e); } };
+    row.append(admField('b', { textContent: names[id] || id }), del); wp.appendChild(row);
+  }
+  const wForm = admField('div', { className: 'adm-form' });
+  const wSel = admField('select');
+  for (const w of (u.weapon_catalog || []).filter(w => !u.weapons.includes(w.id))) wSel.append(admField('option', { value: w.id, textContent: w.name }));
+  const wGive = admField('button', { type: 'button', textContent: 'Выдать' });
+  wGive.onclick = async () => { if (!wSel.value) return; try { admRenderUser((await api('/api/admin/user/weapons', { key: u.key, weapon: wSel.value })).user); toast('Снаряжение выдано'); } catch (e) { admErr(e); } };
+  wForm.append(wSel, wGive); wp.appendChild(wForm);
+
+  // Личные ордера лавки
+  const ps = admBox('Личные ордера лавки');
+  (async function drawPs() {
+    ps.replaceChildren(admField('h3', { textContent: 'Личные ордера лавки' }));
+    try {
+      const data = await api('/api/admin/user/shop', { key: u.key });
+      for (const o of data.rows) ps.append(shopRow(o, drawPs, (x) => { ps.replaceChildren(admField('h3', { textContent: 'Изменить ордер' }), shopForm(x, u.weapon_catalog || [], drawPs, u.key)); }));
+      const add = admField('button', { type: 'button', textContent: 'Новый личный ордер' });
+      add.onclick = () => { ps.replaceChildren(admField('h3', { textContent: 'Новый личный ордер' }), shopForm(null, u.weapon_catalog || [], drawPs, u.key)); };
+      ps.append(add);
+    } catch (e) { admErr(e); }
+  })();
+  root.append(info, ...(lockBox ? [lockBox] : []), rtp, bal, hc, inv, wp, give, pq, ps);
 }
 
 async function admRenderPersonalQuests(box, key, data) {
