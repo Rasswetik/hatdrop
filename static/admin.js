@@ -45,9 +45,9 @@ function renderStorageBox(data) {
   if (st.persistent === false) {
     box.append(admField('p', {className: 'em-notice', textContent: '⚠️ База лежит во временном хранилище: при деплое или перезапуске хостинга данные (рейтинг, эмодзи, настройки) сотрутся. Задайте DATABASE_URL (Postgres) или SQLITE_PATH на постоянном диске. Пока этого нет — копия базы автоматически приходит владельцу в Telegram, её можно вернуть командой /restore.'}));
   } else {
-    box.append(admField('p', {className: 'muted', textContent: 'Хранилище: ' + (st.kind === 'postgres' ? 'Postgres' : 'SQLite на постоянном диске') + '. Копия базы приходит владельцу в Telegram каждые 12 часов.'}));
+    box.append(admField('p', {className: 'muted', textContent: 'Хранилище: ' + (st.kind === 'postgres' ? 'Postgres' : 'SQLite на постоянном диске') + '. Копия Postgres в локальную SQLite делается каждые 5 минут (раздел «База данных»).'}));
   }
-  if (st.conflict) box.append(admField('p', {className: 'em-notice', textContent: '⛔ Базу изменяет другой процесс сервера: из-за этого данные откатываются. Запустите ровно один воркер (gunicorn -w 1) и перезапустите сервис.'}));
+  if (st.conflict) box.append(admField('p', {className: 'em-notice', textContent: '⛔ Эту базу изменяет другой процесс или другой сервер: из-за этого данные могут откатываться. Проверьте, что с этой базой работает только один запущенный сервис (один воркер gunicorn -w 1, нет старой копии сайта или второго сервера с тем же DATABASE_URL). Предупреждение само пропадёт через 3 минуты после остановки постороннего процесса.'}));
   if (st.last_saved) box.append(admField('p', {className: 'muted', textContent: 'Последнее сохранение: ' + new Date(st.last_saved * 1000).toLocaleString('ru-RU') + ' · игроков ' + st.users + ' · ' + Math.round(st.bytes / 1024) + ' КБ' + (st.path ? ' · файл ' + st.path : '')}));
   const row = admField('div', {className: 'adm-form'});
   const dl = admField('button', {type: 'button', textContent: 'Скачать копию'});

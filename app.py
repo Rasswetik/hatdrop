@@ -401,7 +401,10 @@ def flush_db():
         if meta.get("writer") and meta["writer"] != _writer_id and meta.get("rev", 0) > _save_meta["rev"]:
             # другой процесс записал базу после нашей последней загрузки: два воркера перетирают данные друг друга
             _save_meta["conflict"] = {"writer": meta["writer"], "at": int(time.time())}
+            _save_meta["rev"] = meta.get("rev", 0)
             print("WARNING: БД изменил другой процесс — запущено несколько воркеров. Запустите ровно один (gunicorn -w 1).", flush=True)
+        elif _save_meta["conflict"] and time.time() - _save_meta["conflict"]["at"] > 180 and (not meta.get("writer") or meta["writer"] == _writer_id):
+            _save_meta["conflict"] = None  # посторонних записей больше нет: старый процесс остановился
         store_put("db", DB_PATH, text)
         _last_saved["db"] = text
         _save_meta.update(rev=max(meta.get("rev", 0), _save_meta["rev"]) + 1, saved=int(time.time()), bytes=len(text), users=users)
@@ -6720,6 +6723,9 @@ def switch_database(backend, url, mode):
 def admin_database(user, body):
     require_admin(user)
     action = str(body.get("action") or "status")
+    if action == "clear_conflict":
+        _save_meta["conflict"] = None
+        action = "status"
     backend = str(body.get("backend") or "")
     url = str(body.get("url") or "").strip()
     out = {}
