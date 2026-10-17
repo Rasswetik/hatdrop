@@ -18,9 +18,10 @@
   }
 
   function preload(which) {
-    const url = '/static/halloween/' + which + '.png';
     const probe = new Image();
+    let url = '/static/halloween/' + which + '.webp';  // сжатая копия делается сервером из PNG
     probe.decoding = 'async';
+    let retried = false;
     probe.onload = () => {
       available[which] = true;
       images[which].src = url;
@@ -28,6 +29,7 @@
       sync();
     };
     probe.onerror = () => {
+      if (!retried) { retried = true; url = '/static/halloween/' + which + '.png'; probe.src = url; return; }
       available[which] = false;
       images[which].dataset.loaded = 'false';
       sync();

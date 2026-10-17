@@ -69,6 +69,20 @@
       <div id="admWdList"></div>
     </div>
     <div id="admAppearance" hidden="">
+      <div class="adm-box maint-admin-box">
+        <h3>🛠 Режим технических работ</h3>
+        <label class="halloween-switch-row" for="admMaintToggle">
+          <span class="halloween-switch-copy">
+            <b>Закрыть игру для игроков</b>
+            <small id="admMaintStatus" role="status">Загрузка…</small>
+          </span>
+          <input id="admMaintToggle" type="checkbox" role="switch" aria-label="Включить режим технических работ">
+          <span class="halloween-switch-track" aria-hidden="true"><span></span></span>
+        </label>
+        <p class="muted">Пока режим включён, пользоваться игрой могут только администраторы. Остальные видят экран технических работ в оформлении своей темы.</p>
+        <textarea id="admMaintText" maxlength="300" rows="3" placeholder="Текст для игроков (необязательно): «Обновляем игру, вернёмся через 15 минут»"></textarea>
+        <div class="adm-form"><button type="button" class="primary" id="admMaintSave">Сохранить текст</button></div>
+      </div>
       <div class="adm-box halloween-admin-box">
         <h3>🎃 Хэллоуинская тема</h3>
         

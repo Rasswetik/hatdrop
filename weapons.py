@@ -37,6 +37,9 @@ WEAPONS = {
     "spin_pendulum": {"name": "Прокрут: Маятник", "default": False, "event": "", "rarity": "epic", "kind": "spin"},
     "spin_tease": {"name": "Прокрут: Интрига", "default": False, "event": "", "rarity": "epic", "kind": "spin"},
     "spin_swing": {"name": "Прокрут: Качели", "default": False, "event": "", "rarity": "legendary", "kind": "spin"},
+    # оформления игры (kind=theme): выдаются так же, как оружие — наградами, в лавке, за уровни
+    "theme_meadow": {"name": "Оформление: Поляна", "default": True, "event": "", "rarity": "common", "kind": "theme"},
+    "theme_halloween": {"name": "Оформление: Хэллоуин", "default": False, "event": "halloween", "rarity": "rare", "kind": "theme", "event_free": True},
 }
 
 
@@ -48,6 +51,12 @@ def owned(user):
     got = user.get("weapons") if isinstance(user.get("weapons"), list) else []
     free = {k for k, v in WEAPONS.items() if v.get("event_free") and ACTIVE_EVENT and v["event"] == ACTIVE_EVENT}
     return sorted({k for k, v in WEAPONS.items() if v["default"]} | free | {w for w in got if w in WEAPONS})
+
+
+def has(user, wid):
+    """Постоянное владение (без учёта бесплатного доступа на время ивента)."""
+    got = user.get("weapons") if isinstance(user.get("weapons"), list) else []
+    return wid in WEAPONS and (bool(WEAPONS[wid]["default"]) or wid in got)
 
 
 def grant(user, weapon):
@@ -77,8 +86,12 @@ DEFAULT_CFG = {
 }
 
 
+def is_gear(wid):
+    return wid in WEAPONS and WEAPONS[wid].get("kind") not in ("spin", "theme")
+
+
 def gear_ids():
-    return [k for k, v in WEAPONS.items() if v.get("kind") != "spin"]
+    return [k for k in WEAPONS if is_gear(k)]
 
 
 def clean_cfg(raw):
@@ -98,7 +111,7 @@ def clean_cfg(raw):
         ws = []
         for w in c.get("weapons") or []:
             w = str(w)
-            if w in WEAPONS and WEAPONS[w].get("kind") != "spin" and w not in used:
+            if is_gear(w) and w not in used:
                 used.add(w)
                 ws.append(w)
         try:

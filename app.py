@@ -1,6 +1,7 @@
 import atexit
 import gzip
 import hashlib
+import tempfile
 import hmac
 import html
 import json
@@ -727,6 +728,12 @@ def credit_referral_bonus(user, amount):
     return bonus
 
 
+def maintenance_cfg():
+    m = db.get("settings", {}).get("maintenance")
+    m = m if isinstance(m, dict) else {}
+    return {"enabled": m.get("enabled") is True, "text": str(m.get("text") or "")[:300]}
+
+
 def current_user():
     body = request.get_json(silent=True) or {}
     # Cookie authentication is limited to the separate admin page and its catalog.
@@ -775,6 +782,9 @@ def current_user():
     user = users[uid]
     if user.get("banned") and not request.path.startswith("/api/admin/") and not is_admin(user):
         raise ApiError("banned", 403, message="Аккаунт заблокирован администратором.")
+    maint = maintenance_cfg()
+    if maint["enabled"] and not request.path.startswith("/api/admin/") and not is_admin(user):
+        raise ApiError("maintenance", 503, message=maint["text"] or "Сервис на технических работах. Скоро вернёмся.")
     user.setdefault("hatcoin_units", 0)
     user.setdefault("chest", None)
     user["seen"] = int(time.time())
@@ -959,7 +969,56 @@ def public_config():
     }
 
 
+def effective_theme(user):
+    """Оформление игрока: на время ивента всем включается Хэллоуин (один раз), потом игрок может сменить."""
+    st = db["settings"]
+    epoch = int(st.get("halloween_epoch") or 0)
+    if st.get("halloween_enabled") is True and user.get("theme_epoch") != epoch:
+        user["theme"], user["theme_epoch"] = "halloween", epoch
+    theme = user.get("theme") or "meadow"
+    if "theme_" + theme not in weapons_lib.owned(user):
+        theme = "meadow"
+    return theme
+
+
+LEVEL_REWARD_MAX = 200
+
+
+def level_rewards_view():
+    out = {}
+    for n, r in (db["settings"].get("level_rewards") or {}).items():
+        try:
+            out[str(n)] = shop_reward_view(r)
+        except (KeyError, TypeError):
+            continue
+    return out
+
+
+def apply_level_rewards(user):
+    """Выдаёт настроенные награды за уровни, которые игрок уже достиг (и ещё не получил)."""
+    rewards = db["settings"].get("level_rewards") or {}
+    if not rewards:
+        return
+    lvl = level_info(user["turnover"])["level"]
+    done = user.setdefault("lvl_claimed", [])
+    for n, r in rewards.items():
+        try:
+            n_int = int(n)
+        except ValueError:
+            continue
+        if n_int > lvl or n_int in done:
+            continue
+        done.append(n_int)
+        if r["kind"] == "ton":
+            user["balance"] = ton(user["balance"] + r["amount"])
+        elif r["kind"] == "hatcoin":
+            user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
+        elif r["kind"] == "weapon" and r["weapon"] in weapons_lib.WEAPONS:
+            weapons_lib.grant(user, r["weapon"])
+
+
 def full_state(user):
+    apply_level_rewards(user)
     return {
         "balance_ton": ton(user["balance"]),
         "config": public_config(),
@@ -977,6 +1036,9 @@ def full_state(user):
         "level": level_info(user["turnover"]),
         "weapons": weapons_lib.owned(user),
         "tour_done": bool(user.get("tour_done")),
+        "theme": effective_theme(user),
+        "level_rewards": level_rewards_view(),
+        "maintenance": maintenance_cfg()["enabled"],
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
         "withdraw_locked_until": int(user.get("stars_lock_until", 0) or 0),
@@ -1683,6 +1745,8 @@ WEAPON_IMAGES = {"axe": "/images/axe-icon.webp", "staff": "/images/staff-icon.we
 
 
 def weapon_image(wid):
+    if weapons_lib.WEAPONS.get(wid, {}).get("kind") == "theme":
+        return f"/static/themes/{wid[len('theme_'):]}.png"
     return WEAPON_IMAGES.get(wid) or f"/static/weapons/{wid}-icon.png"
 
 
@@ -1709,7 +1773,7 @@ def shop_offer_view(offer, user):
     total_left = None if not offer["limit_total"] else max(0, offer["limit_total"] - offer["sold"])
     user_left = None if not offer["limit_user"] else max(0, offer["limit_user"] - bought)
     reward = shop_reward_view(offer["reward"])
-    owned_weapon = offer["reward"]["kind"] == "weapon" and offer["reward"]["weapon"] in weapons_lib.owned(user)
+    owned_weapon = offer["reward"]["kind"] == "weapon" and weapons_lib.has(user, offer["reward"]["weapon"])
     left = [x for x in (total_left, user_left) if x is not None]
     return {"id": offer["id"], "title": offer["title"], "description": offer.get("description", ""), "currency": offer["currency"],
             "price": offer["price"], "reward": reward, "total_left": total_left, "user_left": user_left, "limit_total": offer["limit_total"],
@@ -2310,10 +2374,57 @@ def weapon_catalog_view(user):
     prog = weapons_lib.progress(user, cfg)
     claims = set(weapon_claims(user))
     items = {k: {"name": v["name"], "rarity": v["rarity"], "event": v["event"], "default": bool(v["default"])}
-             for k, v in weapons_lib.WEAPONS.items() if v.get("kind") != "spin"}
+             for k, v in weapons_lib.WEAPONS.items() if weapons_lib.is_gear(k)}
     cols = [{**c, "have": prog["collections"][c["id"]], "claimed": "c:" + c["id"] in claims} for c in cfg["collections"]]
     levels = [{**lv, "claimed": "l:" + lv["id"] in claims} for lv in cfg["levels"]]
     return {"items": items, "collections": cols, "levels": levels, "total": prog["total"], "have": prog["have"]}
+
+
+@route("/api/theme/set")
+def theme_set(user, body):
+    tid = str(body.get("id") or "")
+    if tid not in ("meadow", "halloween") or "theme_" + tid not in weapons_lib.owned(user):
+        raise ApiError("locked", 400, message="Это оформление недоступно.")
+    user["theme"] = tid
+    user["theme_epoch"] = int(db["settings"].get("halloween_epoch") or 0)
+    return {"ok": True, "theme": effective_theme(user)}
+
+
+@route("/api/admin/maintenance")
+def admin_maintenance(user, body):
+    require_admin(user)
+    if "enabled" in body:
+        if not isinstance(body["enabled"], bool):
+            raise ApiError("bad_request")
+        db["settings"]["maintenance"] = {"enabled": body["enabled"], "text": str(body.get("text") or "").strip()[:300]}
+    elif "text" in body:
+        db["settings"]["maintenance"] = {**maintenance_cfg(), "text": str(body.get("text") or "").strip()[:300]}
+    return maintenance_cfg()
+
+
+@route("/api/admin/levels")
+def admin_levels(user, body):
+    require_admin(user)
+    if "rewards" in body:
+        raw = body.get("rewards")
+        if not isinstance(raw, dict) or len(raw) > LEVEL_REWARD_MAX:
+            raise ApiError("bad_request")
+        clean = {}
+        for n, r in raw.items():
+            try:
+                lvl = int(n)
+            except (TypeError, ValueError):
+                raise ApiError("bad_request", 400, message="Уровень — целое число.")
+            if not 1 <= lvl <= 1000 or not isinstance(r, dict):
+                raise ApiError("bad_request", 400, message="Уровень: от 1 до 1000.")
+            if str(r.get("kind")) not in ("ton", "hatcoin", "weapon"):
+                raise ApiError("bad_request", 400, message="Выберите тип награды.")
+            clean[str(lvl)] = shop_parse_reward(r)
+        db["settings"]["level_rewards"] = clean
+    rewards = db["settings"].get("level_rewards") or {}
+    return {"rewards": {n: {**r, "view": shop_reward_view(r)} for n, r in rewards.items()},
+            "items": [{"id": k, "name": v["name"], "rarity": v["rarity"], "kind": v.get("kind", "gear"), "default": bool(v["default"])}
+                      for k, v in weapons_lib.WEAPONS.items()]}
 
 
 @route("/api/weapons/catalog")
@@ -2353,7 +2464,7 @@ def admin_weapons(user, body):
     total = max(1, len(users))
     weapons = [{"id": k, "name": v["name"], "rarity": v["rarity"], "event": v["event"], "default": bool(v["default"]),
                 "owners": sum(1 for u in users if k in weapons_lib.owned(u))}
-               for k, v in weapons_lib.WEAPONS.items() if v.get("kind") != "spin"]
+               for k, v in weapons_lib.WEAPONS.items() if weapons_lib.is_gear(k)]
     claims = sum(len(u.get("wclaims") or []) for u in users)
     return {"cfg": cfg, "weapons": weapons, "players": total, "claims": claims}
 
@@ -2848,6 +2959,8 @@ def admin_theme(user, body):
     if "enabled" in body:
         if not isinstance(body["enabled"], bool):
             raise ApiError("bad_request")
+        if body["enabled"] and db["settings"].get("halloween_enabled") is not True:
+            db["settings"]["halloween_epoch"] = int(db["settings"].get("halloween_epoch") or 0) + 1
         db["settings"]["halloween_enabled"] = body["enabled"]
         weapons_lib.ACTIVE_EVENT = "halloween" if body["enabled"] is True else ""
     return {"enabled": db["settings"].get("halloween_enabled") is True}
@@ -4399,10 +4512,37 @@ POSTER_EXT = {".webp", ".jpg", ".jpeg", ".png", ".avif"}
 BG_SKIP_DIRS = {"next", "css", "js", "img"}
 
 
+def png_as_webp(name):
+    """Для /static/x.webp без файла: сжимает соседний x.png в WebP и кэширует (PNG-фоны по 1-2 МБ грузились слишком долго)."""
+    src = os.path.join(STATIC_DIR, name[:-5] + ".png")
+    if not os.path.isfile(src) or not os.path.realpath(src).startswith(os.path.realpath(STATIC_DIR)):
+        return None
+    mtime = os.path.getmtime(src)
+    key = hashlib.sha1(f"{name}:{mtime}".encode()).hexdigest()[:16]
+    cache_dir = os.path.join(tempfile.gettempdir(), "hatdrop-webp")
+    os.makedirs(cache_dir, exist_ok=True)
+    out = os.path.join(cache_dir, key + ".webp")
+    if not os.path.isfile(out):
+        try:
+            from PIL import Image
+            with Image.open(src) as im:
+                im.convert("RGBA" if "A" in im.getbands() else "RGB").save(out, "WEBP", quality=82, method=4)
+        except Exception as exc:
+            print(f"webp convert failed: {exc}", flush=True)
+            return None
+    resp = send_from_directory(cache_dir, key + ".webp", conditional=True)
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    return resp
+
+
 @app.get("/static/<path:name>")
 def static_files(name):
     if os.path.splitext(name)[1].lower() not in STATIC_ALLOWED:
         return ("", 404)
+    if name.lower().endswith(".webp") and not os.path.isfile(os.path.join(STATIC_DIR, name)):
+        converted = png_as_webp(name)  # из загруженного PNG делаем лёгкую копию
+        if converted:
+            return converted
     resp = send_from_directory(STATIC_DIR, name, conditional=True)  # Range/206 для видео, ETag/304
     # URL с ?v=<mtime> меняется вместе с файлом, поэтому кэшируем надолго
     resp.headers["Cache-Control"] = ("public, max-age=31536000, immutable" if request.args.get("v")

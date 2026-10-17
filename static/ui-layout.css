@@ -254,3 +254,43 @@ html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 .wp-info > div > span { opacity: .65; }
 .wp-note { margin: 0; font-size: 10px; line-height: 1.5; opacity: .7; }
 .wp-note[hidden], #wpApply[hidden] { display: none !important; }
+
+/* Оформления, техработы, награды уровней */
+.cz-tabs { grid-template-columns: repeat(3, 1fr) !important; }
+.cz-tab { font-size: 10px !important; padding: 9px 2px !important; }
+.theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; overflow-y: auto; min-height: 0; padding: 2px; scrollbar-width: none; }
+.theme-grid::-webkit-scrollbar { display: none; }
+.theme-grid[hidden] { display: none !important; }
+.theme-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; font: inherit; font-size: 11px; color: inherit; text-align: center; cursor: pointer; background: rgba(0,0,0,.25); border: 3px solid rgba(255,255,255,.22); border-radius: 12px; }
+.theme-card[data-rarity="rare"] { border-color: #5aa9ff; }
+.theme-card[data-rarity="epic"] { border-color: #b46bff; }
+.theme-card.on { outline: 3px solid #fff; outline-offset: -1px; }
+.theme-card small { font-size: 9px; opacity: .85; }
+.theme-card[data-rarity="rare"] small { color: #8cc4ff; }
+.theme-card.off .tc-pic { filter: grayscale(.85) brightness(.55); }
+.theme-card.off small { color: #ffb066 !important; }
+.tc-pic { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: linear-gradient(180deg, #5db8ff 0 52%, #5fbf59 52%); image-rendering: pixelated; }
+.tc-pic[data-theme="halloween"] { background: linear-gradient(180deg, #2a1646 0 52%, #1a1030 52%); }
+.tc-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.tp-stage { height: auto !important; aspect-ratio: 1; cursor: default !important; padding: 0; }
+.tp-stage .tc-pic { height: 100%; border-radius: 9px; }
+.lvl-rw { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 3px; font-size: 8px; color: #ffdb7a; }
+.lvl-rw img { width: 16px; height: 16px; object-fit: contain; }
+.mt-screen { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(8, 6, 28, .78); backdrop-filter: blur(6px); }
+.mt-screen[hidden] { display: none !important; }
+.mt-card { width: min(360px, 100%); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 22px; text-align: center; color: var(--text, #f2edff); background: var(--card, rgba(28,20,66,.92)); border: 4px solid var(--card-line, #6b4bb8); border-radius: 16px; box-shadow: 0 0 0 4px rgba(0,0,0,.35), 0 18px 50px rgba(0,0,0,.5); }
+.mt-ico { width: 84px; height: 84px; image-rendering: pixelated; animation: mtTilt 2.4s steps(6) infinite; }
+.mt-card h2 { margin: 0; font-size: 17px; line-height: 1.3; }
+.mt-card p { margin: 0; font-size: 12px; line-height: 1.6; opacity: .9; }
+.mt-card small { font-size: 9px; opacity: .6; }
+.mt-dots { display: flex; gap: 6px; }
+.mt-dots i { width: 8px; height: 8px; background: currentColor; opacity: .3; animation: mtDot 1.2s steps(2) infinite; }
+.mt-dots i:nth-child(2) { animation-delay: .2s; } .mt-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes mtDot { 50% { opacity: 1; } }
+@keyframes mtTilt { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(12deg); } }
+html[data-halloween="on"] .mt-screen { background: rgba(10, 4, 20, .86); }
+html[data-halloween="on"] .mt-card { background: linear-gradient(180deg, #2a1646, #170c2b); border-color: #ff8a1f; color: #ffe6c9; box-shadow: 0 0 0 4px rgba(0,0,0,.45), 0 0 40px rgba(255,138,31,.25); }
+html[data-halloween="on"] .mt-card h2 { color: #ffa94d; }
+html:not([data-halloween="on"]) .mt-card { border-color: #5fbf59; background: rgba(20, 44, 70, .93); }
+html:not([data-halloween="on"]) .mt-card h2 { color: #ffe08a; }
+.weapon-list[hidden] { display: none !important; }

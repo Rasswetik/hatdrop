@@ -18,7 +18,7 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {shop:'Лавка',weapons:'Оружие',broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема игры',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
+  const titles = {shop:'Лавка',weapons:'Оружие',broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема и техработы',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
@@ -591,7 +591,23 @@ async function admSaveTonConnect(reset){
 }
 
 
+async function admLoadMaint() {
+  try {
+    const r = await api('/api/admin/maintenance');
+    $('admMaintToggle').checked = r.enabled; $('admMaintText').value = r.text || '';
+    $('admMaintStatus').textContent = r.enabled ? 'Включён · игра закрыта для игроков, открыта админам' : 'Выключен · игра работает';
+  } catch (e) { admErr(e); }
+}
+async function admSaveMaint(payload, okText) {
+  try {
+    const r = await api('/api/admin/maintenance', payload);
+    $('admMaintToggle').checked = r.enabled; $('admMaintStatus').textContent = r.enabled ? 'Включён · игра закрыта для игроков, открыта админам' : 'Выключен · игра работает';
+    toast(okText);
+  } catch (e) { $('admMaintToggle').checked = !$('admMaintToggle').checked; admErr(e); }
+}
+
 async function admLoadAppearance() {
+  admLoadMaint();
   const toggle = $('admHalloweenToggle');
   const status = $('admHalloweenStatus');
   toggle.disabled = true;
@@ -634,6 +650,12 @@ async function admToggleHalloween() {
 function initAdmin() {
   initQuestAdmin();
   $('admHalloweenToggle').addEventListener('change', admToggleHalloween);
+  $('admMaintToggle').addEventListener('change', () => {
+    const on = $('admMaintToggle').checked;
+    if (on && !confirm('Включить технические работы? Все игроки, кроме админов, потеряют доступ к игре.')) { $('admMaintToggle').checked = false; return; }
+    admSaveMaint({ enabled: on, text: $('admMaintText').value }, on ? 'Технические работы включены' : 'Игра снова открыта');
+  });
+  $('admMaintSave').addEventListener('click', () => admSaveMaint({ enabled: $('admMaintToggle').checked, text: $('admMaintText').value }, 'Текст сохранён'));
   $('admBack').addEventListener('click', () => admShow('users'));
   document.querySelectorAll('#admTabs button').forEach(b => b.addEventListener('click', () => admShow(b.dataset.tab)));
   $('admSearch').addEventListener('input', () => {

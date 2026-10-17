@@ -48,7 +48,7 @@
   // The old alignment hook is used when returning to upgrades; the SVG needs no measurements.
   window.alignBg = () => {};
   let sky = 'day';
-  try { sky = localStorage.getItem('sky') || 'day'; } catch {}
+  try { sky = root.dataset.halloween === 'on' ? (localStorage.getItem('halloweenSky') || 'night') : (localStorage.getItem('sky') || 'day'); } catch {}
   setSky(sky, true);
   document.addEventListener('visibilitychange', pauseScene);
   window.Telegram?.WebApp?.onEvent?.('activated', pauseScene);

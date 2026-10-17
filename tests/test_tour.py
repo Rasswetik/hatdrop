@@ -16,7 +16,7 @@ class TourTests(unittest.TestCase):
     def test_new_player_has_zero_balance_and_no_skeleton(self):
         st = self.post("/api/state").json
         self.assertEqual(st["balance_ton"], 0)
-        self.assertEqual(st["weapons"], ["axe", "spin_plain"])
+        self.assertEqual(st["weapons"], ["axe", "spin_plain", "theme_meadow"])
         self.assertFalse(st["tour_done"])
 
     def test_free_hand_offer_for_everyone(self):
@@ -93,3 +93,44 @@ class WeaponCollectionTests(AdminUsersTests):
         bad = self.c.post("/api/admin/weapons/save", headers=self.h, json={"cfg": {"collections": [{"name": ""}]}})
         self.assertEqual(bad.status_code, 400)
         self.assertEqual(self.c.post("/api/admin/weapons", headers=self.h, json={}).json["claims"], 2)
+
+
+class ThemeMaintenanceTests(AdminUsersTests):
+    def post(self, path, body=None, uid=303):
+        return self.c.post(path, json={"initData": signed_user(uid), **(body or {})})
+
+    def test_theme_event_and_ownership(self):
+        st = self.post("/api/state").json
+        self.assertEqual(st["theme"], "meadow")
+        self.assertEqual(self.post("/api/theme/set", {"id": "halloween"}).status_code, 400)
+        self.c.post("/api/admin/theme", headers=self.h, json={"enabled": True})
+        st = self.post("/api/state").json
+        self.assertEqual(st["theme"], "halloween")                      # включилось автоматически
+        self.assertEqual(self.post("/api/theme/set", {"id": "meadow"}).json["theme"], "meadow")
+        self.assertEqual(self.post("/api/state").json["theme"], "meadow")  # выбор игрока не перебивается
+        self.post("/api/theme/set", {"id": "halloween"})
+        self.c.post("/api/admin/theme", headers=self.h, json={"enabled": False})
+        self.assertEqual(self.post("/api/state").json["theme"], "meadow")  # не куплена - пропала
+        backend.weapons_lib.grant(backend.db["users"]["tg303"], "theme_halloween")
+        self.post("/api/theme/set", {"id": "halloween"})
+        self.assertEqual(self.post("/api/state").json["theme"], "halloween")  # куплена - осталась
+
+    def test_maintenance_blocks_players_not_admins(self):
+        r = self.c.post("/api/admin/maintenance", headers=self.h, json={"enabled": True, "text": "Скоро вернёмся"})
+        self.assertTrue(r.json["enabled"])
+        r = self.post("/api/state")
+        self.assertEqual((r.status_code, r.json["error"], r.json["message"]), (503, "maintenance", "Скоро вернёмся"))
+        self.assertEqual(self.post("/api/state", uid=101).status_code, 200)
+        self.c.post("/api/admin/maintenance", headers=self.h, json={"enabled": False})
+        self.assertEqual(self.post("/api/state").status_code, 200)
+
+    def test_level_rewards(self):
+        self.post("/api/state")
+        r = self.c.post("/api/admin/levels", headers=self.h, json={"rewards": {"1": {"kind": "weapon", "weapon": "theme_halloween"}, "2": {"kind": "ton", "amount": 3}}})
+        self.assertEqual(r.status_code, 200)
+        st = self.post("/api/state").json
+        self.assertIn("theme_halloween", st["weapons"])
+        self.assertEqual(st["level_rewards"]["1"]["kind"], "weapon")
+        self.assertEqual(st["balance_ton"], 0)  # уровень 2 ещё не достигнут
+        bad = self.c.post("/api/admin/levels", headers=self.h, json={"rewards": {"1": {"kind": "weapon", "weapon": "nope"}}})
+        self.assertEqual(bad.status_code, 400)

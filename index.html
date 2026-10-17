@@ -2,6 +2,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Magic Upgrade</title>
+<script>
+/* Тема применяется до первой отрисовки: берём последнюю известную из кэша, а не ждём ответа сервера */
+(function () {
+  try {
+    if (localStorage.getItem('themeCache') !== 'halloween') return;
+    var r = document.documentElement, d = document.head;
+    r.dataset.halloween = 'on';
+    r.dataset.sky = localStorage.getItem('halloweenSky') === 'day' ? 'day' : 'night';
+    ['night', 'day'].forEach(function (n) {
+      var l = document.createElement('link');
+      l.rel = 'preload'; l.as = 'image'; l.href = '/static/halloween/' + n + '.webp';
+      if (n === r.dataset.sky) l.setAttribute('fetchpriority', 'high');
+      d.appendChild(l);
+    });
+  } catch (e) {}
+})();
+</script>
 <link rel="icon" href="images/hat.png">
 <style>
 :root {
@@ -3114,7 +3131,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=16">
+<link rel="stylesheet" href="/static/ui-layout.css?v=18">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3890,6 +3907,15 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     </div>
   </div>
 </div>
+<div class="mt-screen" id="mtScreen" hidden role="alert">
+  <div class="mt-card">
+    <svg class="mt-ico" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#2a1a3a" d="M10 1h3v1h1v3h-1v1h-1v1h-1V5h-1V4H9V3H8V1zM2 12h1v-1h1V10h1V9h1V8h1v1h1v1H7v1H6v1H5v1H4v1H2z"/><path fill="#ffc83d" d="M10 2h2v1h1v2h-1v1h-1V5h-1V4H9V3h1zM3 13h1v-1h1v-1h1v-1h1V9H6v1H5v1H4v1H3z"/><path fill="#b8c2d8" d="M6 8h1v1H6zM8 6h1v1H8z"/></svg>
+    <h2 id="mtTitle">Технические работы</h2>
+    <p id="mtText"></p>
+    <small>Страница обновится сама, когда всё заработает</small>
+    <div class="mt-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  </div>
+</div>
 <div class="tour-layer" id="tourLayer" hidden>
   <div class="tour-spot none" id="tourSpot"></div>
   <div class="tour-box" role="dialog" aria-live="polite">
@@ -3901,12 +3927,13 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 <div class="modal" id="weaponModal" hidden="">
   <div class="modal-card weapon-modal">
     <h2>Кастомизация</h2>
-    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Типы прокрута</button></div>
+    <div class="cz-tabs"><button class="cz-tab on" type="button" data-cz="gear">Снаряжение</button><button class="cz-tab" type="button" data-cz="spin">Типы прокрута</button><button class="cz-tab" type="button" data-cz="theme">Оформление</button></div>
     <p class="cz-sum" id="czSum"></p>
     <div class="cz-filter" id="czFilter"><button type="button" class="on" data-cf="all">Все</button><button type="button" data-cf="mine">Мои</button><button type="button" data-cf="lost">Не найденные</button></div>
     <input class="weapon-search" id="weaponSearch" type="search" placeholder="Поиск оружия" autocomplete="off" maxlength="40">
     <div class="weapon-list" id="weaponGrid"></div>
     <div class="weapon-grid" id="spinGrid" hidden></div>
+    <div class="theme-grid" id="themeGrid" hidden></div>
     <button class="cta" id="weaponModalClose" type="button">Закрыть</button>
   </div>
 </div>
@@ -3920,6 +3947,17 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     <div class="wp-info" id="wpInfo"></div>
     <p class="wp-note" id="wpNote" hidden></p>
     <button class="cta" id="wpApply" type="button">Применить</button>
+  </div>
+</div>
+<div class="modal" id="themePreview" hidden="">
+  <div class="modal-card wp-card" id="tpCard">
+    <button class="x-close" id="tpClose" type="button" aria-label="Закрыть">&times;</button>
+    <div class="wp-stage tp-stage" id="tpStage"><img id="tpImg" alt=""></div>
+    <h2 id="tpName"></h2>
+    <small class="wp-rar" id="tpRar"></small>
+    <div class="wp-info" id="tpInfo"></div>
+    <p class="wp-note" id="tpNote" hidden></p>
+    <button class="cta" id="tpApply" type="button">Применить</button>
   </div>
 </div>
 <div class="modal" id="lvlModal" hidden="">
@@ -4133,8 +4171,8 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 })();
 </script>
 
-<script src="/static/village-scene.js?v=4"></script>
-<script src="/static/halloween-art.js?v=1" defer></script>
+<script src="/static/village-scene.js?v=5"></script>
+<script src="/static/halloween-art.js?v=2" defer></script>
 <script>
 (function () {
   'use strict';
@@ -4792,12 +4830,22 @@ async function api(path, body = {}, options = {}) {
   let data = null;
   try { data = await res.json(); } catch {}
   if (!res.ok) {
+    if (data?.error === 'maintenance') showMaintenance(data.message);
     const err = new Error(data?.error || `HTTP ${res.status}`);
     err.code = data?.error;
     err.data = data || {};
     throw err;
   }
   return data;
+}
+
+let mtTimer = 0;
+function showMaintenance(msg) {
+  const el = $('mtScreen');
+  if (!el) return;
+  $('mtText').textContent = msg || 'Сервис на технических работах. Скоро вернёмся.';
+  el.hidden = false;
+  if (!mtTimer) mtTimer = setInterval(async () => { try { await api('/api/state'); location.reload(); } catch (e) {} }, 15000);
 }
 
 const fmt = (n, d = 4) => Number(n).toFixed(d).replace(/\.?0+$/, '') || '0';
@@ -5506,10 +5554,12 @@ function updateSpinButton() {
   $('spinBtn').classList.toggle('low', !enough);
 }
 
+let themeBooted = false;
 function applyHalloweenTheme(enabled) {
   const root = document.documentElement;
   const next = enabled === true ? 'on' : 'off';
-  if (root.dataset.halloween !== next) {
+  if (root.dataset.halloween !== next || !themeBooted) {
+    themeBooted = true;
     root.dataset.halloween = next;
     syncEventAppearance();
     let rememberedSky = enabled ? 'night' : 'day';
@@ -5527,7 +5577,9 @@ function applyHalloweenTheme(enabled) {
 function renderState(s) {
   state = s;
   if (s.weapons) setOwnedWeapons(s.weapons);
-  applyHalloweenTheme(s.halloween_enabled === true);
+  applyHalloweenTheme(s.theme === 'halloween');
+  try { localStorage.setItem('themeCache', s.theme === 'halloween' ? 'halloween' : 'meadow'); } catch (e) {}
+  if (typeof buildThemeGrid === 'function') buildThemeGrid();
   if (!s.config.gift_upgrade && currentTier === 'gift' && !spinning) {
     selectedGift = null;
     setTier('random', false);
@@ -6496,6 +6548,13 @@ function openLevelRewards() {
     const small = document.createElement('small');
     small.textContent = `${(n - 1) ** 2 * 5} TON`;
     cell.append(b, small);
+    const rw = state && state.level_rewards && state.level_rewards[String(n)];
+    if (rw) {
+      const r = document.createElement('span'); r.className = 'lvl-rw';
+      const im = document.createElement('img'); im.alt = ''; im.src = rw.image; im.onerror = () => im.remove();
+      r.append(im, document.createTextNode(rw.name.replace(/^(Оформление|Прокрут): /, '')));
+      cell.append(r);
+    }
     grid.appendChild(cell);
   }
   $('lvlModal').hidden = false;
@@ -6549,6 +6608,11 @@ const EVENT_SKINS = {
   default: { weapons:['axe','staff','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
   halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
+function weaponUsable(id) {
+  if (EVENT_SKINS.default.weapons.includes(id)) return true;
+  if (!EVENT_SKINS.halloween.weapons.includes(id) || !(state && state.halloween_enabled)) return false;
+  return id !== 'skeleton' || document.documentElement.dataset.halloween === 'on';
+}
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
 function eventSkin() { return EVENT_SKINS[activeEventKey()]; }
 const CX_IMG = { get closed(){return eventSkin().mines.closed;},get gold(){return eventSkin().mines.gold;},get empty(){return eventSkin().mines.empty;} };
@@ -7624,7 +7688,7 @@ function buildWeaponMenu() {
 }
 
 function setWeapon(name) {
-  const w = WEAPONS[name] && eventSkin().weapons.includes(name) && ownedWeapons.includes(name) ? name : 'axe';
+  const w = WEAPONS[name] && weaponUsable(name) && ownedWeapons.includes(name) ? name : 'axe';
   document.documentElement.dataset.weapon = w;
   document.documentElement.dataset.weaponCustom = WEAPON_CUSTOM.has(w) ? '1' : '0';
   document.documentElement.dataset.weaponRarity = WEAPON_RARITY[w] || 'common';
@@ -7703,6 +7767,72 @@ function initSpinStyle() {
   });
 }
 
+const THEMES = [
+  { id: 'meadow', name: 'Поляна', rarity: 'common', event: false },
+  { id: 'halloween', name: 'Хэллоуин', rarity: 'rare', event: true },
+];
+const themeOwned = (id) => ownedWeapons.includes('theme_' + id);
+const themeCur = () => (document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'meadow');
+function themePic(id) {
+  const box = document.createElement('div'); box.className = 'tc-pic'; box.dataset.theme = id;
+  const img = document.createElement('img'); img.alt = ''; img.src = `/static/themes/${id}.png?v=1`; img.onerror = () => img.remove();
+  box.appendChild(img);
+  return box;
+}
+function buildThemeGrid() {
+  const grid = $('themeGrid'); if (!grid) return;
+  grid.replaceChildren();
+  const cur = themeCur();
+  for (const t of THEMES) {
+    const owned = themeOwned(t.id);
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'theme-card' + (owned ? '' : ' off') + (t.id === cur ? ' on' : '');
+    b.dataset.rarity = t.rarity; b.dataset.themeId = t.id;
+    const name = document.createElement('span'); name.className = 'weapon-name'; name.textContent = tr(t.name);
+    const note = document.createElement('small');
+    note.textContent = t.id === cur ? tr('Выбрано') : owned ? tr(RARITY_LABELS[t.rarity]) : tr('Только на ивенте');
+    b.append(themePic(t.id), name, note);
+    b.onclick = () => { haptic('impact', 'light'); openThemePreview(t.id); };
+    grid.appendChild(b);
+  }
+}
+function applyTheme(id) {
+  applyHalloweenTheme(id === 'halloween');
+  try { localStorage.setItem('themeCache', id); } catch (e) {}
+  buildThemeGrid();
+}
+async function openThemePreview(id) {
+  const t = THEMES.find((x) => x.id === id); if (!t) return;
+  const owned = themeOwned(id), cur = themeCur() === id;
+  const card = $('tpCard'); card.dataset.rarity = t.rarity;
+  const stage = $('tpStage');
+  stage.replaceChildren(themePic(id)); stage.querySelector('.tc-pic').classList.add('big');
+  $('tpName').textContent = tr(t.name);
+  $('tpRar').textContent = tr(RARITY_LABELS[t.rarity]);
+  const info = $('tpInfo'); info.replaceChildren();
+  const rows = [[tr('Статус'), t.event ? tr('Ивентовое') : tr('Стандартное')], [tr('Есть у игроков'), '…'], [tr('Владельцев'), '…']];
+  const vals = rows.map(([k, v]) => { const r = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('b'); b.textContent = v; r.append(a, b); info.appendChild(r); return b; });
+  const note = $('tpNote'); note.hidden = owned; note.textContent = tr('Доступно только во время ивента. Чтобы оставить оформление навсегда, получите его в лавке, за квесты или уровни.');
+  const apply = $('tpApply');
+  apply.disabled = !owned || cur;
+  apply.textContent = !owned ? tr('Только на ивенте') : cur ? tr('Выбрано') : tr('Применить');
+  apply.onclick = async () => {
+    apply.disabled = true;
+    try { await api('/api/theme/set', { id }); applyTheme(id); haptic('notification', 'success'); $('themePreview').hidden = true; }
+    catch (e) { haptic('notification', 'error'); apply.disabled = false; }
+  };
+  $('tpClose').onclick = () => { $('themePreview').hidden = true; };
+  $('themePreview').hidden = false;
+  try {
+    if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
+    const st = wpStats['theme_' + id];
+    vals[1].textContent = st ? `${st.percent}%` : '—'; vals[2].textContent = st ? String(st.owners) : '—';
+  } catch (e) { vals[1].textContent = vals[2].textContent = '—'; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  $('themePreview').addEventListener('click', (e) => { if (e.target === $('themePreview')) $('themePreview').hidden = true; });
+});
+
 function initWeapon() {
   let saved = 'axe';
   try { saved = localStorage.getItem('weapon') || 'axe'; } catch (e) {}
@@ -7732,9 +7862,11 @@ function initWeapon() {
     buildWeaponMenu();
   });
   modal.querySelectorAll('[data-cz]').forEach((t) => t.addEventListener('click', () => {
-    const spin = t.dataset.cz === 'spin';
     modal.querySelectorAll('[data-cz]').forEach((x) => x.classList.toggle('on', x === t));
-    $('weaponGrid').hidden = spin; $('spinGrid').hidden = !spin; $('weaponSearch').hidden = spin; $('czFilter').hidden = spin; $('czSum').hidden = spin;
+    const mode = t.dataset.cz;
+    $('weaponGrid').hidden = mode !== 'gear'; $('spinGrid').hidden = mode !== 'spin'; $('themeGrid').hidden = mode !== 'theme';
+    $('weaponSearch').hidden = mode !== 'gear'; $('czFilter').hidden = mode !== 'gear'; $('czSum').hidden = mode !== 'gear';
+    if (mode === 'theme') buildThemeGrid();
     haptic('impact', 'light');
   }));
   $('weaponModalClose').addEventListener('click', close);
@@ -7851,10 +7983,10 @@ async function openWeaponPreview(id, closeMenu) {
   const note = $('wpNote');
   note.hidden = !locked; note.textContent = tr('Вы ещё не нашли это оружие. Получите его, чтобы узнать подробности.');
   const apply = $('wpApply'), cur = document.documentElement.dataset.weapon;
-  const usable = eventSkin().weapons.includes(id);
+  const usable = weaponUsable(id);
   apply.hidden = locked;
   apply.disabled = locked || id === cur || !usable;
-  apply.textContent = !usable ? tr('Только на ивенте') : id === cur ? tr('Выбрано') : tr('Применить');
+  apply.textContent = !usable ? tr(id === 'skeleton' && state && state.halloween_enabled ? 'Нужна тема Хэллоуин' : 'Только на ивенте') : id === cur ? tr('Выбрано') : tr('Применить');
   apply.onclick = () => { setWeapon(id); haptic('notification', 'success'); modal.hidden = true; if (closeMenu) closeMenu(); };
   $('wpClose').onclick = () => { modal.hidden = true; };
   wpAngle = 0.5; wpTilt = -0.12; wpIdle = true; wpDrag = null; wpModel = null;
