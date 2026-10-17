@@ -1649,7 +1649,7 @@ _backup_state = {"hash": None, "restored": 0}
 
 def auto_restore_if_empty():
     """База пустая (хостинг стёр диск) - берём закреплённую копию из чата владельца с ботом и восстанавливаемся."""
-    if not BOT_TOKEN or db.get("users"):
+    if not BOT_TOKEN or db.get("users") or db.get("settings", {}).get("reset_at"):
         return 0
     try:
         pinned = (tg_api("getChat", chat_id=int(OWNER_ADMIN_ID)) or {}).get("pinned_message") or {}
@@ -3559,16 +3559,15 @@ def portals_status():
 
 
 def portals_headers(with_auth=True):
+    """Как в GemDrop: ключ-токен идёт как Bearer, initData Telegram (hash=…&auth_date=…) - как tma."""
     auth = portals_auth() if with_auth else ""
-    if auth and not auth.lower().startswith("tma "):
-        auth = "tma " + auth
-    headers = {
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Mobile Safari/537.36",
-        "Origin": "https://portal-market.com",
-        "Referer": "https://portal-market.com/",
-    }
+    headers = {"Accept": "application/json", "User-Agent": "HatDrop/1.0"}
     if auth:
+        low = auth.lower()
+        if low.startswith("partners "):
+            auth = "Bearer " + auth[9:].strip()
+        elif not low.startswith(("tma ", "bearer ")):
+            auth = ("tma " if "hash=" in auth and "auth_date=" in auth else "Bearer ") + auth
         headers["Authorization"] = auth
     return headers
 
@@ -6719,16 +6718,73 @@ def switch_database(backend, url, mode):
     return info
 
 
+RESET_PHRASE = "СБРОСИТЬ ВСЕ ДАННЫЕ"
+
+
+def reset_all_data():
+    """Стереть все данные во всех хранилищах (Postgres, если подключён, и локальная SQLite) и начать с чистой базы."""
+    with lock:
+        snapshot = json.dumps(db, ensure_ascii=False)
+    flush_db()
+    with _flush_lock:
+        stores = [("sqlite", None)]
+        if DATABASE_URL:
+            stores.append(("postgres", DATABASE_URL))
+        for kind, url in stores:
+            if kind == "sqlite":
+                with _sqlite_lock:
+                    conn = _sqlite_conn()
+                    try:
+                        with conn:
+                            conn.execute("DELETE FROM kv")
+                            conn.execute("INSERT INTO kv (k, v) VALUES ('db_before_reset', ?)", (snapshot,))
+                    finally:
+                        conn.close()
+            else:
+                with _pg().cursor() as c:
+                    c.execute("DELETE FROM kv")
+                    c.execute("INSERT INTO kv (k, v) VALUES ('db_before_reset', %s)", (snapshot,))
+        for fname in (DB_PATH, DB_PATH + ".catalog", DB_PATH + ".quests", DB_PATH + ".meta"):
+            try:
+                os.remove(fname)
+            except OSError:
+                pass
+        with lock:
+            db.clear()
+            db.update({"users": {}, "prices": {}, "settings": {}})
+            CATALOG.clear()
+            _last_saved.update(db=None, catalog=None)
+            _save_meta.update(rev=0, conflict=None)
+    with lock:
+        load_db()
+        db["settings"]["reset_at"] = int(time.time())
+        db["settings"]["catalog_version"] = 3
+    seed_achievements()
+    seed_free_hand_offer()
+    apply_tier_values()
+    flush_db()
+    save_catalog()
+    flush_quests()
+    return {"postgres": bool(DATABASE_URL), "sqlite": True}
+
+
 @route("/api/admin/database")
 def admin_database(user, body):
     require_admin(user)
     action = str(body.get("action") or "status")
+    out = {}
+    if action == "reset":
+        if str(user["id"]) != "tg" + OWNER_ADMIN_ID:
+            raise ApiError("forbidden", 403, message="Сброс доступен только владельцу.")
+        if str(body.get("phrase") or "").strip() != RESET_PHRASE:
+            raise ApiError("bad_phrase", 400, message="Фраза подтверждения введена неверно.")
+        out = {"reset": reset_all_data()}
+        action = "status"
     if action == "clear_conflict":
         _save_meta["conflict"] = None
         action = "status"
     backend = str(body.get("backend") or "")
     url = str(body.get("url") or "").strip()
-    out = {}
     if action == "test":
         if backend not in ("postgres", "sqlite"):
             raise ApiError("bad_request")

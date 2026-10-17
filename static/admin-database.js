@@ -62,6 +62,30 @@ function dbRender(d) {
   mir.append(dbEl('p', { className: 'muted', textContent: 'Чтобы вернуться на копию, выберите SQLite и режим «Взять данные из выбранной базы».' }));
   box.append(mir);
   box.append(dbImportBox(d));
+  box.append(dbResetBox(d));
+}
+
+function dbResetBox(d) {
+  const box = dbEl('div', { className: 'adm-box' }, dbEl('h3', { textContent: 'Сбросить все данные' }),
+    dbEl('p', { className: 'danger', textContent: 'Удаляет игроков, балансы, настройки, квесты, каталог и всё остальное сразу в Postgres' + (d.kind === 'postgres' ? '' : ' (сейчас не подключён)') + ' и в локальной SQLite. Копия перед сбросом остаётся в служебном ключе db_before_reset, но лучше сначала скачать резервную копию. Доступно владельцу.' }));
+  const slider = dbEl('input', { type: 'range', min: 0, max: 100, value: 0 });
+  slider.style.width = '240px';
+  const phrase = dbEl('input', { type: 'text', placeholder: 'СБРОСИТЬ ВСЕ ДАННЫЕ', autocomplete: 'off', spellcheck: false });
+  const go = dbEl('button', { type: 'button', className: 'danger', textContent: 'Сбросить всё', disabled: true });
+  const hint = dbEl('p', { className: 'muted', textContent: 'Сдвиньте ползунок до конца и введите фразу «СБРОСИТЬ ВСЕ ДАННЫЕ».' });
+  const ready = () => { go.disabled = !(Number(slider.value) === 100 && phrase.value.trim() === 'СБРОСИТЬ ВСЕ ДАННЫЕ'); };
+  slider.oninput = ready; phrase.oninput = ready;
+  slider.onchange = () => { if (Number(slider.value) < 100) slider.value = 0; ready(); };
+  go.onclick = async () => {
+    if (!confirm('Последнее подтверждение: стереть ВСЕ данные в Postgres и SQLite?')) return;
+    go.disabled = true;
+    try {
+      await api('/api/admin/database', { action: 'reset', phrase: phrase.value.trim() });
+      toast('Все данные сброшены'); location.reload();
+    } catch (e) { dbErr(e); slider.value = 0; ready(); }
+  };
+  box.append(dbEl('div', { className: 'adm-form' }, slider, phrase, go), hint);
+  return box;
 }
 
 function dbImportBox(d) {

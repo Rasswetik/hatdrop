@@ -275,3 +275,17 @@ class ImportTests(VisibilityAdminTests):
             self.assertEqual(backend.db["users"]["tg777"]["balance"], 99)
             self.assertNotIn("x", backend.db["settings"])
             self.assertEqual(self.adm("/api/admin/import", {"action": "analyze", "data": "AAAA"}).status_code, 400)
+
+
+class ResetTests(VisibilityAdminTests):
+    def test_reset_requires_phrase_and_wipes(self):
+        with patch.object(backend, "OWNER_ADMIN_ID", "101"):
+            backend.db["users"]["tg999"] = {"balance": 1}
+            self.assertEqual(self.adm("/api/admin/database", {"action": "reset", "phrase": "нет"}).status_code, 400)
+            self.assertIn("tg999", backend.db["users"])
+            r = self.adm("/api/admin/database", {"action": "reset", "phrase": "СБРОСИТЬ ВСЕ ДАННЫЕ"})
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn("tg999", backend.db["users"])
+            self.assertTrue(backend.db["settings"]["reset_at"])
+            self.assertIn("tg999", backend._sqlite_get("db_before_reset"))
+            self.assertEqual(backend.auto_restore_if_empty(), 0)
