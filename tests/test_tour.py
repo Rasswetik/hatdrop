@@ -16,7 +16,7 @@ class TourTests(unittest.TestCase):
     def test_new_player_has_zero_balance_and_no_skeleton(self):
         st = self.post("/api/state").json
         self.assertEqual(st["balance_ton"], 0)
-        self.assertNotIn("skeleton", st["weapons"])
+        self.assertEqual(st["weapons"], ["axe"])
         self.assertFalse(st["tour_done"])
 
     def test_free_hand_offer_for_everyone(self):
@@ -25,7 +25,7 @@ class TourTests(unittest.TestCase):
         self.assertEqual(offer["price"], 0)
         r = self.post("/api/shop/buy", {"id": offer["id"]})
         self.assertEqual(r.status_code, 200)
-        self.assertIn("skeleton", r.json["weapons"])
+        self.assertIn("staff", r.json["weapons"])
         self.assertEqual(self.post("/api/shop/buy", {"id": offer["id"]}).status_code, 400)
 
     def test_tour_flag_and_weapon_stats(self):
@@ -35,3 +35,8 @@ class TourTests(unittest.TestCase):
         st = self.post("/api/weapons/stats").json["weapons"]
         self.assertEqual(st["axe"]["percent"], 100.0)
         self.assertEqual(st["skeleton"]["percent"], 0.0)
+        backend.weapons_lib.ACTIVE_EVENT = "halloween"
+        try:
+            self.assertIn("skeleton", self.post("/api/state").json["weapons"])
+        finally:
+            backend.weapons_lib.ACTIVE_EVENT = ""

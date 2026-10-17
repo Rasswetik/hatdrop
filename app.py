@@ -291,6 +291,7 @@ def load_db():
     ensure_analytics(db)
     db["settings"].setdefault("active_market", "portals")
     db["settings"].setdefault("halloween_enabled", False)
+    weapons_lib.ACTIVE_EVENT = "halloween" if db["settings"]["halloween_enabled"] is True else ""
     load_quests()
     where = "Postgres" if DATABASE_URL else f"SQLite ({SQLITE_PATH})"
     print(f"DB: {where}, users: {len(db['users'])}", flush=True)
@@ -2220,7 +2221,7 @@ def weapon_stats(user, body):
     total = max(1, len(users))
     out = {}
     for wid, w in weapons_lib.WEAPONS.items():
-        n = total if w["default"] else sum(1 for u in users if wid in (u.get("weapons") or []))
+        n = sum(1 for u in users if wid in weapons_lib.owned(u))
         out[wid] = {"name": w["name"], "rarity": w["rarity"], "percent": round(100.0 * n / total, 1)}
     return {"weapons": out}
 
@@ -2703,6 +2704,7 @@ def admin_theme(user, body):
         if not isinstance(body["enabled"], bool):
             raise ApiError("bad_request")
         db["settings"]["halloween_enabled"] = body["enabled"]
+        weapons_lib.ACTIVE_EVENT = "halloween" if body["enabled"] is True else ""
     return {"enabled": db["settings"].get("halloween_enabled") is True}
 
 
@@ -5906,13 +5908,16 @@ def seed_achievements():
 
 def seed_free_hand_offer():
     """Бесплатный ордер «Рука Костяна» для всех игроков (создаётся один раз, дальше правится в админке)."""
+    offers = shop_doc()["offers"]
+    old = offers.get("free_hand")
+    if old and old.get("reward", {}).get("weapon") == "skeleton":  # раньше выдавалась Рука скелета, теперь она открывается на ивенте
+        old.update(title="Посох Костяна", description="", reward={"kind": "weapon", "weapon": "staff"})
     if db["settings"].get("free_hand_seeded"):
         return
     db["settings"]["free_hand_seeded"] = True
-    offers = shop_doc()["offers"]
-    offers["free_hand"] = {"id": "free_hand", "title": "Рука Костяна", "description": "Подарок от Костяна каждому новичку.",
+    offers["free_hand"] = {"id": "free_hand", "title": "Посох Костяна", "description": "",
                            "currency": "hatcoin", "price": 0.0, "limit_total": 0, "limit_user": 1, "active": True, "sold": 0,
-                           "created": int(time.time()) - 10, "sort": -10, "reward": {"kind": "weapon", "weapon": "skeleton"}}
+                           "created": int(time.time()) - 10, "sort": -10, "reward": {"kind": "weapon", "weapon": "staff"}}
     try:
         flush_db()
     except Exception as exc:

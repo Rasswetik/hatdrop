@@ -3111,7 +3111,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=10">
+<link rel="stylesheet" href="/static/ui-layout.css?v=11">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3881,24 +3881,22 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 
 <div class="modal" id="shopModal" hidden="">
   <div class="modal-card shop-modal" id="shopModalCard">
-    <p class="shop-modal-kind" id="shopModalKind"></p>
+    <button class="x-close" id="shopModalClose" type="button" aria-label="Закрыть">&times;</button>
     <div class="shop-stage"><img alt="" class="shop-modal-img" id="shopModalImg"></div>
     <h2 id="shopModalTitle"></h2>
     <span class="shop-rar" id="shopModalRar" hidden></span>
-    <p class="shop-modal-desc" id="shopModalDesc"></p>
-    <div class="cx-win-sum"><span>Цена</span><b id="shopModalPrice"></b></div>
-    <div class="cx-win-sum" id="shopModalLeftRow"><span id="shopModalLeftLabel">Осталось</span><b id="shopModalLeft"></b></div>
+    <small class="shop-price-line" id="shopModalPriceLine" hidden>Цена: <b id="shopModalPrice"></b></small>
     <button class="cta" id="shopBuyBtn" type="button">Купить</button>
-    <button class="cta shop-secondary" id="shopModalClose" type="button">Закрыть</button>
   </div>
 </div>
 <div class="modal" id="shopConfirm" hidden="">
-  <div class="modal-card shop-modal">
-    <h2>Подтверждение покупки</h2>
+  <div class="modal-card shop-modal shop-confirm">
     <p class="shop-modal-desc" id="shopConfirmText"></p>
-    <div class="cx-win-sum"><span>Баланс после покупки</span><b id="shopConfirmBalance"></b></div>
-    <button class="cta" id="shopConfirmYes" type="button">Да, купить</button>
-    <button class="cta shop-secondary" id="shopConfirmNo" type="button">Отмена</button>
+    <small class="shop-price-line">Баланс после: <b id="shopConfirmBalance"></b></small>
+    <div class="shop-confirm-row">
+      <button class="cta shop-secondary" id="shopConfirmNo" type="button">Отмена</button>
+      <button class="cta" id="shopConfirmYes" type="button">Да</button>
+    </div>
   </div>
 </div>
 <div class="tour-layer" id="tourLayer" hidden>
@@ -3920,13 +3918,12 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
 </div>
 <div class="modal" id="weaponPreview" hidden="">
   <div class="modal-card wp-card" id="wpCard">
-    <div class="wp-stage" id="wpStage"><div class="wp-floor"></div><div class="wp-obj" id="wpObj"></div></div>
+    <button class="x-close" id="wpClose" type="button" aria-label="Закрыть">&times;</button>
+    <div class="wp-stage" id="wpStage"><canvas id="wpCanvas" width="480" height="380"></canvas></div>
     <p class="wp-hint">Потяни, чтобы покрутить</p>
     <h2 id="wpName"></h2>
-    <span class="shop-rar" id="wpRar"></span>
-    <div class="cx-win-sum"><span>Есть у игроков</span><b id="wpPercent">…</b></div>
+    <small class="shop-price-line" id="wpPercentLine">Есть у <b id="wpPercent">…</b> игроков</small>
     <button class="cta" id="wpApply" type="button">Применить</button>
-    <button class="cta shop-secondary" id="wpClose" type="button">Назад</button>
   </div>
 </div>
 <div class="modal" id="lvlModal" hidden="">
@@ -4307,14 +4304,18 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Вкл': { en: 'On', zh: '开' },
     'Выкл': { en: 'Off', zh: '关' },
     'Оружие': { en: 'Weapon', zh: '武器' },
-    'В магазине уже лежит бесплатный ордер «Рука Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.': { en: 'A free “Kostyan’s Hand” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“科斯彦之手”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
+    'В магазине уже лежит бесплатный ордер «Посох Костяна». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно покрутить и рассмотреть.': { en: 'A free “Kostyan’s Staff” order is already in the store. Open it and take it: it’s my gift for spinning. Change weapons with the button next to the wheel, and tap one to rotate and inspect it.', zh: '商店里已有免费订单“科斯彦的法杖”。打开并领取它，这是我送你的转盘礼物。用转盘旁的按钮更换武器，点按武器可旋转查看。' },
     'Понятно': { en: 'Got it', zh: '明白了' },
     'Бесплатно': { en: 'Free', zh: '免费' },
     'Забрать': { en: 'Claim', zh: '领取' },
     'Потяни, чтобы покрутить': { en: 'Drag to rotate', zh: '拖动旋转' },
     'Применить': { en: 'Apply', zh: '应用' },
     'Есть у игроков': { en: 'Owned by players', zh: '玩家拥有率' },
-    'Рука Костяна': { en: 'Kostyan’s Hand', zh: '科斯彦之手' },
+    'Посох Костяна': { en: 'Kostyan’s Staff', zh: '科斯彦的法杖' },
+    'Купить «{title}» за {price}?': { en: 'Buy “{title}” for {price}?', zh: '以 {price} 购买“{title}”？' },
+    'Да': { en: 'Yes', zh: '是' },
+    'Баланс после': { en: 'Balance after', zh: '操作后余额' },
+    'Цена': { en: 'Price', zh: '价格' },
     'Подарок от Костяна каждому новичку.': { en: 'A gift from Kostyan to every newcomer.', zh: '科斯彦送给每位新玩家的礼物。' },
     'Здарова! Я Костян, хозяин этой лавки. Давай коротко покажу, что тут есть.': { en: 'Hey! I’m Kostyan, keeper of this shop. Let me quickly show you around.', zh: '嘿！我是科斯彦，这家商店的老板。我来带你快速逛一逛。' },
     'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.': { en: 'Store. Here I trade goods for HatCoin and TON: weapons, gifts, NFTs. Some orders are limited, so don’t snooze.', zh: '商品。我在这里用 HatCoin 和 TON 换取商品：武器、礼物、NFT。有些订单数量有限，别错过。' },
@@ -6097,21 +6098,33 @@ function renderShop(container, status) {
   }
   container.append(grid);
 }
+async function doShopBuy(o, onDone) {
+  if (shopBusy) return;
+  shopBusy = true;
+  try {
+    const r = await api('/api/shop/buy', { id: o.id });
+    shopCache = r;
+    if (r.weapons) setOwnedWeapons(r.weapons);
+    haptic('notification', 'success');
+    toast(tr('Покупка совершена'));
+    $('shopConfirm').hidden = true; $('shopModal').hidden = true;
+    renderQuestCards(questsCache || { enabled: true, rows: [] }, $('questCards'), $('questLoading'));
+    renderState(await api('/api/state'));
+  } catch (e) {
+    toast(e.message && e.data && e.data.message ? e.data.message : tr('Не удалось купить'), true);
+  } finally { shopBusy = false; if (onDone) onDone(); }
+}
 function openShopOffer(o) {
-  $('shopModalKind').textContent = o.personal ? tr('Личное предложение') : tr('Ордер Костяна');
   $('shopModalImg').src = o.reward.image;
   $('shopModalTitle').textContent = o.title;
-  $('shopModalDesc').textContent = o.description || '';
+  $('shopModalPriceLine').hidden = o.price <= 0;
   $('shopModalPrice').textContent = shopPriceLabel(o);
-  const lefts = [o.total_left, o.user_left].filter((x) => x !== null);
-  $('shopModalLeftRow').hidden = !lefts.length;
-  $('shopModalLeft').textContent = lefts.length ? String(Math.min(...lefts)) : '';
   const rar = $('shopModalRar'); rar.hidden = !o.reward.rarity; rar.textContent = o.reward.rarity ? tr(RARITY_LABELS[o.reward.rarity]) : '';
   $('shopModalCard').dataset.rarity = o.reward.rarity || 'none';
   const btn = $('shopBuyBtn');
   btn.disabled = !o.available;
   btn.textContent = o.owned ? tr('Уже есть') : o.available ? (o.price <= 0 ? tr('Забрать') : tr('Купить')) : tr('Распродано');
-  btn.onclick = () => openShopConfirm(o);
+  btn.onclick = () => { if (o.price <= 0) { btn.disabled = true; doShopBuy(o, () => { btn.disabled = false; }); } else openShopConfirm(o); };
   $('shopModal').hidden = false;
   haptic('impact', 'light');
 }
@@ -6119,28 +6132,12 @@ function openShopConfirm(o) {
   const have = o.currency === 'hatcoin' ? shopCache.hatcoin_balance : shopCache.balance_ton;
   const after = have - o.price;
   const unit = o.currency === 'hatcoin' ? 'HatCoin' : 'TON';
-  $('shopConfirmText').textContent = tr('Вы уверены, что хотите купить «{title}» за {price}?', { title: o.title, price: shopPriceLabel(o) });
+  $('shopConfirmText').textContent = tr('Купить «{title}» за {price}?', { title: o.title, price: shopPriceLabel(o) });
   $('shopConfirmBalance').textContent = `${+Math.max(after, 0).toFixed(4)} ${unit}`;
   const yes = $('shopConfirmYes');
   yes.disabled = after < -1e-9;
-  yes.textContent = after < -1e-9 ? tr('Недостаточно средств') : tr('Да, купить');
-  yes.onclick = async () => {
-    if (shopBusy) return;
-    shopBusy = true; yes.disabled = true;
-    try {
-      const r = await api('/api/shop/buy', { id: o.id });
-      shopCache = r;
-      if (r.weapons) setOwnedWeapons(r.weapons);
-      haptic('notification', 'success');
-      toast(tr('Покупка совершена'));
-      $('shopConfirm').hidden = true; $('shopModal').hidden = true;
-      renderQuestCards(questsCache || { enabled: true, rows: [] }, $('questCards'), $('questLoading'));
-      renderState(await api('/api/state'));
-    } catch (e) {
-      toast(e.message && e.data && e.data.message ? e.data.message : tr('Не удалось купить'), true);
-      yes.disabled = false;
-    } finally { shopBusy = false; }
-  };
+  yes.textContent = after < -1e-9 ? tr('Недостаточно средств') : tr('Да');
+  yes.onclick = () => { yes.disabled = true; doShopBuy(o, () => { yes.disabled = false; }); };
   $('shopConfirm').hidden = false;
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -7461,7 +7458,7 @@ const WEAPON_LABELS = { axe: 'Топор', staff: 'Посох', skeleton: 'Ру�
 const WEAPON_RARITY = { axe: 'common', staff: 'common', skeleton: 'epic', sword: 'rare', hammer: 'rare', trident: 'epic', crystal: 'legendary', club: 'rare', pumpkin: 'epic', scythe: 'legendary' };
 const RARITY_LABELS = { common: 'Обычное', rare: 'Редкое', epic: 'Эпическое', legendary: 'Легендарное' };
 const WEAPON_CUSTOM = new Set(['sword', 'hammer', 'scythe', 'pumpkin', 'trident', 'crystal', 'club']);
-let ownedWeapons = ['axe', 'staff'];
+let ownedWeapons = ['axe'];
 function setOwnedWeapons(list) {
   if (!Array.isArray(list)) return;
   ownedWeapons = list;
@@ -7488,7 +7485,7 @@ function buildWeaponMenu() {
     if (locked) b.setAttribute('aria-disabled', 'true');
     const img = document.createElement('img'); img.src = WEAPONS[id]; img.alt = '';
     const name = document.createElement('span'); name.className = 'weapon-name'; name.textContent = label;
-    const note = document.createElement('small'); note.textContent = tr(RARITY_LABELS[WEAPON_RARITY[id]]) + (locked ? ' · ' + tr('Закрыто') : '');
+    const note = document.createElement('small'); note.textContent = tr(RARITY_LABELS[WEAPON_RARITY[id]]);
     b.append(img, name, note);
     grid.appendChild(b);
   }
@@ -7591,42 +7588,112 @@ function initWeapon() {
 }
 
 
-/* Предпросмотр оружия: псевдо-3D из стопки слоёв, вращается пальцем; процент владельцев приходит с сервера */
-let wpStats = null, wpStatsAt = 0, wpRaf = 0, wpAngle = 25, wpTilt = -8, wpDrag = null, wpIdle = true;
-function wpRender() {
-  const obj = $('wpObj'); if (!obj) return;
-  obj.style.transform = `rotateX(${wpTilt}deg) rotateY(${wpAngle}deg)`;
+/* Предпросмотр оружия: настоящая 3D-модель. Иконка оружия выдавливается в воксели (объём по краям тоньше),
+   рисуется на canvas с вращением и освещением; процент владельцев приходит с сервера. */
+const wpModels = {};
+let wpStats = null, wpStatsAt = 0, wpRaf = 0, wpAngle = 0.5, wpTilt = -0.12, wpDrag = null, wpIdle = true, wpModel = null;
+function wpLoadModel(id, src) {
+  if (wpModels[id]) return Promise.resolve(wpModels[id]);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const cx = c.getContext('2d'); cx.drawImage(img, 0, 0);
+      const full = cx.getImageData(0, 0, W, H).data;
+      let x0 = W, y0 = H, x1 = 0, y1 = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (full[(y * W + x) * 4 + 3] > 40) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+      const bw = x1 - x0 + 1, bh = y1 - y0 + 1, N = 64, k = N / Math.max(bw, bh);
+      const gw = Math.max(1, Math.round(bw * k)), gh = Math.max(1, Math.round(bh * k));
+      const d = document.createElement('canvas'); d.width = gw; d.height = gh;
+      const dx = d.getContext('2d'); dx.imageSmoothingQuality = 'high'; dx.drawImage(img, x0, y0, bw, bh, 0, 0, gw, gh);
+      const px = dx.getImageData(0, 0, gw, gh).data;
+      const solid = (x, y) => x >= 0 && y >= 0 && x < gw && y < gh && px[(y * gw + x) * 4 + 3] > 110;
+      const depth = new Int8Array(gw * gh);
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+        if (!solid(x, y)) continue;
+        let t = 3;
+        for (let r = 1; r <= 3 && t === 3; r++) for (let oy = -r; oy <= r; oy++) for (let ox = -r; ox <= r; ox++) if (!solid(x + ox, y + oy) && Math.max(Math.abs(ox), Math.abs(oy)) === r) t = Math.min(t, r - 1);
+        depth[y * gw + x] = t + 1;
+      }
+      const has = (x, y, z) => { if (x < 0 || y < 0 || x >= gw || y >= gh) return false; const t = depth[y * gw + x]; return t > 0 && z >= -t && z < t; };
+      const faces = [];
+      const DIRS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+      for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+        const t = depth[y * gw + x]; if (!t) continue;
+        const p = (y * gw + x) * 4, col = [px[p], px[p + 1], px[p + 2]];
+        for (let z = -t; z < t; z++) for (const [nx, ny, nz] of DIRS) {
+          if (has(x + nx, y + ny, z + nz)) continue;
+          const front = nz !== 0;
+          const base = front ? col : col.map((v) => v * 0.78);
+          faces.push({ c: [x + 0.5 - gw / 2 + nx * 0.5, -(y + 0.5 - gh / 2) - ny * 0.5 * -1 * -1 + 0, z + 0.5 + nz * 0.5], n: [nx, -ny, nz], col: base });
+        }
+      }
+      // y в модели направлена вверх: нормаль и смещение центра по y инвертируем отдельно
+      for (const f of faces) f.c[1] = f.c[1];
+      resolve(wpModels[id] = { faces, size: Math.max(gw, gh) });
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+function wpDraw() {
+  const cv = $('wpCanvas'); if (!cv || !wpModel) return;
+  const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+  g.clearRect(0, 0, W, H);
+  const sc = Math.min(W * 0.9, H * 0.92) / wpModel.size;
+  const ca = Math.cos(wpAngle), sa = Math.sin(wpAngle), ct = Math.cos(wpTilt), st = Math.sin(wpTilt);
+  const L = [-0.35, 0.55, 0.75], ll = Math.hypot(...L), lx = L[0] / ll, ly = L[1] / ll, lz = L[2] / ll;
+  const vis = [];
+  for (const f of wpModel.faces) {
+    // поворот вокруг Y, затем наклон вокруг X
+    const nx = f.n[0] * ca + f.n[2] * sa, nz0 = -f.n[0] * sa + f.n[2] * ca;
+    const ny = f.n[1] * ct - nz0 * st, nz = f.n[1] * st + nz0 * ct;
+    if (nz <= 0.02) continue;
+    const x = f.c[0] * ca + f.c[2] * sa, z0 = -f.c[0] * sa + f.c[2] * ca;
+    const y = f.c[1] * ct - z0 * st, z = f.c[1] * st + z0 * ct;
+    vis.push({ f, x, y, z, nx, ny, nz });
+  }
+  vis.sort((a, b) => a.z - b.z);
+  for (const v of vis) {
+    const light = 0.5 + 0.5 * Math.max(0, v.nx * lx + v.ny * ly + v.nz * lz);
+    const c = v.f.col;
+    g.fillStyle = `rgb(${c[0] * light | 0},${c[1] * light | 0},${c[2] * light | 0})`;
+    g.strokeStyle = g.fillStyle; g.lineWidth = 0.8;
+    // грань — квадрат 1x1 с нормалью n: строим две касательные оси
+    const n = v.f.n; let ux, uy, uz, wx, wy, wz;
+    if (n[0] !== 0) { [ux, uy, uz, wx, wy, wz] = [0, 1, 0, 0, 0, 1]; } else if (n[1] !== 0) { [ux, uy, uz, wx, wy, wz] = [1, 0, 0, 0, 0, 1]; } else { [ux, uy, uz, wx, wy, wz] = [1, 0, 0, 0, 1, 0]; }
+    g.beginPath();
+    for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      const ox = (ux * a + wx * b) * 0.5, oy = (uy * a + wy * b) * 0.5, oz = (uz * a + wz * b) * 0.5;
+      const rx = ox * ca + oz * sa, rz0 = -ox * sa + oz * ca, ry = oy * ct - rz0 * st;
+      const X = W / 2 + (v.x + rx) * sc, Y = H / 2 - (v.y + ry) * sc;
+      if (a === -1 && b === -1) g.moveTo(X, Y); else g.lineTo(X, Y);
+    }
+    g.closePath(); g.fill(); g.stroke();
+  }
 }
 function wpLoop() {
   if ($('weaponPreview').hidden) return;
-  if (wpIdle && !wpDrag) wpAngle += 0.6;
-  wpRender(); wpRaf = requestAnimationFrame(wpLoop);
+  if (wpIdle && !wpDrag) wpAngle += 0.012;
+  wpDraw(); wpRaf = requestAnimationFrame(wpLoop);
 }
 async function openWeaponPreview(id, closeMenu) {
-  const modal = $('weaponPreview'), obj = $('wpObj');
+  const modal = $('weaponPreview');
   const rarity = WEAPON_RARITY[id] || 'common', locked = !ownedWeapons.includes(id);
   $('wpCard').dataset.rarity = rarity;
-  $('wpName').textContent = tr(WEAPON_LABELS[id]);
-  $('wpRar').textContent = tr(RARITY_LABELS[rarity]);
+  $('wpName').textContent = `${tr(WEAPON_LABELS[id])} (${tr(RARITY_LABELS[rarity]).toLowerCase()})`;
   $('wpPercent').textContent = '…';
-  obj.replaceChildren();
-  const src = WEAPON_CUSTOM.has(id) || id === 'skeleton' ? `/static/weapons/${id}.png?v=1` : WEAPONS[id];
-  const LAYERS = 12;
-  for (let i = 0; i < LAYERS; i++) {
-    const im = document.createElement('img'); im.src = src; im.alt = '';
-    const z = (i - (LAYERS - 1) / 2) * 1.6;
-    im.style.transform = `translateZ(${z}px)`;
-    const shade = i === LAYERS - 1 ? 1 : 0.72 + 0.2 * (i / LAYERS);
-    if (shade < 1) im.style.filter = `brightness(${shade.toFixed(2)})`;
-    obj.append(im);
-  }
   const apply = $('wpApply'), cur = document.documentElement.dataset.weapon;
   apply.disabled = locked || id === cur;
-  apply.textContent = locked ? tr('Закрыто') : id === cur ? tr('Выбрано') : tr('Применить');
+  apply.textContent = id === cur && !locked ? tr('Выбрано') : tr('Применить');
   apply.onclick = () => { setWeapon(id); haptic('notification', 'success'); modal.hidden = true; if (closeMenu) closeMenu(); };
   $('wpClose').onclick = () => { modal.hidden = true; };
-  wpAngle = 25; wpTilt = -8; wpIdle = true; wpDrag = null;
+  wpAngle = 0.5; wpTilt = -0.12; wpIdle = true; wpDrag = null; wpModel = null;
+  $('wpCanvas').getContext('2d').clearRect(0, 0, 480, 380);
   modal.hidden = false;
+  cancelAnimationFrame(wpRaf);
+  wpModel = await wpLoadModel(id, WEAPONS[id]);
   cancelAnimationFrame(wpRaf); wpLoop();
   try {
     if (!wpStats || Date.now() - wpStatsAt > 30000) { wpStats = (await api('/api/weapons/stats')).weapons; wpStatsAt = Date.now(); }
@@ -7639,8 +7706,8 @@ document.addEventListener('DOMContentLoaded', () => {
   stage.addEventListener('pointerdown', (e) => { wpDrag = { x: e.clientX, y: e.clientY, a: wpAngle, t: wpTilt }; wpIdle = false; stage.setPointerCapture(e.pointerId); });
   stage.addEventListener('pointermove', (e) => {
     if (!wpDrag) return;
-    wpAngle = wpDrag.a + (e.clientX - wpDrag.x) * 0.9;
-    wpTilt = Math.max(-35, Math.min(35, wpDrag.t - (e.clientY - wpDrag.y) * 0.4));
+    wpAngle = wpDrag.a + (e.clientX - wpDrag.x) * 0.014;
+    wpTilt = Math.max(-0.6, Math.min(0.6, wpDrag.t - (e.clientY - wpDrag.y) * 0.008));
   });
   const end = () => { wpDrag = null; };
   stage.addEventListener('pointerup', end); stage.addEventListener('pointercancel', end);

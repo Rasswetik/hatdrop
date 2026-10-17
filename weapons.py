@@ -3,8 +3,8 @@ rarity: common / rare / epic / legendary — от редкости завися�
 RARITIES = {"common": "Обычное", "rare": "Редкое", "epic": "Эпическое", "legendary": "Легендарное"}
 WEAPONS = {
     "axe": {"name": "Топор", "default": True, "event": "", "rarity": "common"},
-    "staff": {"name": "Посох", "default": True, "event": "", "rarity": "common"},
-    "skeleton": {"name": "Рука скелета", "default": False, "event": "halloween", "rarity": "epic"},
+    "staff": {"name": "Посох", "default": False, "event": "", "rarity": "common"},
+    "skeleton": {"name": "Рука скелета", "default": False, "event": "halloween", "rarity": "epic", "event_free": True},
     "sword": {"name": "Меч", "default": False, "event": "", "rarity": "rare"},
     "hammer": {"name": "Молот", "default": False, "event": "", "rarity": "rare"},
     "trident": {"name": "Трезубец", "default": False, "event": "", "rarity": "epic"},
@@ -15,10 +15,14 @@ WEAPONS = {
 }
 
 
+ACTIVE_EVENT = ""  # ключ идущего ивента; на время ивента всем доступно снаряжение с event_free
+
+
 def owned(user):
     """Идентификаторы доступного игроку снаряжения."""
     got = user.get("weapons") if isinstance(user.get("weapons"), list) else []
-    return sorted({k for k, v in WEAPONS.items() if v["default"]} | {w for w in got if w in WEAPONS})
+    free = {k for k, v in WEAPONS.items() if v.get("event_free") and ACTIVE_EVENT and v["event"] == ACTIVE_EVENT}
+    return sorted({k for k, v in WEAPONS.items() if v["default"]} | free | {w for w in got if w in WEAPONS})
 
 
 def grant(user, weapon):
