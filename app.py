@@ -4180,7 +4180,7 @@ def portals_refresh_worker():
         # Unlike the old implementation, this reads Portals itself, not a
         # Fragment/GetGems snapshot with stale/inferred prices.
         response = portals_get(["/collections?limit=5000", "/collections?limit=500"],
-                               public_ok=False, timeout=12)
+                               public_ok=True, timeout=12)
         collections = parse_collections(response)
         if not collections:
             raise PortalsError("Portals вернул 0 коллекций — данные не заменены")
@@ -4194,8 +4194,18 @@ def portals_refresh_worker():
         _publish_source_catalog(rows, "portals", generation)
         by_short = {normalize(row["name"]): row for row in rows}
         errors = []
+        deadline = time.time() + 300
+        stats = {"ok": 0, "fail": 0}
         def task(c):
-            return c, fetch_collection_filters(c, timeout=9)
+            if time.time() > deadline or (stats["ok"] == 0 and stats["fail"] >= 16):
+                raise PortalsError("загрузка прервана: Portals не отвечает или отклоняет ключ")
+            try:
+                out = fetch_collection_filters(c, timeout=9)
+            except Exception:
+                stats["fail"] += 1
+                raise
+            stats["ok"] += 1
+            return c, out
         if rows:
             with ThreadPoolExecutor(max_workers=8) as executor:
                 futures = [executor.submit(task, c) for c in collections if c["floor"] > 0]
