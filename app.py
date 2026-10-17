@@ -767,11 +767,14 @@ def current_user():
             "round": None,
             "promos": [],
             "seen": 0,
+            "created": int(time.time()),
         }
         referrer = referrer_from_param(telegram_start_param(body.get("initData", "")), uid) if tg else ""
         if referrer:
             users[uid]["ref_by"] = referrer
     user = users[uid]
+    if user.get("banned") and not request.path.startswith("/api/admin/") and not is_admin(user):
+        raise ApiError("banned", 403, message="Аккаунт заблокирован администратором.")
     user.setdefault("hatcoin_units", 0)
     user.setdefault("chest", None)
     user["seen"] = int(time.time())
@@ -2791,8 +2794,16 @@ def admin_user_row(u):
         "name": display_name({**u, "anon": False}),
         "username": u["username"],
         "balance_ton": ton(u["balance"]),
+        "hatcoin": round(hatcoin_balance(u), 6),
+        "turnover_ton": ton(u["turnover"]),
         "games": u["games"],
         "seen": u.get("seen", 0),
+        "created": u.get("created", 0),
+        "prizes": sum(1 for p in u.get("prizes", []) if p.get("status") != "sold"),
+        "has_wallet": bool(u.get("wallet")),
+        "banned": bool(u.get("banned")),
+        "note": bool(u.get("note")),
+        "admin": is_admin(u),
     }
 
 
@@ -2803,6 +2814,8 @@ def admin_user_detail(u):
         "turnover_ton": ton(u["turnover"]),
         "stars_lock_until": int(u.get("stars_lock_until", 0) or 0),
         "hatcoin": round(hatcoin_balance(u), 6),
+        "note_text": str(u.get("note") or ""),
+        "tour_done": bool(u.get("tour_done")),
         "weapons": [w for w in weapons_lib.owned(u) if not weapons_lib.WEAPONS[w]["default"]],
         "weapon_catalog": [{"id": k, "name": v["name"], "rarity": v["rarity"]} for k, v in weapons_lib.WEAPONS.items() if not v["default"]],
         "rtp": {m: {"global": global_rtp(m), "adj": user_rtp_adj(u, m),
@@ -2815,17 +2828,68 @@ def admin_user_detail(u):
     }
 
 
+ADMIN_USER_SORTS = {
+    "seen": lambda u: u.get("seen", 0),
+    "balance": lambda u: u.get("balance", 0),
+    "hatcoin": lambda u: u.get("hatcoin_units", 0),
+    "turnover": lambda u: u.get("turnover", 0),
+    "games": lambda u: u.get("games", 0),
+    "created": lambda u: u.get("created", 0),
+}
+
+
 @route("/api/admin/users")
 def admin_users(user, body):
+    """Список игроков: поиск, фильтры (online / balance / prizes / banned / admin), сортировка и постраничная выдача."""
     require_admin(user)
     q = str(body.get("q", "")).strip().lower().lstrip("@")
-    rows = sorted(db["users"].values(), key=lambda u: u.get("seen", 0), reverse=True)
+    flt = str(body.get("filter") or "all")
+    sort = str(body.get("sort") or "seen")
+    if sort not in ADMIN_USER_SORTS:
+        sort = "seen"
+    try:
+        offset = max(0, int(body.get("offset") or 0))
+        limit = min(100, max(1, int(body.get("limit") or 50)))
+    except (TypeError, ValueError):
+        offset, limit = 0, 50
+    now = int(time.time())
+    users = list(db["users"].values())
+    rows = users
     if q:
-        rows = [
-            u for u in rows
-            if q in u["id"].lower() or q in u["key"] or q in u["username"].lower() or q in u["first_name"].lower()
-        ]
-    return {"rows": [admin_user_row(u) for u in rows[:100]], "total": len(db["users"])}
+        rows = [u for u in rows if q in u["id"].lower() or q in u["key"] or q in u["username"].lower() or q in u["first_name"].lower()
+                or q in str(u.get("wallet") or "").lower()]
+    checks = {
+        "online": lambda u: now - u.get("seen", 0) < 86400,
+        "balance": lambda u: u.get("balance", 0) > 0 or u.get("hatcoin_units", 0) > 0,
+        "prizes": lambda u: any(p.get("status") != "sold" for p in u.get("prizes", [])),
+        "banned": lambda u: bool(u.get("banned")),
+        "admin": lambda u: is_admin(u),
+        "wallet": lambda u: bool(u.get("wallet")),
+    }
+    if flt in checks:
+        rows = [u for u in rows if checks[flt](u)]
+    rows = sorted(rows, key=ADMIN_USER_SORTS[sort], reverse=body.get("dir") != "asc")
+    return {"rows": [admin_user_row(u) for u in rows[offset:offset + limit]], "total": len(users), "matched": len(rows),
+            "summary": {"online24h": sum(1 for u in users if now - u.get("seen", 0) < 86400),
+                        "with_balance": sum(1 for u in users if u.get("balance", 0) > 0 or u.get("hatcoin_units", 0) > 0),
+                        "banned": sum(1 for u in users if u.get("banned")),
+                        "balance_total": ton(sum(u.get("balance", 0) for u in users))}}
+
+
+@route("/api/admin/user/flags")
+def admin_user_flags(user, body):
+    """Блокировка игрока, заметка администратора, сброс обучения."""
+    require_admin(user)
+    target = find_user(body.get("key"))
+    if "banned" in body:
+        if is_admin(target) and body["banned"] is True:
+            raise ApiError("bad_request", 400, message="Администратора заблокировать нельзя.")
+        target["banned"] = body["banned"] is True
+    if "note" in body:
+        target["note"] = str(body.get("note") or "").strip()[:300]
+    if body.get("reset_tour") is True:
+        target["tour_done"] = False
+    return {"user": admin_user_detail(target)}
 
 
 @route("/api/admin/user")

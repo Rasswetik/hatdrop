@@ -1,6 +1,13 @@
     <div id="admUsers" hidden="">
-      <input class="gp-search" id="admSearch" type="search" placeholder="Имя, @username или ID" autocomplete="off">
-      <div class="lv-list" id="admUserList"></div>
+      <div class="us-stats" id="usStats"></div>
+      <div class="us-toolbar">
+        <input class="us-search" id="admSearch" type="search" placeholder="Поиск: имя, @username, ID или кошелёк" autocomplete="off">
+        <select id="usSort" aria-label="Сортировка"><option value="seen">Сначала активные</option><option value="balance">По балансу TON</option><option value="hatcoin">По HatCoin</option><option value="turnover">По обороту</option><option value="games">По числу игр</option><option value="created">Сначала новые</option></select>
+      </div>
+      <div class="us-chips" id="usChips"><button type="button" data-f="all" class="on">Все</button><button type="button" data-f="online">Онлайн 24 ч</button><button type="button" data-f="balance">С балансом</button><button type="button" data-f="prizes">С призами</button><button type="button" data-f="wallet">С кошельком</button><button type="button" data-f="banned">Заблокированные</button><button type="button" data-f="admin">Админы</button></div>
+      <div class="us-meta" id="usMeta"></div>
+      <div class="us-list" id="admUserList"></div>
+      <button class="button us-more" id="usMore" type="button" hidden>Показать ещё</button>
     </div>
     <div id="admUser" hidden=""></div>
     <div id="admRtp" hidden=""></div>

@@ -40,3 +40,30 @@ class TourTests(unittest.TestCase):
             self.assertIn("skeleton", self.post("/api/state").json["weapons"])
         finally:
             backend.weapons_lib.ACTIVE_EVENT = ""
+
+
+class AdminUsersTests(unittest.TestCase):
+    def setUp(self):
+        backend.db = {"users": {}, "prices": {}, "settings": {}, "withdrawals": {}, "promocodes": {}, "quests": {}}
+        backend.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
+        self.c = backend.app.test_client()
+        for uid in (301, 302, 303):
+            self.c.post("/api/state", json={"initData": signed_user(uid)})
+        backend.db["users"]["tg302"]["balance"] = 5
+        ticket = self.c.post("/api/admin/session", json={"initData": signed_user(101)}).json["ticket"]
+        self.c.post("/admin/login", json={"ticket": ticket})
+        with self.c.session_transaction() as s:
+            self.h = {"X-Admin-CSRF": s["admin_csrf"]}
+
+    def test_filters_sort_and_ban(self):
+        r = self.c.post("/api/admin/users", headers=self.h, json={"filter": "balance"}).json
+        self.assertEqual([u["id"] for u in r["rows"]], ["tg302"])
+        self.assertEqual(r["total"], 4)
+        r = self.c.post("/api/admin/users", headers=self.h, json={"sort": "balance"}).json
+        self.assertEqual(r["rows"][0]["id"], "tg302")
+        key = backend.db["users"]["tg303"]["key"]
+        d = self.c.post("/api/admin/user/flags", headers=self.h, json={"key": key, "banned": True, "note": "спамер"}).json["user"]
+        self.assertTrue(d["banned"])
+        self.assertEqual(self.c.post("/api/state", json={"initData": signed_user(303)}).status_code, 403)
+        self.c.post("/api/admin/user/flags", headers=self.h, json={"key": key, "banned": False})
+        self.assertEqual(self.c.post("/api/state", json={"initData": signed_user(303)}).status_code, 200)
