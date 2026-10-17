@@ -6,7 +6,7 @@ import weapons
 
 class ShopTests(unittest.TestCase):
     def setUp(self):
-        backend.db = {"users": {}, "prices": {}, "settings": {}, "withdrawals": {}, "promocodes": {}, "quests": {}}
+        backend.db = {"users": {}, "prices": {}, "settings": {"lavka_hidden": {"shop": False}}, "withdrawals": {}, "promocodes": {}, "quests": {}}
         backend.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
         self.c = backend.app.test_client()
         self.post("/api/state", uid=202)

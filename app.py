@@ -1054,6 +1054,8 @@ def full_state(user):
         "server_time": int(time.time()),
         "is_admin": is_admin(user),
         "halloween_enabled": db["settings"].get("halloween_enabled") is True,
+        "weapon_hidden": sorted(weapons_lib.hidden_set(db["settings"])),
+        "lavka_hidden": lavka_hidden(),
         "referral": referral_view(user),
     }
 
@@ -1798,9 +1800,46 @@ def shop_offer_view(offer, user):
             "available": offer.get("active", True) and (not left or min(left) > 0) and not owned_weapon, "owned": owned_weapon}
 
 
+LAVKA_SECTIONS = ("shop", "achievements", "quests")
+
+
+def lavka_hidden():
+    """Какие разделы лавки скрыты от игроков. По умолчанию скрыт магазин."""
+    raw = db["settings"].get("lavka_hidden")
+    raw = raw if isinstance(raw, dict) else {}
+    return {k: bool(raw.get(k, k == "shop")) for k in LAVKA_SECTIONS}
+
+
+@route("/api/admin/lavka")
+def admin_lavka(user, body):
+    require_admin(user)
+    if "section" in body:
+        sec = str(body.get("section") or "")
+        if sec not in LAVKA_SECTIONS or not isinstance(body.get("hidden"), bool):
+            raise ApiError("bad_request")
+        cur = lavka_hidden()
+        cur[sec] = body["hidden"]
+        db["settings"]["lavka_hidden"] = cur
+    return {"hidden": lavka_hidden()}
+
+
+@route("/api/admin/weapons/visibility")
+def admin_weapon_visibility(user, body):
+    require_admin(user)
+    wid = str(body.get("id") or "")
+    if not weapons_lib.is_hideable(wid) or not isinstance(body.get("hidden"), bool):
+        raise ApiError("bad_request")
+    hidden = weapons_lib.hidden_set(db["settings"])
+    (hidden.add if body["hidden"] else hidden.discard)(wid)
+    db["settings"]["weapon_hidden"] = sorted(hidden)
+    return {"hidden": sorted(hidden)}
+
+
 def shop_state(user):
     offers = [o for o in shop_doc()["offers"].values()
               if o.get("active", True) and (not o.get("uid") or o["uid"] == user["id"])]
+    if lavka_hidden()["shop"] and not is_admin(user):
+        offers = []
     offers.sort(key=lambda o: (o.get("sort", 0), o["created"]))
     return {"offers": [shop_offer_view(o, user) for o in offers],
             "balance_ton": ton(user["balance"]), "hatcoin_balance": hatcoin_balance(user)}
@@ -1820,6 +1859,8 @@ def shop_buy(user, body):
     offer = shop_doc()["offers"].get(str(body.get("id") or ""))
     if not offer or not offer.get("active", True) or (offer.get("uid") and offer["uid"] != user["id"]):
         raise ApiError("not_found", 404, message="Ордер недоступен.")
+    if lavka_hidden()["shop"] and not is_admin(user):
+        raise ApiError("not_found", 404, message="Магазин временно закрыт.")
     view = shop_offer_view(offer, user)
     if view["owned"]:
         raise ApiError("already_owned", 400, message="Это снаряжение у вас уже есть.")
@@ -2622,13 +2663,17 @@ def weapon_claim(user, body):
 def admin_weapons(user, body):
     require_admin(user)
     cfg = weapons_lib.get_cfg(db["settings"])
+    hidden = weapons_lib.hidden_set(db["settings"])
     users = [u for u in db["users"].values() if isinstance(u, dict)]
     total = max(1, len(users))
     weapons = [{"id": k, "name": v["name"], "rarity": v["rarity"], "event": v["event"], "default": bool(v["default"]),
-                "owners": sum(1 for u in users if k in weapons_lib.owned(u))}
+                "owners": sum(1 for u in users if k in weapons_lib.owned(u)), "hidden": k in hidden}
                for k, v in weapons_lib.WEAPONS.items() if weapons_lib.is_gear(k)]
+    spins = [{"id": k, "name": v["name"], "rarity": v["rarity"], "hidden": k in hidden,
+              "owners": sum(1 for u in users if k in weapons_lib.owned(u))}
+             for k, v in weapons_lib.WEAPONS.items() if v.get("kind") == "spin"]
     claims = sum(len(u.get("wclaims") or []) for u in users)
-    return {"cfg": cfg, "weapons": weapons, "players": total, "claims": claims}
+    return {"cfg": cfg, "weapons": weapons, "spins": spins, "players": total, "claims": claims}
 
 
 @route("/api/admin/weapons/save")
@@ -6418,23 +6463,15 @@ def seed_achievements():
 
 
 def seed_free_hand_offer():
-    """Бесплатный ордер «Посох мага» для всех игроков (создаётся один раз, дальше правится в админке)."""
-    offers = shop_doc()["offers"]
-    old = offers.get("free_hand")
-    if old and old.get("reward", {}).get("weapon") == "skeleton":  # раньше выдавалась Рука скелета, теперь она открывается на ивенте
-        old.update(title="Посох мага", description="", reward={"kind": "weapon", "weapon": "staff"})
-    elif old and old.get("title") in ("Посох Костяна", "Рука Костяна") and old.get("reward", {}).get("weapon") == "staff":
-        old["title"] = "Посох мага"
-    if db["settings"].get("free_hand_seeded"):
-        return
-    db["settings"]["free_hand_seeded"] = True
-    offers["free_hand"] = {"id": "free_hand", "title": "Посох мага", "description": "",
-                           "currency": "hatcoin", "price": 0.0, "limit_total": 0, "limit_user": 1, "active": True, "sold": 0,
-                           "created": int(time.time()) - 10, "sort": -10, "reward": {"kind": "weapon", "weapon": "staff"}}
-    try:
-        flush_db()
-    except Exception as exc:
-        print("free hand offer save failed:", exc, flush=True)
+    """Бесплатный ордер больше не выдаётся: пока даём только достижения и квесты. Старый ордер отключаем."""
+    old = shop_doc()["offers"].get("free_hand")
+    if old and old.get("active", True) and not db["settings"].get("free_hand_off"):
+        db["settings"]["free_hand_off"] = True  # один раз; дальше ордер можно включить обратно в админке
+        old["active"] = False
+        try:
+            flush_db()
+        except Exception as exc:
+            print("free hand offer save failed:", exc, flush=True)
 
 
 load_db()

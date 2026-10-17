@@ -3089,7 +3089,7 @@ html[data-theme="meadow"] .modal-card .gp-list, html[data-theme="meadow"] .modal
 <link rel="stylesheet" href="/static/village-scene.css?v=2">
 <link rel="stylesheet" href="/static/meadow-scene.css?v=3">
 <link rel="stylesheet" href="/static/halloween-fx.css?v=2">
-<link rel="stylesheet" href="/static/halloween-theme.css?v=18">
+<link rel="stylesheet" href="/static/halloween-theme.css?v=19">
 <style id="mines-palette">
 /* Geometry is shared; artwork and colors follow the server-controlled event. */
 #view-chests {
@@ -3137,7 +3137,7 @@ html[data-halloween="on"] #view-chests {
 #view-chests .cx-label { align-self:flex-start; color:var(--text); }
 #view-chests .cx-chip.on { background:var(--cx-chip-active)!important; border-color:var(--cx-safe-edge)!important; color:var(--cx-active-text)!important; box-shadow:inset 1px 1px 0 var(--cx-safe-shine),0 2px 0 var(--cx-edge)!important; }
 /* Never expose an event-only weapon before the server enables the event. */
-html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
+html[data-weapon-custom="0"] .ptr-custom { display:none!important; }
 </style>
 <link rel="stylesheet" href="/static/ui-layout.css?v=26">
 </head>
@@ -4386,7 +4386,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
     'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».': { en: 'Achievements. They stay forever: complete one, claim the reward, and it turns grey marked “Received”.', zh: '成就。成就永久保留：完成后领取奖励，条目会变灰并标记“已领取”。' },
     'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.': { en: 'Quests. Timed tasks: finish before the timer ends and claim your reward.', zh: '任务。限时任务：在倒计时结束前完成并领取奖励。' },
     'А оружие для прокрута меняется вот здесь. Чем реже оружие, тем ярче оно светится. Новое открывается за награды и в магазине.': { en: 'Your spin weapon is changed right here. The rarer the weapon, the brighter it glows. New ones unlock through rewards and the store.', zh: '转盘武器在这里更换。武器越稀有，光芒越亮。新武器可通过奖励和商店解锁。' },
-    'Ты прошёл экскурсию! Держи от меня Посох мага для прокрута. Забери его в магазине, там он лежит бесплатно.': { en: 'You finished the tour! Take the Mage’s Staff for spinning from me. It’s waiting for you free in the shop.', zh: '你完成了导览！送你转盘用的法师法杖。它在商店里免费等你领取。' },
+    'Ты прошёл экскурсию! Выполняй достижения и квесты, чтобы получать награды.': { en: 'You finished the tour! Complete achievements and quests to earn rewards.', zh: '你完成了导览！完成成就和任务即可获得奖励。' },
     'Забрать руку': { en: 'Take the hand', zh: '领取骷髅之手' },
     'Поехали': { en: 'Let’s go', zh: '出发' },
     'Пропустить': { en: 'Skip', zh: '跳过' },
@@ -6271,12 +6271,16 @@ function renderQuestCards(data, container, status) {
   const tabs = mk('div', 'kq-tabs');
   const open = (list) => list.filter((r) => r.st === 'ready' || r.st === 'active').length;
   const shopCount = shopCache ? shopCache.offers.filter((o) => o.available).length : 0;
-  for (const [id, label, count] of [['shop', 'Магазин', shopCount], ['achievements', 'Достижения', open(achievements)], ['quests', 'Квесты', open(quests)]]) {
+  const visibleTabs = [['shop', 'Магазин', shopCount], ['achievements', 'Достижения', open(achievements)], ['quests', 'Квесты', open(quests)]].filter(([id]) => !lavkaHidden(id));
+  if (!visibleTabs.length) { bar.hidden = true; status.hidden = false; status.textContent = tr('Лавка временно закрыта. Загляни позже!'); return; }
+  if (!visibleTabs.some(([id]) => id === questFilter)) questFilter = visibleTabs[0][0];
+  for (const [id, label, count] of visibleTabs) {
     const t = mk('button', 'kq-tab' + (questFilter === id ? ' on' : ''), tr(label));
-    t.type = 'button';
+    t.type = 'button'; t.dataset.tab = id;
     t.onclick = () => { questFilter = id; renderQuestCards(data, container, status); };
     tabs.append(t);
   }
+  tabs.style.gridTemplateColumns = 'repeat(' + visibleTabs.length + ', minmax(0, 1fr))';
   bar.append(tabs);
   if (questFilter === 'shop') { renderShop(container, status); return; }
   const rows = questFilter === 'achievements' ? achievements : quests;
@@ -6335,13 +6339,14 @@ async function loadKostyanQuests(force = false) {
 }
 
 // ---- Экскурсия Костяна: показывается при первом заходе в «Лавку», в конце подсказывает забрать Посох мага ----
-const TOUR_STEPS = [
+const TOUR_ALL = [
   { text: 'Здарова! Я Костян, хозяин этой лавки. Давай коротко покажу, что тут есть.' },
-  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.' },
-  { sel: '.kq-tab:nth-child(2)', filter: 'achievements', text: 'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».' },
-  { sel: '.kq-tab:nth-child(3)', filter: 'quests', text: 'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.' },
-  { sel: '.kq-tab:nth-child(1)', filter: 'shop', text: 'В магазине уже лежит бесплатный ордер «Посох мага». Открой его и забери: это мой подарок для прокрута. Оружие меняется кнопкой рядом с колесом, а нажав на него, можно рассмотреть его и узнать подробности.' },
+  { sel: '.kq-tab[data-tab="shop"]', filter: 'shop', text: 'Магазин. Тут я меняю товары на HatCoin и TON: оружие, подарки, NFT. Некоторых ордеров мало, так что не зевай.' },
+  { sel: '.kq-tab[data-tab="achievements"]', filter: 'achievements', text: 'Достижения. Они остаются навсегда: выполнил, забрал награду, и запись станет серой с пометкой «Получено».' },
+  { sel: '.kq-tab[data-tab="quests"]', filter: 'quests', text: 'Квесты. Задания со сроком: успей выполнить до конца таймера и забирай награду.' },
 ];
+// шаги экскурсии зависят от того, какие разделы лавки сейчас открыты; бесплатных наград экскурсия не обещает
+const TOUR_STEPS = TOUR_ALL.slice();
 let tourIdx = 0, tourTimer = 0, tourActive = false, tourSkipped = false;
 function tourType(text) {
   clearInterval(tourTimer);
@@ -6368,6 +6373,7 @@ function tourClose() { tourActive = false; clearInterval(tourTimer); $('tourLaye
 function maybeStartTour() {
   let seen = false; try { seen = localStorage.getItem('tourSeen') === '1'; } catch (e) {}
   if (tourActive || tourSkipped || seen || !state || state.tour_done) return;
+  TOUR_STEPS.splice(0, TOUR_STEPS.length, ...TOUR_ALL.filter((st) => !st.filter || !lavkaHidden(st.filter)));
   tourActive = true; tourIdx = 0; $('tourLayer').hidden = false; tourShow();
 }
 document.addEventListener('DOMContentLoaded', () => {
@@ -6622,10 +6628,13 @@ const CX_CELLS = 25;
 const CX_EMPTY_CHOICES = [1, 3, 5, 10, 15, 20];
 // A skin owns its artwork and available weapons. The server chooses the active event.
 const EVENT_SKINS = {
-  default: { weapons:['axe','staff','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
+  default: { weapons:['axe','staff','skeleton','shovel','pitchfork','flower','sword','hammer','trident','rainbow','butterfly','crystal','sun','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/chest-closed.svg?v=1',gold:'/static/chest-gold.svg?v=1',empty:'/static/chest-empty.svg?v=1'} },
   halloween: { weapons:['axe','staff','skeleton','sword','hammer','trident','crystal','club','pumpkin','scythe','pickaxe','mace','spear','orb','frost','flame','dragon','thunder'], mines:{closed:'/static/mine-closed.svg?v=2',gold:'/static/mine-candy.svg?v=2',empty:'/static/mine-skeleton.svg?v=2'} },
 };
+const isHiddenItem = (id) => !!(state && Array.isArray(state.weapon_hidden) && state.weapon_hidden.includes(id));
+const lavkaHidden = (sec) => !!(state && state.lavka_hidden && state.lavka_hidden[sec]);
 function weaponUsable(id) {
+  if (isHiddenItem(id)) return false;
   if (EVENT_SKINS.default.weapons.includes(id)) return true;
   if (!EVENT_SKINS.halloween.weapons.includes(id) || !(state && state.halloween_enabled)) return false;
   return id !== 'skeleton' || document.documentElement.dataset.halloween === 'on';
@@ -7662,11 +7671,12 @@ function buildWeaponMenu() {
   root.replaceChildren();
   const cur = document.documentElement.dataset.weapon;
   const q = (($('weaponSearch') && $('weaponSearch').value) || '').trim().toLowerCase();
-  const gear = Object.keys(WEAPONS);
+  const gear = Object.keys(WEAPONS).filter((id) => !isHiddenItem(id));
   const have = gear.filter((id) => ownedWeapons.includes(id)).length;
   const cols = (wCat && wCat.collections) || [];
   const inCol = new Set(cols.flatMap((c) => c.weapons));
   const shown = (id) => {
+    if (isHiddenItem(id)) return false;
     const own = ownedWeapons.includes(id);
     if (czFilter === 'mine' && !own) return false;
     if (czFilter === 'lost' && own) return false;
@@ -7746,17 +7756,17 @@ const SPIN_STYLES = ['plain', 'wild', 'roulette', 'turbo', 'spring', 'snap', 'pe
 const SPIN_LABELS = { plain: 'Обычный', wild: 'Дикий', roulette: 'Рулетка', turbo: 'Рывок', spring: 'Пружина', snap: 'Замах', pendulum: 'Маятник', tease: 'Интрига', swing: 'Качели' };
 const SPIN_RARITY = { plain: 'common', wild: 'rare', roulette: 'rare', turbo: 'rare', spring: 'rare', snap: 'epic', pendulum: 'epic', tease: 'epic', swing: 'legendary' };
 let spinStyle = 'plain';
-const spinOwned = (name) => name === 'plain' || ownedWeapons.includes('spin_' + name);
+const spinOwned = (name) => name === 'plain' || name === 'wild' || ownedWeapons.includes('spin_' + name);
 
 function setSpinStyle(name) {
-  spinStyle = SPIN_STYLES.includes(name) && spinOwned(name) ? name : 'plain';
+  spinStyle = SPIN_STYLES.includes(name) && spinOwned(name) && !isHiddenItem('spin_' + name) ? name : 'plain';
   try { localStorage.setItem('spinStyle', spinStyle); } catch (e) {}
   buildSpinGrid();
 }
 function buildSpinGrid() {
   const grid = $('spinGrid'); if (!grid) return;
   grid.replaceChildren();
-  for (const id of SPIN_STYLES) {
+  for (const id of SPIN_STYLES.filter((x) => !isHiddenItem('spin_' + x))) {
     const locked = !spinOwned(id);
     const b = document.createElement('button');
     b.type = 'button'; b.dataset.spin = id; b.dataset.rarity = SPIN_RARITY[id];

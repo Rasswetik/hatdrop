@@ -3,8 +3,8 @@ rarity: common / rare / epic / legendary — от редкости завися�
 RARITIES = {"common": "Обычное", "rare": "Редкое", "epic": "Эпическое", "legendary": "Легендарное"}
 WEAPONS = {
     "axe": {"name": "Топор", "default": True, "event": "", "rarity": "common"},
-    "staff": {"name": "Посох", "default": False, "event": "", "rarity": "common"},
-    "skeleton": {"name": "Рука скелета", "default": False, "event": "halloween", "rarity": "epic", "event_free": True},
+    "staff": {"name": "Посох", "default": True, "event": "", "rarity": "common"},
+    "skeleton": {"name": "Рука скелета", "default": True, "event": "", "rarity": "epic"},
     "sword": {"name": "Меч", "default": False, "event": "", "rarity": "rare"},
     "hammer": {"name": "Молот", "default": False, "event": "", "rarity": "rare"},
     "trident": {"name": "Трезубец", "default": False, "event": "", "rarity": "epic"},
@@ -29,7 +29,7 @@ WEAPONS = {
     "thunder": {"name": "Молния Зевса", "default": False, "event": "", "rarity": "legendary"},
     # типы прокрута (kind=spin): хранятся и выдаются так же, как оружие
     "spin_plain": {"name": "Прокрут: Обычный", "default": True, "event": "", "rarity": "common", "kind": "spin"},
-    "spin_wild": {"name": "Прокрут: Дикий", "default": False, "event": "", "rarity": "rare", "kind": "spin"},
+    "spin_wild": {"name": "Прокрут: Дикий", "default": True, "event": "", "rarity": "rare", "kind": "spin"},
     "spin_roulette": {"name": "Прокрут: Рулетка", "default": False, "event": "", "rarity": "rare", "kind": "spin"},
     "spin_turbo": {"name": "Прокрут: Рывок", "default": False, "event": "", "rarity": "rare", "kind": "spin"},
     "spin_spring": {"name": "Прокрут: Пружина", "default": False, "event": "", "rarity": "rare", "kind": "spin"},
@@ -51,6 +51,22 @@ def owned(user):
     got = user.get("weapons") if isinstance(user.get("weapons"), list) else []
     free = {k for k, v in WEAPONS.items() if v.get("event_free") and ACTIVE_EVENT and v["event"] == ACTIVE_EVENT}
     return sorted({k for k, v in WEAPONS.items() if v["default"]} | free | {w for w in got if w in WEAPONS})
+
+
+# Пока в кастомизации видны только эти предметы. Остальное скрыто и открывается в админке («Оружие»).
+DEFAULT_VISIBLE = {"axe", "staff", "skeleton", "spin_plain", "spin_wild"}
+
+
+def is_hideable(wid):
+    return wid in WEAPONS and WEAPONS[wid].get("kind", "gear") in ("gear", "spin")
+
+
+def hidden_set(settings):
+    """Скрытое оружие и прокруты. Пока админ ничего не менял — скрыто всё, кроме DEFAULT_VISIBLE."""
+    raw = settings.get("weapon_hidden")
+    if isinstance(raw, list):
+        return {w for w in raw if is_hideable(w)}
+    return {w for w in WEAPONS if is_hideable(w) and w not in DEFAULT_VISIBLE}
 
 
 def has(user, wid):

@@ -40,6 +40,22 @@ function wRender() {
   top.append(wEl('div', { className: 'adm-form' }, save));
   box.append(top);
 
+  // видимость в кастомизации игрока: скрытое оружие и прокруты не видны, пока админ их не откроет
+  const visBox = wEl('div', { className: 'adm-box' }, wEl('h3', { textContent: 'Видимость для игроков' }),
+    wEl('p', { className: 'muted', textContent: 'Галочка — предмет показывается в кастомизации. Скрытые предметы можно по-прежнему выдавать игрокам, но они не видны, пока вы их не откроете. Изменения применяются сразу и сохраняются в базе.' }));
+  const visRow = (it) => {
+    const cb = wEl('input', { type: 'checkbox', checked: !it.hidden });
+    cb.onchange = async () => {
+      cb.disabled = true;
+      try { await api('/api/admin/weapons/visibility', { id: it.id, hidden: !cb.checked }); it.hidden = !cb.checked; toast(cb.checked ? 'Показывается игрокам' : 'Скрыто'); }
+      catch (e) { cb.checked = !cb.checked; wErr(e); } finally { cb.disabled = false; }
+    };
+    return wEl('label', { className: 'wvis' }, cb, wEl('img', { src: it.id.startsWith('spin_') ? `/static/weapons/${it.id}-icon.png` : wImg(it.id), alt: '' }),
+      wEl('span', { textContent: `${it.name} · ${WRAR[it.rarity] || it.rarity}` }));
+  };
+  visBox.append(wEl('h4', { textContent: 'Оружие' }), ...st.weapons.map(visRow), wEl('h4', { textContent: 'Прокруты' }), ...(st.spins || []).map(visRow));
+  box.append(visBox);
+
   // награды за уровни игрока
   const lr = wEl('div', { className: 'adm-box' }, wEl('h3', { textContent: 'Награды за уровень игрока' }),
     wEl('p', { className: 'muted', textContent: 'При достижении уровня игрок автоматически получает награду: оружие, оформление, тип прокрута или монеты. Награда видна в окне «Награды за уровни». Уже достигшие уровня получат её при следующем входе.' }));

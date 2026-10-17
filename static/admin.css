@@ -65,3 +65,6 @@
 .adm-wd-row b { text-align: right; overflow-wrap: anywhere; }
 .adm-wd-big { position: sticky; bottom: 0; padding: 12px 0; background: var(--bg, #0e1220); display: flex; gap: 8px; flex-wrap: wrap; }
 .adm-wd-big button { flex: 1 1 140px; padding: 12px; }
+.wvis { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.07); cursor: pointer; }
+.wvis img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.wvis input { width: 20px; height: 20px; }

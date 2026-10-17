@@ -17,17 +17,18 @@ class TourTests(unittest.TestCase):
     def test_new_player_has_zero_balance_and_no_skeleton(self):
         st = self.post("/api/state").json
         self.assertEqual(st["balance_ton"], 0)
-        self.assertEqual(st["weapons"], ["axe", "spin_plain", "theme_meadow"])
+        self.assertEqual(st["weapons"], ["axe", "skeleton", "spin_plain", "staff", "theme_meadow"])
         self.assertFalse(st["tour_done"])
 
-    def test_free_hand_offer_for_everyone(self):
+    def test_no_free_offer_and_shop_hidden_by_default(self):
         self.post("/api/state")
-        offer = self.post("/api/shop").json["offers"][0]
-        self.assertEqual(offer["price"], 0)
-        r = self.post("/api/shop/buy", {"id": offer["id"]})
-        self.assertEqual(r.status_code, 200)
-        self.assertIn("staff", r.json["weapons"])
-        self.assertEqual(self.post("/api/shop/buy", {"id": offer["id"]}).status_code, 400)
+        self.assertEqual(self.post("/api/shop").json["offers"], [])
+        st = self.post("/api/state").json
+        self.assertTrue(st["lavka_hidden"]["shop"])
+        self.assertFalse(st["lavka_hidden"]["quests"])
+        self.assertEqual(sorted(set(st["weapon_hidden"]) & {"axe", "staff", "skeleton", "spin_plain", "spin_wild"}), [])
+        self.assertIn("sword", st["weapon_hidden"])
+        self.assertIn("spin_turbo", st["weapon_hidden"])
 
     def test_tour_flag_and_weapon_stats(self):
         self.post("/api/state")
@@ -35,12 +36,8 @@ class TourTests(unittest.TestCase):
         self.assertTrue(self.post("/api/state").json["tour_done"])
         st = self.post("/api/weapons/stats").json["weapons"]
         self.assertEqual(st["axe"]["percent"], 100.0)
-        self.assertEqual(st["skeleton"]["percent"], 0.0)
-        backend.weapons_lib.ACTIVE_EVENT = "halloween"
-        try:
-            self.assertIn("skeleton", self.post("/api/state").json["weapons"])
-        finally:
-            backend.weapons_lib.ACTIVE_EVENT = ""
+        self.assertEqual(st["skeleton"]["percent"], 100.0)
+        self.assertEqual(st["sword"]["percent"], 0.0)
 
 
 class AdminUsersTests(unittest.TestCase):
@@ -75,20 +72,20 @@ class WeaponCollectionTests(AdminUsersTests):
         post = lambda path, body=None: self.c.post(path, json={"initData": signed_user(303), **(body or {})})
         cat = post("/api/weapons/catalog").json
         self.assertEqual([c["id"] for c in cat["collections"]], ["halloween"])
-        self.assertEqual(cat["have"], 1)
+        self.assertEqual(cat["have"], 3)
         # админ: коллекция из трёх обычных вещей, награда 2 TON, оружие не может быть в двух коллекциях
         cfg = {"collections": [
-            {"id": "a", "name": "Поле", "need": 2, "reward": 2, "weapons": ["axe", "staff", "shovel"]},
+            {"id": "a", "name": "Поле", "need": 3, "reward": 2, "weapons": ["axe", "staff", "shovel"]},
             {"id": "b", "name": "Дубль", "need": 1, "reward": 1, "weapons": ["axe", "mace"]}],
             "levels": [{"id": "x", "need": 1, "reward": 0.5}]}
         saved = self.c.post("/api/admin/weapons/save", headers=self.h, json={"cfg": cfg}).json["cfg"]
         self.assertEqual(saved["collections"][1]["weapons"], ["mace"])
         cat = post("/api/weapons/catalog").json
-        self.assertEqual(post("/api/weapons/claim", {"type": "collection", "id": "a"}).status_code, 400)  # собрано 1 из 2
+        self.assertEqual(post("/api/weapons/claim", {"type": "collection", "id": "a"}).status_code, 400)  # собрано 2 из 3
         self.assertEqual(post("/api/weapons/claim", {"type": "level", "id": "x"}).status_code, 200)
         self.assertEqual(post("/api/weapons/claim", {"type": "level", "id": "x"}).status_code, 400)
         self.assertEqual(post("/api/state").json["balance_ton"], 0.5)
-        backend.weapons_lib.grant(backend.db["users"]["tg303"], "staff")
+        backend.weapons_lib.grant(backend.db["users"]["tg303"], "shovel")
         r = post("/api/weapons/claim", {"type": "collection", "id": "a"})
         self.assertEqual(r.json["balance_ton"], 2.5)
         bad = self.c.post("/api/admin/weapons/save", headers=self.h, json={"cfg": {"collections": [{"name": ""}]}})
@@ -182,3 +179,26 @@ class WithdrawalFlowTests(AdminUsersTests):
             self.assertEqual(backend.db['withdrawals'][key]['status'], 'completed')
             self.assertEqual(prize['status'], 'withdrawn')
             self.assertTrue(any(c.args[0] == 'tg303' for c in sent.call_args_list))
+
+
+class VisibilityAdminTests(AdminUsersTests):
+    def adm(self, path, body):
+        return self.c.post(path, headers=self.h, json=body)
+
+    def test_toggle_weapon_spin_and_lavka_visibility(self):
+        post = lambda path, body=None: self.c.post(path, json={"initData": signed_user(303), **(body or {})})
+        self.assertIn("sword", post("/api/state").json["weapon_hidden"])
+        self.assertEqual(self.adm("/api/admin/weapons/visibility", {"id": "sword", "hidden": False}).status_code, 200)
+        self.assertEqual(self.adm("/api/admin/weapons/visibility", {"id": "spin_turbo", "hidden": False}).status_code, 200)
+        hidden = post("/api/state").json["weapon_hidden"]
+        self.assertNotIn("sword", hidden)
+        self.assertNotIn("spin_turbo", hidden)
+        self.assertIn("mace", hidden)
+        self.assertEqual(self.adm("/api/admin/weapons/visibility", {"id": "theme_meadow", "hidden": True}).status_code, 400)
+        rows = self.adm("/api/admin/weapons", {}).json
+        self.assertTrue(any(w["id"] == "sword" and not w["hidden"] for w in rows["weapons"]))
+        self.assertTrue(any(w["id"] == "spin_wild" and not w["hidden"] for w in rows["spins"]))
+        self.assertEqual(self.adm("/api/admin/lavka", {"section": "shop", "hidden": False}).json["hidden"]["shop"], False)
+        self.assertEqual(self.adm("/api/admin/lavka", {"section": "quests", "hidden": True}).json["hidden"]["quests"], True)
+        self.assertEqual(post("/api/state").json["lavka_hidden"], {"shop": False, "achievements": False, "quests": True})
+        self.assertEqual(self.adm("/api/admin/lavka", {"section": "x", "hidden": True}).status_code, 400)

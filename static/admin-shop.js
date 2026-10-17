@@ -97,6 +97,19 @@ async function admLoadShop() {
     const [data, cat] = await Promise.all([api('/api/admin/shop'), shCatalog ? null : api('/api/gifts/catalog')]);
     if (cat) shCatalog = (cat.items || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
     root.replaceChildren();
+    const lv = await api('/api/admin/lavka');
+    const secBox = shEl('div', { className: 'adm-box' }, shEl('h3', { textContent: 'Разделы лавки для игроков' }),
+      shEl('p', { className: 'muted', textContent: 'Скрытый раздел исчезает у игроков и из экскурсии. Админы магазин по-прежнему видят.' }));
+    for (const [id, label] of [['shop', 'Магазин'], ['achievements', 'Достижения'], ['quests', 'Квесты']]) {
+      const cb = shEl('input', { type: 'checkbox', checked: !lv.hidden[id] });
+      cb.onchange = async () => {
+        cb.disabled = true;
+        try { await api('/api/admin/lavka', { section: id, hidden: !cb.checked }); toast(cb.checked ? label + ': показан' : label + ': скрыт'); }
+        catch (e) { cb.checked = !cb.checked; shErr(e); } finally { cb.disabled = false; }
+      };
+      secBox.append(shEl('label', { className: 'wvis' }, cb, shEl('span', { textContent: label })));
+    }
+    root.append(secBox);
     const formBox = shEl('div', { className: 'adm-box' }, shEl('h3', { textContent: 'Новый ордер' }));
     const holder = shEl('div');
     const showForm = (offer) => { holder.replaceChildren(shopForm(offer, data.weapons, admLoadShop)); formBox.scrollIntoView({ block: 'start' }); };

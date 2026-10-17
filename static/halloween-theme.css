@@ -241,14 +241,14 @@ html[data-halloween="on"] .sky-btn {
   background:var(--hw-ui-control)!important;border-color:var(--hw-ui-edge)!important;border-radius:3px!important;
   box-shadow:inset 2px 2px 0 var(--hw-ui-shine),0 3px 0 #10081a!important;
 }
-html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
-html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer > * { display:none!important; }
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer > .ptr-skeleton {
   display:inline!important;image-rendering:auto;opacity:1;
 }
 html[data-theme="meadow"][data-weapon="staff"] .pointer > .ptr-skeleton { display:none!important; }
 html[data-theme="meadow"][data-weapon="axe"] .pointer > .ptr-skeleton { display:none!important; }
 html[data-theme="meadow"] .pointer > .ptr-skeleton { display:none; }
-html[data-halloween="on"][data-theme="meadow"][data-weapon="skeleton"] .pointer {
+html[data-theme="meadow"][data-weapon="skeleton"] .pointer {
   filter:drop-shadow(2px 3px 0 rgba(17,9,26,.9)) drop-shadow(0 0 7px rgba(246,218,181,.55));
 }
 html[data-halloween="on"] #weaponMenu button[data-weapon="skeleton"] { border-color:#a35c80; }
