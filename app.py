@@ -275,7 +275,15 @@ def load_quests():
 
 
 def load_db():
-    global db
+    global db, DATABASE_URL
+    if DATABASE_URL:
+        try:
+            _pg()
+        except Exception as exc:
+            # Postgres недоступен при старте: сайт не падает, а работает на SQLite (данные не теряются и не расходятся в процессе).
+            hint = " Для Render используйте External Database URL (хост вида ...-postgres.render.com), а не Internal." if "translate host name" in str(exc) else ""
+            print(f"WARNING: PostgreSQL недоступен ({exc}). Работаю на SQLite.{hint}", flush=True)
+            DATABASE_URL = ""
     text = store_get("db", DB_PATH)
     if text:
         db = json.loads(text)
