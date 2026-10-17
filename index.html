@@ -8658,6 +8658,10 @@ initTonConnect();
 const destination = new URLSearchParams(location.search).get('view');
 if (VIEWS.includes(destination)) showView(destination);
 refresh().then(restoreSavedGift).catch(() => {});
+{ // кнопка «Рассмотреть» из уведомления админу: открываем панель сразу на нужной заявке
+  const wd = new URLSearchParams(location.search).get('wd');
+  if (wd) api('/api/admin/session').then((r) => window.location.assign('/admin#ticket=' + encodeURIComponent(r.ticket) + '&wd=' + encodeURIComponent(wd))).catch(() => {});
+}
 setInterval(() => {
   if (document.hidden || tg?.isActive === false || spinning || cxBusy || cxRound) return;
   refresh();

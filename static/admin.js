@@ -328,10 +328,11 @@ function exportStats() {
   const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=admField('a',{href:url,download:`hatdrop-${overviewData.scope}-${overviewData.series[0].date}-${overviewData.series.at(-1).date}.csv`});document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 async function startAdmin() {
-  const ticket = new URLSearchParams(location.hash.slice(1)).get('ticket');
+  const hashParams = new URLSearchParams(location.hash.slice(1)); const ticket = hashParams.get('ticket');
+  if (hashParams.get('wd')) { try { sessionStorage.setItem('admWd', hashParams.get('wd')); } catch(e) {} }
   if(ticket) {
     history.replaceState(null,'','/admin');
-    try {const r=await fetch('/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket})});if(!r.ok)throw new Error();location.replace('/admin');return;}catch(e){$('accessMessage').textContent='Откройте панель снова из профиля игры.';return;}
+    try {const r=await fetch('/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({ticket})});if(!r.ok)throw new Error();location.replace(hashParams.get('wd') ? '/admin#withdrawals' : '/admin');return;}catch(e){$('accessMessage').textContent='Откройте панель снова из профиля игры.';return;}
   }
   if(!document.querySelector('meta[name="admin-csrf"]').content){$('accessMessage').textContent='Войдите через профиль администратора в игре.';return;}
   try {const data=await api('/api/admin/overview',{days:30});$('adminName').textContent=data.admin_name;overviewData=data;}catch(e){$('accessMessage').textContent='Откройте панель снова из профиля игры.';return;}

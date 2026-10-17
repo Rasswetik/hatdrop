@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import unittest
 
 from test_admin_dashboard import backend, signed_user
@@ -145,3 +146,39 @@ class PromoItemTests(AdminUsersTests):
         out = self.c.post("/api/promo", json={"initData": signed_user(303), "code": "THEME1"}).json
         self.assertIn("theme_halloween", out["weapons"])
         d = self.c.post("/api/admin/user", headers=self.h, json={"key": backend.db["users"]["tg303"]["key"]}).json
+
+
+class WithdrawalFlowTests(AdminUsersTests):
+    def adm(self, path, body):
+        return self.c.post(path, headers=self.h, json=body)
+
+    def _request(self):
+        user = backend.db['users']['tg303']
+        prize = backend.add_prize(user, 'random', 'Big Gift', 50)
+        with patch.object(backend, '_send_tg_async') as sent:
+            r = self.c.post('/api/withdraw', json={'initData': signed_user(303), 'prize_id': prize['id']})
+            self.assertEqual(r.status_code, 200)
+        return f"tg303:{prize['id']}", prize, sent
+
+    def test_large_request_notifies_admins(self):
+        key, prize, sent = self._request()
+        self.assertTrue(sent.called)
+        self.assertEqual(backend.db['withdrawals'][key]['auto'], 'manual')
+
+    def test_approve_without_relayer_fails_then_manual_completion_notifies_player(self):
+        key, prize, _ = self._request()
+        with patch.object(backend, '_send_tg_async') as sent:
+            self.assertEqual(self.adm('/api/admin/withdrawals/resolve', {'id': key, 'action': 'approve'}).status_code, 200)
+            req = backend.db['withdrawals'][key]
+            self.assertEqual((req['status'], req['transfer']), ('approved', 'failed'))
+            self.assertTrue(req['transfer_error'])
+            d = self.adm('/api/admin/withdrawals/detail', {'id': key}).json
+            self.assertEqual(d['request']['transfer'], 'failed')
+            self.assertEqual(d['player']['telegram_id'], '303')
+            self.assertEqual(self.adm('/api/admin/withdrawals/resolve', {'id': key, 'action': 'retry'}).status_code, 200)
+            self.assertEqual(backend.db['withdrawals'][key]['transfer'], 'failed')
+            sent.reset_mock()
+            self.assertEqual(self.adm('/api/admin/withdrawals/resolve', {'id': key, 'action': 'complete'}).status_code, 200)
+            self.assertEqual(backend.db['withdrawals'][key]['status'], 'completed')
+            self.assertEqual(prize['status'], 'withdrawn')
+            self.assertTrue(any(c.args[0] == 'tg303' for c in sent.call_args_list))

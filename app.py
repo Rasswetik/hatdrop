@@ -24,7 +24,7 @@ from bot_messages import (DEFAULT_MESSAGES, MAX_CUSTOM_COMMANDS, commands_config
 from admin_dashboard import ensure_analytics, record_round, overview, finance_entry
 from quest_engine import QUEST_TYPES, definitions as quest_definitions, validate as validate_quest, record_event as _quest_record_event, record_verified_deposit as _quest_record_deposit, listed as quest_listed, personal_rows as personal_quest_rows, claim as quest_claim
 from decimal import ROUND_HALF_UP, Decimal
-from urllib.parse import parse_qsl, quote, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from flask import Flask, Response, g, jsonify, request, send_from_directory, render_template, session, has_request_context
 
@@ -1363,7 +1363,8 @@ def withdraw(user, body):
         req["auto_error"] = reason
         req["auto_status"] = "not_eligible"
     _send_bot_message(user["id"], "withdraw_pending", gift=prize["name"], prize=prize)
-    _notify_admins_withdrawal(user, prize, req)
+    if req["auto"] == "manual":  # автовывод (сумма в пределах лимита) админов не беспокоит; крупные заявки ждут решения
+        _notify_admins_withdrawal(user, prize, req)
     return {"prizes": visible_prizes(user), "balance_ton": ton(user["balance"]), "auto_gift": req["auto"] == "queued"}
 
 
@@ -1995,12 +1996,79 @@ def admin_withdrawals(user, body):
             "bot_username": db["settings"].get("bot_username", "")}
 
 
+def _withdrawal_target(req):
+    target = db["users"].get(req["uid"])
+    prize = next((p for p in (target or {}).get("prizes", []) if p.get("id") == req["prize_id"]), None) if target else None
+    return target, prize
+
+
+def _transfer_failed(req, target, prize, msg):
+    req.update(transfer="failed", transfer_error=str(msg)[:300], updated=int(time.time()))
+    save_db()
+    if target and prize:
+        _notify_admins_withdrawal(target, prize, req, error=str(msg)[:300])
+
+
+def relayer_transfer_request(key):
+    """Передать подарок по принятой админом заявке. Быстрые проверки - сразу, сеть - в фоне.
+    Итог пишется в заявку: transfer = queued / done / failed (+ transfer_error)."""
+    with lock:
+        req = db.setdefault("withdrawals", {}).get(key)
+        if not req or req.get("status") != "approved":
+            return
+        target, prize = _withdrawal_target(req)
+        if not target or not prize:
+            return _transfer_failed(req, target, prize, "Игрок или приз не найден")
+        if not str(target["id"]).startswith("tg"):
+            return _transfer_failed(req, target, prize, "Игрок без Telegram-аккаунта")
+        if not relayer_lib.available() or not relayer_ready():
+            return _transfer_failed(req, target, prize, "Релейер выключен или не авторизован")
+        traits = prize_withdraw_target(prize)
+        if not traits:
+            return _transfer_failed(req, target, prize, "Нет данных для поиска подарка на релейере")
+        job = {"id": key, "tg_id": int(str(target["id"])[2:]), "username": target.get("username", ""), **traits}
+        api_id, api_hash = relayer_creds()
+        session = relayer_doc().get("session", "")
+        req.update(transfer="queued", transfer_error="", attempts=int(req.get("attempts", 0)) + 1, updated=int(time.time()))
+        save_db()
+
+    def work():
+        try:
+            with RELAYER_SCAN_MUTEX:
+                results, session2 = relayer_lib.run(relayer_lib.transfer_jobs(api_id, api_hash, session, [job]))
+        except Exception as exc:
+            with lock:
+                r = db["withdrawals"].get(key)
+                if r and r.get("status") == "approved":
+                    t, pz = _withdrawal_target(r)
+                    _transfer_failed(r, t, pz, relayer_lib.explain(exc))
+            return
+        with lock:
+            if session2:
+                relayer_doc()["session"] = session2
+            r = db["withdrawals"].get(key)
+            if not r or r.get("status") != "approved":
+                return
+            t, pz = _withdrawal_target(r)
+            res = next((x for x in results if x.get("id") == key), {"status": "error", "error": "Релейер не вернул результат"})
+            if res.get("status") == "completed" and pz:
+                r.update(status="completed", transfer="done", moderator="relayer", auto_slug=res.get("slug", ""), transfer_error="", updated=int(time.time()))
+                pz["status"] = "withdrawn"
+                _send_bot_message(r["uid"], "withdraw_completed", gift=pz["name"], prize=pz)
+                save_db()
+            else:
+                msg = res.get("error") or ("Подарок не найден на релейере" if res.get("status") == "not_found" else res.get("status", "ошибка"))
+                _transfer_failed(r, t, pz, msg)
+
+    threading.Thread(target=work, daemon=True).start()
+
+
 @route("/api/admin/withdrawals/resolve")
 def admin_withdrawals_resolve(user, body):
     require_admin(user)
     key = str(body.get("id") or "")
     action = str(body.get("action") or "")
-    if action not in ("approve", "reject", "complete"):
+    if action not in ("approve", "reject", "complete", "retry"):
         raise ApiError("bad_request")
     req = db.setdefault("withdrawals", {}).get(key)
     if req is None:
@@ -2014,28 +2082,92 @@ def admin_withdrawals_resolve(user, body):
                "value_ton": prize.get("value", 0),
                "status": "pending", "created": 0}
         db["withdrawals"][key] = req
-    target = db["users"].get(req["uid"])
-    prize = next((p for p in target.get("prizes", []) if p.get("id") == req["prize_id"]), None) if target else None
+    target, prize = _withdrawal_target(req)
     if not prize:
         raise ApiError("not_found", 404)
     current = req.get("status", "pending")
+    failed = req.get("transfer") == "failed" or req.get("auto") == "failed"
+    start_transfer = False
     if action == "approve" and current == "pending":
-        req["status"] = "approved"
+        # «Принять вывод»: подарок передаётся автоматически через релейер
+        req.update(status="approved", transfer="queued", transfer_error="", auto="manual" if req.get("auto") == "queued" else req.get("auto"))
         prize["status"] = "withdraw_processing"
-    elif action == "reject" and current == "pending":
+        start_transfer = True
+    elif action == "retry" and current == "approved" and req.get("transfer") == "failed":
+        req.update(transfer="queued", transfer_error="")
+        start_transfer = True
+    elif action == "reject" and (current == "pending" or (current == "approved" and failed)):
         req["status"] = "rejected"
         prize["status"] = "owned"
-    elif action == "complete" and current == "approved":
-        # Manual confirmation only; no pretend NFT transfer.
-        req["status"] = "completed"
+    elif action == "complete" and current in ("pending", "approved"):
+        # «Я отправил вручную»: игрок получает то же уведомление о выводе
+        req.update(status="completed", transfer="manual")
         prize["status"] = "withdrawn"
     else:
         raise ApiError("invalid_status_transition")
     req["updated"] = int(time.time())
     req["moderator"] = user["id"]
-    if action != "approve":  # «одобрено» игроку не пишем: только отказ и факт выдачи
+    if action in ("reject", "complete"):  # «принято» игроку не пишем: только отказ и факт выдачи
         _send_bot_message(req["uid"], {"reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"], prize=prize)
+    if start_transfer:
+        relayer_transfer_request(key)
     return {"ok": True, "request": withdrawal_record(req)}
+
+
+def _player_deposits(uid):
+    rows = []
+    for o in db.get("stars_orders", {}).values():
+        if o.get("uid") == uid and o.get("status") == "credited":
+            rows.append({"ts": o.get("credited", 0), "kind": "Telegram Stars", "amount": o.get("amount", 0)})
+    for o in db.get("crypto_orders", {}).values():
+        if o.get("uid") == uid and o.get("status") == "credited" and not o.get("testnet"):
+            rows.append({"ts": o.get("credited", 0), "kind": "CryptoBot", "amount": o.get("amount", 0)})
+    for e in (relayer_doc().get("events") or {}).values():
+        if e.get("uid") == uid and e.get("status") == "credited":
+            rows.append({"ts": e.get("at", 0), "kind": "NFT-подарок", "amount": e.get("price_ton", 0), "note": e.get("collection", "")})
+    rows.sort(key=lambda r: r["ts"], reverse=True)
+    return {"count": len(rows), "total": ton(sum(r["amount"] for r in rows)), "rows": rows[:12]}
+
+
+def _prize_origin(prize):
+    src = prize.get("source")
+    if src == "shop":
+        return "Куплено в лавке"
+    if prize.get("nft_slug") or src == "relayer":
+        return "Пополнение NFT-подарком"
+    tier = str(prize.get("tier") or "")
+    if tier.startswith("gift:"):
+        return "Выиграно в игре (режим «Подарки»)"
+    if src:
+        return f"Источник: {src}"
+    return "Выиграно в игре"
+
+
+@route("/api/admin/withdrawals/detail")
+def admin_withdrawal_detail(user, body):
+    """Всё, что нужно для решения по заявке: игрок, происхождение приза, депозиты, выводы и недавние игры."""
+    require_admin(user)
+    key = str(body.get("id") or "")
+    req = db.setdefault("withdrawals", {}).get(key)
+    if req is None:
+        raise ApiError("not_found", 404)
+    target, prize = _withdrawal_target(req)
+    if not target:
+        raise ApiError("not_found", 404)
+    others = [r for r in db["withdrawals"].values() if r["uid"] == target["id"]]
+    others.sort(key=lambda r: r.get("created", 0), reverse=True)
+    traits = prize_withdraw_target(prize) if prize else None
+    return {"request": withdrawal_record(req),
+            "player": {**admin_user_row(target), "wallet": target.get("wallet", ""), "note_text": str(target.get("note") or ""),
+                       "telegram_id": str(target["id"])[2:] if str(target["id"]).startswith("tg") else ""},
+            "prize": {"name": req.get("name", ""), "value_ton": req.get("value_ton", 0), "origin": _prize_origin(prize or {}),
+                      "tier": (prize or {}).get("tier", ""), "slug": (prize or {}).get("nft_slug", ""),
+                      "collection": (traits or {}).get("collection", ""), "model": (traits or {}).get("model", "")},
+            "deposits": _player_deposits(target["id"]),
+            "withdrawals": [{"name": r.get("name", ""), "value_ton": r.get("value_ton", 0), "status": r.get("status", ""), "created": r.get("created", 0)} for r in others[:8]],
+            "games": [{"ts": h.get("ts", 0), "kind": h.get("kind", ""), "win": bool(h.get("win")), "cost_ton": h.get("cost_ton", 0), "payout_ton": h.get("payout_ton", 0), "target": h.get("target", "")}
+                      for h in (target.get("history") or [])[:10]],
+            "relayer_ready": bool(relayer_ready())}
 
 
 def _bot_app_url():
@@ -2054,8 +2186,17 @@ def _notify_admins_withdrawal(user, prize, req, error=None):
                                   extra={"value": f"{prize['value']:g}", "user": who, "id": str(user["id"])[2:],
                                          "mode": mode, "error": error or ""})
     text = "\n".join(l for l in payload["text"].split("\n") if re.sub(r"<[^>]+>", "", l).strip() != "Режим:")
+    markup = payload.get("reply_markup")
+    app_url = _bot_app_url()
+    try:
+        p = urlsplit(app_url)
+        if p.scheme == "https":
+            q = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True) if k not in ("view", "wd")] + [("wd", req["id"])]
+            markup = {"inline_keyboard": [[{"text": "Рассмотреть", "web_app": {"url": urlunsplit((p.scheme, p.netloc, p.path or "/", urlencode(q), p.fragment))}}]]}
+    except Exception:
+        pass
     for aid in effective_admin_ids():
-        _send_tg_async("tg" + str(aid), text, payload.get("reply_markup"), html=True)
+        _send_tg_async("tg" + str(aid), text, markup, html=True)
 
 
 def _prize_collection_key(prize):

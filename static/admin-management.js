@@ -524,7 +524,7 @@ async function admLoadWithdrawals() {
       const owner = admField('span', {className:'adm-wd-meta',
         textContent:(wd.username ? '@'+wd.username : (wd.first_name || 'Игрок')) + ' · ID ' + (wd.telegram_id || wd.user_id)});
       const price = admField('span', {className:'adm-wd-meta',textContent: Number(wd.value_ton || 0).toFixed(2)+' TON'});
-      const state = admField('span',{className:'adm-wd-chip',textContent: ({pending:'На проверке',approved:'Одобрено, ожидает отправки',completed:'Выполнено',rejected:'Отклонено'})[wd.status] || wd.status});
+      const state = admField('span',{className:'adm-wd-chip',textContent: admWdStatus(wd)});
       info.append(title,owner,price,state);
       if (wd.auto) {
         const auto = {queued:'Автовывод: в очереди у релейера', done:'Автовывод: выдан', failed:'Автовывод не удался — нужен ручной вывод', manual:'Ручная проверка'}[wd.auto] || wd.auto;
@@ -535,26 +535,93 @@ async function admLoadWithdrawals() {
       }
       const buttons=admField('div',{className:'adm-wd-actions'});
       function btn(label,cls,fn){const b=admField('button',{type:'button',className:cls,textContent:label});b.onclick=fn;buttons.append(b);}
-      if(wd.status==='pending'){
-        btn('✓ Одобрить','approve',()=>admResolveWd(wd,'approve'));
-        btn('✕ Отклонить','reject',()=>admResolveWd(wd,'reject'));
-      } else if(wd.status==='approved'){
-        btn('✓ Отправлено','approve',()=>admResolveWd(wd,'complete'));
-      }
+      if(wd.status==='pending'||wd.status==='approved') btn('Рассмотреть','approve',()=>admOpenWd(wd.id));
       if (wd.telegram_id) btn('Профиль ↗','',()=>{window.open(wd.username ? 'https://t.me/'+encodeURIComponent(wd.username) : 'tg://user?id='+encodeURIComponent(wd.telegram_id),'_blank');});
       if(buttons.childNodes.length) info.append(buttons);
       card.append(img,info);root.append(card);
     }
   } catch(e){root.textContent='Не удалось загрузить заявки';admErr(e);}
+  let want = ''; try { want = sessionStorage.getItem('admWd') || ''; sessionStorage.removeItem('admWd'); } catch(e) {}
+  if (want) admOpenWd(want);
 }
 
-async function admResolveWd(wd,action){
-  const confirmText=({approve:'Одобрить заявку? Это не отправляет NFT автоматически.',reject:'Отклонить заявку и вернуть подарок в инвентарь?',complete:'Подтверждаете, что NFT реально отправлен игроку?'})[action];
-  if(!window.confirm(confirmText))return;
+function admWdStatus(wd){
+  if (wd.status==='approved') return wd.transfer==='failed' ? 'Ошибка передачи — нужен ручной вывод' : 'Принято, подарок передаётся…';
+  if (wd.status==='pending' && wd.auto==='failed') return 'Автовывод не удался — нужно решение';
+  return ({pending:'Ждёт решения',completed:'Выполнено',rejected:'Отклонено'})[wd.status] || wd.status;
+}
+const admWdDate = (ts) => ts ? new Date(ts*1000).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+let admWdPoll = 0;
+
+async function admOpenWd(id) {
+  clearTimeout(admWdPoll);
+  const root = $('admWdList');
+  root.textContent = 'Загружаю заявку…';
+  let d;
+  try { d = await api('/api/admin/withdrawals/detail', {id}); }
+  catch (e) { root.textContent = 'Не удалось загрузить заявку'; admErr(e); return; }
+  root.replaceChildren();
+  const wd = d.request, pl = d.player, pr = d.prize;
+  const box = (title) => { const b = admField('div',{className:'adm-box'}); b.append(admField('h3',{textContent:title})); root.append(b); return b; };
+  const line = (b, k, v) => { const r = admField('div',{className:'adm-wd-row'}); r.append(admField('span',{textContent:k}), admField('b',{textContent:String(v)})); b.append(r); };
+  const back = admField('button',{type:'button',className:'ghost',textContent:'← К списку заявок'}); back.onclick = () => admLoadWithdrawals(); root.append(back);
+
+  const head = box('Заявка на вывод · ' + admWdStatus(wd));
+  const art = admField('img',{className:'adm-wd-art',alt:''}); art.src = wd.image || '/images/hat.webp'; head.append(art);
+  line(head,'Подарок',pr.name); line(head,'Стоимость',Number(pr.value_ton||0).toFixed(2)+' TON');
+  line(head,'Получен',pr.origin); line(head,'Подана',admWdDate(wd.created));
+  if (pr.slug) line(head,'NFT',pr.slug); else if (pr.collection) line(head,'Коллекция / модель',pr.collection + (pr.model ? ' · ' + pr.model : ''));
+  if (wd.auto_error && wd.status==='pending') line(head,'Почему не автоматически',wd.auto_error);
+
+  if (wd.transfer==='failed') {
+    const eb = box('⚠ Ошибка передачи');
+    eb.append(admField('p',{textContent:'Ошибка: ' + (wd.transfer_error || 'неизвестная')}));
+    eb.append(admField('p',{className:'muted',textContent:'Передайте подарок вручную: «' + pr.name + '»' + (pr.slug ? ' (' + pr.slug + ')' : '') + ' → ' + (pl.username ? '@' + pl.username : 'ID ' + pl.telegram_id) + '. Затем нажмите «Я отправил вручную» — игрок получит уведомление. Либо повторите попытку.'}));
+  } else if (wd.status==='approved') {
+    head.append(admField('p',{className:'muted',textContent:'Подарок передаётся через релейер. Страница обновится сама.'}));
+    admWdPoll = setTimeout(() => admOpenWd(id), 4000);
+  }
+
+  const who = box('Игрок');
+  line(who,'Имя', (pl.name||'—') + (pl.username ? ' · @' + pl.username : '')); line(who,'Telegram ID', pl.telegram_id || pl.id);
+  line(who,'В игре с', admWdDate(pl.created)); line(who,'Был онлайн', admWdDate(pl.seen));
+  line(who,'Баланс', Number(pl.balance_ton||0).toFixed(2)+' TON · '+Number(pl.hatcoin||0).toFixed(2)+' HatCoin');
+  line(who,'Оборот / игры', Number(pl.turnover_ton||0).toFixed(2)+' TON · '+pl.games);
+  line(who,'Кошелёк', pl.has_wallet ? (pl.wallet || 'привязан') : 'нет');
+  if (pl.banned) line(who,'Статус','ЗАБЛОКИРОВАН');
+  if (pl.note_text) line(who,'Заметка',pl.note_text);
+
+  const dep = box('Депозиты · ' + d.deposits.count + ' шт. · ' + Number(d.deposits.total||0).toFixed(2) + ' TON');
+  if (!d.deposits.rows.length) dep.append(admField('p',{className:'muted',textContent:'Депозитов нет'}));
+  for (const r of d.deposits.rows) line(dep, admWdDate(r.ts) + ' · ' + r.kind + (r.note ? ' · ' + r.note : ''), '+' + Number(r.amount||0).toFixed(2) + ' TON');
+
+  const wds = box('Выводы игрока');
+  if (!d.withdrawals.length) wds.append(admField('p',{className:'muted',textContent:'Выводов не было'}));
+  for (const r of d.withdrawals) line(wds, admWdDate(r.created) + ' · ' + r.name, Number(r.value_ton||0).toFixed(2) + ' TON · ' + ({pending:'ждёт',approved:'принят',completed:'выдан',rejected:'отклонён'}[r.status] || r.status));
+
+  const gm = box('Последние игры');
+  if (!d.games.length) gm.append(admField('p',{className:'muted',textContent:'Игр нет'}));
+  for (const g of d.games) line(gm, admWdDate(g.ts) + ' · ' + g.kind + (g.target ? ' · ' + g.target : ''), (g.win ? '+' : '−') + (g.win ? Number(g.payout_ton||0) : Number(g.cost_ton||0)).toFixed(2) + ' TON');
+
+  const acts = admField('div',{className:'adm-wd-actions adm-wd-big'}); root.append(acts);
+  const btn = (label, cls, action, confirmText) => { const b = admField('button',{type:'button',className:cls,textContent:label}); b.onclick = () => admResolveWd(wd, action, confirmText); acts.append(b); };
+  if (wd.status==='pending') {
+    btn('✓ Принять вывод','approve','approve','Принять вывод? Подарок будет передан игроку автоматически через релейер.');
+    btn('Я отправил вручную','','complete','Подтверждаете, что подарок уже отправлен игроку вручную? Игрок получит уведомление.');
+    btn('✕ Отклонить','reject','reject','Отклонить заявку и вернуть подарок в инвентарь?');
+  } else if (wd.status==='approved' && wd.transfer==='failed') {
+    btn('↻ Повторить попытку','approve','retry','');
+    btn('✓ Я отправил вручную','approve','complete','Подтверждаете, что подарок реально отправлен игроку? Он получит уведомление о выводе.');
+    btn('✕ Отклонить','reject','reject','Отклонить заявку и вернуть подарок в инвентарь?');
+  }
+}
+
+async function admResolveWd(wd,action,confirmText){
+  if(confirmText && !window.confirm(confirmText))return;
   try {
     await api('/api/admin/withdrawals/resolve',{id:wd.id,action});
-    toast('Статус заявки обновлён');
-    await admLoadWithdrawals();
+    toast('Готово');
+    if (action==='approve' || action==='retry') await admOpenWd(wd.id); else await admLoadWithdrawals();
   }catch(e){admErr(e);}
 }
 

@@ -60,3 +60,8 @@
 .em-fmt-btn{min-width:38px}.tg-spoiler{background:#58637a;color:transparent;border-radius:4px}.tg-spoiler:hover{color:inherit}
 #botPreviewText blockquote{margin:4px 0;padding-left:8px;border-left:3px solid #6ab3f3}
 #botPreviewText code,#botPreviewText pre{font-family:monospace;background:#0003;border-radius:4px;padding:0 3px}
+.adm-wd-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.07); font-size: 13px; }
+.adm-wd-row span { color: #9aa3b8; min-width: 0; overflow-wrap: anywhere; }
+.adm-wd-row b { text-align: right; overflow-wrap: anywhere; }
+.adm-wd-big { position: sticky; bottom: 0; padding: 12px 0; background: var(--bg, #0e1220); display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-wd-big button { flex: 1 1 140px; padding: 12px; }
