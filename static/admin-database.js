@@ -61,4 +61,54 @@ function dbRender(d) {
   }
   mir.append(dbEl('p', { className: 'muted', textContent: 'Чтобы вернуться на копию, выберите SQLite и режим «Взять данные из выбранной базы».' }));
   box.append(mir);
+  box.append(dbImportBox(d));
+}
+
+function dbImportBox(d) {
+  const box = dbEl('div', { className: 'adm-box' }, dbEl('h3', { textContent: 'Импорт из файла SQLite' }),
+    dbEl('p', { className: 'muted', textContent: 'Загрузите файл SQLite (.sqlite3), выберите, что взять из него, и подтвердите. Данные записываются в текущую базу (' + (d.kind === 'postgres' ? 'Postgres' : 'SQLite') + '). Перед импортом текущее состояние сохраняется. Доступно владельцу.' }));
+  const file = dbEl('input', { type: 'file', accept: '.sqlite3,.sqlite,.db,application/octet-stream', hidden: true });
+  const pick = dbEl('button', { type: 'button', textContent: 'Выбрать файл SQLite' });
+  const out = dbEl('div');
+  pick.onclick = () => file.click();
+  file.onchange = async () => {
+    const f = file.files[0]; if (!f) return;
+    out.textContent = 'Читаю файл…';
+    try {
+      const buf = new Uint8Array(await f.arrayBuffer()); let bin = '';
+      for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+      const r = await api('/api/admin/import', { action: 'analyze', data: btoa(bin) });
+      dbImportChoose(out, r, f.name);
+    } catch (e) { out.textContent = ''; dbErr(e); } finally { file.value = ''; }
+  };
+  box.append(dbEl('div', { className: 'adm-form' }, pick, file), out);
+  return box;
+}
+
+function dbImportChoose(out, r, name) {
+  out.textContent = '';
+  out.append(dbEl('p', { textContent: 'Файл «' + name + '». Выберите, что импортировать:' }));
+  const checks = [];
+  for (const sec of r.sections) {
+    const cb = dbEl('input', { type: 'checkbox', checked: sec.id === 'users' });
+    checks.push([sec, cb]);
+    const note = sec.id === 'users' ? `${sec.count} в файле, сейчас ${sec.current}, из них уже есть ${sec.existing || 0}` : `${sec.count} в файле, сейчас ${sec.current}`;
+    out.append(dbEl('label', { className: 'adm-form' }, cb, dbEl('span', { textContent: ' ' + sec.label + ': ' + note })));
+  }
+  const go = dbEl('button', { type: 'button', className: 'danger', textContent: 'Импортировать в ' + (r.target === 'postgres' ? 'Postgres' : 'SQLite') });
+  go.onclick = async () => {
+    const chosen = checks.filter(([, cb]) => cb.checked).map(([sec]) => sec);
+    if (!chosen.length) { toast('Выберите, что импортировать', true); return; }
+    const lines = chosen.map((sec) => sec.id === 'users'
+      ? `Игроки: ${sec.count} (у ${sec.existing || 0} уже существующих данные будут заменены)`
+      : `${sec.label}: текущие (${sec.current}) будут заменены данными из файла (${sec.count})`);
+    if (!confirm('Вы уверены, что хотите импортировать эти данные вместо нынешних?\n\n' + lines.join('\n'))) return;
+    go.disabled = true;
+    try {
+      const res = await api('/api/admin/import', { action: 'apply', token: r.token, sections: chosen.map((sec) => sec.id) });
+      out.textContent = 'Импортировано: ' + Object.entries(res.done).map(([k, v]) => `${(r.sections.find((x) => x.id === k) || {}).label || k} - ${v}`).join(', ') + '.';
+      toast('Импорт завершён');
+    } catch (e) { dbErr(e); } finally { go.disabled = false; }
+  };
+  out.append(go);
 }

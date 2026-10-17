@@ -6749,6 +6749,143 @@ def admin_database(user, body):
     return out
 
 
+# ---------- Импорт данных из файла SQLite: выбор разделов и подтверждение ----------
+IMPORT_LABELS = {"users": "Игроки", "settings": "Настройки", "promocodes": "Промокоды", "withdrawals": "Выводы",
+                 "quests": "Квесты", "prices": "Цены подарков", "catalog": "Каталог подарков"}
+IMPORT_TTL = 900
+_import_sessions = {}
+
+
+def _import_read(raw):
+    if raw[:15] != b"SQLite format 3":
+        raise ApiError("bad_file", 400, message="Это не файл SQLite.")
+    import tempfile
+    fd, path = tempfile.mkstemp(suffix=".sqlite3")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(raw)
+        conn = sqlite3.connect(path)
+        try:
+            rows = dict(conn.execute("SELECT k, v FROM kv WHERE k IN ('db','catalog','quests')").fetchall())
+        except sqlite3.DatabaseError:
+            raise ApiError("bad_file", 400, message="В файле нет данных HatDrop (таблица kv).")
+        finally:
+            conn.close()
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    try:
+        src = json.loads(rows["db"])
+        if not isinstance(src, dict) or not isinstance(src.get("users"), dict):
+            raise ValueError
+    except (KeyError, ValueError):
+        raise ApiError("bad_file", 400, message="В файле нет данных HatDrop.")
+    data = {k: v for k, v in src.items() if k != "analytics" and isinstance(v, (dict, list))}
+    try:
+        qs = json.loads(rows["quests"])
+        if isinstance(qs, dict) and isinstance(qs.get("quests"), dict):
+            data["quests"] = qs["quests"]
+    except (KeyError, ValueError):
+        pass
+    try:
+        cat = json.loads(rows["catalog"])
+        if isinstance(cat, dict) and cat:
+            data["catalog"] = cat
+    except (KeyError, ValueError):
+        pass
+    return data
+
+
+def _import_current(key):
+    if key == "catalog":
+        return CATALOG
+    return db.get(key)
+
+
+def _import_summary(data):
+    out = []
+    for key, val in data.items():
+        cur = _import_current(key)
+        row = {"id": key, "label": IMPORT_LABELS.get(key, key), "count": len(val),
+               "current": len(cur) if hasattr(cur, "__len__") else 0}
+        if key == "users" and isinstance(val, dict):
+            row["existing"] = sum(1 for uid in val if uid in db["users"])
+        out.append(row)
+    order = list(IMPORT_LABELS)
+    out.sort(key=lambda r: order.index(r["id"]) if r["id"] in order else 99)
+    return out
+
+
+def _import_apply(data, sections):
+    with lock:
+        try:
+            store_put("db_before_import", DB_PATH + ".before_import", json.dumps(db, ensure_ascii=False))
+        except Exception as exc:
+            raise ApiError("import_backup_failed", 500, message=f"Не удалось сохранить текущее состояние перед импортом: {exc}")
+        done = {}
+        for key in sections:
+            val = data[key]
+            if key == "users":
+                imported = {str(k): v for k, v in val.items() if isinstance(v, dict)}
+                db["users"].update(imported)
+                done[key] = len(imported)
+            elif key == "catalog":
+                CATALOG.clear()
+                CATALOG.update(val)
+                done[key] = len(val)
+            else:
+                db[key] = val
+                done[key] = len(val)
+        if "catalog" in sections and "settings" not in sections:
+            db["settings"]["catalog_version"] = max(3, int(db["settings"].get("catalog_version") or 0))
+        if "settings" in sections:
+            db["settings"].setdefault("catalog_version", 3)
+        ensure_analytics(db)
+        weapons_lib.ACTIVE_EVENT = "halloween" if db["settings"].get("halloween_enabled") is True else ""
+    flush_db()
+    if "catalog" in sections:
+        save_catalog()
+    if "quests" in sections or "settings" in sections:
+        try:
+            flush_quests()
+        except Exception as exc:
+            print("quest flush after import failed:", exc, flush=True)
+    return done
+
+
+@route("/api/admin/import")
+def admin_import(user, body):
+    if str(user["id"]) != "tg" + OWNER_ADMIN_ID:
+        raise ApiError("forbidden", 403, message="Импорт доступен только владельцу.")
+    now = time.time()
+    for t in [t for t, v in _import_sessions.items() if now - v["at"] > IMPORT_TTL]:
+        _import_sessions.pop(t, None)
+    action = str(body.get("action") or "analyze")
+    if action == "analyze":
+        import base64
+        try:
+            raw = base64.b64decode(str(body.get("data") or ""), validate=True)
+        except Exception:
+            raise ApiError("bad_file", 400, message="Файл не прочитан.")
+        data = _import_read(raw)
+        token = secrets.token_hex(8)
+        _import_sessions[token] = {"data": data, "at": now}
+        return {"token": token, "sections": _import_summary(data), "target": "postgres" if DATABASE_URL else "sqlite"}
+    if action == "apply":
+        sess = _import_sessions.get(str(body.get("token") or ""))
+        if not sess:
+            raise ApiError("import_expired", 400, message="Файл устарел, загрузите его заново.")
+        sections = [str(x) for x in (body.get("sections") or [])]
+        if not sections or any(x not in sess["data"] for x in sections):
+            raise ApiError("bad_request", 400, message="Выберите, что импортировать.")
+        done = _import_apply(sess["data"], list(dict.fromkeys(sections)))
+        _import_sessions.pop(str(body.get("token")), None)
+        return {"ok": True, "done": done}
+    raise ApiError("bad_request")
+
+
 load_db()
 auto_restore_if_empty()
 seed_achievements()

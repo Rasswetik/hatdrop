@@ -249,3 +249,29 @@ class HiddenRewardTests(VisibilityAdminTests):
         self.assertEqual(post(404, "/api/level/claim", {"level": 1}).status_code, 200)
         self.assertNotIn("mace", post(404, "/api/state").json["weapon_hidden"])
         self.assertIn("mace", post(405, "/api/state").json["weapon_hidden"])
+
+
+class ImportTests(VisibilityAdminTests):
+    def make_file(self, users):
+        import base64, json, sqlite3, tempfile, os
+        path = os.path.join(tempfile.mkdtemp(), "x.sqlite3")
+        conn = sqlite3.connect(path)
+        conn.execute("CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+        doc = {"users": users, "settings": {"x": 1}, "promocodes": {"A": {}}}
+        conn.execute("INSERT INTO kv VALUES ('db', ?)", (json.dumps(doc),))
+        conn.commit(); conn.close()
+        return base64.b64encode(open(path, "rb").read()).decode()
+
+    def test_import_selected_sections(self):
+        with patch.object(backend, "OWNER_ADMIN_ID", "101"):
+            backend.db["users"]["tg777"] = {"balance": 1}
+            data = self.make_file({"tg777": {"balance": 99}, "tg888": {"balance": 5}})
+            r = self.adm("/api/admin/import", {"action": "analyze", "data": data}).json
+            users = next(x for x in r["sections"] if x["id"] == "users")
+            self.assertEqual((users["count"], users["existing"]), (2, 1))
+            self.assertEqual(self.adm("/api/admin/import", {"action": "apply", "token": r["token"], "sections": ["bogus"]}).status_code, 400)
+            done = self.adm("/api/admin/import", {"action": "apply", "token": r["token"], "sections": ["users"]}).json["done"]
+            self.assertEqual(done, {"users": 2})
+            self.assertEqual(backend.db["users"]["tg777"]["balance"], 99)
+            self.assertNotIn("x", backend.db["settings"])
+            self.assertEqual(self.adm("/api/admin/import", {"action": "analyze", "data": "AAAA"}).status_code, 400)
