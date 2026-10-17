@@ -68,3 +68,6 @@
 .wvis { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.07); cursor: pointer; }
 .wvis img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
 .wvis input { width: 20px; height: 20px; }
+.lvl-admin-row { align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.lvl-admin-row b { min-width: 48px; }
+.lvl-admin-row input[type=number] { width: 110px; }

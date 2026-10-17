@@ -877,13 +877,45 @@ def admin_io(path):
     return deco
 
 
+LEVEL_COUNT_DEFAULT, LEVEL_COUNT_MAX = 60, 200
+
+
+def level_cfg():
+    raw = db.get("settings", {}).get("level_cfg")
+    raw = raw if isinstance(raw, dict) else {}
+    needs = {}
+    for k, v in (raw.get("needs") or {}).items():
+        try:
+            needs[int(k)] = float(v)
+        except (TypeError, ValueError):
+            continue
+    try:
+        count = int(raw.get("count") or LEVEL_COUNT_DEFAULT)
+    except (TypeError, ValueError):
+        count = LEVEL_COUNT_DEFAULT
+    return {"count": min(LEVEL_COUNT_MAX, max(1, count)), "needs": needs}
+
+
+def level_need(n, needs=None):
+    """Сколько TON оборота нужно, чтобы получить уровень n (по умолчанию 5·(n−1)², можно править в админке)."""
+    if n <= 1:
+        return 0.0
+    needs = level_cfg()["needs"] if needs is None else needs
+    return float(needs.get(n, (n - 1) ** 2 * 5))
+
+
 def level_info(turnover):
-    level = int((turnover / 5) ** 0.5) + 1
-    low = (level - 1) ** 2 * 5
-    high = level**2 * 5
+    needs = level_cfg()["needs"]
+    if not needs:
+        level = int((turnover / 5) ** 0.5) + 1
+    else:
+        level = 1
+        while level < 1000 and level_need(level + 1, needs) <= turnover:
+            level += 1
+    low, high = level_need(level, needs), level_need(level + 1, needs)
     return {
         "level": level,
-        "progress": min(1.0, (turnover - low) / (high - low)),
+        "progress": min(1.0, max(0.0, (turnover - low) / (high - low))) if high > low else 1.0,
         "next_ton": high,
         "turnover_ton": ton(turnover),
     }
@@ -993,41 +1025,56 @@ def effective_theme(user):
 LEVEL_REWARD_MAX = 200
 
 
-def level_rewards_view():
-    out = {}
-    for n, r in (db["settings"].get("level_rewards") or {}).items():
-        try:
-            out[str(n)] = shop_reward_view(r)
-        except (KeyError, TypeError):
-            continue
-    return out
-
-
-def apply_level_rewards(user):
-    """Выдаёт настроенные награды за уровни, которые игрок уже достиг (и ещё не получил)."""
+def level_table_view(user):
+    """Таблица уровней для игрока: сколько нужно оборота, есть ли награда и забрана ли она (содержимое награды видно только после получения)."""
+    cfg = level_cfg()
     rewards = db["settings"].get("level_rewards") or {}
-    if not rewards:
-        return
-    lvl = level_info(user["turnover"])["level"]
+    claimed = set(user.get("lvl_claimed") or [])
+    rows = []
+    for n in range(1, cfg["count"] + 1):
+        r = rewards.get(str(n))
+        row = {"level": n, "need": level_need(n, cfg["needs"]), "reward": bool(r), "claimed": n in claimed}
+        if r and n in claimed:
+            try:
+                row["view"] = shop_reward_view(r)
+            except (KeyError, TypeError):
+                pass
+        rows.append(row)
+    return rows
+
+
+def grant_reward(user, r):
+    if r["kind"] == "ton":
+        user["balance"] = ton(user["balance"] + r["amount"])
+    elif r["kind"] == "hatcoin":
+        user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
+    elif r["kind"] == "weapon" and r["weapon"] in weapons_lib.WEAPONS:
+        weapons_lib.grant(user, r["weapon"])
+
+
+@route("/api/level/claim")
+def level_claim(user, body):
+    """Награда за уровень выдаётся только по нажатию на ячейку, автоматически не собирается."""
+    try:
+        n = int(body.get("level"))
+    except (TypeError, ValueError):
+        raise ApiError("bad_request")
+    r = (db["settings"].get("level_rewards") or {}).get(str(n))
+    if not r:
+        raise ApiError("not_found", 404, message="За этот уровень награды нет.")
+    if level_info(user["turnover"])["level"] < n:
+        raise ApiError("locked", 400, message="Уровень ещё не достигнут.")
     done = user.setdefault("lvl_claimed", [])
-    for n, r in rewards.items():
-        try:
-            n_int = int(n)
-        except ValueError:
-            continue
-        if n_int > lvl or n_int in done:
-            continue
-        done.append(n_int)
-        if r["kind"] == "ton":
-            user["balance"] = ton(user["balance"] + r["amount"])
-        elif r["kind"] == "hatcoin":
-            user["hatcoin_units"] = user.get("hatcoin_units", 0) + int(round(r["amount"] * HATCOIN_UNITS))
-        elif r["kind"] == "weapon" and r["weapon"] in weapons_lib.WEAPONS:
-            weapons_lib.grant(user, r["weapon"])
+    if n in done:
+        raise ApiError("already_claimed", 400, message="Награда уже получена.")
+    done.append(n)
+    grant_reward(user, r)
+    return {"ok": True, "view": shop_reward_view(r), "balance_ton": ton(user["balance"]),
+            "hatcoin": {"balance": hatcoin_balance(user), "rate_per_ton": float(HATCOIN_PER_TON)},
+            "weapons": weapons_lib.owned(user), "level_table": level_table_view(user)}
 
 
 def full_state(user):
-    apply_level_rewards(user)
     return {
         "balance_ton": ton(user["balance"]),
         "config": public_config(),
@@ -1046,7 +1093,7 @@ def full_state(user):
         "weapons": weapons_lib.owned(user),
         "tour_done": bool(user.get("tour_done")),
         "theme": effective_theme(user),
-        "level_rewards": level_rewards_view(),
+        "level_table": level_table_view(user),
         "maintenance": maintenance_cfg()["enabled"],
         "stats": user_stats(user),
         "fairness": {"nonce": user["games"]},
@@ -2605,29 +2652,57 @@ def admin_maintenance(user, body):
     return maintenance_cfg()
 
 
-@route("/api/admin/levels")
-def admin_levels(user, body):
-    require_admin(user)
-    if "rewards" in body:
-        raw = body.get("rewards")
-        if not isinstance(raw, dict) or len(raw) > LEVEL_REWARD_MAX:
-            raise ApiError("bad_request")
-        clean = {}
-        for n, r in raw.items():
-            try:
-                lvl = int(n)
-            except (TypeError, ValueError):
-                raise ApiError("bad_request", 400, message="Уровень — целое число.")
-            if not 1 <= lvl <= 1000 or not isinstance(r, dict):
-                raise ApiError("bad_request", 400, message="Уровень: от 1 до 1000.")
-            if str(r.get("kind")) not in ("ton", "hatcoin", "weapon"):
-                raise ApiError("bad_request", 400, message="Выберите тип награды.")
-            clean[str(lvl)] = shop_parse_reward(r)
-        db["settings"]["level_rewards"] = clean
+def _admin_levels_view():
+    cfg = level_cfg()
     rewards = db["settings"].get("level_rewards") or {}
-    return {"rewards": {n: {**r, "view": shop_reward_view(r)} for n, r in rewards.items()},
+    rows = []
+    for n in range(1, cfg["count"] + 1):
+        r = rewards.get(str(n))
+        rows.append({"level": n, "need": level_need(n, cfg["needs"]), "default_need": level_need(n, {}),
+                     "reward": ({**r, "view": shop_reward_view(r)} if r else None)})
+    extra = {n: r for n, r in rewards.items() if n.isdigit() and int(n) > cfg["count"]}
+    return {"count": cfg["count"], "max_count": LEVEL_COUNT_MAX, "levels": rows, "hidden_rewards": len(extra),
             "items": [{"id": k, "name": v["name"], "rarity": v["rarity"], "kind": v.get("kind", "gear"), "default": bool(v["default"])}
                       for k, v in weapons_lib.WEAPONS.items()]}
+
+
+@route("/api/admin/levels")
+def admin_levels(user, body):
+    """Полная таблица уровней: нужный оборот и награда у каждого уровня. Награда выдаётся игроку по нажатию."""
+    require_admin(user)
+    if "levels" in body:
+        raw = body.get("levels")
+        try:
+            count = int(body.get("count"))
+        except (TypeError, ValueError):
+            raise ApiError("bad_request")
+        if not isinstance(raw, list) or not 1 <= count <= LEVEL_COUNT_MAX or len(raw) != count:
+            raise ApiError("bad_request", 400, message="Неверная таблица уровней.")
+        needs, rewards, prev = {}, {}, 0.0
+        for i, row in enumerate(raw, start=1):
+            if not isinstance(row, dict):
+                raise ApiError("bad_request")
+            try:
+                need = 0.0 if i == 1 else round(float(row.get("need")), 4)
+            except (TypeError, ValueError, OverflowError):
+                raise ApiError("bad_request", 400, message=f"Уровень {i}: нужно число.")
+            if i > 1 and (not need == need or need <= prev):
+                raise ApiError("bad_request", 400, message=f"Уровень {i}: оборот должен быть больше, чем у уровня {i - 1}.")
+            prev = need
+            if i > 1 and abs(need - level_need(i, {})) > 1e-9:
+                needs[str(i)] = need
+            r = row.get("reward")
+            if r:
+                if not isinstance(r, dict) or str(r.get("kind")) not in ("ton", "hatcoin", "weapon"):
+                    raise ApiError("bad_request", 400, message=f"Уровень {i}: выберите тип награды.")
+                rewards[str(i)] = shop_parse_reward(r)
+        old = db["settings"].get("level_rewards") or {}
+        for n, r in old.items():  # награды выше новой границы не теряем
+            if n.isdigit() and int(n) > count:
+                rewards[n] = r
+        db["settings"]["level_cfg"] = {"count": count, "needs": needs}
+        db["settings"]["level_rewards"] = rewards
+    return _admin_levels_view()
 
 
 @route("/api/weapons/catalog")

@@ -12,8 +12,7 @@ function wErr(e) { const t = (e && e.data && e.data.message) || 'Ошибка'; 
 async function admLoadWeapons() {
   const box = $('admWeapons');
   try {
-    [wState, wLevels] = await Promise.all([api('/api/admin/weapons'), api('/api/admin/levels')]);
-    wLvRows = Object.entries(wLevels.rewards).map(([n, r]) => ({ level: Number(n), kind: r.kind, weapon: r.weapon || '', amount: r.amount || 1 })).sort((a, b) => a.level - b.level);
+    wState = await api('/api/admin/weapons');
     wRender();
   } catch (e) { admErr(e); }
 }
@@ -29,12 +28,6 @@ function wRender() {
   const save = wBtn('Сохранить все изменения', 'primary', async () => {
     save.disabled = true;
     try {
-      const rewards = {};
-      for (const r of wLvRows) {
-        if (!(r.level >= 1)) throw { data: { message: 'Укажите номер уровня у каждой награды.' } };
-        rewards[String(r.level)] = r.kind === 'weapon' ? { kind: 'weapon', weapon: r.weapon } : { kind: r.kind, amount: r.amount };
-      }
-      await api('/api/admin/levels', { rewards });
       await api('/api/admin/weapons/save', { cfg }); toast('Сохранено'); await admLoadWeapons(); } catch (e) { wErr(e); } finally { save.disabled = false; }
   });
   top.append(wEl('div', { className: 'adm-form' }, save));
@@ -55,26 +48,6 @@ function wRender() {
   };
   visBox.append(wEl('h4', { textContent: 'Оружие' }), ...st.weapons.map(visRow), wEl('h4', { textContent: 'Прокруты' }), ...(st.spins || []).map(visRow));
   box.append(visBox);
-
-  // награды за уровни игрока
-  const lr = wEl('div', { className: 'adm-box' }, wEl('h3', { textContent: 'Награды за уровень игрока' }),
-    wEl('p', { className: 'muted', textContent: 'При достижении уровня игрок автоматически получает награду: оружие, оформление, тип прокрута или монеты. Награда видна в окне «Награды за уровни». Уже достигшие уровня получат её при следующем входе.' }));
-  const items = wLevels.items.filter((i) => !i.default);
-  const kinds = [['weapon', 'Предмет (оружие, оформление, прокрут)'], ['ton', 'TON'], ['hatcoin', 'HatCoin']];
-  wLvRows.forEach((r, i) => {
-    const lvl = wNum(r.level, { min: 1, step: 1, onchange: () => { r.level = Number(lvl.value) || 0; } });
-    const kind = wEl('select'); kinds.forEach(([v, t]) => kind.append(wEl('option', { value: v, textContent: t, selected: r.kind === v })));
-    kind.onchange = () => { r.kind = kind.value; wRender(); };
-    let value;
-    if (r.kind === 'weapon') {
-      value = wEl('select'); items.forEach((it) => value.append(wEl('option', { value: it.id, textContent: it.name, selected: it.id === r.weapon })));
-      if (!r.weapon && items.length) r.weapon = items[0].id;
-      value.onchange = () => { r.weapon = value.value; };
-    } else value = wNum(r.amount, { onchange: () => { r.amount = Number(value.value) || 0; } });
-    lr.append(wEl('div', { className: 'adm-form' }, wEl('label', { textContent: 'Уровень ' }, lvl), kind, value, wBtn('Удалить', 'danger', () => { wLvRows.splice(i, 1); wRender(); })));
-  });
-  lr.append(wBtn('+ Добавить награду за уровень', '', () => { wLvRows.push({ level: (wLvRows.length ? Math.max(...wLvRows.map((x) => x.level)) : 1) + 1, kind: 'weapon', weapon: items[0] ? items[0].id : '', amount: 1 }); wRender(); }));
-  box.append(lr);
 
   // уровни
   const lv = wEl('div', { className: 'adm-box' }, wEl('h3', { textContent: 'Награды за общий сбор оружия' }),

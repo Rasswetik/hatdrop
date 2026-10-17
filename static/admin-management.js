@@ -18,12 +18,12 @@ function admErr(e) {
 function admShow(tab) {
   admin.tab = tab; admin.key = null;
   clearTimeout(admin.pollTimer);
-  const titles = {shop:'Лавка',weapons:'Оружие',broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема и техработы',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
+  const titles = {shop:'Лавка',weapons:'Оружие',levels:'Уровни',broadcast:'Рассылка',season:'Лидерборд',emoji:'Эмодзи',overview:'Обзор',finance:'Финансы',users:'Пользователи',market:'Маркеты',promos:'Промокоды',quests:'Квесты',withdrawals:'Выводы',tonconnect:'TON Connect',appearance:'Тема и техработы',bot:'Telegram-бот',admins:'Администраторы',relayer:'NFT-релейер',rtp:'RTP',payments:'Платежи'};
   document.querySelectorAll('#admTabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === tab); b.setAttribute('aria-current', b.dataset.tab === tab ? 'page' : 'false'); });
   $('admBack').hidden = true;
   $('admTitle').textContent = titles[tab] || 'Панель управления';
-  $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',weapons:'Коллекции, редкость и награды за сбор оружия',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
-  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji','Season','Broadcast','Shop','Weapons']) $('adm'+id).hidden = id.toLowerCase() !== tab;
+  $('pageSubtitle').textContent = ({overview:'Работа приложения и финансовый результат',finance:'Игровой результат, доходы и расходы',users:'Баланс, инвентарь и активность игроков',withdrawals:'Заявки на выдачу подарков',market:'Источники цен и управление каталогом',promos:'Создание и управление промокодами',quests:'Настройка заданий, целей, сроков и наград',weapons:'Коллекции, редкость, видимость оружия и прокрутов',levels:'Оборот и награда для каждого уровня игрока',bot:'Подключение и уведомления Telegram',tonconnect:'Кошелёк и настройки приложения',appearance:'Оформление игрового приложения',relayer:'Пополнение NFT-подарками через Telegram-аккаунт'})[tab] || '';
+  for (const id of ['Overview','Finance','Users','User','Market','Promos','Quests','Withdrawals','TonConnect','Appearance','Bot','Admins','Relayer','Rtp','Payments','Emoji','Season','Broadcast','Shop','Weapons','Levels']) $('adm'+id).hidden = id.toLowerCase() !== tab;
   $('dashboardFilters').hidden = !['overview','finance'].includes(tab);
   $('overviewReload').hidden = !['overview','finance'].includes(tab);
   $('panelError').hidden = true;
@@ -47,6 +47,7 @@ function admShow(tab) {
   else if (tab === 'broadcast') admLoadBroadcast();
   else if (tab === 'shop') admLoadShop();
   else if (tab === 'weapons') admLoadWeapons();
+  else if (tab === 'levels') admLoadLevels();
 }
 
 async function admLoadGlobalRtp() {

@@ -3139,7 +3139,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html[data-weapon-custom="0"] .ptr-custom { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=26">
+<link rel="stylesheet" href="/static/ui-layout.css?v=27">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -4426,6 +4426,10 @@ html[data-weapon-custom="0"] .ptr-custom { display:none!important; }
     'Счёт истёк. Создайте новый.': { en: 'The invoice expired. Create a new one.', zh: '账单已过期，请重新创建。' },
     'Твой уровень: {level}': { en: 'Your level: {level}', zh: '你的等级：{level}' },
     'Уже есть': { en: 'Owned', zh: '已拥有' },
+    'Получено': { en: 'Received', zh: '已领取' },
+    'Забрать награду за уровень {n}': { en: 'Claim reward for level {n}', zh: '领取第{n}级奖励' },
+    'Не удалось забрать награду': { en: 'Could not claim the reward', zh: '无法领取奖励' },
+    'Лавка временно закрыта. Загляни позже!': { en: 'The shop is closed for now. Check back later!', zh: '商店暂时关闭，请稍后再来！' },
     'Уровень {n}': { en: 'Level {n}', zh: '等级 {n}' },
     'без лимита': { en: 'no limit', zh: '不限' },
     'Лавка': { en: 'Shop', zh: '商店' },
@@ -6558,32 +6562,59 @@ function renderLeaderboard(data) {
   $('lbEmpty').hidden = data.rows.length > 0;
 }
 
-function openLevelRewards() {
+function levelRewardLabel(v) { return (v && v.name ? v.name : '').replace(/^(Оформление|Прокрут): /, ''); }
+let lvlBusy = false;
+function renderLevelGrid() {
   const cur = (state && state.level && state.level.level) || 1;
   $('lvlModalSub').textContent = tr('Твой уровень: {level}', { level: cur });
   const grid = $('lvlGrid');
   grid.replaceChildren();
-  for (let n = 1; n <= 60; n++) {
-    const cell = document.createElement('div');
-    cell.className = 'lvl-cell' + (n < cur ? ' done' : n === cur ? ' now' : '');
+  const table = (state && state.level_table) || Array.from({ length: 60 }, (_, i) => ({ level: i + 1, need: i * i * 5, reward: false, claimed: false }));
+  for (const row of table) {
+    const n = row.level;
+    const ready = row.reward && !row.claimed && n <= cur;
+    const cell = document.createElement(ready ? 'button' : 'div');
+    cell.className = 'lvl-cell' + (n < cur ? ' done' : n === cur ? ' now' : '') + (ready ? ' claimable' : '') + (row.reward && row.claimed ? ' got' : '') + (row.reward && !row.claimed && n > cur ? ' gift' : '');
+    if (ready) { cell.type = 'button'; cell.setAttribute('aria-label', tr('Забрать награду за уровень {n}', { n })); }
     const b = document.createElement('b');
     b.textContent = tr('Уровень {n}', { n });
     const small = document.createElement('small');
-    small.textContent = `${(n - 1) ** 2 * 5} TON`;
+    small.textContent = `${+Number(row.need).toFixed(2)} TON`;
     cell.append(b, small);
-    const rw = state && state.level_rewards && state.level_rewards[String(n)];
-    if (rw) {
+    if (row.reward && row.claimed && row.view) {
       const r = document.createElement('span'); r.className = 'lvl-rw';
-      const im = document.createElement('img'); im.alt = ''; im.src = rw.image; im.onerror = () => im.remove();
-      r.append(im, document.createTextNode(rw.name.replace(/^(Оформление|Прокрут): /, '')));
+      const im = document.createElement('img'); im.alt = ''; im.src = row.view.image; im.onerror = () => im.remove();
+      r.append(im, document.createTextNode(tr('Получено') + ': ' + levelRewardLabel(row.view)));
       cell.append(r);
     }
+    if (ready) cell.onclick = () => claimLevelReward(n);
     grid.appendChild(cell);
   }
+}
+async function claimLevelReward(n) {
+  if (lvlBusy) return;
+  lvlBusy = true;
+  try {
+    const r = await api('/api/level/claim', { level: n });
+    if (state) state.level_table = r.level_table;
+    if (r.weapons) setOwnedWeapons(r.weapons);
+    haptic('notification', 'success');
+    renderLevelGrid();
+    toast(tr('Получено') + ': ' + levelRewardLabel(r.view));
+    renderState(await api('/api/state'));
+    renderLevelGrid();
+  } catch (e) {
+    haptic('notification', 'error');
+    toast(e.message && e.data && e.data.message ? e.data.message : tr('Не удалось забрать награду'), true);
+  } finally { lvlBusy = false; }
+}
+function openLevelRewards() {
+  renderLevelGrid();
   $('lvlModal').hidden = false;
   haptic('impact', 'light');
-  const now = grid.querySelector('.now');
-  if (now) now.scrollIntoView({ block: 'center' });
+  const grid = $('lvlGrid');
+  const target = grid.querySelector('.claimable') || grid.querySelector('.now');
+  if (target) target.scrollIntoView({ block: 'center' });
 }
 document.addEventListener('DOMContentLoaded', () => {
   const close = () => { $('lvlModal').hidden = true; };

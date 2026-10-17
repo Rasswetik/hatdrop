@@ -122,15 +122,30 @@ class ThemeMaintenanceTests(AdminUsersTests):
         self.c.post("/api/admin/maintenance", headers=self.h, json={"enabled": False})
         self.assertEqual(self.post("/api/state").status_code, 200)
 
-    def test_level_rewards(self):
+    def test_level_table_claim_by_tap(self):
         self.post("/api/state")
-        r = self.c.post("/api/admin/levels", headers=self.h, json={"rewards": {"1": {"kind": "weapon", "weapon": "theme_halloween"}, "2": {"kind": "ton", "amount": 3}}})
+        rows = [{"level": i, "need": 0 if i == 1 else i * 10, "reward": None} for i in range(1, 6)]
+        rows[0]["reward"] = {"kind": "weapon", "weapon": "theme_halloween"}
+        rows[1]["reward"] = {"kind": "ton", "amount": 3}
+        r = self.c.post("/api/admin/levels", headers=self.h, json={"count": 5, "levels": rows})
         self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["levels"][2]["need"], 30)
         st = self.post("/api/state").json
-        self.assertIn("theme_halloween", st["weapons"])
-        self.assertEqual(st["level_rewards"]["1"]["kind"], "weapon")
-        self.assertEqual(st["balance_ton"], 0)  # уровень 2 ещё не достигнут
-        bad = self.c.post("/api/admin/levels", headers=self.h, json={"rewards": {"1": {"kind": "weapon", "weapon": "nope"}}})
+        self.assertNotIn("theme_halloween", st["weapons"])  # автоматически не выдаётся
+        self.assertTrue(st["level_table"][0]["reward"] and not st["level_table"][0]["claimed"])
+        self.assertNotIn("view", st["level_table"][0])
+        c = self.post("/api/level/claim", {"level": 1})
+        self.assertEqual(c.status_code, 200)
+        self.assertIn("theme_halloween", c.json["weapons"])
+        self.assertEqual(self.post("/api/level/claim", {"level": 1}).status_code, 400)
+        self.assertEqual(self.post("/api/level/claim", {"level": 2}).status_code, 400)  # уровень не достигнут
+        backend.db["users"]["tg303"]["turnover"] = 25
+        self.assertEqual(self.post("/api/state").json["level"]["level"], 2)
+        self.assertEqual(self.post("/api/level/claim", {"level": 2}).json["balance_ton"], 3)
+        bad = self.c.post("/api/admin/levels", headers=self.h, json={"count": 3, "levels": [
+            {"level": 1, "need": 0}, {"level": 2, "need": 50}, {"level": 3, "need": 40}]})
+        self.assertEqual(bad.status_code, 400)
+        bad = self.c.post("/api/admin/levels", headers=self.h, json={"count": 1, "levels": [{"level": 1, "need": 0, "reward": {"kind": "weapon", "weapon": "nope"}}]})
         self.assertEqual(bad.status_code, 400)
 
 
