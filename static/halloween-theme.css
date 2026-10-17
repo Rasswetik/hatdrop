@@ -1,18 +1,18 @@
 
 /* Weathered stone/slate surfaces belong to the scene, with quieter pixel edges. */
 html[data-halloween="on"] {
- --hw-ui-panel:#526575; --hw-ui-recess:#405262; --hw-ui-control:#5e7383;
- --hw-ui-active:#667c8c; --hw-ui-edge:#2b3d4a; --hw-ui-shine:#879aa7;
- --hw-ui-text:#f4f4ec; --hw-ui-muted:#d3dde2; --hw-ui-accent:#ead29c;
- --hw-ui-button:#d2b77e; --hw-ui-button-shine:#e9d7b0; --hw-ui-button-edge:#ac9361;
- --hw-ui-range:#ad9bc8; --hw-ui-range-dark:#79678f;
+ --hw-ui-panel:#4a5778; --hw-ui-recess:#323b58; --hw-ui-control:#58668a;
+ --hw-ui-active:#64729a; --hw-ui-edge:#1f2540; --hw-ui-shine:#7683aa;
+ --hw-ui-text:#f4f6fc; --hw-ui-muted:#c4cce2; --hw-ui-accent:#ffc261;
+ --hw-ui-button:#f08e3a; --hw-ui-button-shine:#ffbd80; --hw-ui-button-edge:#9a4313;
+ --hw-ui-range:#ffb347; --hw-ui-range-dark:#c4701c;
 }
 html[data-halloween="on"][data-sky="night"] {
- --hw-ui-panel:#23394d; --hw-ui-recess:#192b3d; --hw-ui-control:#2d4960;
- --hw-ui-active:#34556f; --hw-ui-edge:#101e2c; --hw-ui-shine:#537087;
- --hw-ui-text:#e7eef5; --hw-ui-muted:#b0c5d5; --hw-ui-accent:#e5c58f;
- --hw-ui-button:#bca070; --hw-ui-button-shine:#deca9c; --hw-ui-button-edge:#8c764e;
- --hw-ui-range:#a6bde0; --hw-ui-range-dark:#728aaa;
+ --hw-ui-panel:#364260; --hw-ui-recess:#232b44; --hw-ui-control:#43506f;
+ --hw-ui-active:#4e5b7e; --hw-ui-edge:#171c31; --hw-ui-shine:#5f6c92;
+ --hw-ui-text:#eef1fa; --hw-ui-muted:#aab4cf; --hw-ui-accent:#ffc261;
+ --hw-ui-button:#ee8a36; --hw-ui-button-shine:#ffb878; --hw-ui-button-edge:#9a4313;
+ --hw-ui-range:#ffb347; --hw-ui-range-dark:#c4701c;
 }
 
 /* HatDrop Halloween: global, server-controlled pixel overlay.
@@ -485,3 +485,23 @@ html[data-halloween="on"] .dep-m-copy b, html[data-halloween="on"] .dep-quote b,
 html[data-halloween="on"] :is(.dep-m-copy small,.dep-back,.dep-lock small,.dep-quote,.dep-m-arrow,.dep-status) { color:var(--hw-ui-muted)!important; }
 html[data-halloween="on"] :is(.dep-stars-pay,.dep-crypto-pay) { background:var(--hw-ui-button)!important; border:3px solid var(--hw-ui-edge)!important; color:#26313a!important; border-radius:3px!important; box-shadow:inset 0 2px 0 var(--hw-ui-button-shine), inset 0 -3px 0 var(--hw-ui-button-edge)!important; }
 html[data-halloween="on"] :is(#starsAmount,#cryptoAmount,#depositAmount) { background:var(--hw-ui-recess)!important; color:var(--hw-ui-text)!important; border:2px solid var(--hw-ui-edge)!important; border-radius:3px!important; }
+
+
+/* Эталонный вид Хэллоуина: сланцево-синие панели, оранжевые кнопки и заголовки, золотые значения */
+html[data-halloween="on"] .title { color: #ff8a1f !important; text-shadow: 0 3px 0 #5a2208, 0 0 12px rgba(255,138,31,.35) !important; }
+html[data-halloween="on"] .cta,
+html[data-halloween="on"] button.lvl-badge,
+html[data-halloween="on"] .kostyan-quest-action,
+html[data-halloween="on"] .kq-tab.on {
+  background: linear-gradient(180deg, #ffa24d 0%, #ee7a22 100%) !important;
+  border-color: #6a2a0b !important; color: #2a1000 !important;
+  box-shadow: inset 0 2px 0 #ffc891, inset 0 -3px 0 #b5521a, 0 3px 0 #3a1706 !important;
+}
+html[data-halloween="on"] .kq-tab:not(.on) { background: var(--hw-ui-recess) !important; color: var(--hw-ui-muted) !important; }
+html[data-halloween="on"] .cta[disabled], html[data-halloween="on"] .cta:disabled { filter: grayscale(.85); opacity: .6; }
+html[data-halloween="on"] .shop-secondary { background: var(--hw-ui-control) !important; color: var(--hw-ui-text) !important; border-color: var(--hw-ui-edge) !important; box-shadow: inset 0 2px 0 var(--hw-ui-shine), 0 3px 0 #0e1220 !important; }
+html[data-halloween="on"] .modal-card { background: linear-gradient(180deg, #3b4766, #2b3450) !important; border-color: #171c31 !important; box-shadow: inset 0 0 0 2px #5f6c92, 0 6px 0 #0e1220 !important; }
+html[data-halloween="on"] .shop-card, html[data-halloween="on"] .weapon-card { background: linear-gradient(180deg, #3b4766, #2b3450); }
+html[data-halloween="on"] .cx-win-sum b, html[data-halloween="on"] .stat b, html[data-halloween="on"] .shop-price { color: #ffc261; }
+html[data-halloween="on"] .tab.active { background: linear-gradient(180deg, #ffa24d, #ee7a22) !important; border-color: #6a2a0b !important; box-shadow: inset 0 2px 0 #ffc891, 0 3px 0 #3a1706 !important; }
+html[data-halloween="on"] .tab.active svg, html[data-halloween="on"] .tab.active .ic { color: #2a1000 !important; fill: #2a1000 !important; }
