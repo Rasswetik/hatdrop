@@ -217,3 +217,24 @@ class VisibilityAdminTests(AdminUsersTests):
         self.assertEqual(self.adm("/api/admin/lavka", {"section": "quests", "hidden": True}).json["hidden"]["quests"], True)
         self.assertEqual(post("/api/state").json["lavka_hidden"], {"shop": False, "achievements": False, "quests": True})
         self.assertEqual(self.adm("/api/admin/lavka", {"section": "x", "hidden": True}).status_code, 400)
+
+
+class DatabaseAdminTests(VisibilityAdminTests):
+    def test_database_section(self):
+        st = self.adm("/api/admin/database", {"action": "status"}).json
+        self.assertEqual(st["kind"], "sqlite")
+        self.assertFalse(st["mirror"]["active"])
+        self.assertTrue(self.adm("/api/admin/database", {"action": "test", "backend": "sqlite"}).json["test"]["ok"])
+        self.assertEqual(self.adm("/api/admin/database", {"action": "test", "backend": "postgres", "url": "mysql://x"}).status_code, 400)
+        self.assertEqual(self.adm("/api/admin/database", {"action": "switch", "backend": "sqlite", "mode": "copy_current"}).status_code, 400)
+        self.assertEqual(self.adm("/api/admin/database", {"action": "mirror"}).status_code, 400)
+        self.assertEqual(self.adm("/api/admin/database", {"action": "bad"}).status_code, 400)
+
+    def test_config_file_roundtrip_and_masking(self):
+        import tempfile, os
+        with patch.object(backend, "DBCFG_PATH", os.path.join(tempfile.mkdtemp(), "dbconfig.json")):
+            self.assertIsNone(backend._read_dbcfg())
+            backend._write_dbcfg("postgres", "postgresql://u:p@h/d")
+            self.assertEqual(backend._read_dbcfg()["backend"], "postgres")
+        self.assertEqual(backend._mask_url("postgresql://u:secret@h:5432/d"), "postgresql://u:***@h:5432/d")
+        self.assertEqual(backend._normalize_pg_url("postgres://a@b/c"), "postgresql://a@b/c")

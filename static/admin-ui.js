@@ -161,16 +161,17 @@ const KW = {
   tonconnect: 'ton connect кошелёк манифест иконка',
   appearance: 'тема хэллоуин оформление',
   weapons: 'оружие коллекции коллекция редкость награда за сбор снаряжение скрыть прокруты видимость',
+  database: 'база данных postgres sqlite подключение ссылка копия дубль переключить',
   levels: 'уровни уровень награда за уровень оборот опыт таблица',
 };
 const FEATURES = [
   ['Общий RTP игры', 'rtp'], ['Резервная копия базы: скачать, отправить, восстановить', 'overview'], ['Включить или выключить Хэллоуин', 'appearance'],
-  ['Тексты и кнопки сообщений бота', 'bot'], ['Новый ордер лавки', 'shop'], ['Создать коллекцию оружия', 'weapons'], ['Награды за сбор оружия', 'weapons'], ['Награды и оборот по уровням игрока', 'levels'], ['Скрыть оружие или прокрут', 'weapons'], ['Редкость оружия', 'weapons'], ['Бесплатный ордер', 'shop'], ['Награды за места в топе', 'season'],
+  ['Тексты и кнопки сообщений бота', 'bot'], ['Новый ордер лавки', 'shop'], ['Создать коллекцию оружия', 'weapons'], ['Награды за сбор оружия', 'weapons'], ['Награды и оборот по уровням игрока', 'levels'], ['Выбрать базу данных Postgres или SQLite', 'database'], ['Скрыть оружие или прокрут', 'weapons'], ['Редкость оружия', 'weapons'], ['Бесплатный ордер', 'shop'], ['Награды за места в топе', 'season'],
   ['Создать промокод', 'promos'], ['Создать квест или достижение', 'quests'], ['Рассылка по ссылке на пост', 'broadcast'], ['Выдать доступ администратору', 'admins'],
   ['Оплата звёздами и CryptoBot', 'payments'], ['Премиум-эмодзи подарков', 'emoji'], ['Манифест TON Connect', 'tonconnect'], ['Одобрить или отклонить вывод', 'withdrawals'],
   ['Расходы и доходы', 'finance'], ['Лимит автовывода NFT', 'relayer'], ['Ключ Portals и MRKT', 'market'], ['Автообновление цен', 'market'],
 ];
-const CONTAINERS = { admOverview: 'overview', admFinance: 'finance', admUsers: 'users', admRtp: 'rtp', admWithdrawals: 'withdrawals', admPromos: 'promos', admQuests: 'quests', admPayments: 'payments', admShop: 'shop', admWeapons: 'weapons', admLevels: 'levels', admBroadcast: 'broadcast', admSeason: 'season', admEmoji: 'emoji', admRelayer: 'relayer', admMarket: 'market', admBot: 'bot', admAdmins: 'admins', admTonConnect: 'tonconnect', admAppearance: 'appearance' };
+const CONTAINERS = { admOverview: 'overview', admFinance: 'finance', admUsers: 'users', admRtp: 'rtp', admWithdrawals: 'withdrawals', admPromos: 'promos', admQuests: 'quests', admPayments: 'payments', admShop: 'shop', admWeapons: 'weapons', admLevels: 'levels', admDatabase: 'database', admBroadcast: 'broadcast', admSeason: 'season', admEmoji: 'emoji', admRelayer: 'relayer', admMarket: 'market', admBot: 'bot', admAdmins: 'admins', admTonConnect: 'tonconnect', admAppearance: 'appearance' };
 const gs = { items: [], sel: 0, timer: 0, seq: 0 };
 function buildIndex() {
   const items = [];

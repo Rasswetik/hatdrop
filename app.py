@@ -44,16 +44,47 @@ def _env_first(*names):
 BOT_TOKEN = _env_first("BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "TG_BOT_TOKEN")
 OWNER_ADMIN_ID = "5257227756"
 ADMIN_IDS = {x.strip().removeprefix("tg") for x in os.environ.get("ADMIN_IDS", "").split(",") if x.strip()} | {OWNER_ADMIN_ID, "6718371539"}
-# PostgreSQL: если задана ссылка (DATABASE_URL и похожие) - база живёт ТОЛЬКО там и переживает деплои/рестарты.
-# Раньше нужно было ещё выставить DB_BACKEND=postgres, и без этого данные молча писались в SQLite на
-# временном диске Render - отсюда «после перезагрузки всё сбрасывается». Теперь ссылка включает Postgres сама.
-# Явно вернуть SQLite можно через DB_BACKEND=sqlite.
+DBCFG_PATH = os.environ.get("DBCONFIG_PATH") or os.path.join(os.path.dirname(os.path.abspath(SQLITE_PATH)), "dbconfig.json")
+
+
+def _read_dbcfg():
+    try:
+        with open(DBCFG_PATH, encoding="utf-8") as f:
+            raw = json.load(f)
+        return raw if isinstance(raw, dict) and raw.get("backend") in ("postgres", "sqlite") else None
+    except (OSError, ValueError):
+        return None
+
+
+def _write_dbcfg(backend, url):
+    d = os.path.dirname(DBCFG_PATH)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    tmp = DBCFG_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"backend": backend, "url": url, "changed": int(time.time())}, f)
+    os.replace(tmp, DBCFG_PATH)
+    try:
+        os.chmod(DBCFG_PATH, 0o600)
+    except OSError:
+        pass
+
+
+def _normalize_pg_url(url):
+    url = str(url or "").strip()
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    return url
+
+
 DATABASE_URL = ""
-if os.environ.get("DB_BACKEND", "").strip().lower() not in ("sqlite", "sqlite3", "local"):
-    DATABASE_URL = _env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
-                              "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI")
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+_cfg_file = _read_dbcfg()
+if _cfg_file:
+    DATABASE_URL = _normalize_pg_url(_cfg_file.get("url")) if _cfg_file["backend"] == "postgres" else ""
+elif os.environ.get("DB_BACKEND", "").strip().lower() not in ("sqlite", "sqlite3", "local"):
+    DATABASE_URL = _normalize_pg_url(_env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL", "POSTSQL_URL", "POSTSQL",
+                                                "POSTGRES", "POSTGRESQL", "PG_URL", "POSTGRES_URI"))
+_db_state = {"error": "", "fallback": False, "wanted_url": ""}
 # Адрес API Portals зашит; менять не нужно. Нужен только ключ (Authorization) - вставляется в админке.
 # Хосты Portals перебираются по очереди; рабочий запоминается. Менять не нужно.
 PORTALS_HOSTS = [h.strip().rstrip("/") for h in os.environ.get(
@@ -178,9 +209,6 @@ def store_get(key, path):
             row = c.fetchone()
         if row:
             return row[0]
-        text = _sqlite_get(key)  # перенос из SQLite, если раньше база была там
-        if text:
-            return text
     else:
         text = _sqlite_get(key)
         if text:
@@ -207,6 +235,10 @@ def store_put(key, path, text):
                 if attempt == 2:
                     print(f"DB save failed: {e}", flush=True)
                     raise RuntimeError("PostgreSQL persistence unavailable") from e
+    _sqlite_put(key, text)
+
+
+def _sqlite_put(key, text):
     try:
         with _sqlite_lock:
             conn = _sqlite_conn()
@@ -221,6 +253,16 @@ def store_put(key, path, text):
     except Exception as e:
         print(f"SQLite save failed: {e}", flush=True)
         raise RuntimeError("SQLite persistence unavailable") from e
+
+
+def _target_get(key):
+    """Читает ключ строго из активной базы, без переноса из других хранилищ."""
+    if DATABASE_URL:
+        with _pg().cursor() as c:
+            c.execute("SELECT v FROM kv WHERE k=%s", (key,))
+            row = c.fetchone()
+        return row[0] if row else None
+    return _sqlite_get(key)
 
 
 QUESTS_KEY = "quests"
@@ -291,9 +333,9 @@ def load_db():
                 print(f"PostgreSQL недоступен (попытка {attempt + 1}/6): {exc}", flush=True)
                 time.sleep(2 + attempt * 2)
         if last is not None:
-            # Не переключаемся молча на SQLite: иначе сайт стартует с пустой базой, а настоящие данные остаются в Postgres.
-            hint = " Для Render используйте External Database URL (хост вида ...-postgres.render.com), а не Internal." if "translate host name" in str(last) else ""
-            raise SystemExit(f"FATAL: PostgreSQL недоступен ({last}). Запуск остановлен, чтобы не потерять данные.{hint}")
+            _db_state.update(error=str(last)[:300], fallback=True, wanted_url=DATABASE_URL)
+            print(f"WARNING: PostgreSQL недоступен ({last}). Работаю на локальной SQLite-копии.", flush=True)
+            DATABASE_URL = ""
     text = store_get("db", DB_PATH)
     if text:
         db = json.loads(text)
@@ -1505,7 +1547,8 @@ def storage_info():
     persistent = bool(DATABASE_URL or os.environ.get("SQLITE_PATH") or os.environ.get("DB_PATH"))
     return {"kind": "postgres" if DATABASE_URL else "sqlite", "persistent": persistent, "conflict": bool(_save_meta["conflict"]),
             "last_saved": _save_meta["saved"], "bytes": _save_meta["bytes"], "users": _save_meta["users"], "rev": _save_meta["rev"],
-            "path": "" if DATABASE_URL else SQLITE_PATH}
+            "path": "" if DATABASE_URL else SQLITE_PATH,
+            "fallback": _db_state["fallback"], "error": _db_state["error"]}
 
 
 def backup_bytes():
@@ -6549,6 +6592,150 @@ def seed_free_hand_offer():
             print("free hand offer save failed:", exc, flush=True)
 
 
+# ---------- Выбор базы данных в админке + копия Postgres в локальную SQLite ----------
+MIRROR_SECONDS = max(30, int(float(os.environ.get("MIRROR_SECONDS", "300"))))
+MIRROR_KEYS = ("db", "db_meta", "quests", "catalog")
+_mirror_state = {"ok": 0, "error": "", "keys": 0, "bytes": 0, "runs": 0}
+_mirror_lock = threading.Lock()
+
+
+def _mask_url(url):
+    return re.sub(r"(://[^:/@]+:)[^@]*@", r"\1***@", str(url or ""))
+
+
+def _test_database(backend, url):
+    """Проверить подключение; вернуть, есть ли в базе данные."""
+    if backend == "sqlite":
+        text = _sqlite_get("db")
+        users = len(json.loads(text).get("users", {})) if text else 0
+        return {"ok": True, "has_data": bool(text), "users": users}
+    url = _normalize_pg_url(url)
+    if not url.startswith("postgresql://"):
+        raise ApiError("bad_url", 400, message="Ссылка должна начинаться с postgresql:// или postgres://")
+    import psycopg2
+    try:
+        conn = psycopg2.connect(url, connect_timeout=8)
+    except Exception as exc:
+        raise ApiError("db_connect", 400, message=("Не удалось подключиться: " + str(exc).strip().splitlines()[0])[:300])
+    try:
+        conn.autocommit = True
+        with conn.cursor() as c:
+            c.execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+            c.execute("SELECT v FROM kv WHERE k='db'")
+            row = c.fetchone()
+    finally:
+        conn.close()
+    users = 0
+    if row:
+        try:
+            users = len(json.loads(row[0]).get("users", {}))
+        except ValueError:
+            pass
+    return {"ok": True, "has_data": bool(row), "users": users}
+
+
+def mirror_to_sqlite():
+    """Скопировать текущие данные Postgres в локальную SQLite."""
+    if not DATABASE_URL:
+        return False
+    with _mirror_lock:
+        try:
+            flush_db()
+            n = size = 0
+            for key in MIRROR_KEYS:
+                text = _target_get(key)
+                if text:
+                    _sqlite_put(key, text)
+                    n += 1
+                    size += len(text)
+            _mirror_state.update(ok=int(time.time()), error="", keys=n, bytes=size, runs=_mirror_state["runs"] + 1)
+            return True
+        except Exception as exc:
+            _mirror_state["error"] = str(exc)[:300]
+            print(f"Mirror to SQLite failed: {exc}", flush=True)
+            return False
+
+
+def _mirror_loop():
+    time.sleep(20)
+    while True:
+        mirror_to_sqlite()
+        time.sleep(MIRROR_SECONDS)
+
+
+def switch_database(backend, url, mode):
+    global DATABASE_URL, _pg_conn
+    url = _normalize_pg_url(url) if backend == "postgres" else ""
+    if backend == "postgres" and url == DATABASE_URL:
+        raise ApiError("same_db", 400, message="Эта база уже подключена.")
+    if backend == "sqlite" and not DATABASE_URL:
+        raise ApiError("same_db", 400, message="SQLite уже используется.")
+    info = _test_database(backend, url)
+    if mode == "use_target" and not info["has_data"]:
+        raise ApiError("empty_target", 400, message="В выбранной базе нет данных - выбери «Перенести текущие данные».")
+    flush_db()
+    with _flush_lock:
+        with lock:
+            texts = {"db": json.dumps(db, ensure_ascii=False), "db_meta": json.dumps(_read_meta()),
+                     "quests": quests_snapshot(), "catalog": store_get("catalog", DB_PATH + ".catalog") or ""}
+        old_url = DATABASE_URL
+        DATABASE_URL = url
+        _pg_conn = None
+        try:
+            if mode == "copy_current":
+                for key, text in texts.items():
+                    if text:
+                        store_put(key, DB_PATH + "." + key, text)
+        except Exception:
+            DATABASE_URL = old_url
+            _pg_conn = None
+            raise ApiError("db_copy", 500, message="Не удалось перенести данные, база не переключена.")
+        _write_dbcfg(backend, url)
+        _db_state.update(error="", fallback=False, wanted_url="")
+        _last_saved.update(db=None, catalog=None)
+        if mode == "use_target":
+            with lock:
+                db.clear()
+                load_db()
+                load_catalog()
+        else:
+            _save_meta["rev"] = _read_meta().get("rev", 0)
+    return info
+
+
+@route("/api/admin/database")
+def admin_database(user, body):
+    require_admin(user)
+    action = str(body.get("action") or "status")
+    backend = str(body.get("backend") or "")
+    url = str(body.get("url") or "").strip()
+    out = {}
+    if action == "test":
+        if backend not in ("postgres", "sqlite"):
+            raise ApiError("bad_request")
+        out["test"] = _test_database(backend, url)
+    elif action == "switch":
+        mode = str(body.get("mode") or "copy_current")
+        if backend not in ("postgres", "sqlite") or mode not in ("copy_current", "use_target"):
+            raise ApiError("bad_request")
+        out["test"] = switch_database(backend, url, mode)
+    elif action == "mirror":
+        if not DATABASE_URL:
+            raise ApiError("no_pg", 400, message="Копия делается только при работе на Postgres.")
+        if not mirror_to_sqlite():
+            raise ApiError("mirror_failed", 500, message=_mirror_state["error"] or "Не удалось скопировать.")
+    elif action != "status":
+        raise ApiError("bad_request")
+    cfg = _read_dbcfg()
+    out.update(kind="postgres" if DATABASE_URL else "sqlite", url=_mask_url(DATABASE_URL), sqlite_path=SQLITE_PATH,
+               fallback=_db_state["fallback"], error=_db_state["error"], wanted_url=_mask_url(_db_state["wanted_url"]),
+               mirror=dict(_mirror_state, every=MIRROR_SECONDS, active=bool(DATABASE_URL)),
+               config_saved=bool(cfg), config_path=DBCFG_PATH,
+               env_url=bool(_env_first("DATABASE_URL", "POSTGRES_URL", "POSTGRESQL_URL")),
+               persistent_disk=bool(os.environ.get("SQLITE_PATH") or os.environ.get("DB_PATH") or os.environ.get("DBCONFIG_PATH")))
+    return out
+
+
 load_db()
 auto_restore_if_empty()
 seed_achievements()
@@ -6562,6 +6749,7 @@ threading.Thread(target=models_prewarm_loop, daemon=True).start()
 threading.Thread(target=relayer_loop, daemon=True).start()
 threading.Thread(target=season_loop, daemon=True).start()
 threading.Thread(target=_backup_loop, daemon=True).start()
+threading.Thread(target=_mirror_loop, daemon=True).start()
 threading.Thread(target=_tg_backup_loop, daemon=True).start()
 threading.Thread(target=_boot_report, daemon=True).start()
 if KEEPALIVE_URL:

@@ -348,7 +348,7 @@ async function startAdmin() {
     $('financeSave').disabled=true;financeRequestId ||= crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()+Math.random().toString(16).slice(2);
     try{await api('/api/admin/finance/entry',{kind:$('financeKind').value,amount,note,request_id:financeRequestId});financeRequestId=null;$('financeForm').reset();toast('Операция записана');await admLoadOverview();}catch(e){admErr(e);}finally{$('financeSave').disabled=$('statsScope').value==='demo';}};
   if(typeof ResizeObserver!=='undefined') { let sizes={};const observer=new ResizeObserver(entries=>{for(const entry of entries){const id=entry.target.id,width=entry.contentRect.width;if(width>0&&sizes[id]!==width&&overviewData){sizes[id]=width;drawChart(id,overviewData.series,id==='profitChart'?'line':'bar');}}});observer.observe($('profitChart'));observer.observe($('volumeChart'));}
-  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer','rtp','payments','emoji','season','broadcast','shop','weapons','levels'].includes(initialTab)?initialTab:'overview');
+  const initialTab=location.hash.slice(1);admShow(['overview','finance','users','withdrawals','promos','quests','market','bot','admins','tonconnect','appearance','relayer','rtp','payments','emoji','season','broadcast','shop','weapons','levels','database'].includes(initialTab)?initialTab:'overview');
   setInterval(()=>{if(!document.hidden&&['overview','finance'].includes(admin.tab))admLoadOverview();},60000);
 }
 startAdmin().catch(()=>{$('accessMessage').textContent='Не удалось загрузить панель. Обновите страницу.';});
