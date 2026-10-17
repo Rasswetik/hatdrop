@@ -1649,7 +1649,7 @@ _backup_state = {"hash": None, "restored": 0}
 
 def auto_restore_if_empty():
     """База пустая (хостинг стёр диск) - берём закреплённую копию из чата владельца с ботом и восстанавливаемся."""
-    if not BOT_TOKEN or db.get("users") or db.get("settings", {}).get("reset_at"):
+    if os.environ.get("AUTO_RESTORE") != "1" or not BOT_TOKEN or db.get("users") or db.get("settings", {}).get("reset_at"):
         return 0
     try:
         pinned = (tg_api("getChat", chat_id=int(OWNER_ADMIN_ID)) or {}).get("pinned_message") or {}

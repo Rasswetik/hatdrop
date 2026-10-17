@@ -22,7 +22,7 @@ class AutoRestoreTests(unittest.TestCase):
             def __enter__(self): return self
             def __exit__(self, *a): return False
 
-        with patch.object(backend, "BOT_TOKEN", "test-token"), patch.object(backend, "tg_api", fake_api), \
+        with patch.dict(backend.os.environ, {"AUTO_RESTORE": "1"}), patch.object(backend, "BOT_TOKEN", "test-token"), patch.object(backend, "tg_api", fake_api), \
                 patch.object(backend.urllib.request, "urlopen", lambda *a, **k: Resp(raw)), \
                 patch.object(backend, "flush_db"), patch.object(backend, "flush_quests"), patch.object(backend, "store_put"):
             self.assertEqual(backend.auto_restore_if_empty(), 1)
