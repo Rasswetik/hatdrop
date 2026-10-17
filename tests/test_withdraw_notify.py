@@ -41,7 +41,7 @@ if __name__ == "__main__":
 class PayloadTests(unittest.TestCase):
     def test_defaults_have_gift_emoji_and_red_open_button(self):
         from bot_messages import DEFAULT_MESSAGES, message_payload
-        for key in ("withdraw_pending", "withdraw_completed", "withdraw_not_found", "withdraw_rejected"):
+        for key in ("withdraw_pending", "withdraw_completed", "season_place_prize", "withdraw_rejected"):
             p = message_payload(DEFAULT_MESSAGES, key, "https://x.example/", "A", "Big Year", gift_emoji='<tg-emoji emoji-id="123456">🎩</tg-emoji>')
             self.assertIn('<tg-emoji emoji-id="123456">', p["text"])
             self.assertIn("Big Year", p["text"])

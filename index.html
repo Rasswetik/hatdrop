@@ -2935,6 +2935,16 @@ html[data-theme="meadow"] .bg-scene { position: absolute; top: 0; left: 0; width
 <style id="upgrade-css">
 /* окно победы в минах */
 .cx-win-card { overflow: hidden; }
+.weapon-modal { max-height: 86vh; display: flex; flex-direction: column; gap: 10px; }
+.weapon-modal h2 { margin: 0; }
+.weapon-modal-sub { margin: 0; font-size: 10px; opacity: .8; line-height: 1.5; }
+.weapon-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; overflow-y: auto; padding: 2px; min-height: 0; }
+.weapon-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border: 3px solid rgba(255,255,255,.25); border-radius: 12px; background: rgba(0,0,0,.22); color: inherit; font: inherit; font-size: 11px; cursor: pointer; }
+.weapon-card img { width: 72px; height: 72px; object-fit: contain; image-rendering: auto; }
+.weapon-card small { font-size: 9px; opacity: .8; }
+.weapon-card.on { border-color: #ffd34d; box-shadow: 0 0 0 2px rgba(255,211,77,.35); }
+.weapon-card.locked { filter: grayscale(1); opacity: .5; cursor: not-allowed; }
+.weapon-modal .cta { width: 100%; padding: 14px; font-size: 16px; }
 button.lvl-badge { font: inherit; color: inherit; cursor: pointer; }
 .lvl-modal { max-height: 86vh; display: flex; flex-direction: column; gap: 10px; }
 .lvl-modal h2 { margin: 0; }
@@ -3051,7 +3061,7 @@ html[data-halloween="on"] #view-chests {
 /* Never expose an event-only weapon before the server enables the event. */
 html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-custom,html:not([data-halloween="on"]) #weaponMenu [data-weapon="skeleton"] { display:none!important; }
 </style>
-<link rel="stylesheet" href="/static/ui-layout.css?v=6">
+<link rel="stylesheet" href="/static/ui-layout.css?v=7">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -3657,8 +3667,6 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
           <button class="fast-btn weapon-btn" id="weaponBtn" type="button" title="Оружие" aria-label="Оружие">
             <img id="weaponIcon" src="images/axe-icon.webp" alt="">
           </button>
-          <div class="weapon-menu" id="weaponMenu" hidden="">
-          </div>
         </span>
         <button class="cta spin-btn" id="spinBtn">
           <span id="spinBtnText">UP</span>
@@ -3785,7 +3793,7 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
       <p class="empty" id="lbEmpty" hidden="">Пока никто не играл. Крути — и займёшь первое место!</p>
     </section>
     <section class="view kostyan-quests-view" id="view-quests" hidden>
-      <header class="kostyan-header"><img src="/img/costyan_que.png?v=1" alt="Квесты от Костяна — скелет Костян в очках" class="kostyan-banner"></header>
+      <header class="kostyan-header"><img src="/img/kostyan-meadow.png?v=1" alt="Костян" class="kostyan-banner" id="kostyanBanner"></header>
       <div class="kostyan-quests-lead"><p>Выполняй задания, получай награды и прокачивай свою удачу!</p></div>
       <div id="questToolbar" class="kq-toolbar" hidden></div>
       <div id="questLoading" class="kostyan-state">Загружаем задания…</div>
@@ -3820,6 +3828,14 @@ html:not([data-halloween="on"]) .ptr-skeleton,html[data-weapon-custom="0"] .ptr-
   </div>
 </div>
 
+<div class="modal" id="weaponModal" hidden="">
+  <div class="modal-card weapon-modal">
+    <h2>Снаряжение</h2>
+    <p class="weapon-modal-sub">Выбери, чем крутить колесо. Закрытое снаряжение выдают за достижения.</p>
+    <div class="weapon-grid" id="weaponGrid"></div>
+    <button class="cta" id="weaponModalClose" type="button">Закрыть</button>
+  </div>
+</div>
 <div class="modal" id="lvlModal" hidden="">
   <div class="modal-card lvl-modal">
     <h2>Награды за уровни</h2>
@@ -6227,7 +6243,15 @@ const EVENT_SKINS = {
 function activeEventKey() { return document.documentElement.dataset.halloween === 'on' ? 'halloween' : 'default'; }
 function eventSkin() { return EVENT_SKINS[activeEventKey()]; }
 const CX_IMG = { get closed(){return eventSkin().mines.closed;},get gold(){return eventSkin().mines.gold;},get empty(){return eventSkin().mines.empty;} };
+function syncKostyanBanner() {
+  const img = document.getElementById('kostyanBanner');
+  if (!img) return;
+  const want = activeEventKey() === 'halloween' ? '/img/kostyan-halloween.png?v=1' : '/img/kostyan-meadow.png?v=1';
+  if (img.getAttribute('src') !== want) img.src = want;
+  img.onerror = () => { img.onerror = null; img.src = '/img/costyan_que.png?v=1'; };
+}
 function syncEventAppearance() {
+  syncKostyanBanner();
   const skin = eventSkin();
   buildWeaponMenu();
   let preferred = 'axe';
@@ -7151,21 +7175,22 @@ function setOwnedWeapons(list) {
   setWeapon(preferred);
 }
 function buildWeaponMenu() {
-  const menu = $('weaponMenu');
-  if (!menu) return;
-  menu.replaceChildren();
+  const grid = $('weaponGrid');
+  if (!grid) return;
+  grid.replaceChildren();
   const cur = document.documentElement.dataset.weapon;
   for (const id of eventSkin().weapons) {
     const locked = !ownedWeapons.includes(id);
     const b = document.createElement('button');
     b.type = 'button';
+    b.className = 'weapon-card' + (locked ? ' locked' : '') + (id === cur ? ' on' : '');
     b.dataset.weapon = id;
-    if (locked) { b.classList.add('locked'); b.setAttribute('aria-disabled', 'true'); b.title = tr('Заблокировано — получи в достижениях'); }
-    if (id === cur) b.classList.add('on');
+    if (locked) b.setAttribute('aria-disabled', 'true');
     const img = document.createElement('img'); img.src = WEAPONS[id]; img.alt = '';
-    const span = document.createElement('span'); span.textContent = tr(WEAPON_LABELS[id]) + (locked ? ' 🔒' : '');
-    b.append(img, span);
-    menu.appendChild(b);
+    const name = document.createElement('span'); name.textContent = tr(WEAPON_LABELS[id]);
+    const note = document.createElement('small'); note.textContent = locked ? tr('🔒 Закрыто') : id === cur ? tr('Выбрано') : '';
+    b.append(img, name, note);
+    grid.appendChild(b);
   }
 }
 
@@ -7176,7 +7201,7 @@ function setWeapon(name) {
   if (WEAPON_CUSTOM.has(w)) document.querySelector('.ptr-custom').setAttribute('href', `/static/weapons/${w}.png?v=1`);
   if (w === name) { try { localStorage.setItem('weapon', w); localStorage.setItem('weapon:' + activeEventKey(), w); } catch (e) {} }
   $('weaponIcon').src = WEAPONS[w];
-  document.querySelectorAll('#weaponMenu [data-weapon]').forEach((b) => b.classList.toggle('on', b.dataset.weapon === w));
+  buildWeaponMenu();
 }
 
 let pumpkinScareTimer = 0;
@@ -7226,7 +7251,6 @@ function initSpinStyle() {
     e.stopPropagation();
     if (spinning) return;
     haptic('impact', 'light');
-    $('weaponMenu').hidden = true;
     menu.hidden = !menu.hidden;
   });
   menu.addEventListener('click', (e) => {
@@ -7243,23 +7267,26 @@ function initWeapon() {
   let saved = 'axe';
   try { saved = localStorage.getItem('weapon') || 'axe'; } catch (e) {}
   setWeapon(saved);
-  const menu = $('weaponMenu');
+  const modal = $('weaponModal');
+  const close = () => { modal.hidden = true; };
   $('weaponBtn').addEventListener('click', (e) => {
     e.stopPropagation();
     if (spinning) return;
     haptic('impact', 'light');
     $('spinMenu').hidden = true;
-    menu.hidden = !menu.hidden;
+    buildWeaponMenu();
+    modal.hidden = false;
   });
-  menu.addEventListener('click', (e) => {
+  $('weaponGrid').addEventListener('click', (e) => {
     const b = e.target.closest('[data-weapon]');
     if (!b) return;
-    if (b.classList.contains('locked')) { haptic('notification', 'warning'); toast(tr('Снаряжение заблокировано — получи его за достижения'), true); return; }
+    if (b.classList.contains('locked')) { haptic('notification', 'warning'); toast(tr('Снаряжение закрыто — получи его за достижения'), true); return; }
     haptic('impact', 'light');
     setWeapon(b.dataset.weapon);
-    menu.hidden = true;
+    close();
   });
-  document.addEventListener('click', (e) => { if (!menu.hidden && !e.target.closest('#weaponMenu')) menu.hidden = true; });
+  $('weaponModalClose').addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 }
 
 const POINTER_HOLD_MS = 350;

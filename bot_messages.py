@@ -12,10 +12,10 @@ DEFAULT_MESSAGES = {
     'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ Автовывод не удался\n{gift_emoji} {gift} → {user}\nОшибка релейера: {error}', 'buttons': []},
     'admin_withdraw_new': {'label': 'Админу: новая заявка на вывод', 'text': '{gift_emoji} <b>Новая заявка на вывод</b>\n{gift} · {value} TON\n{user} · ID <code>{id}</code>\nРежим: {mode}', 'buttons': []},
     'admin_withdraw_error': {'label': 'Админу: ошибка автовывода', 'text': '⚠️ <b>Автовывод не удался</b>\n{gift_emoji} {gift} → {user}\nОшибка релейера: <code>{error}</code>', 'buttons': []},
-    'withdraw_pending': {'label': 'Заявка на вывод создана', 'text': '📨 Заявка на вывод {gift_emoji} {gift} принята. Подарок передаётся автоматически — пришлём уведомление.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
-    'withdraw_completed': {'label': 'Вывод выполнен (подарок отправлен)', 'text': '✅ Заявка на вывод: {gift_emoji} {gift} успешно отправлен! Проверьте свои подарки в Telegram.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
-    'withdraw_not_found': {'label': 'Подарок не найден на релейере', 'text': '⚠️ {gift_emoji} {gift} не найден на релейере. Ожидайте ручной выдачи — администратор отправит подарок вручную.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
-    'withdraw_approved': {'label': 'Вывод одобрен (ручной)', 'text': '✅ {gift_emoji} {gift} найден. Заявка одобрена, ожидайте отправки.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'season_place_prize': {'label': 'Место в топе: есть награда', 'text': '🏆 Сезон «{season}» завершён! Вы заняли {place} место.\nНаграда: {gift_emoji} <b>{gift}</b> — уже в вашем инвентаре.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'season_place_none': {'label': 'Место в топе: без награды', 'text': '🏆 Сезон «{season}» завершён! Вы заняли {place} место. За это место награды нет — попробуйте в следующем сезоне!', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_pending': {'label': 'Заявка на вывод отправлена', 'text': '📨 Запрос на вывод {gift_emoji} {gift} отправлен. Ожидайте — мы сообщим, когда подарок будет у вас.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
+    'withdraw_completed': {'label': 'Подарок выдан (вручную или автоматически)', 'text': '✅ {gift_emoji} {gift} отправлен вам! Проверьте свои подарки в Telegram.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
     'withdraw_rejected': {'label': 'Вывод отклонён', 'text': '❌ Ваша заявка на вывод {gift_emoji} {gift} отклонена. Подарок вернулся в инвентарь.', 'buttons': [{'text': 'Открыть', 'action': 'app', 'target': 'profile', 'style': 'danger'}]},
 }
 FORMAT_TAGS = ('b', 'i', 'u', 's', 'code', 'pre', 'tg-spoiler', 'blockquote')
@@ -41,7 +41,7 @@ def safe_text(segment):
 
 
 EMOJI_ID_RE = re.compile(r'[0-9]{5,30}')
-TOKEN_RE = re.compile(r'\{(name|gift|gift_emoji|value|user|id|mode|error)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
+TOKEN_RE = re.compile(r'\{(name|gift|gift_emoji|value|user|id|mode|error|place|season)\}|\[emoji:([0-9]{5,30}):([^\]\r\n]{1,16})\]')
 APP_VIEWS = ('menu', 'upgrade', 'chests', 'profile')
 BUTTON_STYLES = ('default', 'primary', 'success', 'danger')
 MAX_CUSTOM_COMMANDS = 98  # Telegram supports 100, including /start and /help.
@@ -138,7 +138,7 @@ def message_payload(config, key, app_url, name='друг', gift='подарок'
     item = config[key]
     replacements = {'name': str(name or 'друг')[:120], 'gift': str(gift or 'подарок')[:200],
                     **{k: str(v)[:300] for k, v in (extra or {}).items()}}
-    for k in ('value', 'user', 'id', 'mode', 'error'):
+    for k in ('value', 'user', 'id', 'mode', 'error', 'place', 'season'):
         replacements.setdefault(k, '')
     # Single pass prevents placeholders in player-provided names from being expanded.
     # Текст уходит с parse_mode=HTML: всё экранируется, токены [emoji:ID:символ] становятся <tg-emoji>.

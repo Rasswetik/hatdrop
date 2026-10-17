@@ -114,3 +114,43 @@ html[data-halloween="on"] #view-menu .menu-card.mc-chests { --mc:#e5c58f; }
   #view-menu .menu-card:hover .mc-chev { transform:translateX(3px); }
 }
 #view-menu .menu-card .mc-chev { transition:transform .15s ease-out; }
+
+/* ===== Раздел Костяна: оформление по режимам (поляна / Хэллоуин / фиолетовая) ===== */
+#view-quests {
+  --kq-a:#333052; --kq-b:#17132a; --kq-edge:#79527d; --kq-shadow:#100b22; --kq-shine:#66648d;
+  --kq-icon-bg:#151730; --kq-chip-bg:#13172e; --kq-chip-edge:#41476e; --kq-title:#ffe1a3; --kq-text:#b8aed0;
+  --kq-bar-bg:#161430; --kq-bar-edge:#0d122d; --kq-bar-a:#ffe69e; --kq-bar-b:#ffaa32; --kq-bar-shade:#bc692d;
+  --kq-btn-a:#426fb1; --kq-btn-b:#284576; --kq-btn-edge:#11284b; --kq-btn-shine:#77a0d6; --kq-btn-text:#fff0c8;
+  --kq-lead-a:#281c42e8; --kq-lead-b:#17162edb; --kq-lead-edge:#9f643b; --kq-frame:#693c27; --kq-frame-in:#c18346;
+}
+html[data-theme="meadow"]:not([data-halloween="on"]) #view-quests {
+  --kq-a:#986438; --kq-b:#57351d; --kq-edge:#382315; --kq-shadow:#2a190d; --kq-shine:#d59b58;
+  --kq-icon-bg:#3d2615; --kq-chip-bg:#3d2615; --kq-chip-edge:#7b512d; --kq-title:#ffdf91; --kq-text:#f3dcb4;
+  --kq-bar-bg:#2f1d10; --kq-bar-edge:#1f120a; --kq-bar-a:#c4f07a; --kq-bar-b:#5fae2e; --kq-bar-shade:#3b7a1c;
+  --kq-btn-a:#6dbb3a; --kq-btn-b:#3f7f1f; --kq-btn-edge:#1f4510; --kq-btn-shine:#a6e06a; --kq-btn-text:#fff7da;
+  --kq-lead-a:#7b512df0; --kq-lead-b:#57351df0; --kq-lead-edge:#382315; --kq-frame:#382315; --kq-frame-in:#d59b58;
+}
+html[data-halloween="on"] #view-quests {
+  --kq-a:#4a6275; --kq-b:#243546; --kq-edge:#101e2c; --kq-shadow:#0a141e; --kq-shine:#7f96a8;
+  --kq-icon-bg:#142230; --kq-chip-bg:#142230; --kq-chip-edge:#3b556b; --kq-title:#f0d9a5; --kq-text:#c3d0dc;
+  --kq-bar-bg:#101c28; --kq-bar-edge:#0a141e; --kq-bar-a:#ffb866; --kq-bar-b:#f07a1f; --kq-bar-shade:#a8480e;
+  --kq-btn-a:#8a5aa8; --kq-btn-b:#4f2f6b; --kq-btn-edge:#241236; --kq-btn-shine:#b894d4; --kq-btn-text:#fff0dc;
+  --kq-lead-a:#2b3f50f0; --kq-lead-b:#1a2733f0; --kq-lead-edge:#101e2c; --kq-frame:#101e2c; --kq-frame-in:#7f96a8;
+}
+#view-quests .kostyan-header { border-color:var(--kq-frame); box-shadow:inset 0 0 0 3px var(--kq-frame-in); }
+#view-quests .kostyan-quests-lead { background:linear-gradient(180deg,var(--kq-lead-a),var(--kq-lead-b)); border-color:var(--kq-lead-edge); }
+#view-quests .kostyan-quests-lead p { color:var(--kq-text); }
+#view-quests .kostyan-quest-card { background:linear-gradient(150deg,var(--kq-a),var(--kq-b)); border-color:var(--kq-edge);
+  box-shadow:inset 2px 2px var(--kq-shine),inset -2px -2px var(--kq-shadow),0 4px 0 var(--kq-shadow); }
+#view-quests .kostyan-quest-icon { background:var(--kq-icon-bg); border-color:var(--kq-edge); }
+#view-quests .kostyan-quest-info h3 { color:var(--kq-title); }
+#view-quests .kostyan-quest-info p, #view-quests .kostyan-progress-count { color:var(--kq-text); }
+#view-quests .kq-reward { background:var(--kq-chip-bg); border-color:var(--kq-chip-edge); color:var(--kq-title); }
+#view-quests .kostyan-progress { background:var(--kq-bar-bg); border-color:var(--kq-bar-edge); box-shadow:none; }
+#view-quests .kostyan-progress > span { background:linear-gradient(var(--kq-bar-a),var(--kq-bar-b)); box-shadow:inset 0 -3px var(--kq-bar-shade); }
+#view-quests .kostyan-quest-action { background:linear-gradient(var(--kq-btn-a),var(--kq-btn-b)); border-color:var(--kq-btn-edge); color:var(--kq-btn-text);
+  box-shadow:inset 2px 2px var(--kq-btn-shine),inset -2px -2px var(--kq-btn-edge); }
+#view-quests .kostyan-quest-card.is-ready .kostyan-quest-action { background:linear-gradient(#ffb04a,#e8892b); border-color:#5a2a0c; color:#2a1000; box-shadow:inset 2px 2px #ffd89a,inset -2px -2px #b4631a; }
+#view-quests .kq-tab { background:var(--kq-chip-bg); border-color:var(--kq-edge); color:var(--kq-text); box-shadow:inset 2px 2px var(--kq-shine),inset -2px -2px var(--kq-shadow); }
+#view-quests .kq-tab.on { background:linear-gradient(#ffb04a,#e8892b); border-color:#5a2a0c; color:#2a1000; box-shadow:inset 2px 2px #ffd89a,inset -2px -2px #b4631a; }
+#view-quests .kostyan-state { background:var(--kq-lead-b); border-color:var(--kq-edge); color:var(--kq-title); }

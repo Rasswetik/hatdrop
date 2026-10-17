@@ -771,6 +771,35 @@ def route(path):
     return deco
 
 
+def admin_io(path):
+    """Админ-маршрут с сетевым вводом-выводом: проверка прав под lock, сам вызов — без него."""
+    def deco(fn):
+        def view():
+            with lock:
+                user, body = current_user()
+                require_admin(user)
+            try:
+                result = fn(body)
+            except ApiError:
+                raise
+            except relayer_lib.RelayerError as exc:
+                raise ApiError("relayer_error", 409, message=str(exc))
+            except Exception as exc:
+                print(f"relayer call failed: {type(exc).__name__}: {exc}", flush=True)
+                raise ApiError("relayer_error", 409, message=relayer_lib.explain(exc))
+            with lock:
+                save_db()
+            try:
+                flush_db()
+            except Exception as exc:
+                print(f"relayer persistence failed: {exc}", flush=True)
+            return jsonify(result)
+        view.__name__ = fn.__name__
+        app.add_url_rule(path, fn.__name__, view, methods=["POST"])
+        return fn
+    return deco
+
+
 def level_info(turnover):
     level = int((turnover / 5) ** 0.5) + 1
     low = (level - 1) ** 2 * 5
@@ -1395,6 +1424,142 @@ def admin_backup_send(user, body):
     return {"ok": send_backup_to_owner()}
 
 
+# ---------- Рассылка: всем или выбранным; пост из канала копируется по ссылке ----------
+POST_LINK_RE = re.compile(r"^(?:https?://)?(?:t|telegram)\.me/(?:(c)/(\d{4,15})|([A-Za-z][A-Za-z0-9_]{3,31}))(?:/\d+)?/(\d+)(?:[/?#].*)?$")
+_broadcast_busy = threading.Event()
+
+
+def parse_post_link(link):
+    """t.me/channel/123 или t.me/c/1234567890/123 -> (from_chat_id, message_id)."""
+    m = POST_LINK_RE.match(str(link or "").strip())
+    if not m:
+        raise ApiError("bad_post_link", 400, message="Ссылка должна вести на пост канала: https://t.me/канал/123")
+    chat = int("-100" + m.group(2)) if m.group(1) else "@" + m.group(3)
+    return chat, int(m.group(4))
+
+
+def broadcast_recipients(audience, raw_list):
+    with lock:
+        users = [u for u in db["users"].values() if str(u["id"]).startswith("tg") and not u.get("demo")]
+        if audience == "all":
+            return [u["id"] for u in users]
+        wanted = [x.strip().lstrip("@").lower() for x in re.split(r"[\s,;]+", str(raw_list or "")) if x.strip()]
+        if not wanted:
+            raise ApiError("bad_request", 400, message="Укажите получателей: @username или Telegram ID через пробел.")
+        found, seen = [], set()
+        for u in users:
+            keys = {str(u["id"]).lower(), str(u["id"])[2:], str(u.get("username") or "").lower(), str(u.get("key") or "").lower()}
+            if keys & set(wanted) and u["id"] not in seen:
+                seen.add(u["id"]); found.append(u["id"])
+        return found
+
+
+def _broadcast_send_one(uid, source):
+    chat = int(str(uid)[2:])
+    for attempt in (1, 2):
+        try:
+            if source["kind"] == "post":
+                tg_api("copyMessage", chat_id=chat, from_chat_id=source["chat"], message_id=source["message_id"])
+            else:
+                extra = {"parse_mode": "HTML", "link_preview_options": {"is_disabled": True}}
+                tg_api("sendMessage", chat_id=chat, text=source["html"], **extra)
+            return "sent"
+        except Exception as exc:
+            text = str(exc)
+            m = re.search(r"retry after (\d+)", text)
+            if m and attempt == 1:
+                time.sleep(min(30, int(m.group(1)) + 1))
+                continue
+            if "blocked" in text or "deactivated" in text or "chat not found" in text or "Forbidden" in text:
+                return "blocked"
+            return "failed:" + text[:120]
+    return "failed"
+
+
+def _broadcast_worker(bid, recipients, source):
+    try:
+        for uid in recipients:
+            result = _broadcast_send_one(uid, source)
+            with lock:
+                row = db["broadcasts"][bid]
+                if result == "sent":
+                    row["sent"] += 1
+                elif result == "blocked":
+                    row["blocked"] += 1
+                else:
+                    row["failed"] += 1
+                    row["last_error"] = result
+                    if row["failed"] >= 5 and row["sent"] == 0:
+                        row["error"] = result
+                        break
+                save_db()
+            time.sleep(0.05)
+    finally:
+        with lock:
+            row = db["broadcasts"][bid]
+            row["status"] = "done"
+            row["finished"] = int(time.time())
+            save_db()
+        _broadcast_busy.clear()
+
+
+def _broadcast_source(body):
+    if str(body.get("link") or "").strip():
+        chat, mid = parse_post_link(body["link"])
+        return {"kind": "post", "chat": chat, "message_id": mid, "label": str(body["link"]).strip()[:200]}
+    text = str(body.get("text") or "").strip()
+    if not text:
+        raise ApiError("bad_request", 400, message="Вставьте ссылку на пост канала или напишите текст.")
+    try:
+        validate_message({"text": text, "buttons": []})
+    except ValueError:
+        raise ApiError("bad_request", 400, message="Проверьте текст: теги стилей должны закрываться, длина до 3500.")
+    payload = message_payload({"x": {"text": text, "buttons": []}}, "x", "", "друг")
+    return {"kind": "text", "html": payload["text"], "label": text[:80]}
+
+
+@admin_io("/api/admin/broadcast/test")
+def admin_broadcast_test(body):
+    with lock:
+        user, _ = current_user()
+        uid = user["id"]
+    source = _broadcast_source(body)
+    result = _broadcast_send_one(uid, source)
+    if result != "sent":
+        raise ApiError("broadcast_failed", 409, message="Не удалось отправить тест (бот должен иметь доступ к каналу и вы должны были написать боту): " + result)
+    return {"ok": True}
+
+
+@route("/api/admin/broadcast/start")
+def admin_broadcast_start(user, body):
+    require_admin(user)
+    if not BOT_TOKEN:
+        raise ApiError("bot_token_missing", 400, message="Не задан токен бота.")
+    if _broadcast_busy.is_set():
+        raise ApiError("broadcast_running", 409, message="Другая рассылка ещё идёт.")
+    audience = "all" if body.get("audience") == "all" else "list"
+    source = _broadcast_source(body)
+    recipients = broadcast_recipients(audience, body.get("list"))
+    if not recipients:
+        raise ApiError("bad_request", 400, message="Получатели не найдены.")
+    bid = secrets.token_hex(6)
+    rows = db.setdefault("broadcasts", {})
+    rows[bid] = {"id": bid, "created": int(time.time()), "by": user["id"], "audience": audience, "total": len(recipients),
+                 "sent": 0, "blocked": 0, "failed": 0, "status": "running", "label": source["label"], "kind": source["kind"]}
+    for old in sorted(rows, key=lambda k: rows[k]["created"])[:-30]:
+        del rows[old]
+    _broadcast_busy.set()
+    threading.Thread(target=_broadcast_worker, args=(bid, recipients, source), daemon=True).start()
+    return {"id": bid, "total": len(recipients)}
+
+
+@route("/api/admin/broadcast/list")
+def admin_broadcast_list(user, body):
+    require_admin(user)
+    rows = sorted(db.get("broadcasts", {}).values(), key=lambda r: r["created"], reverse=True)
+    return {"rows": rows[:20], "users": sum(1 for u in db["users"].values() if str(u["id"]).startswith("tg") and not u.get("demo"))}
+
+
 @route("/api/admin/withdrawals")
 def admin_withdrawals(user, body):
     require_admin(user)
@@ -1454,7 +1619,8 @@ def admin_withdrawals_resolve(user, body):
         raise ApiError("invalid_status_transition")
     req["updated"] = int(time.time())
     req["moderator"] = user["id"]
-    _send_bot_message(req["uid"], {"approve": "withdraw_approved", "reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"], prize=prize)
+    if action != "approve":  # «одобрено» игроку не пишем: только отказ и факт выдачи
+        _send_bot_message(req["uid"], {"reject": "withdraw_rejected", "complete": "withdraw_completed"}[action], gift=prize["name"], prize=prize)
     return {"ok": True, "request": withdrawal_record(req)}
 
 
@@ -1482,14 +1648,14 @@ def _prize_collection_key(prize):
     return tier.split(":", 2)[1] if tier.startswith("gift:") and tier.count(":") >= 1 else ""
 
 
-def _send_bot_message(uid, key, name=None, gift=None, prize=None):
+def _send_bot_message(uid, key, name=None, gift=None, prize=None, extra=None):
     with lock:
         config = bot_editor_config()["messages"]
         player = db.get("users", {}).get(uid, {})
         ck = _prize_collection_key(prize)
         tag = gift_emoji_html(ck) if ck else "🎁"
         payload = message_payload(config, key, _bot_app_url(),
-                                  name or player.get("first_name"), gift, gift_emoji=tag)
+                                  name or player.get("first_name"), gift, gift_emoji=tag, extra=extra)
         if "{gift_emoji}" not in config[key]["text"] and tag != "🎁":
             payload["text"] = payload["text"].replace("🎁", tag, 1)  # старые тексты с обычным 🎁
     _send_tg_async(uid, payload["text"], payload.get("reply_markup"), html=True)
@@ -3646,7 +3812,7 @@ def tonconnect_manifest():
 @app.get("/img/<path:name>")
 def quest_image_asset(name):
     # Public quest art can be replaced by uploading files without changing the UI.
-    if name != "costyan_que.png":
+    if name not in ("costyan_que.png", "kostyan-halloween.png", "kostyan-meadow.png"):
         return ("", 404)
     for folder in (os.path.join(BASE_DIR, "img"), os.path.join(BASE_DIR, "images"),
                    os.path.join(BASE_DIR, "static", "img")):
@@ -4470,7 +4636,6 @@ def relayer_process_withdrawals(limit=6):
                 continue
             if res["status"] == "not_found" and prize:
                 req.update(auto="failed", auto_error=res.get("error", ""), auto_status="not_found")
-                _send_bot_message(req["uid"], "withdraw_not_found", gift=prize["name"], prize=prize)
                 _notify_admins_withdrawal(target, prize, req, error="Подарок не найден на релейере — нужен ручной вывод")
                 continue
             first_error = req.get("auto_error") != res.get("error", "")
@@ -4485,35 +4650,6 @@ def relayer_process_withdrawals(limit=6):
                 _notify_admins_withdrawal(target, prize, req, error=req["auto_error"] or res["status"])
         save_db()
     return done
-
-
-def admin_io(path):
-    """Админ-маршрут с сетевым вводом-выводом: проверка прав под lock, сам вызов — без него."""
-    def deco(fn):
-        def view():
-            with lock:
-                user, body = current_user()
-                require_admin(user)
-            try:
-                result = fn(body)
-            except ApiError:
-                raise
-            except relayer_lib.RelayerError as exc:
-                raise ApiError("relayer_error", 409, message=str(exc))
-            except Exception as exc:
-                print(f"relayer call failed: {type(exc).__name__}: {exc}", flush=True)
-                raise ApiError("relayer_error", 409, message=relayer_lib.explain(exc))
-            with lock:
-                save_db()
-            try:
-                flush_db()
-            except Exception as exc:
-                print(f"relayer persistence failed: {exc}", flush=True)
-            return jsonify(result)
-        view.__name__ = fn.__name__
-        app.add_url_rule(path, fn.__name__, view, methods=["POST"])
-        return fn
-    return deco
 
 
 def relayer_status_view():
@@ -5316,12 +5452,15 @@ def season_finish(cur, award=True):
                 print(f"season award failed ({place}): {exc}", flush=True)
                 continue
             winners.append({"place": int(place), "uid": u["id"], "name": display_name(u), "prize": spec["name"], "value_ton": spec["value"]})
-            text = f"🏆 Сезон «{html.escape(cur['name'])}» завершён! Вы заняли <b>{place} место</b>. Награда: "
-            text += (f'<a href="{spec["link"]}">{html.escape(spec["name"])}</a>' if spec.get("link") else f"<b>{html.escape(spec['name'])}</b>")
-            text += " — уже в вашем инвентаре."
-            url = _bot_app_url()
-            markup = {"inline_keyboard": [[{"text": "Открыть приложение", "web_app": {"url": url}}]]} if valid_url(url) else None
-            _send_tg_async(u["id"], text, markup, html=True)
+    prized = {w["uid"]: (spec_ for place_, spec_ in cur.get("prizes", {}).items() if int(place_) == w["place"]) for w in winners}
+    for row in final_rows:
+        u = db["users"].get(row["uid"])
+        if not u or row["total_ton"] <= 0:
+            continue
+        spec = next(iter(prized.get(row["uid"], [])), None)
+        pseudo = {"tier": f"gift:{spec['gift']}:"} if spec and spec.get("kind") == "gift" else None
+        _send_bot_message(row["uid"], "season_place_prize" if spec else "season_place_none", gift=spec["name"] if spec else None,
+                          prize=pseudo, extra={"place": row["rank"], "season": cur["name"]})
     cur.update(finished=True, finished_at=int(time.time()), final_rows=final_rows, winners=winners)
     hist = season_doc()["history"]
     hist.insert(0, {"id": cur["id"], "name": cur["name"], "start": cur["start"], "end": cur["end"], "winners": winners})
